@@ -32,7 +32,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
   }
 
   void _checkAndSeedInitialData() {
-    // FIX: Using the already initialized 'settings' box instead of a new one
     final prefsBox = Hive.box('settings');
     final hasSeeded = prefsBox.get('goals_seeded_v3', defaultValue: false);
     
@@ -72,16 +71,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
         currentValue: 1,
         unit: 'modules',
       ),
-      Goal(
-        id: '4',
-        title: 'Hydration Override',
-        type: GoalType.daily,
-        category: GoalCategory.health,
-        targetValue: 3,
-        currentValue: 3,
-        unit: 'liters',
-        isCompleted: true,
-      ),
     ];
 
     for (var goal in seedGoals) {
@@ -99,7 +88,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          "O P E R A T I O N A L   G O A L S",
+          "T A S K",
           style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -161,25 +150,28 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
     );
   }
 
-  // =============================================================================
+ // =============================================================================
   // ANALYTICS VIEW
   // =============================================================================
   Widget _buildAnalyticsView(List<Goal> allGoals) {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // Moved the Streak Tracker to the very top!
+          _buildStreakTracker(allGoals), 
+          
           _buildWeeklyProgressGraph(allGoals),
           const SizedBox(height: 16),
+          
           _buildStatisticsCards(allGoals),
           const SizedBox(height: 16),
+          
           _buildCategoryBreakdown(allGoals),
           const SizedBox(height: 16),
-          _buildStreakTracker(allGoals),
         ],
       ),
     );
   }
-
   Widget _buildWeeklyProgressGraph(List<Goal> allGoals) {
     final weeklyData = _getWeeklyProgressData(allGoals);
 
@@ -639,13 +631,39 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                     ],
                   ),
                 ),
+
+                if (goal.streakCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(252, 60, 68, 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color.fromRGBO(252, 60, 68, 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_fire_department, color: Color(0xFFFC3C44), size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${goal.streakCount}',
+                          style: const TextStyle(
+                            color: Color(0xFFFC3C44), 
+                            fontSize: 12, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
                 IconButton(
                   icon: Icon(
                     goal.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
                     color: goal.isCompleted ? Colors.green : Colors.grey,
                   ),
                   onPressed: () {
-                    // Check if goal still exists in box before modifying
                     if (!missionBox.containsKey(goal.id)) return;
                     
                     setState(() {
@@ -654,7 +672,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                       } else {
                         goal.complete();
                       }
-                      // Explicitly save the updated goal
                       missionBox.put(goal.id, goal);
                     });
                   },
@@ -695,19 +712,9 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                 ),
               ],
             ),
-            if (goal.streakCount > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.local_fire_department, color: Color(0xFFFC3C44), size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${goal.streakCount} day streak',
-                    style: const TextStyle(color: Color(0xFFFC3C44), fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
+            
+            // NOTE: The old bottom streak code has been completely removed from down here!
+            
           ],
         ),
       ),
