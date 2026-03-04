@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:habit_tracker/models/goals.dart';
+import 'package:habit_tracker/screens/finance_page.dart'; 
 
-// =============================================================================
-// MAIN GOALS PAGE WITH INTEGRATED ANALYTICS
-// =============================================================================
+
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
 
@@ -16,7 +15,9 @@ class GoalsPage extends StatefulWidget {
 class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMixin {
   final Box<Goal> missionBox = Hive.box<Goal>('mission_box_v3');
   late TabController _tabController;
+  
   bool showAnalytics = false;
+  bool _isTaskMode = true; // NEW: Tracks the toggle state
 
   @override
   void initState() {
@@ -43,41 +44,14 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
 
   void _seedInitialData() {
     final seedGoals = [
-      Goal(
-        id: '1',
-        title: 'Practice Python / Java',
-        type: GoalType.daily,
-        category: GoalCategory.learning,
-        targetValue: 2,
-        currentValue: 1,
-        unit: 'hours',
-        isCompleted: false,
-      ),
-      Goal(
-        id: '2',
-        title: 'Solve Rubik\'s Cube',
-        type: GoalType.daily,
-        category: GoalCategory.hobby,
-        targetValue: 5,
-        currentValue: 2,
-        unit: 'solves',
-      ),
-      Goal(
-        id: '3',
-        title: 'Engineering Coursework',
-        type: GoalType.weekly,
-        category: GoalCategory.productivity,
-        targetValue: 4,
-        currentValue: 1,
-        unit: 'modules',
-      ),
+      Goal(id: '1', title: 'Practice Python / Java', type: GoalType.daily, category: GoalCategory.learning, targetValue: 2, currentValue: 1, unit: 'hours', isCompleted: false),
+      Goal(id: '2', title: 'Solve Rubik\'s Cube', type: GoalType.daily, category: GoalCategory.hobby, targetValue: 5, currentValue: 2, unit: 'solves'),
+      Goal(id: '3', title: 'Engineering Coursework', type: GoalType.weekly, category: GoalCategory.productivity, targetValue: 4, currentValue: 1, unit: 'modules'),
     ];
 
     for (var goal in seedGoals) {
       goal.progress = (goal.currentValue / goal.targetValue * 100).clamp(0, 100) / 100;
-      if (goal.currentValue >= goal.targetValue) {
-        goal.isCompleted = true;
-      }
+      if (goal.currentValue >= goal.targetValue) goal.isCompleted = true;
       missionBox.put(goal.id, goal);
     }
   }
@@ -87,91 +61,129 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text(
-          "T A S K",
-          style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold),
+        centerTitle: true,
+        // THE NEW GORGEOUS GLASS TOGGLE
+        title: Container(
+          height: 45,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildToggleTab("TASKS", true),
+              _buildToggleTab("FINANCE", false),
+            ],
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(
-              showAnalytics ? Icons.list : Icons.analytics,
-              color: const Color(0xFFFC3C44),
+          if (_isTaskMode) // Only show analytics button in Task Mode
+            IconButton(
+              icon: Icon(showAnalytics ? Icons.list : Icons.analytics, color: const Color(0xFFFC3C44)),
+              onPressed: () => setState(() => showAnalytics = !showAnalytics),
             ),
-            onPressed: () {
-              setState(() {
-                showAnalytics = !showAnalytics;
-              });
-            },
-          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: const Color(0xFFFC3C44),
-          labelColor: const Color(0xFFFC3C44),
-          unselectedLabelColor: Colors.grey,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: "DAILY"),
-            Tab(text: "WEEKLY"),
-            Tab(text: "MONTHLY"),
-          ],
-        ),
+        // Conditionally show tabs only in Task Mode
+        bottom: _isTaskMode 
+            ? TabBar(
+                controller: _tabController,
+                indicatorColor: const Color(0xFFFC3C44),
+                labelColor: const Color(0xFFFC3C44),
+                unselectedLabelColor: Colors.grey,
+                indicatorWeight: 3,
+                tabs: const [Tab(text: "DAILY"), Tab(text: "WEEKLY"), Tab(text: "MONTHLY")],
+              )
+            : const PreferredSize(preferredSize: Size.zero, child: SizedBox.shrink()),
       ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topCenter, end: Alignment.bottomCenter,
             colors: [Colors.black, Color(0xFF0F0020)],
           ),
         ),
-        child: ValueListenableBuilder(
-          valueListenable: missionBox.listenable(),
-          builder: (context, Box<Goal> box, _) {
-            final allGoals = box.values.toList();
-
-            if (showAnalytics) {
-              return _buildAnalyticsView(allGoals);
-            }
-
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _buildGoalList(allGoals, GoalType.daily),
-                _buildGoalList(allGoals, GoalType.weekly),
-                _buildGoalList(allGoals, GoalType.monthly),
-              ],
-            );
-          },
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          // Switch between the Task Engine and the new Finance Engine
+          child: _isTaskMode ? _buildTaskEngine() : const FinanceDashboard(),
         ),
       ),
     );
   }
 
- // =============================================================================
-  // ANALYTICS VIEW
+  // --- NEW TOGGLE HELPER ---
+  Widget _buildToggleTab(String text, bool isTaskButton) {
+    final isSelected = _isTaskMode == isTaskButton;
+    return GestureDetector(
+      onTap: () => setState(() {
+        _isTaskMode = isTaskButton;
+        showAnalytics = false; // Reset analytics view if switching
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.tealAccent.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+          border: isSelected ? Border.all(color: Colors.tealAccent.withOpacity(0.5)) : Border.all(color: Colors.transparent),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isSelected ? Colors.tealAccent : Colors.white54,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            letterSpacing: 1.5,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- EXTRACTED TASK ENGINE ---
+  Widget _buildTaskEngine() {
+    return ValueListenableBuilder(
+      valueListenable: missionBox.listenable(),
+      builder: (context, Box<Goal> box, _) {
+        final allGoals = box.values.toList();
+        if (showAnalytics) return _buildAnalyticsView(allGoals);
+        return TabBarView(
+          controller: _tabController,
+          children: [
+            _buildGoalList(allGoals, GoalType.daily),
+            _buildGoalList(allGoals, GoalType.weekly),
+            _buildGoalList(allGoals, GoalType.monthly),
+          ],
+        );
+      },
+    );
+  }
+
   // =============================================================================
+  // (Keep all your existing _buildAnalyticsView, _buildGoalCard, etc. code exactly the same below here)
+  // =============================================================================
+
   Widget _buildAnalyticsView(List<Goal> allGoals) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Moved the Streak Tracker to the very top!
           _buildStreakTracker(allGoals), 
-          
           _buildWeeklyProgressGraph(allGoals),
           const SizedBox(height: 16),
-          
           _buildStatisticsCards(allGoals),
           const SizedBox(height: 16),
-          
           _buildCategoryBreakdown(allGoals),
           const SizedBox(height: 16),
         ],
       ),
     );
   }
+
   Widget _buildWeeklyProgressGraph(List<Goal> allGoals) {
     final weeklyData = _getWeeklyProgressData(allGoals);
 
@@ -281,7 +293,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
             getTitlesWidget: (value, meta) {
               if (value.toInt() >= weeklyData.length) return const SizedBox();
               final day = weeklyData[value.toInt()].day;
-              // FIX: Wrapped in SideTitleWidget
               return SideTitleWidget(
                 axisSide: meta.axisSide,
                 child: Padding(
@@ -305,7 +316,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
             interval: 25,
             reservedSize: 40,
             getTitlesWidget: (value, meta) {
-              // FIX: Wrapped in SideTitleWidget
               return SideTitleWidget(
                 axisSide: meta.axisSide,
                 child: Text(
@@ -547,9 +557,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
     );
   }
 
-  // =============================================================================
-  // GOAL LIST VIEW
-  // =============================================================================
   Widget _buildGoalList(List<Goal> allGoals, GoalType type) {
     final allTypeGoals = allGoals.where((g) => g.type == type).toList();
     final activeGoals = allTypeGoals.where((g) => !g.isCompleted).toList();
@@ -631,7 +638,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                     ],
                   ),
                 ),
-
+                
                 if (goal.streakCount > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -712,9 +719,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                 ),
               ],
             ),
-            
-            // NOTE: The old bottom streak code has been completely removed from down here!
-            
           ],
         ),
       ),
@@ -768,9 +772,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
     );
   }
 
-  // =============================================================================
-  // DIALOGS & HELPERS
-  // =============================================================================
   void _showGoalDetails(Goal goal) {
     showModalBottomSheet(
       context: context,
@@ -814,7 +815,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Check if goal still exists before incrementing
                         if (missionBox.containsKey(goal.id)) {
                           goal.incrementProgress(1);
                           missionBox.put(goal.id, goal);
@@ -832,11 +832,8 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        // Delete the goal
                         missionBox.delete(goal.id);
                         Navigator.pop(context);
-                        
-                        // Show confirmation snackbar
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('${goal.title} deleted'),
@@ -903,12 +900,8 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                       decoration: InputDecoration(
                         hintText: "Goal title...",
                         hintStyle: TextStyle(color: Colors.grey[600]),
-                        enabledBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFFC3C44)),
-                        ),
+                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFFC3C44))),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -919,12 +912,8 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                       decoration: InputDecoration(
                         hintText: "Target value (e.g., 20)...",
                         hintStyle: TextStyle(color: Colors.grey[600]),
-                        enabledBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFFC3C44)),
-                        ),
+                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFFC3C44))),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -947,13 +936,9 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                           value: category,
                           child: Row(
                             children: [
-                              Icon(_getCategoryIcon(category),
-                                  color: _getCategoryColor(category), size: 20),
+                              Icon(_getCategoryIcon(category), color: _getCategoryColor(category), size: 20),
                               const SizedBox(width: 8),
-                              Text(
-                                _getCategoryName(category),
-                                style: const TextStyle(color: Colors.white),
-                              ),
+                              Text(_getCategoryName(category), style: const TextStyle(color: Colors.white)),
                             ],
                           ),
                         );
@@ -985,9 +970,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
                       Navigator.pop(context);
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFC3C44),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC3C44)),
                   child: const Text("ADD GOAL"),
                 ),
               ],
@@ -997,10 +980,6 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
       },
     );
   }
-
-  // =============================================================================
-  // NEW HABIT HELPERS
-  // =============================================================================
 
   String _getCategoryName(GoalCategory category) {
     switch (category) {
@@ -1066,14 +1045,8 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
 
   String _dayName(int weekday) {
     switch (weekday) {
-      case 1: return 'MON';
-      case 2: return 'TUE';
-      case 3: return 'WED';
-      case 4: return 'THU';
-      case 5: return 'FRI';
-      case 6: return 'SAT';
-      case 7: return 'SUN';
-      default: return '';
+      case 1: return 'MON'; case 2: return 'TUE'; case 3: return 'WED'; case 4: return 'THU';
+      case 5: return 'FRI'; case 6: return 'SAT'; case 7: return 'SUN'; default: return '';
     }
   }
 }
@@ -1083,6 +1056,5 @@ class DailyProgress {
   final double completionRate;
   final int completedGoals;
   final int totalGoals;
-
   DailyProgress(this.day, this.completionRate, this.completedGoals, this.totalGoals);
 }
