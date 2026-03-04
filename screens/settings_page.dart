@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/models/goals.dart';
-import 'dart:ui';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

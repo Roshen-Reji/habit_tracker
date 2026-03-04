@@ -21,11 +21,13 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
   bool _isLoading = true;
   bool _hasPermission = false;
 
-  final Color _accent = Colors.tealAccent; // Keeping the transparent personality
+  final Color _accent = Colors.tealAccent;
 
   @override
   void initState() {
     super.initState();
+    initializeMusicState(); // Initialize persistence hook
+    
     _tabController = TabController(length: 3, vsync: this);
     _requestPermissionsAndScan();
 
@@ -53,7 +55,7 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
         id: s.id.toString(),
         title: s.title,
         artist: s.artist ?? 'Unknown Artist',
-        album: s.album ?? 'Unknown Album', // Mapped album correctly
+        album: s.album ?? 'Unknown Album',
         artworkUrl: '',
         audioUrl: s.uri ?? '',
         source: SongSource.local,
@@ -152,8 +154,16 @@ class _ListenNowView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
+              
+              // 1. Full Library Mix
               if (songs.isNotEmpty) _buildGlassCard(context),
               const SizedBox(height: 30),
+              
+              // 2. Playlists Section (Liked Songs & Custom)
+              _buildPlaylistsSection(context),
+              const SizedBox(height: 30),
+
+              // 3. Recently Added
               _buildHorizontalList(context, 'Recently Added', songs.reversed.take(12).toList()),
               const SizedBox(height: 120),
             ],
@@ -206,6 +216,109 @@ class _ListenNowView extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistsSection(BuildContext context) {
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: likedSongIds,
+      builder: (context, likes, _) {
+        final likedSongsList = songs.where((s) => likes.contains(s.id)).toList();
+        
+        return ValueListenableBuilder<List<PlaylistModel>>(
+          valueListenable: userPlaylists,
+          builder: (context, playlists, _) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20), 
+                  child: Text('Your Playlists', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white))
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 180,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    itemCount: playlists.length + 1, // +1 for Liked Songs
+                    itemBuilder: (context, i) {
+                      if (i == 0) {
+                        return _buildPlaylistCard(
+                          context: context,
+                          title: 'Liked Songs',
+                          subtitle: '${likedSongsList.length} Tracks',
+                          isLikedSongs: true,
+                          onTap: () {
+                            if (likedSongsList.isNotEmpty) {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No liked songs yet."), backgroundColor: Colors.white24));
+                            }
+                          },
+                        );
+                      }
+                      
+                      final p = playlists[i - 1];
+                      return _buildPlaylistCard(
+                        context: context,
+                        title: p.name,
+                        subtitle: '${p.songs.length} Tracks',
+                        isLikedSongs: false,
+                        onTap: () {
+                          if (p.songs.isNotEmpty) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: p.name, songs: p.songs)));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${p.name} is empty."), backgroundColor: Colors.white24));
+                          }
+                        },
+                      );
+                    }
+                  ),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+  }
+
+  Widget _buildPlaylistCard({required BuildContext context, required String title, required String subtitle, required bool isLikedSongs, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isLikedSongs ? null : Colors.white.withOpacity(0.05),
+                    gradient: isLikedSongs 
+                        ? const LinearGradient(colors: [Colors.tealAccent, Colors.purpleAccent], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                        : null,
+                  ),
+                  child: Icon(
+                    isLikedSongs ? Icons.favorite : Icons.queue_music, 
+                    color: isLikedSongs ? Colors.black : Colors.white38, 
+                    size: 40
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
         ),
       ),
     );
@@ -265,7 +378,6 @@ class _LibraryView extends StatelessWidget {
   final VoidCallback onCreatePlaylist;
   const _LibraryView({required this.songs, required this.accent, required this.onCreatePlaylist});
 
-  // Automatic Data Grouping
   Map<String, List<SongModel>> get _groupedByArtist {
     final map = <String, List<SongModel>>{};
     for (var song in songs) {
@@ -288,7 +400,7 @@ class _LibraryView extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(top: 20, bottom: 120),
       children: [
-        _buildLibraryItem(context, 'Playlists', Icons.queue_music, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _PlaylistsPage(onCreate: onCreatePlaylist)))),
+        _buildLibraryItem(context, 'Playlists', Icons.queue_music, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _PlaylistsPage(onCreate: onCreatePlaylist, allSongs: songs)))),
         _buildLibraryItem(context, 'Artists', Icons.mic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Artists', groupedData: _groupedByArtist)))),
         _buildLibraryItem(context, 'Albums', Icons.album, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Albums', groupedData: _groupedByAlbum, isGrid: true)))),
         _buildLibraryItem(context, 'Songs', Icons.music_note, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(songs: songs)))),
@@ -315,7 +427,9 @@ class _LibraryView extends StatelessWidget {
 
 class _PlaylistsPage extends StatelessWidget {
   final VoidCallback onCreate;
-  const _PlaylistsPage({required this.onCreate});
+  final List<SongModel> allSongs;
+
+  const _PlaylistsPage({required this.onCreate, required this.allSongs});
 
   @override
   Widget build(BuildContext context) {
@@ -323,19 +437,57 @@ class _PlaylistsPage extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text('Playlists', style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.tealAccent)),
       floatingActionButton: FloatingActionButton(backgroundColor: Colors.tealAccent, onPressed: onCreate, child: const Icon(Icons.add, color: Colors.black)),
-      body: ValueListenableBuilder<List<PlaylistModel>>(
-        valueListenable: userPlaylists,
-        builder: (context, playlists, _) {
-          if (playlists.isEmpty) return const Center(child: Text("No Playlists Found", style: TextStyle(color: Colors.white54)));
-          return ListView.builder(
-            itemCount: playlists.length,
-            itemBuilder: (context, i) {
-              final p = playlists[i];
-              return ListTile(
-                leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.queue_music, color: Colors.white54)),
-                title: Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                subtitle: Text('${p.songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: p.name, songs: p.songs))),
+      body: ValueListenableBuilder<Set<String>>(
+        valueListenable: likedSongIds,
+        builder: (context, likes, _) {
+          final likedSongsList = allSongs.where((s) => likes.contains(s.id)).toList();
+
+          return ValueListenableBuilder<List<PlaylistModel>>(
+            valueListenable: userPlaylists,
+            builder: (context, playlists, _) {
+              return ListView.builder(
+                padding: const EdgeInsets.only(bottom: 100),
+                itemCount: playlists.length + 1,
+                itemBuilder: (context, i) {
+                  if (i == 0) {
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        width: 55, height: 55, 
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Colors.tealAccent, Colors.purpleAccent], 
+                            begin: Alignment.topLeft, end: Alignment.bottomRight
+                          ),
+                          borderRadius: BorderRadius.circular(12)
+                        ), 
+                        child: const Icon(Icons.favorite, color: Colors.black, size: 28)
+                      ),
+                      title: const Text('Liked Songs', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: Text('${likedSongsList.length} Tracks', style: const TextStyle(color: Colors.white54)),
+                      onTap: () {
+                        if (likedSongsList.isNotEmpty) {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No liked songs yet. Tap the heart icon in the player!"), backgroundColor: Colors.white24));
+                        }
+                      },
+                    );
+                  }
+
+                  final p = playlists[i - 1];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Container(
+                      width: 50, height: 50, 
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), 
+                      child: const Icon(Icons.queue_music, color: Colors.white54)
+                    ),
+                    title: Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    subtitle: Text('${p.songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: p.name, songs: p.songs))),
+                  );
+                }
               );
             }
           );

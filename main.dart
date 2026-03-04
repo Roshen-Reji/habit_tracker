@@ -4,6 +4,8 @@ import 'package:habit_tracker/models/goals.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -31,12 +33,12 @@ class CommanderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: globalNavigatorKey,
       title: 'Commander Habit Tracker',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
         primaryColor: Colors.tealAccent,
-        // Global theme configuration
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,

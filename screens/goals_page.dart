@@ -12,6 +12,7 @@ class GoalsPage extends StatefulWidget {
   @override
   State<GoalsPage> createState() => _GoalsPageState();
 }
+
 class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMixin {
   final Box<Goal> missionBox = Hive.box<Goal>('mission_box_v3');
   late TabController _tabController;
@@ -31,9 +32,8 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
   }
 
   void _checkAndSeedInitialData() {
-    // Use a separate box to track if seeding has been done
-    // This ensures seed data is only added ONCE, not every time the box is empty
-    final prefsBox = Hive.box('app_preferences');
+    // FIX: Using the already initialized 'settings' box instead of a new one
+    final prefsBox = Hive.box('settings');
     final hasSeeded = prefsBox.get('goals_seeded_v3', defaultValue: false);
     
     if (!hasSeeded) {
@@ -289,14 +289,18 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
             getTitlesWidget: (value, meta) {
               if (value.toInt() >= weeklyData.length) return const SizedBox();
               final day = weeklyData[value.toInt()].day;
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  day,
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10,
+              // FIX: Wrapped in SideTitleWidget
+              return SideTitleWidget(
+                axisSide: meta.axisSide,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
                   ),
                 ),
               );
@@ -309,12 +313,16 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
             interval: 25,
             reservedSize: 40,
             getTitlesWidget: (value, meta) {
-              return Text(
-                '${value.toInt()}%',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontWeight: FontWeight.w500,
-                  fontSize: 10,
+              // FIX: Wrapped in SideTitleWidget
+              return SideTitleWidget(
+                axisSide: meta.axisSide,
+                child: Text(
+                  '${value.toInt()}%',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                  ),
                 ),
               );
             },

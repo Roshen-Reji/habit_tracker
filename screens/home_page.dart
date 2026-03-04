@@ -54,11 +54,11 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(24), 
             side: const BorderSide(color: Colors.tealAccent)
           ),
-          title: const Text("INITIALIZING PROTOCOL", style: TextStyle(color: Colors.tealAccent, letterSpacing: 2)),
+          title: const Text("Welcome", style: TextStyle(color: Colors.tealAccent, letterSpacing: 2)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Identify yourself. Enter your callsign to begin.", style: TextStyle(color: Colors.white70)),
+              const Text("enter your name", style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 20),
               TextField(
                 controller: _nameController,
@@ -98,10 +98,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, //
+      extendBody: true, 
       backgroundColor: Colors.black,
       body: Stack(
         children: [
@@ -110,12 +110,13 @@ class _HomePageState extends State<HomePage> {
             alignment: Alignment.bottomCenter,
             child: _buildAppleNavigationStack(),
           ),
+          const GlobalFloatingPlayer(),
         ],
       ),
     );
   }
 
-  Widget _buildAppleNavigationStack() {
+Widget _buildAppleNavigationStack() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       decoration: BoxDecoration(
@@ -131,32 +132,26 @@ class _HomePageState extends State<HomePage> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45), //
+          filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45), 
           child: Container(
-            // FIX: Border is defined here inside BoxDecoration, not ClipRRect
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1C1E).withOpacity(0.7),
+              // CHANGE OPACITY HERE: Lowered from 0.7 to 0.35 for more transparency
+              color: const Color(0xFF1C1C1E).withOpacity(0.35),
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withOpacity(0.15), // Slightly increased border opacity so it doesn't get lost
                 width: 0.5,
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const MiniPlayerBar(), //
-                Container(
-                  height: 0.5,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  color: Colors.white.withOpacity(0.1),
-                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildAppleTab(Icons.dashboard_rounded, "CMD", 0),
+                      _buildAppleTab(Icons.dashboard_rounded, "HOME", 0),
                       _buildAppleTab(Icons.check_circle_rounded, "GOALS", 1),
                       _buildAppleTab(Icons.auto_awesome_motion_rounded, "VAULT", 2),
                       _buildAppleTab(Icons.music_note_rounded, "AUDIO", 3),
@@ -170,7 +165,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
   Widget _buildAppleTab(IconData icon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
     return GestureDetector(
@@ -243,7 +237,7 @@ class DashboardView extends StatelessWidget {
                   const SizedBox(height: 10),
                   const MysteriousMomentumGraph(), //
                   const SizedBox(height: 20),
-                  _buildSectionHeader("OPERATIONAL STATUS"),
+                  _buildSectionHeader("Tasks"),
                   _buildDailyMissionsList(),
                 ],
               ),

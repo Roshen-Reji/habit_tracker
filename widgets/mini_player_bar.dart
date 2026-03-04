@@ -1,109 +1,81 @@
-import 'dart:ui';
+import 'dart:ui'; // Required for ImageFilter (Glass effect)
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/screens/music_player_page.dart';
+import 'package:habit_tracker/main.dart'; 
 
-class MiniPlayerBar extends StatelessWidget {
-  const MiniPlayerBar({super.key});
+class GlobalFloatingPlayer extends StatefulWidget {
+  const GlobalFloatingPlayer({super.key});
+
+  @override
+  State<GlobalFloatingPlayer> createState() => _GlobalFloatingPlayerState();
+}
+
+class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
+  double xOffset = 20;
+  double yOffset = 100;
+  bool isInitialized = false;
+  final musicManager = MusicManager();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!isInitialized) {
+      final size = MediaQuery.of(context).size;
+      xOffset = (size.width - 150) / 2;
+      yOffset = size.height - 250;
+      isInitialized = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final musicManager = MusicManager();
-
     return StreamBuilder<SequenceState?>(
       stream: musicManager.audioPlayer.sequenceStateStream,
       builder: (context, snapshot) {
         final state = snapshot.data;
         
-        // Hide the bar entirely if no music is loaded or playlist is missing
+        // Hide completely if nothing is playing
         if (state == null || musicManager.currentPlaylist == null) {
-          return const SizedBox.shrink();
+          return const SizedBox.shrink(); 
         }
 
         final currentIndex = state.currentIndex;
         final currentSong = musicManager.currentPlaylist![currentIndex];
+        final size = MediaQuery.of(context).size;
+        
+        const playerWidth = 140.0;
+        const playerHeight = 180.0;
 
-        return GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MysteriousMusicPlayer(
-                playlist: musicManager.currentPlaylist!,
-                initialIndex: currentIndex,
-              ),
-            ),
-          ),
-          child: Container(
-            height: 70, // Slightly taller for better touch targets in the unified bar
-            decoration: BoxDecoration(
-              // Semi-transparent to allow the HomePage's BackdropFilter to layer correctly
-              color: const Color(0xFF120024).withOpacity(0.4), 
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.tealAccent.withOpacity(0.1), 
-                  width: 0.5,
+        xOffset = xOffset.clamp(0.0, size.width - playerWidth);
+        yOffset = yOffset.clamp(0.0, size.height - playerHeight);
+
+        return Positioned(
+          left: xOffset,
+          top: yOffset,
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              setState(() {
+                xOffset += details.delta.dx;
+                yOffset += details.delta.dy;
+              });
+            },
+            onTap: () {
+              globalNavigatorKey.currentState?.push(
+                MaterialPageRoute(
+                  builder: (context) => MysteriousMusicPlayer(
+                    playlist: musicManager.currentPlaylist!,
+                    initialIndex: currentIndex,
+                  ),
                 ),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  // Mini Artwork
-                  _buildMiniArtwork(currentSong),
-                  const SizedBox(width: 12),
-                  
-                  // Song Details
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentSong.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          currentSong.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.tealAccent.withOpacity(0.7),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Play/Pause Interaction
-                  StreamBuilder<PlayerState>(
-                    stream: musicManager.audioPlayer.playerStateStream,
-                    builder: (context, snapshot) {
-                      final playing = snapshot.data?.playing ?? false;
-                      return IconButton(
-                        icon: Icon(
-                          playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        onPressed: () => playing 
-                            ? musicManager.audioPlayer.pause() 
-                            : musicManager.audioPlayer.play(),
-                      );
-                    },
-                  ),
-                ],
-              ),
+              );
+            },
+            child: Material(
+              type: MaterialType.transparency,
+              child: _buildExactReferenceUI(currentSong, playerWidth, playerHeight),
             ),
           ),
         );
@@ -111,26 +83,211 @@ class MiniPlayerBar extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniArtwork(SongModel song) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: song.source == SongSource.local
-            ? audio_query.QueryArtworkWidget(
-                id: int.parse(song.id),
-                type: audio_query.ArtworkType.AUDIO,
-                nullArtworkWidget: Container(
-                  color: Colors.white.withOpacity(0.05),
-                  child: const Icon(Icons.music_note, color: Colors.tealAccent, size: 20),
-                ),
-              )
-            : Image.network(
-                "https://placehold.co/100x100/120024/teal?text=CMD",
-                fit: BoxFit.cover,
+  Widget _buildExactReferenceUI(SongModel song, double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        // Deep ambient drop shadow to lift the glass off the page
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 25,
+            offset: const Offset(0, 15),
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Heavy frost/glass blur
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              // 3D Glass Lighting (Light glare on top-left, deep shadow on bottom-right)
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.3),  // Glare
+                  Colors.white.withOpacity(0.05), // Transparent middle
+                  Colors.black.withOpacity(0.4),  // Shadow
+                ],
+                stops: const [0.0, 0.4, 1.0],
               ),
+              // Crisp outer edge reflection
+              border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.2),
+            ),
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                // Vinyl/CD Top Graphic
+                Positioned(
+                  top: -25,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const SweepGradient(
+                        colors: [
+                          Color(0xFFD1D1D1), Color(0xFFF3F3F3), Color(0xFFAFAFAF),
+                          Color(0xFFD1D1D1), Color(0xFFF3F3F3), Color(0xFFAFAFAF), Color(0xFFD1D1D1),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 15, offset: const Offset(0, 8))
+                      ]
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(25.0), 
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black12, width: 2),
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipOval(child: _buildArtwork(song)),
+                            Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF9FA1A3), 
+                                  border: Border.all(color: Colors.black26, width: 1.0),
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Text and Controls Area
+                Positioned(
+                  bottom: 12,
+                  left: 0,
+                  right: 0,
+                  child: Column(
+                    children: [
+                      Icon(Icons.graphic_eq, color: Colors.white.withOpacity(0.8), size: 12),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          song.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white70, fontSize: 9),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () => musicManager.audioPlayer.seekToPrevious(),
+                            child: const Icon(Icons.skip_previous, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 16),
+                          StreamBuilder<PlayerState>(
+                            stream: musicManager.audioPlayer.playerStateStream,
+                            builder: (context, snap) {
+                              final playing = snap.data?.playing ?? false;
+                              return GestureDetector(
+                                onTap: () => playing ? musicManager.audioPlayer.pause() : musicManager.audioPlayer.play(),
+                                child: Icon(playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 24),
+                              );
+                            }
+                          ),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: () => musicManager.audioPlayer.seekToNext(),
+                            child: const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      _buildProgressLine(),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  Widget _buildArtwork(SongModel song) {
+    if (song.source == SongSource.local) {
+      return audio_query.QueryArtworkWidget(
+        id: int.parse(song.id),
+        type: audio_query.ArtworkType.AUDIO,
+        quality: 100,
+        artworkFit: BoxFit.cover,
+        nullArtworkWidget: Container(
+          color: const Color(0xFF2C2C2E),
+          child: const Icon(Icons.music_note, color: Colors.white38, size: 20),
+        ),
+      );
+    }
+    return Image.network("https://placehold.co/100x100/2C2C2E/FFFFFF?text=ART", fit: BoxFit.cover);
+  }
+
+  Widget _buildProgressLine() {
+    return StreamBuilder<Duration>(
+      stream: musicManager.audioPlayer.positionStream,
+      builder: (context, snapshot) {
+        final pos = snapshot.data ?? Duration.zero;
+        final total = musicManager.audioPlayer.duration ?? Duration.zero;
+        final progress = total.inMilliseconds > 0 ? pos.inMilliseconds / total.inMilliseconds : 0.0;
+
+        return Column(
+          children: [
+            Container(
+              width: 90,
+              height: 2,
+              color: Colors.white.withOpacity(0.3),
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress.clamp(0.0, 1.0),
+                child: Container(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "${_format(pos)} - ${_format(total)}",
+              style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.w500),
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  String _format(Duration d) {
+    final min = d.inMinutes;
+    final sec = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "$min:$sec";
   }
 }
