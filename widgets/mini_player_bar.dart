@@ -18,6 +18,8 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
   double xOffset = 20;
   double yOffset = 100;
   bool isInitialized = false;
+  bool isMinimized = false; // Added state for minimized mode
+  
   final musicManager = MusicManager();
 
   @override
@@ -47,8 +49,9 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
         final currentSong = musicManager.currentPlaylist![currentIndex];
         final size = MediaQuery.of(context).size;
         
-        const playerWidth = 140.0;
-        const playerHeight = 180.0;
+        // Dynamic sizing based on minimized state
+        final playerWidth = isMinimized ? 60.0 : 140.0;
+        final playerHeight = isMinimized ? 60.0 : 180.0;
 
         xOffset = xOffset.clamp(0.0, size.width - playerWidth);
         yOffset = yOffset.clamp(0.0, size.height - playerHeight);
@@ -64,22 +67,67 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
               });
             },
             onTap: () {
-              globalNavigatorKey.currentState?.push(
-                MaterialPageRoute(
-                  builder: (context) => MysteriousMusicPlayer(
-                    playlist: musicManager.currentPlaylist!,
-                    initialIndex: currentIndex,
+              if (isMinimized) {
+                // If minimized, tap expands it back to mini player
+                setState(() => isMinimized = false);
+              } else {
+                // If not minimized, tap opens full player page
+                globalNavigatorKey.currentState?.push(
+                  MaterialPageRoute(
+                    builder: (context) => MysteriousMusicPlayer(
+                      playlist: musicManager.currentPlaylist!,
+                      initialIndex: currentIndex,
+                    ),
                   ),
-                ),
-              );
+                );
+              }
             },
             child: Material(
               type: MaterialType.transparency,
-              child: _buildExactReferenceUI(currentSong, playerWidth, playerHeight),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutBack,
+                width: playerWidth,
+                height: playerHeight,
+                child: isMinimized 
+                    ? _buildMinimizedUI() 
+                    : _buildExactReferenceUI(currentSong, playerWidth, playerHeight),
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  // New Widget specifically for the minimized icon
+  Widget _buildMinimizedUI() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.1),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+            ),
+            child: const Center(
+              child: Icon(Icons.music_note_rounded, color: Colors.tealAccent, size: 28),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -89,7 +137,6 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        // Deep ambient drop shadow to lift the glass off the page
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.5),
@@ -102,22 +149,20 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Heavy frost/glass blur
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), 
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              // 3D Glass Lighting (Light glare on top-left, deep shadow on bottom-right)
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.3),  // Glare
-                  Colors.white.withOpacity(0.05), // Transparent middle
-                  Colors.black.withOpacity(0.4),  // Shadow
+                  Colors.white.withOpacity(0.3),  
+                  Colors.white.withOpacity(0.05), 
+                  Colors.black.withOpacity(0.4),  
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
-              // Crisp outer edge reflection
               border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.2),
             ),
             child: Stack(
@@ -166,6 +211,28 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                           ],
                         ),
                       ),
+                    ),
+                  ),
+                ),
+
+                // NEW: Minimize Button
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        isMinimized = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24, width: 0.5),
+                      ),
+                      child: const Icon(Icons.close_fullscreen_rounded, color: Colors.white70, size: 14),
                     ),
                   ),
                 ),

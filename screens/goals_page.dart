@@ -17,7 +17,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
   late TabController _tabController;
   
   bool showAnalytics = false;
-  bool _isTaskMode = true; // NEW: Tracks the toggle state
+  bool _isTaskMode = true; 
 
   @override
   void initState() {
@@ -44,9 +44,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
 
   void _seedInitialData() {
     final seedGoals = [
-      Goal(id: '1', title: 'Practice Python / Java', type: GoalType.daily, category: GoalCategory.learning, targetValue: 2, currentValue: 1, unit: 'hours', isCompleted: false),
-      Goal(id: '2', title: 'Solve Rubik\'s Cube', type: GoalType.daily, category: GoalCategory.hobby, targetValue: 5, currentValue: 2, unit: 'solves'),
-      Goal(id: '3', title: 'Engineering Coursework', type: GoalType.weekly, category: GoalCategory.productivity, targetValue: 4, currentValue: 1, unit: 'modules'),
+      Goal(id: '1', title: 'Practice Python / Java', type: GoalType.daily, category: GoalCategory.learning, targetValue: 2, currentValue: 1, unit: 'hours', isCompleted: false)
     ];
 
     for (var goal in seedGoals) {
@@ -81,13 +79,13 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (_isTaskMode) // Only show analytics button in Task Mode
+          if (_isTaskMode) 
             IconButton(
               icon: Icon(showAnalytics ? Icons.list : Icons.analytics, color: const Color(0xFFFC3C44)),
               onPressed: () => setState(() => showAnalytics = !showAnalytics),
             ),
         ],
-        // Conditionally show tabs only in Task Mode
+        
         bottom: _isTaskMode 
             ? TabBar(
                 controller: _tabController,
@@ -108,20 +106,20 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          // Switch between the Task Engine and the new Finance Engine
+          
           child: _isTaskMode ? _buildTaskEngine() : const FinanceDashboard(),
         ),
       ),
     );
   }
 
-  // --- NEW TOGGLE HELPER ---
+
   Widget _buildToggleTab(String text, bool isTaskButton) {
     final isSelected = _isTaskMode == isTaskButton;
     return GestureDetector(
       onTap: () => setState(() {
         _isTaskMode = isTaskButton;
-        showAnalytics = false; // Reset analytics view if switching
+        showAnalytics = false; 
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -164,9 +162,7 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
     );
   }
 
-  // =============================================================================
-  // (Keep all your existing _buildAnalyticsView, _buildGoalCard, etc. code exactly the same below here)
-  // =============================================================================
+  
 
   Widget _buildAnalyticsView(List<Goal> allGoals) {
     return SingleChildScrollView(
