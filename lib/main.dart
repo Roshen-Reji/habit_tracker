@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
@@ -23,6 +24,12 @@ void main() async {
   Hive.registerAdapter(TransactionAdapter());
   Hive.registerAdapter(AssetVaultAdapter());
 
+  // Register Diet Type Adapters
+  Hive.registerAdapter(MealTypeAdapter());
+  Hive.registerAdapter(FoodEntryAdapter());
+  Hive.registerAdapter(CalorieBurnEntryAdapter());
+  Hive.registerAdapter(DietDayLogAdapter());
+
   // Open necessary boxes for data persistence
   await Hive.openBox<Goal>('mission_box_v4');
   await Hive.openBox('settings');
@@ -32,6 +39,9 @@ void main() async {
   await Hive.openBox<Transaction>('finance_transactions');
   await Hive.openBox<AssetVault>('finance_vaults');
   await Hive.openBox('finance_settings');
+
+  // Open Diet boxes
+  await Hive.openBox<DietDayLog>('diet_logs');
 
   // Check and reset tasks daily/weekly/monthly based on date
   TaskResetService.checkAndResetTasks();

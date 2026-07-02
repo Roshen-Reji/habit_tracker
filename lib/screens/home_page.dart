@@ -5,10 +5,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/music/music_library_page.dart';
-import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
-import 'package:habit_tracker/features/finance/finance_page.dart';
+import 'package:habit_tracker/features/diet/diet_page.dart';
 import 'package:habit_tracker/features/settings/settings_page.dart';
 import 'package:habit_tracker/features/music/music_player_page.dart';
+import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     const DashboardView(),
     const TasksPage(),
-    const SpeechVaultPage(),
+    const DietPage(),
     const MusicLibraryPage(),
   ];
 
@@ -115,6 +115,7 @@ class _HomePageState extends State<HomePage> {
             child: BottomNavBar(selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),
           ),
           const GlobalFloatingPlayer(),
+          const HomeChatFAB(),
         ],
       ),
     );

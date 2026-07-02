@@ -49,7 +49,7 @@ class BottomNavBar extends StatelessWidget {
                     children: [
                       _buildAppleTab(Icons.dashboard_rounded, "HOME", 0),
                       _buildAppleTab(Icons.check_circle_rounded, "GOALS", 1),
-                      _buildAppleTab(Icons.auto_awesome_motion_rounded, "VAULT", 2),
+                      _buildAppleTab(Icons.restaurant_menu_rounded, "DIET", 2),
                       _buildAppleTab(Icons.music_note_rounded, "AUDIO", 3),
                     ],
                   ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/widgets/mysterious_quote_card.dart';
 import 'package:habit_tracker/widgets/mysterious_momentum_graph.dart';
 import 'package:habit_tracker/widgets/star_background.dart';
@@ -72,6 +74,9 @@ class DashboardView extends StatelessWidget {
                   const MysteriousQuoteCard(),
                   const SizedBox(height: 10),
                   const MysteriousMomentumGraph(),
+                  const SizedBox(height: 20),
+                  _buildSectionHeader("Diet Today"),
+                  _buildDietSummaryCard(),
                   const SizedBox(height: 20),
                   _buildSectionHeader("Tasks"),
                   _buildDailyMissionsList(),
@@ -148,5 +153,91 @@ class DashboardView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildDietSummaryCard() {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final box = Hive.box<DietDayLog>('diet_logs');
+    final log = box.get(today);
+
+    final intake = log?.totalCalories ?? 0;
+    final target = log?.targetCalories ?? Hive.box('settings').get('daily_calorie_target', defaultValue: 2000.0).toDouble();
+    final burned = log?.totalBurned ?? 0;
+    final net = intake - burned;
+    final isOver = net > target;
+    final progress = target > 0 ? (net / target).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${net.toStringAsFixed(0)} kcal",
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "of ${target.toStringAsFixed(0)} kcal target",
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: (isOver ? Colors.redAccent : Colors.greenAccent).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isOver
+                      ? "+${(net - target).toStringAsFixed(0)} over"
+                      : "${(target - net).toStringAsFixed(0)} left",
+                  style: TextStyle(
+                    color: isOver ? Colors.redAccent : Colors.greenAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress.toDouble(),
+              minHeight: 6,
+              backgroundColor: AppTheme.surface,
+              valueColor: AlwaysStoppedAnimation(
+                isOver ? Colors.redAccent : AppTheme.primary,
+              ),
+            ),
+          ),
+          if (log != null && log.entries.isNotEmpty) ...[            const SizedBox(height: 10),
+            Text(
+              log.entries.take(3).map((e) => e.name).join(", ") + (log.entries.length > 3 ? "..." : ""),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1);
   }
 }

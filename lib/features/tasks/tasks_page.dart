@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart'; 
+import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'widgets/task_card.dart';
 import 'widgets/add_task_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -19,8 +20,7 @@ class TasksPage extends StatefulWidget {
 class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMixin {
   final Box<Goal> missionBox = Hive.box<Goal>('mission_box_v4');
   late TabController _tabController;
-  
-  bool _isTaskMode = true; 
+  String _currentView = 'missions'; // 'missions', 'finance', 'vault'
 
   @override
   void initState() {
@@ -50,15 +50,16 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildToggleTab("MISSIONS", true),
-              _buildToggleTab("FINANCE", false),
+              _buildToggleTab("MISSIONS", 'missions'),
+              _buildToggleTab("FINANCE", 'finance'),
+              _buildToggleTab("VAULT", 'vault'),
             ],
           ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (_isTaskMode) 
+          if (_currentView == 'missions') 
             IconButton(
               icon: const Icon(Icons.analytics, color: AppColors.primary),
               onPressed: () {
@@ -67,7 +68,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             ),
         ],
         
-        bottom: _isTaskMode 
+        bottom: _currentView == 'missions' 
             ? TabBar(
                 controller: _tabController,
                 indicatorColor: AppColors.primary,
@@ -89,22 +90,26 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: _isTaskMode ? _buildTaskEngine() : const FinanceDashboard(),
+          child: _currentView == 'missions' 
+              ? _buildTaskEngine() 
+              : _currentView == 'finance'
+                  ? const FinanceDashboard()
+                  : const SpeechVaultPage(),
         ),
       ),
     );
   }
 
-  Widget _buildToggleTab(String text, bool isTaskButton) {
-    final isSelected = _isTaskMode == isTaskButton;
+  Widget _buildToggleTab(String text, String viewKey) {
+    final isSelected = _currentView == viewKey;
     return GestureDetector(
       onTap: () => setState(() {
-        _isTaskMode = isTaskButton;
+        _currentView = viewKey;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(25),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/rank_service.dart';
 import 'package:habit_tracker/data/models/user_rank.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
@@ -42,6 +43,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         _buildToggleTile(Icons.notifications_active, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
                         _buildCurrencyTile(),
                       ]).animate().slideY(begin: 0.1, duration: 400.ms, delay: 100.ms, curve: Curves.easeOutBack).fade(),
+                      const SizedBox(height: 24),
+                      _buildSettingGroup("AI CONFIGURATION", [
+                        _buildActionTile(Icons.key, "Gemini API Key", _getApiKeyStatus(), _editApiKey),
+                        _buildActionTile(Icons.restaurant, "Daily Calorie Target", "Currently: ${Hive.box('settings').get('daily_calorie_target', defaultValue: 2000).toStringAsFixed(0)} kcal", _editCalorieTarget),
+                        _buildActionTile(Icons.delete_outline, "Clear Diet Data", "Wipe all diet logs", _confirmDietPurge, isDestructive: true),
+                      ]).animate().slideY(begin: 0.1, duration: 400.ms, delay: 150.ms, curve: Curves.easeOutBack).fade(),
                       const SizedBox(height: 24),
                       _buildSettingGroup("DATA MANAGEMENT", [
                         _buildActionTile(Icons.delete_sweep, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
@@ -239,5 +246,109 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     }
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Daily targets reset successfully."), backgroundColor: AppColors.primary));
+  }
+
+  String _getApiKeyStatus() {
+    final key = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    if (key.isEmpty) return 'Not configured';
+    return 'Configured (${key.substring(0, 4)}...)';
+  }
+
+  void _editApiKey() {
+    final controller = TextEditingController(text: Hive.box('settings').get('gemini_api_key', defaultValue: ''));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("Gemini API Key", style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Enter your Google Gemini API key for AI features.", style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              obscureText: true,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: const InputDecoration(
+                hintText: "AIza...",
+                hintStyle: TextStyle(color: AppColors.textTertiary),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: AppColors.textTertiary))),
+          TextButton(
+            onPressed: () {
+              Hive.box('settings').put('gemini_api_key', controller.text.trim());
+              Navigator.pop(context);
+              setState(() {});
+            },
+            child: const Text("Save", style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editCalorieTarget() {
+    final current = Hive.box('settings').get('daily_calorie_target', defaultValue: 2000.0);
+    final controller = TextEditingController(text: current.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("Daily Calorie Target", style: TextStyle(color: AppColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(
+            hintText: "2000",
+            suffixText: "kcal",
+            suffixStyle: TextStyle(color: AppColors.textTertiary),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: AppColors.textTertiary))),
+          TextButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text) ?? 2000;
+              Hive.box('settings').put('daily_calorie_target', value);
+              Navigator.pop(context);
+              setState(() {});
+            },
+            child: const Text("Save", style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDietPurge() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("CLEAR DIET DATA?", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+        content: const Text("This will permanently delete all diet logs.", style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Abort", style: TextStyle(color: AppColors.textTertiary))),
+          TextButton(
+            onPressed: () async {
+              await Hive.box<DietDayLog>('diet_logs').clear();
+              if (mounted) Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Diet data cleared."), backgroundColor: AppColors.error));
+            },
+            child: const Text("Confirm", style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
   }
 }
