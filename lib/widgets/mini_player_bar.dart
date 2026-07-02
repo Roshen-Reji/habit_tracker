@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui'; // Required for ImageFilter (Glass effect)
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -124,7 +125,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
               border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
             ),
             child: const Center(
-              child: Icon(Icons.music_note_rounded, color: AppColors.primary, size: 28),
+              child: Icon(LucideIcons.music, color: AppColors.primary, size: 28),
             ),
           ),
         ),
@@ -233,7 +234,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white24, width: 0.5),
                       ),
-                      child: const Icon(Icons.close_fullscreen_rounded, color: Colors.white70, size: 14),
+                      child: const Icon(LucideIcons.minimize, color: Colors.white70, size: 14),
                     ),
                   ),
                 ),
@@ -245,7 +246,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                   right: 0,
                   child: Column(
                     children: [
-                      Icon(Icons.graphic_eq, color: Colors.white.withValues(alpha: 0.8), size: 12),
+                      Icon(LucideIcons.activity, color: Colors.white.withValues(alpha: 0.8), size: 12),
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -272,7 +273,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                         children: [
                           GestureDetector(
                             onTap: () => musicManager.audioPlayer.seekToPrevious(),
-                            child: const Icon(Icons.skip_previous, color: Colors.white, size: 20),
+                            child: const Icon(LucideIcons.skipBack, color: Colors.white, size: 20),
                           ),
                           const SizedBox(width: 16),
                           StreamBuilder<PlayerState>(
@@ -281,14 +282,14 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                               final playing = snap.data?.playing ?? false;
                               return GestureDetector(
                                 onTap: () => playing ? musicManager.audioPlayer.pause() : musicManager.audioPlayer.play(),
-                                child: Icon(playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 24),
+                                child: Icon(playing ? LucideIcons.pause : LucideIcons.play, color: Colors.white, size: 24),
                               );
                             }
                           ),
                           const SizedBox(width: 16),
                           GestureDetector(
                             onTap: () => musicManager.audioPlayer.seekToNext(),
-                            child: const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                            child: const Icon(LucideIcons.skipForward, color: Colors.white, size: 20),
                           ),
                         ],
                       ),
@@ -315,7 +316,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
         artworkFit: BoxFit.cover,
         nullArtworkWidget: Container(
           color: const Color(0xFF2C2C2E),
-          child: const Icon(Icons.music_note, color: Colors.white38, size: 20),
+          child: const Icon(LucideIcons.music, color: Colors.white38, size: 20),
         ),
       );
     }

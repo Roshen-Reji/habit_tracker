@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart' as audio_query;
@@ -198,7 +199,7 @@ class _ListenNowView extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Stack(
               children: [
-                Positioned(right: -20, bottom: -20, child: Icon(Icons.graphic_eq, size: 150, color: accent.withValues(alpha: 0.1))),
+                Positioned(right: -20, bottom: -20, child: Icon(LucideIcons.activity, size: 150, color: accent.withValues(alpha: 0.1))),
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -310,7 +311,7 @@ class _ListenNowView extends StatelessWidget {
                         : null,
                   ),
                   child: Icon(
-                    isLikedSongs ? Icons.favorite : Icons.queue_music, 
+                    isLikedSongs ? LucideIcons.heart : LucideIcons.listMusic, 
                     color: isLikedSongs ? Colors.black : Colors.white38, 
                     size: 40
                   ),
@@ -402,10 +403,10 @@ class _LibraryView extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(top: 20, bottom: 120),
       children: [
-        _buildLibraryItem(context, 'Playlists', Icons.queue_music, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _PlaylistsPage(onCreate: onCreatePlaylist, allSongs: songs)))),
-        _buildLibraryItem(context, 'Artists', Icons.mic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Artists', groupedData: _groupedByArtist)))),
-        _buildLibraryItem(context, 'Albums', Icons.album, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Albums', groupedData: _groupedByAlbum, isGrid: true)))),
-        _buildLibraryItem(context, 'Songs', Icons.music_note, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(songs: songs)))),
+        _buildLibraryItem(context, 'Playlists', LucideIcons.listMusic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _PlaylistsPage(onCreate: onCreatePlaylist, allSongs: songs)))),
+        _buildLibraryItem(context, 'Artists', LucideIcons.mic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Artists', groupedData: _groupedByArtist)))),
+        _buildLibraryItem(context, 'Albums', LucideIcons.disc, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Albums', groupedData: _groupedByAlbum, isGrid: true)))),
+        _buildLibraryItem(context, 'Songs', LucideIcons.music, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(songs: songs)))),
       ],
     );
   }
@@ -419,7 +420,7 @@ class _LibraryView extends StatelessWidget {
         child: Icon(icon, color: accent, size: 24),
       ),
       title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+      trailing: const Icon(LucideIcons.chevronRight, color: Colors.white38),
       onTap: onTap,
     );
   }
@@ -438,7 +439,7 @@ class _PlaylistsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text('Playlists', style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: AppColors.primary)),
-      floatingActionButton: FloatingActionButton(backgroundColor: AppColors.primary, onPressed: onCreate, child: const Icon(Icons.add, color: Colors.black)),
+      floatingActionButton: FloatingActionButton(backgroundColor: AppColors.primary, onPressed: onCreate, child: const Icon(LucideIcons.plus, color: Colors.black)),
       body: ValueListenableBuilder<Set<String>>(
         valueListenable: likedSongIds,
         builder: (context, likes, _) {
@@ -463,7 +464,7 @@ class _PlaylistsPage extends StatelessWidget {
                           ),
                           borderRadius: BorderRadius.circular(12)
                         ), 
-                        child: const Icon(Icons.favorite, color: Colors.black, size: 28)
+                        child: const Icon(LucideIcons.heart, color: Colors.black, size: 28)
                       ),
                       title: const Text('Liked Songs', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       subtitle: Text('${likedSongsList.length} Tracks', style: const TextStyle(color: Colors.white54)),
@@ -483,7 +484,7 @@ class _PlaylistsPage extends StatelessWidget {
                     leading: Container(
                       width: 50, height: 50, 
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), 
-                      child: const Icon(Icons.queue_music, color: Colors.white54)
+                      child: const Icon(LucideIcons.listMusic, color: Colors.white54)
                     ),
                     title: Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     subtitle: Text('${p.songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
@@ -552,7 +553,7 @@ class _GroupedListPage extends StatelessWidget {
               return ListTile(
                 title: Text(groupName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 subtitle: Text('${songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                trailing: const Icon(LucideIcons.chevronRight, color: Colors.white38),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: groupName, songs: songs))),
               );
             },
@@ -626,7 +627,7 @@ class _SearchViewState extends State<_SearchView> {
             child: TextField(
               controller: _ctrl,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(hintText: 'Search Local Files...', hintStyle: TextStyle(color: Colors.white38, fontSize: 16), prefixIcon: Icon(Icons.search, color: Colors.white38), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)),
+              decoration: const InputDecoration(hintText: 'Search Local Files...', hintStyle: TextStyle(color: Colors.white38, fontSize: 16), prefixIcon: Icon(LucideIcons.search, color: Colors.white38), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)),
             ),
           ),
           const SizedBox(height: 20),

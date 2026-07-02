@@ -1,3 +1,5 @@
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
@@ -34,7 +36,7 @@ class ChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final isUser = message.isUser;
 
     return Align(
@@ -72,7 +74,7 @@ class ChatMessageBubble extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, color: accent, size: 12),
+                        Icon(LucideIcons.sparkles, color: accent, size: 12),
                         const SizedBox(width: 4),
                         Text(
                           "COMMANDER AI",
@@ -127,7 +129,7 @@ class _ActionConfirmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -169,27 +171,27 @@ class _ActionConfirmCard extends StatelessWidget {
 
     switch (action.type) {
       case 'food_entry':
-        icon = Icons.restaurant;
+        icon = LucideIcons.utensils;
         label = 'FOOD ENTRY';
         color = accent;
         break;
       case 'burn_entry':
-        icon = Icons.local_fire_department;
+        icon = LucideIcons.flame;
         label = 'CALORIE BURN';
         color = AppColors.error;
         break;
       case 'task_create':
-        icon = Icons.check_circle_outline;
+        icon = LucideIcons.checkCircle;
         label = 'NEW MISSION';
         color = AppColors.success;
         break;
       case 'music_play':
-        icon = Icons.music_note;
+        icon = LucideIcons.music;
         label = 'PLAY SONG';
         color = const Color(0xFFE040FB);
         break;
       default:
-        icon = Icons.info;
+        icon = LucideIcons.info;
         label = 'ACTION';
         color = accent;
     }
@@ -211,7 +213,7 @@ class _ActionConfirmCard extends StatelessWidget {
         if (action.isConfirmed)
           Row(
             children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 14),
+              const Icon(LucideIcons.checkCircle2, color: AppColors.success, size: 14),
               const SizedBox(width: 4),
               const Text("Done", style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold)),
             ],
@@ -291,7 +293,7 @@ class _ActionConfirmCard extends StatelessWidget {
       case 'music_play':
         return Row(
           children: [
-            const Icon(Icons.play_circle_filled, color: AppColors.primary, size: 24),
+            const Icon(LucideIcons.playCircle, color: AppColors.primary, size: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -325,7 +327,7 @@ class _ActionConfirmCard extends StatelessWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.close, color: AppColors.textTertiary, size: 14),
+                Icon(LucideIcons.x, color: AppColors.textTertiary, size: 14),
                 SizedBox(width: 4),
                 Text("Reject", style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
               ],
@@ -344,7 +346,7 @@ class _ActionConfirmCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check, color: Colors.black, size: 14),
+                const Icon(LucideIcons.check, color: Colors.black, size: 14),
                 const SizedBox(width: 4),
                 const Text("Accept", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
               ],

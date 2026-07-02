@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:convert';
@@ -208,7 +209,7 @@ Future<void> _extractArtwork() async {
                 Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(10))),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: const Icon(Icons.playlist_add, color: Colors.white),
+                  leading: const Icon(LucideIcons.listPlus, color: Colors.white),
                   title: const Text("Add to Playlist", style: TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(context);
@@ -216,7 +217,7 @@ Future<void> _extractArtwork() async {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.share, color: Colors.white),
+                  leading: const Icon(LucideIcons.share2, color: Colors.white),
                   title: const Text("Share Song", style: TextStyle(color: Colors.white)),
                   onTap: () => Navigator.pop(context)
                 ),
@@ -253,7 +254,7 @@ Future<void> _extractArtwork() async {
                       child: Text("Add to Playlist", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     ListTile(
-                      leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.add, color: AppColors.primary)),
+                      leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(LucideIcons.plus, color: AppColors.primary)),
                       title: const Text("Create New Playlist", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       onTap: () {
                         Navigator.pop(context);
@@ -271,10 +272,10 @@ Future<void> _extractArtwork() async {
                           final p = playlists[index];
                           final bool alreadyAdded = p.songs.contains(currentSong);
                           return ListTile(
-                            leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.queue_music, color: Colors.white54)),
+                            leading: Container(width: 50, height: 50, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(LucideIcons.listMusic, color: Colors.white54)),
                             title: Text(p.name, style: const TextStyle(color: Colors.white)),
                             subtitle: Text('${p.songs.length} Tracks', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                            trailing: alreadyAdded ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
+                            trailing: alreadyAdded ? const Icon(LucideIcons.checkCircle2, color: AppColors.primary) : null,
                             onTap: () {
                               if (!alreadyAdded) {
                                 final updatedSongs = List<SongModel>.from(p.songs)..add(currentSong);
@@ -396,8 +397,8 @@ Future<void> _extractArtwork() async {
                                       borderRadius: BorderRadius.circular(8)
                                     ),
                                     child: isPlayingThis
-                                        ? const Icon(Icons.bar_chart_rounded, color: AppColors.primary)
-                                        : const Icon(Icons.music_note_rounded, color: Colors.white38),
+                                        ? const Icon(LucideIcons.barChart2, color: AppColors.primary)
+                                        : const Icon(LucideIcons.music, color: Colors.white38),
                                   ),
                                   title: Text(
                                     song.title, 
@@ -413,7 +414,7 @@ Future<void> _extractArtwork() async {
                                     maxLines: 1, overflow: TextOverflow.ellipsis,
                                   ),
                                   trailing: isPlayingThis 
-                                      ? const Icon(Icons.volume_up_rounded, color: AppColors.primary, size: 20)
+                                      ? const Icon(LucideIcons.volume2, color: AppColors.primary, size: 20)
                                       : null,
                                   onTap: () {
                                     // Use JustAudio's seek to jump to the specific index in the ConcatenatingAudioSource
@@ -541,14 +542,14 @@ Widget _buildBlurredBackground() {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
-          IconButton(icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 36), onPressed: () => Navigator.pop(context)),
+          IconButton(icon: const Icon(LucideIcons.chevronDown, color: Colors.white, size: 36), onPressed: () => Navigator.pop(context)),
           Column(
             children: [
               const Text("NOW PLAYING", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
               Text(currentSong.album, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
           ),
-          IconButton(icon: const Icon(Icons.more_horiz_rounded, color: Colors.white, size: 28), onPressed: _showOptions),
+          IconButton(icon: const Icon(LucideIcons.moreHorizontal, color: Colors.white, size: 28), onPressed: _showOptions),
         ]
       )
     );
@@ -728,7 +729,7 @@ Widget _buildLyricEngine() {
                         builder: (context, likes, _) {
                           final isLiked = likes.contains(currentSong.id);
                           return IconButton(
-                            icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border_rounded, color: isLiked ? AppColors.primary : Colors.white, size: 28), 
+                            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart, color: isLiked ? AppColors.primary : Colors.white, size: 28), 
                             onPressed: _toggleLike
                           );
                         }
@@ -767,29 +768,29 @@ Widget _buildLyricEngine() {
                   children: [
                     // Shuffle Button
                     IconButton(
-                      icon: Icon(Icons.shuffle_rounded, color: isShuffleOn ? AppColors.primary : Colors.white54, size: 24), 
+                      icon: Icon(LucideIcons.shuffle, color: isShuffleOn ? AppColors.primary : Colors.white54, size: 24), 
                       onPressed: () {
                         _audioPlayer.setShuffleModeEnabled(!isShuffleOn);
                         HapticFeedback.selectionClick();
                       }
                     ),
                     // Skip Previous
-                    IconButton(icon: const Icon(Icons.skip_previous_rounded, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToPrevious()),
+                    IconButton(icon: const Icon(LucideIcons.skipBack, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToPrevious()),
                     // Play/Pause
                     GestureDetector(
                       onTap: _onPlayPause, 
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 40, color: AppTheme.primary)
+                        child: Icon(isPlaying ? LucideIcons.pause : LucideIcons.play, size: 40, color: AppTheme.primary)
                       )
                     ),
                     // Skip Next
-                    IconButton(icon: const Icon(Icons.skip_next_rounded, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToNext()),
+                    IconButton(icon: const Icon(LucideIcons.skipForward, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToNext()),
                     // Repeat Button
                     IconButton(
                       icon: Icon(
-                        loopMode == LoopMode.one ? Icons.repeat_one_rounded : Icons.repeat_rounded, 
+                        loopMode == LoopMode.one ? LucideIcons.repeat1 : LucideIcons.repeat, 
                         color: loopMode != LoopMode.off ? AppColors.primary : Colors.white54, 
                         size: 24
                       ), 
@@ -811,10 +812,10 @@ Widget _buildLyricEngine() {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center, 
                   children: [
-                    IconButton(icon: Icon(Icons.chat_bubble_outline_rounded, color: showLyrics ? AppColors.primary : Colors.white54, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
+                    IconButton(icon: Icon(LucideIcons.messageSquare, color: showLyrics ? AppColors.primary : Colors.white54, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
                     const SizedBox(width: 40),
                     IconButton(
-                      icon: const Icon(Icons.format_list_bulleted_rounded, color: Colors.white54, size: 22), 
+                      icon: const Icon(LucideIcons.list, color: Colors.white54, size: 22), 
                       onPressed: _showCurrentQueue, 
                     ),
                   ]

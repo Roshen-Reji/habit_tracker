@@ -50,12 +50,14 @@ class AiService {
   }
 
   bool get isConfigured {
-    final apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
     return apiKey.isNotEmpty;
   }
 
   void _initModel() {
-    final apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
     if (apiKey.isEmpty) return;
 
     _model = GenerativeModel(

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/features/diet/diet_chat.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class DietPage extends StatefulWidget {
   const DietPage({super.key});
@@ -52,10 +53,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: NeuTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -73,7 +74,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
           controller: _tabController,
           indicatorColor: accent,
           labelColor: accent,
-          unselectedLabelColor: AppColors.textTertiary,
+          unselectedLabelColor: NeuTheme.textSecondary,
           indicatorWeight: 3,
           tabs: const [
             Tab(text: "TODAY"),
@@ -103,7 +104,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
           dateKey: today,
           targetCalories: AiService.instance.getTodayLog().targetCalories,
         );
-        final accent = DietTheme.accent;
+        final accent = NeuTheme.accent;
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -112,8 +113,9 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Summary Card
-              DietGlassCard(
-                glow: true,
+              NeuContainer(
+                padding: const EdgeInsets.all(16),
+                borderRadius: 20,
                 child: Column(
                   children: [
                     CalorieRingChart(
@@ -136,7 +138,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 24),
 
               // Burn Section
-              _buildSectionHeader("CALORIES BURNED", Icons.local_fire_department, AppColors.error),
+              _buildSectionHeader("CALORIES BURNED", LucideIcons.flame, Colors.redAccent),
               const SizedBox(height: 8),
               BurnInputWidget(onBurnAdded: () => setState(() {})),
               const SizedBox(height: 8),
@@ -157,7 +159,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                       Text(
                         "Total: -${log.totalBurned.toStringAsFixed(0)} kcal",
                         style: const TextStyle(
-                          color: AppColors.error,
+                          color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -169,7 +171,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 16),
 
               // Food Log Section
-              _buildSectionHeader("FOOD LOG", Icons.restaurant_menu, accent),
+              _buildSectionHeader("FOOD LOG", LucideIcons.utensils, accent),
               const SizedBox(height: 8),
 
               if (log.entries.isEmpty)
@@ -178,11 +180,11 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.no_food_rounded, color: AppColors.textTertiary.withValues(alpha: 0.3), size: 40),
+                        Icon(LucideIcons.frown, color: NeuTheme.textSecondary.withValues(alpha: 0.3), size: 40),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           "No food logged yet",
-                          style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
@@ -206,7 +208,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
               // Daily Report Card
               if (log.entries.isNotEmpty) ...[
-                _buildSectionHeader("DAILY REPORT", Icons.assessment_rounded, accent),
+                _buildSectionHeader("DAILY REPORT", LucideIcons.barChart2, accent),
                 const SizedBox(height: 8),
                 DailyReportCard(log: log)
                     .animate()
@@ -263,7 +265,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
     return ValueListenableBuilder(
       valueListenable: Hive.box<DietDayLog>('diet_logs').listenable(),
       builder: (context, Box<DietDayLog> box, _) {
-        final accent = DietTheme.accent;
+        final accent = NeuTheme.accent;
         final weekLogs = AiService.instance.getLogsForRange(7);
         final monthLogs = AiService.instance.getLogsForRange(30);
 
@@ -283,9 +285,11 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Weekly Overview
-              _buildSectionHeader("WEEKLY OVERVIEW", Icons.calendar_view_week, accent),
+              _buildSectionHeader("WEEKLY OVERVIEW", LucideIcons.calendarDays, accent),
               const SizedBox(height: 8),
-              DietGlassCard(
+              NeuContainer(
+                borderRadius: 20,
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -295,10 +299,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Avg. Daily", style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+                            Text("Avg. Daily", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
                             Text(
                               "${weekAvg.toStringAsFixed(0)} kcal",
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -314,9 +318,11 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 24),
 
               // Monthly Trend
-              _buildSectionHeader("MONTHLY TREND", Icons.show_chart, accent),
+              _buildSectionHeader("MONTHLY TREND", LucideIcons.lineChart, accent),
               const SizedBox(height: 8),
-              DietGlassCard(
+              NeuContainer(
+                borderRadius: 20,
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -326,10 +332,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Avg. Daily (logged days)", style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+                            Text("Avg. Daily (logged days)", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
                             Text(
                               "${monthAvg.toStringAsFixed(0)} kcal",
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -348,16 +354,18 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 24),
 
               // AI Opinion
-              _buildSectionHeader("AI ANALYSIS", Icons.auto_awesome, accent),
+              _buildSectionHeader("AI ANALYSIS", LucideIcons.sparkles, accent),
               const SizedBox(height: 8),
               if (_aiOpinion.isEmpty && !_isLoadingOpinion)
                 GestureDetector(
                   onTap: _fetchAiOpinion,
-                  child: DietGlassCard(
+                  child: NeuContainer(
+                    borderRadius: 20,
+                    padding: const EdgeInsets.all(16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome, color: accent, size: 18),
+                        Icon(LucideIcons.sparkles, color: accent, size: 18),
                         const SizedBox(width: 8),
                         Text(
                           "Tap to get AI nutritional analysis",

@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:habit_tracker/models/quote.dart';
@@ -93,7 +94,7 @@ class _MysteriousQuoteCardState extends State<MysteriousQuoteCard> with SingleTi
             ),
             child: Column(
         children: [
-          Icon(Icons.auto_awesome, color: Colors.tealAccent.withValues(alpha: 0.7), size: 30),
+          Icon(LucideIcons.sparkles, color: Colors.tealAccent.withValues(alpha: 0.7), size: 30),
           const SizedBox(height: 16),
           Text(
             '"${_todaysQuote.text}"',

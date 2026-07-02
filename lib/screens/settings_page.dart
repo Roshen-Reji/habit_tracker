@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -87,12 +88,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       _buildProfileSection(record),
                       const SizedBox(height: 32),
                       _buildSettingGroup("SYSTEM CONFIGURATION", [
-                        _buildToggleTile(Icons.notifications_active, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
+                        _buildToggleTile(LucideIcons.bellRing, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
                       ]),
                       const SizedBox(height: 24),
                       _buildSettingGroup("DATA MANAGEMENT", [
-                        _buildActionTile(Icons.delete_sweep, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
-                        _buildActionTile(Icons.refresh, "Reset Daily Streaks", "Keep rank, reset daily targets", _resetAllDailyGoals),
+                        _buildActionTile(LucideIcons.trash2, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
+                        _buildActionTile(LucideIcons.refreshCw, "Reset Daily Streaks", "Keep rank, reset daily targets", _resetAllDailyGoals),
                       ]),
                       const SizedBox(height: 120), 
                     ],
@@ -136,7 +137,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Row(
                 children: [
-                  const CircleAvatar(radius: 30, backgroundColor: Colors.tealAccent, child: Icon(Icons.person, size: 35, color: Colors.black)),
+                  const CircleAvatar(radius: 30, backgroundColor: Colors.tealAccent, child: Icon(LucideIcons.user, size: 35, color: Colors.black)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -148,7 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.edit, color: Colors.white54, size: 18), onPressed: () => _editUsername(settings)),
+                  IconButton(icon: const Icon(LucideIcons.edit, color: Colors.white54, size: 18), onPressed: () => _editUsername(settings)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -211,7 +212,7 @@ class _SettingsPageState extends State<SettingsPage> {
       leading: Icon(icon, color: isDestructive ? Colors.redAccent : Colors.white70, size: 22),
       title: Text(title, style: TextStyle(color: isDestructive ? Colors.redAccent : Colors.white, fontSize: 15)),
       subtitle: Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+      trailing: const Icon(LucideIcons.chevronRight, color: Colors.white24, size: 20),
     );
   }
 

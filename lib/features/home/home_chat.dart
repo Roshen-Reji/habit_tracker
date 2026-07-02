@@ -1,3 +1,5 @@
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +39,7 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return Positioned(
       bottom: 100,
@@ -65,7 +67,7 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
             ],
           ),
           child: const Icon(
-            Icons.auto_awesome,
+            LucideIcons.sparkles,
             color: Colors.black,
             size: 26,
           ),
@@ -230,7 +232,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final height = MediaQuery.of(context).size.height * 0.75;
 
     return ClipRRect(
@@ -262,7 +264,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: accent, size: 20),
+                    Icon(LucideIcons.sparkles, color: accent, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       "COMMANDER AI",
@@ -276,7 +278,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                     const Spacer(),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, color: AppColors.textTertiary, size: 20),
+                      child: const Icon(LucideIcons.x, color: AppColors.textTertiary, size: 20),
                     ),
                   ],
                 ),
@@ -346,7 +348,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.send_rounded, color: Colors.black, size: 22),
+                          child: const Icon(LucideIcons.send, color: Colors.black, size: 22),
                         ),
                       ),
                     ],
@@ -368,7 +370,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.auto_awesome, color: accent.withValues(alpha: 0.3), size: 48),
+              Icon(LucideIcons.sparkles, color: accent.withValues(alpha: 0.3), size: 48),
               const SizedBox(height: 16),
               Text(
                 "Your Super AI Assistant",

@@ -3,28 +3,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
-import 'package:habit_tracker/services/music_manager.dart';
-
-// --- Dynamic Theme Helper ---
-class DietTheme {
-  static Color get accent {
-    // If music is playing, try to use the song's dominant color
-    final manager = MusicManager();
-    if (manager.currentPlaylist != null &&
-        manager.currentIndex != null &&
-        manager.audioPlayer.playing) {
-      final song = manager.currentPlaylist![manager.currentIndex!];
-      return song.dominantColor;
-    }
-    return AppColors.primary;
-  }
-
-  static Color get accentDim => accent.withValues(alpha: 0.3);
-  static Color get accentGlow => accent.withValues(alpha: 0.15);
-}
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // --- Calorie Ring Chart ---
 class CalorieRingChart extends StatelessWidget {
@@ -46,7 +28,7 @@ class CalorieRingChart extends StatelessWidget {
     final net = intake - burned;
     final progress = target > 0 ? (net / target).clamp(0.0, 1.5) : 0.0;
     final isOver = net > target;
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return SizedBox(
       width: size,
@@ -62,7 +44,7 @@ class CalorieRingChart extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: (isOver ? AppColors.error : accent).withValues(alpha: 0.2),
+                  color: (isOver ? Colors.redAccent : accent).withValues(alpha: 0.2),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
@@ -78,7 +60,7 @@ class CalorieRingChart extends StatelessWidget {
               strokeWidth: 12,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.surfaceLight.withValues(alpha: 0.3),
+                NeuTheme.background.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -97,7 +79,7 @@ class CalorieRingChart extends StatelessWidget {
                   strokeCap: StrokeCap.round,
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isOver ? AppColors.error : accent,
+                    isOver ? Colors.redAccent : accent,
                   ),
                 );
               },
@@ -110,7 +92,7 @@ class CalorieRingChart extends StatelessWidget {
               Text(
                 net.toStringAsFixed(0),
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: NeuTheme.textPrimary,
                   fontSize: size * 0.16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -118,7 +100,7 @@ class CalorieRingChart extends StatelessWidget {
               Text(
                 "of ${target.toStringAsFixed(0)} kcal",
                 style: TextStyle(
-                  color: AppColors.textTertiary,
+                  color: NeuTheme.textSecondary,
                   fontSize: size * 0.065,
                 ),
               ),
@@ -126,7 +108,7 @@ class CalorieRingChart extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (isOver ? AppColors.error : AppColors.success).withValues(alpha: 0.15),
+                  color: (isOver ? Colors.redAccent : Colors.greenAccent).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -134,7 +116,7 @@ class CalorieRingChart extends StatelessWidget {
                       ? "+${(net - target).toStringAsFixed(0)} over"
                       : "${(target - net).toStringAsFixed(0)} left",
                   style: TextStyle(
-                    color: isOver ? AppColors.error : AppColors.success,
+                    color: isOver ? Colors.redAccent : Colors.greenAccent,
                     fontSize: size * 0.055,
                     fontWeight: FontWeight.bold,
                   ),
@@ -224,8 +206,8 @@ class MacroBreakdownBar extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textTertiary,
+              style: TextStyle(
+                color: NeuTheme.textSecondary,
                 fontSize: 11,
               ),
             ),
@@ -233,8 +215,8 @@ class MacroBreakdownBar extends StatelessWidget {
         ),
         Text(
           "${grams.toStringAsFixed(1)}g",
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: NeuTheme.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
@@ -252,7 +234,7 @@ class WeeklyCalorieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final target = logs.isNotEmpty ? logs.first.targetCalories : 2000;
 
     return SizedBox(
@@ -264,12 +246,12 @@ class WeeklyCalorieChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: AppColors.surface,
+              tooltipBgColor: NeuTheme.background,
               tooltipRoundedRadius: 8,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${rod.toY.toStringAsFixed(0)} kcal',
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  TextStyle(color: NeuTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                 );
               },
             ),
@@ -282,7 +264,7 @@ class WeeklyCalorieChart extends StatelessWidget {
               if (value == target) {
                 return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
               }
-              return FlLine(color: AppColors.surfaceLight.withValues(alpha: 0.3), strokeWidth: 0.5);
+              return FlLine(color: NeuTheme.background.withValues(alpha: 0.3), strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
@@ -295,7 +277,7 @@ class WeeklyCalorieChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+                    style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -311,7 +293,7 @@ class WeeklyCalorieChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         date != null ? DateFormat('E').format(date).substring(0, 2) : '',
-                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -337,7 +319,7 @@ class WeeklyCalorieChart extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: isOver
-                        ? [AppColors.error.withValues(alpha: 0.6), AppColors.error]
+                        ? [Colors.redAccent.withValues(alpha: 0.6), Colors.redAccent]
                         : [accent.withValues(alpha: 0.4), accent],
                   ),
                 ),
@@ -359,7 +341,7 @@ class MonthlyTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final target = logs.isNotEmpty ? logs.first.targetCalories : 2000;
 
     final spots = logs.asMap().entries.map((e) {
@@ -379,7 +361,7 @@ class MonthlyTrendChart extends StatelessWidget {
               if (value == target) {
                 return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
               }
-              return FlLine(color: AppColors.surfaceLight.withValues(alpha: 0.2), strokeWidth: 0.5);
+              return FlLine(color: NeuTheme.background.withValues(alpha: 0.2), strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
@@ -392,7 +374,7 @@ class MonthlyTrendChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+                    style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -409,7 +391,7 @@ class MonthlyTrendChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         date != null ? DateFormat('d/M').format(date) : '',
-                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -443,13 +425,13 @@ class MonthlyTrendChart extends StatelessWidget {
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              tooltipBgColor: AppColors.surface,
+              tooltipBgColor: NeuTheme.background,
               tooltipRoundedRadius: 8,
               getTooltipItems: (spots) {
                 return spots.map((s) {
                   return LineTooltipItem(
                     '${s.y.toStringAsFixed(0)} kcal',
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                    TextStyle(color: NeuTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   );
                 }).toList();
               },
@@ -474,25 +456,25 @@ class DeficitBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (isDeficit ? AppColors.success : AppColors.error).withValues(alpha: 0.15),
+        color: (isDeficit ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isDeficit ? AppColors.success : AppColors.error).withValues(alpha: 0.3),
+          color: (isDeficit ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isDeficit ? Icons.trending_down : Icons.trending_up,
-            color: isDeficit ? AppColors.success : AppColors.error,
+            isDeficit ? LucideIcons.trendingDown : LucideIcons.trendingUp,
+            color: isDeficit ? Colors.greenAccent : Colors.redAccent,
             size: 16,
           ),
           const SizedBox(width: 4),
           Text(
             "${isDeficit ? 'DEFICIT' : 'SURPLUS'} ${deficit.abs().toStringAsFixed(0)} kcal",
             style: TextStyle(
-              color: isDeficit ? AppColors.success : AppColors.error,
+              color: isDeficit ? Colors.greenAccent : Colors.redAccent,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
@@ -517,7 +499,7 @@ class AiOpinionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -534,7 +516,7 @@ class AiOpinionCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.auto_awesome, color: accent, size: 18),
+                  Icon(LucideIcons.sparkles, color: accent, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     "AI NUTRITIONIST",
@@ -559,8 +541,8 @@ class AiOpinionCard extends StatelessWidget {
               else
                 Text(
                   opinion,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: NeuTheme.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -586,19 +568,19 @@ class BurnEntryTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
+        color: Colors.redAccent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.15)),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.15),
+              color: Colors.redAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.local_fire_department, color: AppColors.error, size: 18),
+            child: Icon(LucideIcons.flame, color: Colors.redAccent, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -607,8 +589,8 @@ class BurnEntryTile extends StatelessWidget {
               children: [
                 Text(
                   burn.activity,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: NeuTheme.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -616,8 +598,8 @@ class BurnEntryTile extends StatelessWidget {
                 if (burn.durationMinutes > 0)
                   Text(
                     "${burn.durationMinutes} min",
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
+                    style: TextStyle(
+                      color: NeuTheme.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -626,15 +608,15 @@ class BurnEntryTile extends StatelessWidget {
           ),
           Text(
             "-${burn.caloriesBurned.toStringAsFixed(0)} kcal",
-            style: const TextStyle(
-              color: AppColors.error,
+            style: TextStyle(
+              color: Colors.redAccent,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
           ),
           if (onDelete != null)
             IconButton(
-              icon: const Icon(Icons.close, color: AppColors.textTertiary, size: 16),
+              icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -654,14 +636,14 @@ class FoodEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceGlass,
+        color: NeuTheme.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.glassBorder),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Row(
         children: [
@@ -680,16 +662,16 @@ class FoodEntryTile extends StatelessWidget {
               children: [
                 Text(
                   entry.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: NeuTheme.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
                 Text(
                   "P: ${entry.protein.toStringAsFixed(1)}g  C: ${entry.carbs.toStringAsFixed(1)}g  F: ${entry.fat.toStringAsFixed(1)}g",
-                  style: const TextStyle(
-                    color: AppColors.textTertiary,
+                  style: TextStyle(
+                    color: NeuTheme.textSecondary,
                     fontSize: 10,
                   ),
                 ),
@@ -706,7 +688,7 @@ class FoodEntryTile extends StatelessWidget {
           ),
           if (onDelete != null)
             IconButton(
-              icon: const Icon(Icons.close, color: AppColors.textTertiary, size: 16),
+              icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -732,60 +714,18 @@ class FoodEntryTile extends StatelessWidget {
   IconData _mealIcon(MealType type) {
     switch (type) {
       case MealType.breakfast:
-        return Icons.wb_sunny_rounded;
+        return LucideIcons.sun;
       case MealType.lunch:
-        return Icons.wb_cloudy_rounded;
+        return LucideIcons.cloud;
       case MealType.dinner:
-        return Icons.nightlight_round;
+        return LucideIcons.moon;
       case MealType.snack:
-        return Icons.cookie_rounded;
+        return LucideIcons.cookie;
     }
   }
 }
 
 // --- Glass Card (reusable) ---
-class DietGlassCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-  final bool glow;
-
-  const DietGlassCard({
-    super.key,
-    required this.child,
-    this.padding = const EdgeInsets.all(20),
-    this.glow = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceGlass,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: accent.withValues(alpha: 0.15)),
-            boxShadow: glow
-                ? [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
 // --- Daily Report Card (Aesthetic) ---
 class DailyReportCard extends StatelessWidget {
   final DietDayLog log;
@@ -794,12 +734,12 @@ class DailyReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final date = DateTime.tryParse(log.dateKey) ?? DateTime.now();
     final dateStr = DateFormat('MMMM d, yyyy').format(date);
 
-    return DietGlassCard(
-      glow: true,
+    return NeuContainer(
+      borderRadius: 20,
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -807,7 +747,7 @@ class DailyReportCard extends StatelessWidget {
           // Title
           Row(
             children: [
-              Icon(Icons.assessment_rounded, color: accent, size: 20),
+              Icon(LucideIcons.barChart2, color: accent, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -827,9 +767,9 @@ class DailyReportCard extends StatelessWidget {
           // Food Items Table
           if (log.entries.isNotEmpty) ...[
             _buildTableHeader(accent),
-            const Divider(color: AppColors.glassBorder, height: 1),
+            const Divider(color: Colors.transparent, height: 1),
             ...log.entries.map((e) => _buildFoodRow(e)),
-            const Divider(color: AppColors.glassBorder, height: 1),
+            const Divider(color: Colors.transparent, height: 1),
             const SizedBox(height: 20),
           ],
 
@@ -847,12 +787,12 @@ class DailyReportCard extends StatelessWidget {
                 _buildSummaryRow("Total Protein", "${log.totalProtein.toStringAsFixed(1)} g", MacroBreakdownBar.proteinColor),
                 _buildSummaryRow("Total Carbs", "${log.totalCarbs.toStringAsFixed(1)} g", MacroBreakdownBar.carbsColor),
                 _buildSummaryRow("Total Fat", "${log.totalFat.toStringAsFixed(1)} g", MacroBreakdownBar.fatColor),
-                const Divider(color: AppColors.glassBorder),
-                _buildSummaryRow("Calories Burned", "${log.totalBurned.toStringAsFixed(0)} kcal", AppColors.error),
+                const Divider(color: Colors.transparent),
+                _buildSummaryRow("Calories Burned", "${log.totalBurned.toStringAsFixed(0)} kcal", Colors.redAccent),
                 _buildSummaryRow(
                   log.isDeficit ? "Caloric Deficit" : "Caloric Surplus",
                   "${log.deficit.abs().toStringAsFixed(0)} kcal",
-                  log.isDeficit ? AppColors.success : AppColors.error,
+                  log.isDeficit ? Colors.greenAccent : Colors.redAccent,
                   isBold: true,
                 ),
               ],
@@ -883,11 +823,11 @@ class DailyReportCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(e.name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12), overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 2, child: Text(e.calories.toStringAsFixed(0), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.protein.toStringAsFixed(1), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.carbs.toStringAsFixed(1), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.fat.toStringAsFixed(1), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 3, child: Text(e.name, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 12), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 2, child: Text(e.calories.toStringAsFixed(0), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.protein.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.carbs.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.fat.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -899,7 +839,7 @@ class DailyReportCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(label, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
@@ -946,13 +886,13 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceGlass,
+        color: NeuTheme.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,14 +913,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 flex: 3,
                 child: TextField(
                   controller: _activityController,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
                     hintText: "Activity (e.g., Running)",
-                    hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
                   ),
                 ),
               ),
@@ -990,14 +930,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 child: TextField(
                   controller: _caloriesController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
                     hintText: "kcal",
-                    hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
                   ),
                 ),
               ),
@@ -1007,14 +947,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 child: TextField(
                   controller: _durationController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
                     hintText: "min",
-                    hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.surfaceLight)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
                   ),
                 ),
               ),
@@ -1024,10 +964,10 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.15),
+                    color: Colors.redAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.local_fire_department, color: AppColors.error, size: 20),
+                  child: Icon(LucideIcons.flame, color: Colors.redAccent, size: 20),
                 ),
               ),
             ],

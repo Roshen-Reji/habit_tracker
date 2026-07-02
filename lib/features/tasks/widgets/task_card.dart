@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class TaskCard extends StatelessWidget {
   final Goal goal;
@@ -22,11 +24,11 @@ class TaskCard extends StatelessWidget {
 
   IconData _getCategoryIcon(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return Icons.favorite;
-      case GoalCategory.productivity: return Icons.bolt;
-      case GoalCategory.learning: return Icons.menu_book;
-      case GoalCategory.fitness: return Icons.fitness_center;
-      case GoalCategory.hobby: return Icons.extension;
+      case GoalCategory.health: return LucideIcons.heartPulse;
+      case GoalCategory.productivity: return LucideIcons.zap;
+      case GoalCategory.learning: return LucideIcons.bookOpen;
+      case GoalCategory.fitness: return LucideIcons.dumbbell;
+      case GoalCategory.hobby: return LucideIcons.puzzle;
     }
   }
 
@@ -34,19 +36,11 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: NeuContainer(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: goal.isCompleted
-                ? AppColors.primary.withValues(alpha: 0.5)
-                : AppColors.primary.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
+        isPressed: goal.isCompleted,
+        borderRadius: 16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -72,7 +66,7 @@ class TaskCard extends StatelessWidget {
                       Text(
                         goal.title,
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: NeuTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           decoration: goal.isCompleted ? TextDecoration.lineThrough : null,
@@ -81,7 +75,7 @@ class TaskCard extends StatelessWidget {
                       if (goal.description.isNotEmpty)
                         Text(
                           goal.description,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12),
                         ),
                     ],
                   ),
@@ -91,19 +85,19 @@ class TaskCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: NeuTheme.accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                      border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.local_fire_department, color: AppColors.primary, size: 14),
+                        Icon(LucideIcons.flame, color: NeuTheme.accent, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '${goal.streakCount}',
-                          style: const TextStyle(
-                            color: AppColors.primary, 
+                          style: TextStyle(
+                            color: NeuTheme.accent, 
                             fontSize: 12, 
                             fontWeight: FontWeight.bold
                           ),
@@ -113,8 +107,8 @@ class TaskCard extends StatelessWidget {
                   ),
                 IconButton(
                   icon: Icon(
-                    goal.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: goal.isCompleted ? AppColors.primary : AppColors.textTertiary,
+                    goal.isCompleted ? LucideIcons.checkCircle2 : LucideIcons.circle,
+                    color: goal.isCompleted ? NeuTheme.accent : NeuTheme.textSecondary,
                   ),
                   onPressed: () {
                     final box = Hive.box<Goal>('mission_box_v4');
@@ -141,7 +135,7 @@ class TaskCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: goal.progress,
-                          backgroundColor: AppColors.surfaceLight,
+                          backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             _getCategoryColor(goal.category),
                           ),
@@ -151,7 +145,7 @@ class TaskCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}',
-                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
                       ),
                     ],
                   ),
@@ -159,8 +153,8 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   '${goal.completionPercentage.toInt()}%',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: NeuTheme.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -171,7 +165,7 @@ class TaskCard extends StatelessWidget {
         ),
       ),
     ).animate(target: goal.isCompleted ? 1 : 0)
-     .tint(color: AppColors.primary.withValues(alpha: 0.1), duration: 300.ms)
-     .shimmer(duration: 1000.ms, curve: Curves.easeOutQuad, color: AppColors.primary.withValues(alpha: 0.1));
+     .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms)
+     .shimmer(duration: 1000.ms, curve: Curves.easeOutQuad, color: NeuTheme.accent.withValues(alpha: 0.1));
   }
 }

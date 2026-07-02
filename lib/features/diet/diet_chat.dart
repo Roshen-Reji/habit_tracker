@@ -1,3 +1,5 @@
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
@@ -85,7 +87,7 @@ class _DietChatState extends State<DietChat> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_getConfirmationText(action)),
-        backgroundColor: AppColors.primary,
+        backgroundColor: NeuTheme.accent,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -116,7 +118,7 @@ class _DietChatState extends State<DietChat> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return Column(
       children: [
@@ -141,8 +143,8 @@ class _DietChatState extends State<DietChat> {
         Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border(top: BorderSide(color: AppColors.glassBorder)),
+            color: NeuTheme.background,
+            border: Border(top: BorderSide(color: Colors.transparent)),
           ),
           child: SafeArea(
             top: false,
@@ -156,20 +158,20 @@ class _DietChatState extends State<DietChat> {
                       color: accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.camera_alt_rounded, color: accent, size: 22),
+                    child: Icon(LucideIcons.camera, color: accent, size: 22),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    style: TextStyle(color: NeuTheme.textPrimary, fontSize: 14),
                     maxLines: null,
                     decoration: InputDecoration(
                       hintText: "Log food, ask for report...",
-                      hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                      hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 14),
                       filled: true,
-                      fillColor: AppColors.surfaceLight,
+                      fillColor: NeuTheme.background,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
@@ -188,7 +190,7 @@ class _DietChatState extends State<DietChat> {
                       color: accent,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.send_rounded, color: Colors.black, size: 22),
+                    child: const Icon(LucideIcons.send, color: Colors.black, size: 22),
                   ),
                 ),
               ],
@@ -204,7 +206,7 @@ class _DietChatState extends State<DietChat> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.restaurant_menu_rounded, color: accent.withValues(alpha: 0.3), size: 48),
+          Icon(LucideIcons.utensils, color: accent.withValues(alpha: 0.3), size: 48),
           const SizedBox(height: 16),
           Text(
             "Your AI Nutritionist",
@@ -215,10 +217,10 @@ class _DietChatState extends State<DietChat> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Tell me what you ate, snap a photo,\nor ask for your daily report",
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+            style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -258,7 +260,7 @@ class _DietChatState extends State<DietChat> {
         margin: const EdgeInsets.only(bottom: 8, right: 60),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: NeuTheme.background,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -274,11 +276,11 @@ class _DietChatState extends State<DietChat> {
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: DietTheme.accent,
+                color: NeuTheme.accent,
               ),
             ),
             const SizedBox(width: 8),
-            const Text("Analyzing...", style: TextStyle(color: AppColors.textTertiary, fontSize: 13)),
+            Text("Analyzing...", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13)),
           ],
         ),
       ).animate().fade(duration: 200.ms).slideX(begin: -0.1),
@@ -286,7 +288,7 @@ class _DietChatState extends State<DietChat> {
   }
 
   Widget _buildMessageBubble(_ChatMessage message, int index) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
 
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -305,7 +307,7 @@ class _DietChatState extends State<DietChat> {
               decoration: BoxDecoration(
                 color: message.isUser
                     ? accent.withValues(alpha: 0.15)
-                    : AppColors.surfaceLight,
+                    : NeuTheme.background,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -319,7 +321,7 @@ class _DietChatState extends State<DietChat> {
               child: Text(
                 message.text,
                 style: TextStyle(
-                  color: message.isUser ? AppColors.textPrimary : AppColors.textSecondary,
+                  color: message.isUser ? NeuTheme.textPrimary : NeuTheme.textSecondary,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -336,7 +338,7 @@ class _DietChatState extends State<DietChat> {
   }
 
   Widget _buildActionCard(AiAction action, int messageIndex) {
-    final accent = DietTheme.accent;
+    final accent = NeuTheme.accent;
     final isFood = action.type == 'food_entry';
     final isBurn = action.type == 'burn_entry';
 
@@ -346,11 +348,11 @@ class _DietChatState extends State<DietChat> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: NeuTheme.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: action.isConfirmed
-              ? AppColors.success.withValues(alpha: 0.3)
+              ? Colors.greenAccent.withValues(alpha: 0.3)
               : accent.withValues(alpha: 0.2),
         ),
       ),
@@ -360,8 +362,8 @@ class _DietChatState extends State<DietChat> {
           Row(
             children: [
               Icon(
-                isFood ? Icons.restaurant : Icons.local_fire_department,
-                color: isFood ? accent : AppColors.error,
+                isFood ? LucideIcons.utensils : LucideIcons.flame,
+                color: isFood ? accent : Colors.redAccent,
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -370,27 +372,27 @@ class _DietChatState extends State<DietChat> {
                   isFood
                       ? action.payload['name'] ?? 'Food'
                       : action.payload['activity'] ?? 'Exercise',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: NeuTheme.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
                 ),
               ),
               if (action.isConfirmed)
-                const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+                const Icon(LucideIcons.checkCircle2, color: Colors.greenAccent, size: 18),
             ],
           ),
           const SizedBox(height: 6),
           if (isFood) ...[
             Text(
               "${action.payload['calories']?.toStringAsFixed(0) ?? '0'} kcal  •  P: ${action.payload['protein']?.toStringAsFixed(1) ?? '0'}g  C: ${action.payload['carbs']?.toStringAsFixed(1) ?? '0'}g  F: ${action.payload['fat']?.toStringAsFixed(1) ?? '0'}g",
-              style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+              style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11),
             ),
           ] else ...[
             Text(
               "${action.payload['calories_burned']?.toStringAsFixed(0) ?? '0'} kcal burned  •  ${action.payload['duration_minutes'] ?? 0} min",
-              style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+              style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11),
             ),
           ],
           if (!action.isConfirmed) ...[
@@ -406,9 +408,9 @@ class _DietChatState extends State<DietChat> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.3)),
+                      border: Border.all(color: NeuTheme.textSecondary.withValues(alpha: 0.3)),
                     ),
-                    child: const Text("Skip", style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                    child: Text("Skip", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -420,7 +422,7 @@ class _DietChatState extends State<DietChat> {
                       color: accent,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text("Add", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text("Add", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

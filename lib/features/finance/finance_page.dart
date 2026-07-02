@@ -7,15 +7,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// --- Constants ---
-const Color kTeal = Colors.tealAccent;
-const Color kTeal2 = Color(0xFF18FFFF); // tealAccent shade
-const Color kTealDark = Color(0xFF00BFA5); // tealAccent shade
-const Color kTealGlow = Color(0x4018FFFF);
-const Color kDarkBg = Colors.black;
-const Color kCardBg = Color(0x1A1C1C1E); // matches AppTheme.surface
-const Color kGlassBorder = Color(0x2E18FFFF);
+
 
 const List<Color> pieColors = [
   Color(0xFF00D4B8), Color(0xFF00B4A0), Color(0xFFFF6B6B),
@@ -105,17 +100,17 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
-          backgroundColor: kDarkBg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: kGlassBorder)),
+          backgroundColor: NeuTheme.background,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15))),
           title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          content: const Text("This action cannot be undone.", style: TextStyle(color: Colors.white54, fontSize: 14)),
+          content: Text("This action cannot be undone.", style: TextStyle(color: Colors.white54, fontSize: 14)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: kTeal))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text("CANCEL", style: TextStyle(color: NeuTheme.accent))),
             Container(
-              decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFF6B6B), Color(0xFFD32F2F)]), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF6B6B), Color(0xFFD32F2F)]), borderRadius: BorderRadius.circular(8)),
               child: TextButton(
                 onPressed: () { Navigator.pop(ctx); onConfirm(); },
-                child: const Text("DELETE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text("DELETE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -151,11 +146,11 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kDarkBg,
+      backgroundColor: NeuTheme.background,
       body: Stack(
         children: [
-          Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [kTealGlow, Colors.transparent], stops: [0.0, 0.7])))),
-          Positioned(bottom: -100, right: -100, child: Container(width: 350, height: 350, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x1E6C63FF), Colors.transparent], stops: [0.0, 0.7])))),
+          Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [NeuTheme.accent.withValues(alpha: 0.15), Colors.transparent], stops: [0.0, 0.7])))),
+          Positioned(bottom: -100, right: -100, child: Container(width: 350, height: 350, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x1E6C63FF), Colors.transparent], stops: [0.0, 0.7])))),
 
           SafeArea(
             child: ValueListenableBuilder(
@@ -273,7 +268,7 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
                                 child: SingleChildScrollView(
                                   key: ValueKey(_activeTab),
                                   physics: const BouncingScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                                  padding: EdgeInsets.fromLTRB(16, 8, 16, 40),
                                   child: currentTabWidget
                                 ),
                               )
@@ -294,38 +289,38 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
 
   Widget _buildTopNavDropdown() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("F I N A N C E", style: TextStyle(color: kTeal, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
+          Text("F I N A N C E", style: TextStyle(color: NeuTheme.accent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
           Theme(
             data: Theme.of(context).copyWith(
               popupMenuTheme: PopupMenuThemeData(
-                color: kDarkBg.withValues(alpha: 0.95),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: kGlassBorder, width: 1.5)),
+                color: NeuTheme.background.withValues(alpha: 0.95),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
               )
             ),
             child: PopupMenuButton<String>(
               onSelected: (val) => setState(() => _activeTab = val),
               offset: const Offset(0, 40),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: kGlassBorder, width: 1.5)),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
                 child: Row(
                   children: [
                     Text(_activeTab[0].toUpperCase() + _activeTab.substring(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.keyboard_arrow_down, color: kTeal, size: 18),
+                    SizedBox(width: 6),
+                    Icon(LucideIcons.chevronDown, color: NeuTheme.accent, size: 18),
                   ],
                 ),
               ),
               itemBuilder: (context) => [
-                _buildMenuItem("home", "Home", Icons.home_filled),
-                _buildMenuItem("transactions", "Transactions", Icons.receipt_long),
-                _buildMenuItem("budget", "Budget", Icons.pie_chart),
-                _buildMenuItem("planner", "Planner", Icons.calendar_today),
-                _buildMenuItem("goals", "Goals", Icons.flag),
+                _buildMenuItem("home", "Home", LucideIcons.home),
+                _buildMenuItem("transactions", "Transactions", LucideIcons.receipt),
+                _buildMenuItem("budget", "Budget", LucideIcons.pieChart),
+                _buildMenuItem("planner", "Planner", LucideIcons.calendar),
+                _buildMenuItem("goals", "Goals", LucideIcons.flag),
               ],
             ),
           ),
@@ -337,17 +332,17 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
   Widget _buildMonthSelector() {
     String monthStr = DateFormat('MMMM yyyy').format(_selectedMonth);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: kTeal),
+            icon: Icon(LucideIcons.chevronLeft, color: NeuTheme.accent),
             onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1)),
           ),
           Text(monthStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: kTeal),
+            icon: Icon(LucideIcons.chevronRight, color: NeuTheme.accent),
             onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1)),
           ),
         ],
@@ -361,9 +356,9 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       value: value,
       child: Row(
         children: [
-          Icon(icon, color: isSel ? kTeal : Colors.white54, size: 18),
-          const SizedBox(width: 12),
-          Text(label, style: TextStyle(color: isSel ? kTeal : Colors.white, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+          Icon(icon, color: isSel ? NeuTheme.accent : Colors.white54, size: 18),
+          SizedBox(width: 12),
+          Text(label, style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
@@ -395,48 +390,48 @@ class _HomeTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GlassCard(
-          glow: true, padding: const EdgeInsets.all(24),
-          gradient: LinearGradient(colors: [kTeal.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          glow: true, padding: EdgeInsets.all(24),
+          gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("TOTAL NET WORTH", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 3)),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0, end: totalBalance),
                 duration: const Duration(milliseconds: 800),
                 builder: (context, value, child) => Text(FormatUtils.formatCurrency(value), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 children: [
-                  _buildStatCard("↑ INCOME", FormatUtils.formatCompactCurrency(monthIncome), monthName, kTeal),
-                  const SizedBox(width: 12),
+                  _buildStatCard("↑ INCOME", FormatUtils.formatCompactCurrency(monthIncome), monthName, NeuTheme.accent),
+                  SizedBox(width: 12),
                   _buildStatCard("↓ SPENT", FormatUtils.formatCompactCurrency(monthExpense), monthName, const Color(0xFFFF6B6B)),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   _buildStatCard("💰 LEFT", FormatUtils.formatCompactCurrency(leftover), "Leftover", const Color(0xFFFFD93D)),
                 ],
               )
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         GlassCard(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              AnimatedRingProgress(progress: savingsRate / 100, color: kTeal, size: 72, stroke: 7, label: "${savingsRate.toInt()}%", sublabel: "SAVED"),
-              const SizedBox(width: 16),
+              AnimatedRingProgress(progress: savingsRate / 100, color: NeuTheme.accent, size: 72, stroke: 7, label: "${savingsRate.toInt()}%", sublabel: "SAVED"),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("SAVINGS RATE", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
-                    const Text("Great Job! 🎉", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    AnimatedProgressBar(progress: savingsRate / 100, color1: kTeal, color2: kTeal2),
-                    const SizedBox(height: 6),
+                    Text("Great Job! 🎉", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 8),
+                    AnimatedProgressBar(progress: savingsRate / 100, color1: NeuTheme.accent, color2: NeuTheme.accent),
+                    SizedBox(height: 6),
                     Text("Target: 50% | ${FormatUtils.formatCompactCurrency(leftover)} saved", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
                   ],
                 ),
@@ -444,7 +439,7 @@ class _HomeTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         SectionHeader(title: "ASSET VAULTS", onAdd: onAddVault),
         SizedBox(
@@ -454,19 +449,19 @@ class _HomeTab extends StatelessWidget {
             itemCount: vaults.length + 1,
             itemBuilder: (context, i) {
               if (i == vaults.length) {
-                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.15), style: BorderStyle.none), borderRadius: BorderRadius.circular(24)), child: CustomPaint(painter: DashedBorderPainter(), child: Center(child: Text("+", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 32, fontWeight: FontWeight.w300))))));
+                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.15), style: BorderStyle.none), borderRadius: BorderRadius.circular(24)), child: CustomPaint(painter: DashedBorderPainter(), child: Center(child: Text("+", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 32, fontWeight: FontWeight.w300))))));
               }
               final v = vaults[i]; Color vColor = Color(v.colorValue);
               return GestureDetector(
                 onLongPress: () => onDeleteVault(v),
                 child: Container(
-                  width: 200, margin: const EdgeInsets.only(right: 12),
+                  width: 200, margin: EdgeInsets.only(right: 12),
                   child: GlassCard(
-                    padding: const EdgeInsets.all(18), borderColor: vColor.withValues(alpha: 0.2), gradient: LinearGradient(colors: [vColor.withValues(alpha: 0.1), Colors.transparent], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    padding: EdgeInsets.all(18), borderColor: vColor.withValues(alpha: 0.2), gradient: LinearGradient(colors: [vColor.withValues(alpha: 0.1), Colors.transparent], begin: Alignment.topLeft, end: Alignment.bottomRight),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), const Text("🏦", style: TextStyle(fontSize: 20))]),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
                         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: vColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
                       ],
                     ),
@@ -476,36 +471,36 @@ class _HomeTab extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         const SectionHeader(title: "CASH FLOW (LAST 6 MONTHS)"),
         GlassCard(
-          padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+          padding: EdgeInsets.fromLTRB(0, 16, 16, 16),
           child: SizedBox(
             height: 160,
             child: LineChart(LineChartData(
               gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1)),
               titlesData: FlTitlesData(
                 bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, meta) {
-                  if (v.toInt() >= 0 && v.toInt() < spendingTrend.length) return Padding(padding: const EdgeInsets.only(top: 8), child: Text(spendingTrend[v.toInt()]['month'], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
-                  return const SizedBox();
+                  if (v.toInt() >= 0 && v.toInt() < spendingTrend.length) return Padding(padding: EdgeInsets.only(top: 8), child: Text(spendingTrend[v.toInt()]['month'], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
+                  return SizedBox();
                 })),
                 leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
-                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['income'] as double)).toList(), isCurved: true, color: kTeal, barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [kTeal.withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
+                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['income'] as double)).toList(), isCurved: true, color: NeuTheme.accent, barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
                 LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['expense'] as double)).toList(), isCurved: true, color: const Color(0xFFFF6B6B), barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [const Color(0xFFFF6B6B).withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)))
               ]
             )),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         if (categoryBreakdown.isNotEmpty) ...[
           const SectionHeader(title: "THIS MONTH'S SPEND"),
           GlassCard(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Row(
               children: [
                 SizedBox(
@@ -515,16 +510,16 @@ class _HomeTab extends StatelessWidget {
                     sections: categoryBreakdown.asMap().entries.map((e) => PieChartSectionData(color: pieColors[e.key % pieColors.length], value: e.value['value'], radius: 26, showTitle: false)).toList(),
                   )),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     children: categoryBreakdown.take(5).toList().asMap().entries.map((e) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
                             Container(width: 8, height: 8, decoration: BoxDecoration(color: pieColors[e.key % pieColors.length], borderRadius: BorderRadius.circular(2))),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Expanded(child: Text(e.value['name'], style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)),
                             Text(FormatUtils.formatCompactCurrency(e.value['value']), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                           ],
@@ -536,7 +531,7 @@ class _HomeTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
         ],
 
         SectionHeader(title: "RECENT ACTIVITY", onAdd: onAddTx),
@@ -551,10 +546,10 @@ class _HomeTab extends StatelessWidget {
   Widget _buildStatCard(String label, String amount, String subtitle, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.2))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)), const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)), SizedBox(height: 4),
           Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16)),
           Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
         ]),
@@ -587,11 +582,11 @@ class _TransactionsTabState extends State<_TransactionsTab> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("All Transactions", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-            GestureDetector(onTap: widget.onAdd, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(gradient: const LinearGradient(colors: [kTeal, kTeal2]), borderRadius: BorderRadius.circular(12)), child: const Text("+ ADD", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))))
+            Text("All Transactions", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            GestureDetector(onTap: widget.onAdd, child: Container(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(12)), child: Text("+ ADD", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))))
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         SizedBox(
           height: 32,
           child: ListView.builder(
@@ -602,20 +597,20 @@ class _TransactionsTabState extends State<_TransactionsTab> {
                 onTap: () => setState(() => filter = cats[i]),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: isSel ? kTeal.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSel ? kTeal : kGlassBorder, width: 1.5), borderRadius: BorderRadius.circular(20)),
-                  alignment: Alignment.center, child: Text(cats[i], style: TextStyle(color: isSel ? kTeal : Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  margin: EdgeInsets.only(right: 8), padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(color: isSel ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSel ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(20)),
+                  alignment: Alignment.center, child: Text(cats[i], style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ),
               );
             },
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         if (filtered.isEmpty) const Padding(padding: EdgeInsets.all(40), child: Center(child: Text("No transactions found.", style: TextStyle(color: Colors.white54))))
         else ...filtered.map((t) => Dismissible(
           key: Key(t.key.toString()),
           direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: const EdgeInsets.only(bottom: 10), child: const Icon(Icons.delete, color: Colors.white)),
+          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
           confirmDismiss: (direction) async { widget.onDelete(t); return false; },
           child: TxRow(tx: t, onTap: () { if(widget.onEditTx != null) widget.onEditTx!(t); }),
         )).toList(),
@@ -640,20 +635,20 @@ class _BudgetTab extends StatelessWidget {
       children: [
         SectionHeader(title: "MONTHLY OVERVIEW", onAdd: onAdd),
         GlassCard(
-          glow: true, padding: const EdgeInsets.all(20),
+          glow: true, padding: EdgeInsets.all(20),
           child: Column(
             children: [
               Text("MONTHLY BUDGET USED", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               RichText(text: TextSpan(children: [TextSpan(text: FormatUtils.formatCompactCurrency(totalSpent), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)), TextSpan(text: " / Limit: ${FormatUtils.formatCompactCurrency(totalLimit)}", style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.bold))])),
-              const SizedBox(height: 12),
-              AnimatedProgressBar(progress: totalPct, color1: kTeal, color2: const Color(0xFFFFD93D)),
-              const SizedBox(height: 8),
-              Text("${(totalPct * 100).toStringAsFixed(1)}% used · ${FormatUtils.formatCompactCurrency(totalLimit > totalSpent ? totalLimit - totalSpent : 0)} remaining", style: const TextStyle(color: kTeal, fontSize: 12, fontWeight: FontWeight.bold)),
+              SizedBox(height: 12),
+              AnimatedProgressBar(progress: totalPct, color1: NeuTheme.accent, color2: const Color(0xFFFFD93D)),
+              SizedBox(height: 8),
+              Text("${(totalPct * 100).toStringAsFixed(1)}% used · ${FormatUtils.formatCompactCurrency(totalLimit > totalSpent ? totalLimit - totalSpent : 0)} remaining", style: TextStyle(color: NeuTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         
         const SectionHeader(title: "INDIVIDUAL CATEGORIES"),
         if (budgets.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("No budget categories setup.", style: TextStyle(color: Colors.white54)))
@@ -672,16 +667,16 @@ class _BudgetTab extends StatelessWidget {
               child: SizedBox(
                 width: (MediaQuery.of(context).size.width - 44) / 2,
                 child: GlassCard(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Column(
                     children: [
                       AnimatedRingProgress(progress: pct.clamp(0.0, 1.0), color: col, size: 72, stroke: 7, label: "${(pct * 100).toStringAsFixed(0)}%"),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text("${b['icon']} ${b['category']}", style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1), textAlign: TextAlign.center),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text("${FormatUtils.formatCompactCurrency(spent)} spent", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
                       Text("Limit: ${FormatUtils.formatCompactCurrency(limit)}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
-                      if (pct > 0.9) Container(margin: const EdgeInsets.only(top: 4), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0x33FF6B6B), border: Border.all(color: const Color(0x66FF6B6B)), borderRadius: BorderRadius.circular(8)), child: const Text("ALERT", style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 9, fontWeight: FontWeight.bold))),
+                      if (pct > 0.9) Container(margin: EdgeInsets.only(top: 4), padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0x33FF6B6B), border: Border.all(color: const Color(0x66FF6B6B)), borderRadius: BorderRadius.circular(8)), child: Text("ALERT", style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 9, fontWeight: FontWeight.bold))),
                     ],
                   )
                 ),
@@ -689,12 +684,12 @@ class _BudgetTab extends StatelessWidget {
             );
           }).toList(),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         if (totalSpent > 0 && budgets.isNotEmpty) ...[
           const SectionHeader(title: "DYNAMIC BREAKDOWN"),
           GlassCard(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: SizedBox(
               height: 200,
               child: PieChart(PieChartData(
@@ -742,26 +737,26 @@ class _PlannerTab extends StatelessWidget {
       children: [
         SectionHeader(title: "MONTHLY COMMITMENTS", onAdd: onAdd),
         GlassCard(
-          glow: true, padding: const EdgeInsets.all(20),
+          glow: true, padding: EdgeInsets.all(20),
           child: Column(
             children: [
               Text("COMMITTED THIS MONTH", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0, end: committed),
                 duration: const Duration(milliseconds: 800),
                 builder: (context, val, child) => Text(FormatUtils.formatCompactCurrency(val), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
               ),
-              const SizedBox(height: 12),
-              Row(children: [_buildMiniCard("📋 FIXED", FormatUtils.formatCompactCurrency(totalFixed), const Color(0xFFFF6B6B)), const SizedBox(width: 10), _buildMiniCard("📈 SIP", FormatUtils.formatCompactCurrency(totalSIP), kTeal)]),
+              SizedBox(height: 12),
+              Row(children: [_buildMiniCard("📋 FIXED", FormatUtils.formatCompactCurrency(totalFixed), const Color(0xFFFF6B6B)), SizedBox(width: 10), _buildMiniCard("📈 SIP", FormatUtils.formatCompactCurrency(totalSIP), NeuTheme.accent)]),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         const SectionHeader(title: "DYNAMIC MONTHLY FLOW"),
         GlassCard(
-          padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+          padding: EdgeInsets.fromLTRB(0, 16, 16, 16),
           child: SizedBox(
             height: 140,
             child: LineChart(LineChartData(
@@ -769,8 +764,8 @@ class _PlannerTab extends StatelessWidget {
               titlesData: FlTitlesData(
                 bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, meta) {
                   List labels = ["Inc", "Fix", "Var", "Sav"];
-                  if (v.toInt() >= 0 && v.toInt() < labels.length) return Padding(padding: const EdgeInsets.only(top: 8), child: Text(labels[v.toInt()], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
-                  return const SizedBox();
+                  if (v.toInt() >= 0 && v.toInt() < labels.length) return Padding(padding: EdgeInsets.only(top: 8), child: Text(labels[v.toInt()], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
+                  return SizedBox();
                 })),
                 leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
@@ -778,46 +773,46 @@ class _PlannerTab extends StatelessWidget {
               lineBarsData: [
                 LineChartBarData(
                   spots: [FlSpot(0, monthIncome), FlSpot(1, monthIncome - totalFixed), FlSpot(2, (monthIncome - totalFixed) - (actualVariable > 0 ? actualVariable : 0)), FlSpot(3, actualSavings > 0 ? actualSavings : 0)],
-                  isCurved: true, color: kTeal, barWidth: 3, dotData: FlDotData(show: true, getDotPainter: (s,p,b,i) => FlDotCirclePainter(color: kTeal, strokeWidth: 0, radius: 5)),
+                  isCurved: true, color: NeuTheme.accent, barWidth: 3, dotData: FlDotData(show: true, getDotPainter: (s,p,b,i) => FlDotCirclePainter(color: NeuTheme.accent, strokeWidth: 0, radius: 5)),
                 )
               ]
             ))
           )
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
 
         const SectionHeader(title: "FIXED EXPENSES & EMIs"),
-        if (fixed.isEmpty) const Text("No fixed expenses tracked.", style: TextStyle(color: Colors.white54)),
+        if (fixed.isEmpty) Text("No fixed expenses tracked.", style: TextStyle(color: Colors.white54)),
         ...fixed.asMap().entries.map((e) => Dismissible(
           key: UniqueKey(), direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: const EdgeInsets.only(bottom: 10), child: const Icon(Icons.delete, color: Colors.white)),
+          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
           confirmDismiss: (d) async { onDeleteFixed(e.key); return false; },
           child: _buildPlannerRow(e.value['category'] == "EMI" ? "🏦" : "🛡️", e.value['name'], "Due on ${e.value['due']}th · ${e.value['category']}", "-${FormatUtils.formatCompactCurrency(e.value['amount'])}", const Color(0xFFFF6B6B)),
         )).toList(),
         
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         const SectionHeader(title: "SIP / INVESTMENTS"),
-        if (sips.isEmpty) const Text("No SIPs tracked.", style: TextStyle(color: Colors.white54)),
+        if (sips.isEmpty) Text("No SIPs tracked.", style: TextStyle(color: Colors.white54)),
         ...sips.asMap().entries.map((s) => Dismissible(
           key: UniqueKey(), direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: const EdgeInsets.only(bottom: 10), child: const Icon(Icons.delete, color: Colors.white)),
+          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
           confirmDismiss: (d) async { onDeleteSip(s.key); return false; },
-          child: _buildPlannerRow("📈", s.value['name'], "Due ${s.value['due']}st · ${s.value['folio']}", FormatUtils.formatCompactCurrency(s.value['amount']), kTeal),
+          child: _buildPlannerRow("📈", s.value['name'], "Due ${s.value['due']}st · ${s.value['folio']}", FormatUtils.formatCompactCurrency(s.value['amount']), NeuTheme.accent),
         )).toList(),
       ],
     );
   }
 
   Widget _buildMiniCard(String title, String amount, Color color) {
-    return Expanded(child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16))])));
+    return Expanded(child: Container(padding: EdgeInsets.all(12), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16))])));
   }
 
   Widget _buildPlannerRow(String icon, String title, String sub, String amt, Color color) {
     return GlassCard(
-      padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(16), margin: EdgeInsets.only(bottom: 10),
       child: Row(children: [
-        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(icon, style: const TextStyle(fontSize: 20))), const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), const SizedBox(height: 2), Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
+        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
         Text(amt, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16)),
       ])
     );
@@ -855,18 +850,18 @@ class _GoalsTab extends StatelessWidget {
             onTap: () => onUpdate(idx, g),
             onLongPress: () => onDelete(idx),
             child: GlassCard(
-              padding: const EdgeInsets.all(20), margin: const EdgeInsets.only(bottom: 14),
+              padding: EdgeInsets.all(20), margin: EdgeInsets.only(bottom: 14),
               borderColor: c.withValues(alpha: 0.2), gradient: LinearGradient(colors: [c.withValues(alpha: 0.05), Colors.transparent], begin: Alignment.topLeft, end: Alignment.bottomRight),
               child: Column(
                 children: [
                   Row(children: [
-                    Container(width: 52, height: 52, decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: Text(g['icon'], style: const TextStyle(fontSize: 26))), const SizedBox(width: 14),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(g['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)), const SizedBox(height: 2), Text("Target: ${FormatUtils.formatCurrency(target)} · Due ${g['deadline']}", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
+                    Container(width: 52, height: 52, decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: Text(g['icon'], style: const TextStyle(fontSize: 26))), SizedBox(width: 14),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(g['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)), SizedBox(height: 2), Text("Target: ${FormatUtils.formatCurrency(target)} · Due ${g['deadline']}", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
                     AnimatedRingProgress(progress: pct, color: c, size: 56, stroke: 6, label: "${(pct * 100).toStringAsFixed(0)}%")
                   ]),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   AnimatedProgressBar(progress: pct, color1: c, color2: c.withValues(alpha: 0.5)),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Saved: ${FormatUtils.formatCompactCurrency(saved)}", style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.bold)), Text("Need: ${FormatUtils.formatCompactCurrency(rem > 0 ? rem : 0)}", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12))])
                 ],
               )
@@ -893,11 +888,11 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: margin ?? const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: glow ? const [BoxShadow(color: kTealGlow, blurRadius: 40, offset: Offset(0, 8)), BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))] : const [BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 4))]),
+      margin: margin ?? EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: glow ? [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, 8)), BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))] : [BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 4))]),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: Container(padding: padding, decoration: BoxDecoration(color: kCardBg, gradient: gradient, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor ?? kGlassBorder, width: 1.5)), child: child)),
+        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: Container(padding: padding, decoration: BoxDecoration(color: NeuTheme.background, gradient: gradient, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor ?? NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), child: child)),
       ),
     );
   }
@@ -960,11 +955,11 @@ class TxRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
-        padding: const EdgeInsets.all(14), margin: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(14), margin: EdgeInsets.only(bottom: 10),
         child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text(tx.icon, style: const TextStyle(fontSize: 20))), const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), const SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? kTeal : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), const SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
+          Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text(tx.icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? NeuTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
         ])
       ),
     );
@@ -979,12 +974,12 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(color: kTeal.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
-          if (onAdd != null) GestureDetector(onTap: onAdd, child: Container(width: 24, height: 24, decoration: BoxDecoration(color: kTeal.withValues(alpha: 0.15), border: Border.all(color: kGlassBorder), shape: BoxShape.circle), child: const Icon(Icons.add, color: kTeal, size: 14)))
+          Text(title, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
+          if (onAdd != null) GestureDetector(onTap: onAdd, child: Container(width: 24, height: 24, decoration: BoxDecoration(color: NeuTheme.accent.withValues(alpha: 0.15), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15)), shape: BoxShape.circle), child: Icon(LucideIcons.plus, color: NeuTheme.accent, size: 14)))
         ],
       ),
     );
@@ -1039,7 +1034,7 @@ class _AddEditTransactionModalState extends State<_AddEditTransactionModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: widget.existingTx != null ? "EDIT TRANSACTION" : "LOG TRANSACTION", onSave: _save, child: Column(children: [
-      Row(children: ["expense", "income"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? kTeal.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? kTeal : kGlassBorder, width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? kTeal : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
+      Row(children: ["expense", "income"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
       _ModalInput(hint: "Title (e.g., Swiggy, Salary)", initialValue: title, onChanged: (v) => title = v),
       _ModalInput(hint: "Amount (₹)", initialValue: amount, keyboardType: TextInputType.number, onChanged: (v) => amount = v),
       if (type == "expense") _ModalDropdown(value: category, items: kExpenseCategories, onChanged: (v) => setState(() => category = v!)),
@@ -1058,7 +1053,7 @@ class _AddVaultModalState extends State<_AddVaultModal> {
   String name = "", balance = "", type = "Savings";
   void _save() {
     if (name.isEmpty || balance.isEmpty) return;
-    widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: kTeal.value));
+    widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: NeuTheme.accent.value));
     Navigator.pop(context);
   }
   @override
@@ -1090,8 +1085,8 @@ class _AddGoalModalState extends State<_AddGoalModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: "NEW GOAL", onSave: _save, child: Column(children: [
-      Wrap(spacing: 8, runSpacing: 8, children: icons.map((e) => GestureDetector(onTap: () => setState(() => icon = e), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 36, height: 36, decoration: BoxDecoration(color: icon == e ? kTeal.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: icon == e ? kTeal : kGlassBorder, width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(e, style: const TextStyle(fontSize: 18))))).toList()),
-      const SizedBox(height: 12),
+      Wrap(spacing: 8, runSpacing: 8, children: icons.map((e) => GestureDetector(onTap: () => setState(() => icon = e), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 36, height: 36, decoration: BoxDecoration(color: icon == e ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: icon == e ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(e, style: const TextStyle(fontSize: 18))))).toList()),
+      SizedBox(height: 12),
       _ModalInput(hint: "Goal Name", onChanged: (v) => name = v),
       _ModalInput(hint: "Target Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => target = v),
       _ModalInput(hint: "Already Saved (₹)", keyboardType: TextInputType.number, onChanged: (v) => saved = v),
@@ -1124,7 +1119,7 @@ class _UpdateGoalModalState extends State<_UpdateGoalModal> {
   Widget build(BuildContext context) {
     return _BaseModal(title: "ADD FUNDS TO ${widget.goal['name'].toUpperCase()}", onSave: _save, child: Column(children: [
       Text("Target: ${FormatUtils.formatCurrency(widget.goal['target'])} · Currently Saved: ${FormatUtils.formatCurrency(widget.goal['saved'])}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       _ModalInput(hint: "Amount to Add (₹)", keyboardType: TextInputType.number, onChanged: (v) => amount = v),
     ]));
   }
@@ -1182,7 +1177,7 @@ class _AddPlannerModalState extends State<_AddPlannerModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: "NEW COMMITMENT", onSave: _save, child: Column(children: [
-      Row(children: ["Fixed", "SIP"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? kTeal.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? kTeal : kGlassBorder, width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? kTeal : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
+      Row(children: ["Fixed", "SIP"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
       _ModalInput(hint: "Name (e.g., Rent, Groww)", onChanged: (v) => name = v),
       _ModalInput(hint: "Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => amount = v),
       _ModalInput(hint: "Due Date (e.g., 5)", keyboardType: TextInputType.number, onChanged: (v) => due = v),
@@ -1201,18 +1196,18 @@ class _BaseModal extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: BoxDecoration(color: const Color(0xFF0F1923), border: Border.all(color: kGlassBorder, width: 1.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), boxShadow: const [BoxShadow(color: kTealGlow, blurRadius: 40, offset: Offset(0, -8))]),
+      decoration: BoxDecoration(color: const Color(0xFF0F1923), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), boxShadow: [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, -8))]),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(title, style: const TextStyle(color: kTeal, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)), GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.close, color: Colors.white, size: 16)))]),
-            const SizedBox(height: 20), child, const SizedBox(height: 8),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(title, style: TextStyle(color: NeuTheme.accent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)), GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: Icon(LucideIcons.x, color: Colors.white, size: 16)))]),
+            SizedBox(height: 20), child, SizedBox(height: 8),
             Row(children: [
-              Expanded(child: GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: const Text("CANCEL", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))))),
-              const SizedBox(width: 10),
-              Expanded(flex: 2, child: GestureDetector(onTap: onSave, child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: const LinearGradient(colors: [kTeal, kTeal2]), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: const Text("SAVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1))))),
+              Expanded(child: GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("CANCEL", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))))),
+              SizedBox(width: 10),
+              Expanded(flex: 2, child: GestureDetector(onTap: onSave, child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("SAVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1))))),
             ])
           ],
         ),
@@ -1226,7 +1221,7 @@ class _ModalInput extends StatelessWidget {
   const _ModalInput({required this.hint, required this.onChanged, this.keyboardType = TextInputType.text, this.initialValue});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextFormField(initialValue: initialValue, onChanged: onChanged, keyboardType: keyboardType, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), filled: true, fillColor: Colors.white.withValues(alpha: 0.05), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGlassBorder, width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGlassBorder, width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kTeal, width: 1.5)), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
+    return Padding(padding: EdgeInsets.only(bottom: 10), child: TextFormField(initialValue: initialValue, onChanged: onChanged, keyboardType: keyboardType, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), filled: true, fillColor: Colors.white.withValues(alpha: 0.05), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent, width: 1.5)), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
   }
 }
 
@@ -1235,7 +1230,7 @@ class _ModalDropdown extends StatelessWidget {
   const _ModalDropdown({required this.value, required this.items, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), border: Border.all(color: kGlassBorder, width: 1.5), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, dropdownColor: kDarkBg, style: const TextStyle(color: Colors.white, fontSize: 14), icon: const Icon(Icons.arrow_drop_down, color: Colors.white54), items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged))));
+    return Padding(padding: EdgeInsets.only(bottom: 10), child: Container(padding: EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, dropdownColor: NeuTheme.background, style: const TextStyle(color: Colors.white, fontSize: 14), icon: Icon(LucideIcons.chevronDown, color: Colors.white54), items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged))));
   }
 }
 

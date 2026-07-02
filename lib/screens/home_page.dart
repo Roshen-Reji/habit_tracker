@@ -6,7 +6,7 @@ import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/music/music_library_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
-import 'package:habit_tracker/features/settings/settings_page.dart';
+import 'package:habit_tracker/screens/settings_page.dart';
 import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
@@ -109,7 +109,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          _pages[_selectedIndex],
+          AnimatedSwitcher(duration: const Duration(milliseconds: 300), transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(animation), child: child)), child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex])),
           Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavBar(selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),

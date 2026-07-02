@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'dart:io';
 import 'dart:async'; 
@@ -45,7 +46,7 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_link, color: AppColors.primary),
+            icon: const Icon(LucideIcons.link, color: AppColors.primary),
             onPressed: () => _showAddVideoDialog(context),
           )
         ],
@@ -124,7 +125,7 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 12.0).copyWith(bottom: 12),
                   child: Row(
                     children: [
-                      Icon(Icons.mic, color: AppTheme.textSecondary, size: 12),
+                      Icon(LucideIcons.mic, color: AppTheme.textSecondary, size: 12),
                       const SizedBox(width: 4),
                       Expanded(child: Text(speech.speaker, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10))),
                     ],
@@ -309,7 +310,7 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
           if (_isLocked && _showControls)
             Positioned(
               top: 50, left: 20,
-              child: _buildGlassButton(Icons.lock_rounded, _toggleLock, color: AppColors.primary),
+              child: _buildGlassButton(LucideIcons.lock, _toggleLock, color: AppColors.primary),
             ),
             
           if (!_isLocked && _showControls) ...[
@@ -319,12 +320,12 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildGlassButton(Icons.close, () => Navigator.pop(context)),
+                  _buildGlassButton(LucideIcons.x, () => Navigator.pop(context)),
                   Row(
                     children: [
-                      _buildGlassButton(Icons.lock_open_rounded, _toggleLock),
+                      _buildGlassButton(LucideIcons.unlock, _toggleLock),
                       const SizedBox(width: 16),
-                      _buildGlassButton(Icons.screen_rotation_rounded, _toggleRotation),
+                      _buildGlassButton(LucideIcons.smartphone, _toggleRotation),
                     ],
                   )
                 ],
@@ -361,7 +362,7 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(_currentVolume == 0 ? Icons.volume_off : Icons.volume_up, color: AppColors.primary, size: 36),
+                      Icon(_currentVolume == 0 ? LucideIcons.volumeX : LucideIcons.volume2, color: AppColors.primary, size: 36),
                       const SizedBox(width: 12),
                       Text(
                         "$_currentVolume%",
@@ -380,7 +381,7 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), 
+                      icon: const Icon(LucideIcons.rotateCcw, color: Colors.white, size: 40), 
                       onPressed: () {
                         _controller.seekTo(_controller.value.position - const Duration(seconds: 10));
                         _startHideTimer();
@@ -395,13 +396,13 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
                         _startHideTimer();
                       },
                       child: Icon(
-                        _controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled, 
+                        _controller.value.isPlaying ? LucideIcons.pauseCircle : LucideIcons.playCircle, 
                         color: AppColors.primary, size: 70,
                       ),
                     ),
                     const SizedBox(width: 50),
                     IconButton(
-                      icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), 
+                      icon: const Icon(LucideIcons.rotateCw, color: Colors.white, size: 40), 
                       onPressed: () {
                         _controller.seekTo(_controller.value.position + const Duration(seconds: 10));
                         _startHideTimer();

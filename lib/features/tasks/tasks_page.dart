@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart'; 
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'widgets/task_card.dart';
 import 'widgets/add_task_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -37,16 +38,13 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: NeuTheme.background,
       appBar: AppBar(
         centerTitle: true,
-        title: Container(
-          height: 45,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceGlass,
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
+        title: NeuContainer(
+          height: 50,
+          padding: EdgeInsets.zero,
+          borderRadius: 25,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -61,7 +59,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         actions: [
           if (_currentView == 'missions') 
             IconButton(
-              icon: const Icon(Icons.analytics, color: AppColors.primary),
+              icon: Icon(LucideIcons.barChart2, color: NeuTheme.accent),
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskAnalyticsPage()));
               },
@@ -71,9 +69,9 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         bottom: _currentView == 'missions' 
             ? TabBar(
                 controller: _tabController,
-                indicatorColor: AppColors.primary,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textTertiary,
+                indicatorColor: NeuTheme.accent,
+                labelColor: NeuTheme.accent,
+                unselectedLabelColor: NeuTheme.textSecondary,
                 indicatorWeight: 3,
                 tabs: const [
                   Tab(text: "TODAY"), 
@@ -85,16 +83,25 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             : const PreferredSize(preferredSize: Size.zero, child: SizedBox.shrink()),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.background,
+        decoration: BoxDecoration(
+          color: NeuTheme.background,
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(animation),
+              child: child,
+            ),
+          ),
           child: _currentView == 'missions' 
-              ? _buildTaskEngine() 
+              ? SizedBox(key: const ValueKey('missions'), child: _buildTaskEngine())
               : _currentView == 'finance'
-                  ? const FinanceDashboard()
-                  : const SpeechVaultPage(),
+                  ? const FinanceDashboard(key: ValueKey('finance'))
+                  : const SpeechVaultPage(key: ValueKey('vault')),
         ),
       ),
     );
@@ -109,16 +116,15 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(25),
-          border: isSelected ? Border.all(color: AppColors.primary.withValues(alpha: 0.5)) : Border.all(color: Colors.transparent),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: isSelected ? AppColors.primary : AppColors.textTertiary,
+            color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             letterSpacing: 1.5,
             fontSize: 12,
@@ -152,19 +158,19 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
     final completedGoals = allTypeGoals.where((g) => g.isCompleted).toList();
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       children: [
         ...activeGoals.asMap().entries.map((entry) => TaskCard(
           goal: entry.value, 
           onTap: () => _showGoalDetails(entry.value)
         ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * activeGoals.length).ms).fade(),
         if (completedGoals.isNotEmpty) ...[
-          const SizedBox(height: 30),
+          SizedBox(height: 30),
           _buildCompletedSection(completedGoals),
         ],
-        const SizedBox(height: 80), // Padding for bottom nav
+        SizedBox(height: 80), // Padding for bottom nav
       ],
     );
   }
@@ -180,17 +186,17 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 2),
+          border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.5), width: 2),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add, color: AppColors.primary),
+            Icon(LucideIcons.plus, color: NeuTheme.accent),
             SizedBox(width: 8),
             Text(
               "ADD NEW MISSION",
               style: TextStyle(
-                color: AppColors.primary,
+                color: NeuTheme.accent,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
@@ -203,12 +209,12 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
 
   Widget _buildCompletedSection(List<Goal> completedGoals) {
     return ExpansionTile(
-      collapsedIconColor: AppColors.textTertiary,
-      iconColor: AppColors.primary,
+      collapsedIconColor: NeuTheme.textSecondary,
+      iconColor: NeuTheme.accent,
       title: Text(
         "COMPLETED (${completedGoals.length})",
-        style: const TextStyle(
-          color: AppColors.textTertiary,
+        style: TextStyle(
+          color: NeuTheme.textSecondary,
           letterSpacing: 2,
           fontSize: 12,
         ),
@@ -225,13 +231,13 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   void _showGoalDetails(Goal goal) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: NeuTheme.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,24 +247,24 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                   Expanded(
                     child: Text(
                       goal.title,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: NeuTheme.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textTertiary),
+                    icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _buildDetailRow('Progress', '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}'),
               _buildDetailRow('Completion', '${goal.completionPercentage.toInt()}%'),
               _buildDetailRow('Streak', '${goal.streakCount} days'),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -270,10 +276,10 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                         }
                         Navigator.pop(context);
                       },
-                      child: const Text('Add Progress'),
+                      child: Text('Add Progress'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
@@ -283,15 +289,15 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('${goal.title} deleted'),
-                            backgroundColor: AppColors.surface,
+                            backgroundColor: NeuTheme.background,
                             duration: const Duration(seconds: 2),
                           ),
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.error),
+                        side: const BorderSide(color: Colors.redAccent),
                       ),
-                      child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+                      child: Text('Delete', style: TextStyle(color: Colors.redAccent)),
                     ),
                   ),
                 ],
@@ -305,12 +311,12 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textTertiary)),
-          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: NeuTheme.textSecondary)),
+          Text(value, style: TextStyle(color: NeuTheme.textPrimary, fontWeight: FontWeight.bold)),
         ],
       ),
     );

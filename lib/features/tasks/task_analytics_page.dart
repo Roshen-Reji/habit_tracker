@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
@@ -268,7 +269,7 @@ class TaskAnalyticsPage extends StatelessWidget {
               ),
               Row(
                 children: [
-                  const Icon(Icons.local_fire_department, color: Colors.orangeAccent, size: 18),
+                  const Icon(LucideIcons.flame, color: Colors.orangeAccent, size: 18),
                   const SizedBox(width: 4),
                   Text(
                     "${g.streakCount} days",
@@ -295,11 +296,11 @@ class TaskAnalyticsPage extends StatelessWidget {
 
   IconData _getCategoryIcon(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return Icons.favorite;
-      case GoalCategory.productivity: return Icons.bolt;
-      case GoalCategory.learning: return Icons.menu_book;
-      case GoalCategory.fitness: return Icons.fitness_center;
-      case GoalCategory.hobby: return Icons.extension;
+      case GoalCategory.health: return LucideIcons.heart;
+      case GoalCategory.productivity: return LucideIcons.zap;
+      case GoalCategory.learning: return LucideIcons.bookOpen;
+      case GoalCategory.fitness: return LucideIcons.dumbbell;
+      case GoalCategory.hobby: return LucideIcons.puzzle;
     }
   }
 }

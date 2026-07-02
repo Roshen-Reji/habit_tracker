@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -14,75 +14,48 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return NeuContainer(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      borderRadius: 32,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNeuTab(LucideIcons.home, "HOME", 0),
+          _buildNeuTab(LucideIcons.target, "GOALS", 1),
+          _buildNeuTab(LucideIcons.utensils, "DIET", 2),
+          _buildNeuTab(LucideIcons.music, "AUDIO", 3),
         ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45), 
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surface.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: AppTheme.textPrimary.withValues(alpha: 0.15),
-                width: 0.5,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildAppleTab(Icons.dashboard_rounded, "HOME", 0),
-                      _buildAppleTab(Icons.check_circle_rounded, "GOALS", 1),
-                      _buildAppleTab(Icons.restaurant_menu_rounded, "DIET", 2),
-                      _buildAppleTab(Icons.music_note_rounded, "AUDIO", 3),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildAppleTab(IconData icon, String label, int index) {
+  Widget _buildNeuTab(IconData icon, String label, int index) {
     final bool isSelected = selectedIndex == index;
     return GestureDetector(
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: 60,
-        height: 50,
+        height: 55,
+        decoration: BoxDecoration(
+          color: isSelected ? NeuTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              color: isSelected ? AppTheme.primary : AppTheme.textPrimary.withValues(alpha: 0.4),
-              size: 26,
+              color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
+              size: 24,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppTheme.primary : AppTheme.textPrimary.withValues(alpha: 0.4),
+                color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
