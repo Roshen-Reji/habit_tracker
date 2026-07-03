@@ -519,11 +519,13 @@ Widget _buildBlurredBackground() {
         mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
           IconButton(icon: const Icon(LucideIcons.chevronDown, color: Colors.white, size: 36), onPressed: () => Navigator.pop(context)),
-          Column(
-            children: [
-              const Text("NOW PLAYING", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              Text(currentSong.album, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
-            ],
+          Expanded(
+            child: Column(
+              children: [
+                const Text("NOW PLAYING", maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                Text(currentSong.album, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
           IconButton(icon: const Icon(LucideIcons.moreHorizontal, color: Colors.white, size: 28), onPressed: _showOptions),
         ]

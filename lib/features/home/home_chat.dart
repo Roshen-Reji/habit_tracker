@@ -126,10 +126,20 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
   Future<void> _loadLocalSongs() async {
     try {
       final audioQuery = audio_query.OnAudioQuery();
-      final songs = await audioQuery.querySongs(
+      List<audio_query.SongModel> songs = await audioQuery.querySongs(
         sortType: audio_query.SongSortType.TITLE,
         uriType: audio_query.UriType.EXTERNAL,
       );
+
+      List<dynamic> rawFolders = Hive.box('settings').get('music_folders', defaultValue: []);
+      List<String> folders = rawFolders.cast<String>();
+
+      if (folders.isNotEmpty) {
+        songs = songs.where((s) {
+          return folders.any((folder) => s.data.startsWith(folder));
+        }).toList();
+      }
+
       _localSongs = songs
           .map((s) => SongModel(
                 id: s.id.toString(),

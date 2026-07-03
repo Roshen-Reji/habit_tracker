@@ -70,7 +70,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                       : _currentView == 'finance' 
                           ? Alignment.center 
                           : Alignment.centerRight,
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
                   child: Container(
                     width: 70,
@@ -138,7 +138,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           color: Colors.transparent,
         ),
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 150),
           switchInCurve: Curves.easeOutBack,
           switchOutCurve: Curves.easeIn,
           transitionBuilder: (child, animation) => FadeTransition(
@@ -165,7 +165,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         _currentView = viewKey;
       }),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutCubic,
         width: 70,
         height: 40,
@@ -233,7 +233,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                 return TaskCard(
                   goal: goal, 
                   onTap: () => _showGoalDetails(goal)
-                ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * index).ms, curve: Curves.easeOutBack).fade(duration: 400.ms);
+                ).animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * index).ms, curve: Curves.easeOutCubic).fade(duration: 200.ms);
               },
               childCount: activeGoals.length,
             ),
@@ -246,7 +246,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * activeGoals.length).ms).fade(),
+                _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * activeGoals.length).ms).fade(),
                 if (completedGoals.isNotEmpty) ...[
                   const SizedBox(height: 30),
                   _buildCompletedSection(completedGoals),
@@ -371,7 +371,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                           SnackBar(
                             content: Text('${goal.title} deleted'),
                             backgroundColor: BentoTheme.background,
-                            duration: const Duration(seconds: 2),
+                            duration: const Duration(milliseconds: 800),
                           ),
                         );
                       },

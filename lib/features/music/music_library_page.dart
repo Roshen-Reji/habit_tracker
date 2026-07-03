@@ -1,6 +1,7 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:habit_tracker/models/song_model.dart';
@@ -54,6 +55,16 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
       sortType: audio_query.SongSortType.TITLE,
       uriType: audio_query.UriType.EXTERNAL,
     );
+
+    List<dynamic> rawFolders = Hive.box('settings').get('music_folders', defaultValue: []);
+    List<String> folders = rawFolders.cast<String>();
+
+    if (folders.isNotEmpty) {
+      fetchedSongs = fetchedSongs.where((s) {
+        return folders.any((folder) => s.data.startsWith(folder));
+      }).toList();
+    }
+
     setState(() {
       _localSongs = fetchedSongs.map((s) => SongModel(
         id: s.id.toString(),

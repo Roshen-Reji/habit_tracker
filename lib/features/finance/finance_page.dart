@@ -561,7 +561,7 @@ class _HomeTab extends StatelessWidget {
           ),
         )
         else ...transactions.take(4).toList().asMap().entries.map((entry) => TxRow(tx: entry.value, onTap: () { if(onEditTx != null) onEditTx!(entry.value); })
-          .animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)
+          .animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * entry.key).ms, curve: Curves.easeOutCubic).fade(duration: 200.ms)
         ).toList(),
       ],
     );
@@ -637,7 +637,7 @@ class _TransactionsTabState extends State<_TransactionsTab> {
           background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
           confirmDismiss: (direction) async { widget.onDelete(entry.value); return false; },
           child: TxRow(tx: entry.value, onTap: () { if(widget.onEditTx != null) widget.onEditTx!(entry.value); }),
-        ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)).toList(),
+        ).animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * entry.key).ms, curve: Curves.easeOutCubic).fade(duration: 200.ms)).toList(),
       ],
     );
   }
@@ -932,7 +932,7 @@ class AnimatedRingProgress extends StatelessWidget {
       height: size, width: size,
       child: TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 0, end: progress),
-        duration: const Duration(milliseconds: 1000), curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic,
         builder: (context, value, child) => CustomPaint(
           painter: RingProgressPainter(progress: value, color: color, strokeWidth: stroke),
           child: Center(child: Column(
@@ -958,7 +958,7 @@ class AnimatedProgressBar extends StatelessWidget {
       height: 8, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), alignment: Alignment.centerLeft,
       child: TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
-        duration: const Duration(milliseconds: 1000), curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic,
         builder: (context, value, child) => FractionallySizedBox(
           widthFactor: value,
           child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [color1, color2]), borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: color1.withValues(alpha: 0.4), blurRadius: 8)])),
@@ -979,11 +979,17 @@ class TxRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
-        padding: EdgeInsets.all(14), margin: EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14), margin: const EdgeInsets.only(bottom: 10),
         child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text(tx.icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? BentoTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
+          Container(
+            width: 44, height: 44, 
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), 
+            alignment: Alignment.center, 
+            child: Icon(isIncome ? LucideIcons.arrowDownLeft : LucideIcons.arrowUpRight, color: isIncome ? BentoTheme.accent : const Color(0xFFFF6B6B), size: 22)
+          ), 
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), const SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? BentoTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), const SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
         ])
       ),
     );
