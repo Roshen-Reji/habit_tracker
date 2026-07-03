@@ -188,17 +188,15 @@ class TaskCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
+                      LinearProgressIndicator(
+                        value: goal.progress,
                         borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: goal.progress,
-                          backgroundColor:
-                              NeuTheme.isDark ? Colors.black26 : Colors.black12,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _getCategoryColor(goal.category),
-                          ),
-                          minHeight: 6,
+                        backgroundColor:
+                            NeuTheme.isDark ? Colors.black26 : Colors.black12,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getCategoryColor(goal.category),
                         ),
+                        minHeight: 6,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -230,10 +228,6 @@ class TaskCard extends StatelessWidget {
         .then()
         .scaleXY(
             begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
-        .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms)
-        .shimmer(
-            duration: 1000.ms,
-            curve: Curves.easeOutQuad,
-            color: NeuTheme.accent.withValues(alpha: 0.1));
+        .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
   }
 }

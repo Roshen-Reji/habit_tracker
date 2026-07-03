@@ -161,36 +161,57 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
     final completedGoals = allTypeGoals.where((g) => g.isCompleted).toList()
       ..sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
 
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: [
+    return CustomScrollView(
+      slivers: [
         if (activeGoals.isEmpty && completedGoals.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  Icon(LucideIcons.wind, size: 60, color: NeuTheme.textSecondary.withValues(alpha: 0.5))
+                    .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                    .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
+                  const SizedBox(height: 16),
+                  Text("No missions here yet.", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text("Time to assign yourself a new objective.", style: TextStyle(color: NeuTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                ],
+              ).animate().fade().scale(curve: Curves.easeOutBack),
+            ),
+          ),
+        
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final goal = activeGoals[index];
+                return TaskCard(
+                  goal: goal, 
+                  onTap: () => _showGoalDetails(goal)
+                ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * index).ms, curve: Curves.easeOutBack).fade(duration: 400.ms);
+              },
+              childCount: activeGoals.length,
+            ),
+          ),
+        ),
+        
+        SliverPadding(
+          padding: const EdgeInsets.all(16).copyWith(bottom: 80),
+          sliver: SliverToBoxAdapter(
             child: Column(
               children: [
-                Icon(LucideIcons.wind, size: 60, color: NeuTheme.textSecondary.withValues(alpha: 0.5))
-                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                  .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
-                const SizedBox(height: 16),
-                Text("No missions here yet.", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text("Time to assign yourself a new objective.", style: TextStyle(color: NeuTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                const SizedBox(height: 20),
+                _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * activeGoals.length).ms).fade(),
+                if (completedGoals.isNotEmpty) ...[
+                  const SizedBox(height: 30),
+                  _buildCompletedSection(completedGoals),
+                ],
               ],
             ),
-          ).animate().fade().scale(curve: Curves.easeOutBack),
-        
-        ...activeGoals.asMap().entries.map((entry) => TaskCard(
-          goal: entry.value, 
-          onTap: () => _showGoalDetails(entry.value)
-        ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)),
-        SizedBox(height: 20),
-        _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * activeGoals.length).ms).fade(),
-        if (completedGoals.isNotEmpty) ...[
-          SizedBox(height: 30),
-          _buildCompletedSection(completedGoals),
-        ],
-        SizedBox(height: 80), // Padding for bottom nav
+          ),
+        ),
       ],
     );
   }
@@ -240,10 +261,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         ),
       ),
       children: completedGoals
-          .map((goal) => Opacity(
-            opacity: 0.6, 
-            child: TaskCard(goal: goal, onTap: () => _showGoalDetails(goal))
-          ))
+          .map((goal) => TaskCard(goal: goal, onTap: () => _showGoalDetails(goal)))
           .toList(),
     );
   }

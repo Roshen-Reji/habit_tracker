@@ -5,13 +5,11 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/widgets/mysterious_quote_card.dart';
 import 'package:habit_tracker/widgets/mysterious_momentum_graph.dart';
-import 'package:habit_tracker/widgets/star_background.dart';
+
 import 'package:habit_tracker/screens/settings_page.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
-import 'package:habit_tracker/data/services/rank_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 class DashboardView extends StatelessWidget {
@@ -24,9 +22,8 @@ class DashboardView extends StatelessWidget {
       builder: (context, Box settings, _) {
         final String name = settings.get('username', defaultValue: 'USER');
 
-        return StarBackground(
-          child: SafeArea(
-            child: SingleChildScrollView(
+    return SafeArea(
+      child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 180),
               child: Column(
@@ -77,8 +74,7 @@ class DashboardView extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }
@@ -213,15 +209,13 @@ class DashboardView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ClipRRect(
+            LinearProgressIndicator(
+              value: progress.toDouble(),
+              minHeight: 6,
               borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progress.toDouble(),
-                minHeight: 6,
-                backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
-                valueColor: AlwaysStoppedAnimation(
-                  isOver ? Colors.redAccent : NeuTheme.accent,
-                ),
+              backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
+              valueColor: AlwaysStoppedAnimation(
+                isOver ? Colors.redAccent : NeuTheme.accent,
               ),
             ),
             if (log != null && log.entries.isNotEmpty) ...[
