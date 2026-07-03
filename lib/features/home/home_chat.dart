@@ -10,6 +10,9 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/features/home/widgets/chat_message_bubble.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
+import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
+import 'package:habit_tracker/models/speech_model.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -221,6 +224,27 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
   }
 
   void _confirmAction(AiAction action) {
+    if (action.type == 'play_vault_video') {
+      final query = (action.payload['query'] ?? '').toString().toLowerCase();
+      final box = Hive.box<SpeechModel>('speech_vault');
+      SpeechModel? match;
+      for (var speech in box.values) {
+        if (speech.title.toLowerCase().contains(query) || query.contains(speech.title.toLowerCase())) {
+          match = speech;
+          break;
+        }
+      }
+      
+      setState(() => action.isConfirmed = true);
+      
+      if (match != null) {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => SamsungVideoAssistant(speech: match!)));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video not found in Vault.')));
+      }
+      return;
+    }
+
     AiService.instance.executeAction(action, availableSongs: _localSongs);
     setState(() {
       action.isConfirmed = true;
@@ -253,6 +277,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         return '✓ Created mission: ${action.payload['title']}';
       case 'music_play':
         return '🎵 Playing: ${action.payload['search_query']}';
+      case 'play_vault_video':
+        return '▶️ Opening Vault Video: ${action.payload['query']}';
       default:
         return '✓ Done';
     }

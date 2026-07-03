@@ -25,6 +25,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   bool _isAiMode = false;
   bool _isAiLoading = false;
   final _aiController = TextEditingController();
+  DateTime? selectedEndDate;
 
   @override
   void initState() {
@@ -82,6 +83,32 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     if (time != null) {
       setState(() {
         selectedReminderTime = time;
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    final DateTime? date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primary,
+              onPrimary: AppColors.background,
+              surface: AppColors.surface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (date != null) {
+      setState(() {
+        selectedEndDate = date;
       });
     }
   }
@@ -164,22 +191,23 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       final target = double.tryParse(targetController.text);
 
                       if (title.isNotEmpty && target != null && target > 0) {
-                        DateTime? reminderDate;
-                        if (selectedReminderTime != null) {
-                          final now = DateTime.now();
-                          reminderDate = DateTime(now.year, now.month, now.day, selectedReminderTime!.hour, selectedReminderTime!.minute);
-                        }
+                          DateTime? reminderDate;
+                          if (selectedReminderTime != null) {
+                            final now = DateTime.now();
+                            reminderDate = DateTime(now.year, now.month, now.day, selectedReminderTime!.hour, selectedReminderTime!.minute);
+                          }
 
-                        final newGoal = Goal(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          title: title,
-                          type: selectedType,
-                          category: selectedCategory,
-                          targetValue: target,
-                          unit: 'units',
-                          createdDate: DateTime.now(),
-                          reminderTime: reminderDate,
-                        );
+                          final newGoal = Goal(
+                            id: DateTime.now().millisecondsSinceEpoch.toString(),
+                            title: title,
+                            type: selectedType,
+                            category: selectedCategory,
+                            targetValue: target,
+                            unit: 'units',
+                            createdDate: DateTime.now(),
+                            reminderTime: reminderDate,
+                            endDate: selectedEndDate,
+                          );
                         Hive.box<Goal>('mission_box_v4').put(newGoal.id, newGoal);
                         if (newGoal.reminderTime != null) {
                           NotificationService().scheduleTaskReminder(newGoal);
@@ -282,6 +310,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             padding: const EdgeInsets.only(top: 8.0),
             child: Text("Plays default system notification sound.", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12, fontStyle: FontStyle.italic)),
           ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Mission Deadline", style: TextStyle(color: NeuTheme.textSecondary)),
+            TextButton.icon(
+              onPressed: _pickEndDate,
+              icon: Icon(LucideIcons.calendar, color: NeuTheme.accent, size: 20),
+              label: Text(
+                selectedEndDate != null ? "${selectedEndDate!.day}/${selectedEndDate!.month}/${selectedEndDate!.year}" : "Set End Date",
+                style: TextStyle(color: NeuTheme.accent),
+              ),
+            )
+          ],
+        ),
       ],
     );
   }

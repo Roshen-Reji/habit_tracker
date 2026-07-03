@@ -168,6 +168,8 @@ class TaskCard extends StatelessWidget {
         ),
       ),
     ).animate(target: goal.isCompleted ? 1 : 0)
+     .scaleXY(begin: 1.0, end: 1.05, curve: Curves.easeOutBack, duration: 150.ms)
+     .then().scaleXY(begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
      .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms)
      .shimmer(duration: 1000.ms, curve: Curves.easeOutQuad, color: NeuTheme.accent.withValues(alpha: 0.1));
   }

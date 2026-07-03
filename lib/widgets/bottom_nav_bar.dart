@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -45,21 +46,18 @@ class BottomNavBar extends StatelessWidget {
           isPressed: isSelected, // Depressed 3D state for active tab!
           padding: EdgeInsets.zero,
           customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
-          child: AnimatedScale(
-            scale: isSelected ? 1.1 : 1.0,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.elasticOut,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-                  size: 26,
-                ),
-              ],
-            ),
-          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
+                size: 26,
+              ),
+            ],
+          ).animate(target: isSelected ? 1 : 0)
+           .scaleXY(end: 1.2, duration: 500.ms, curve: Curves.elasticOut)
+           .moveY(end: -2, duration: 500.ms, curve: Curves.elasticOut),
         ),
       ),
     );

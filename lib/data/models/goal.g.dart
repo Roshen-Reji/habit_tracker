@@ -32,13 +32,15 @@ class GoalAdapter extends TypeAdapter<Goal> {
       createdDate: fields[12] as DateTime?,
       lastCompletedDate: fields[13] as DateTime?,
       reminderTime: fields[14] as DateTime?,
+      endDate: fields[15] as DateTime?,
+      lastReset: fields[16] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Goal obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +70,11 @@ class GoalAdapter extends TypeAdapter<Goal> {
       ..writeByte(13)
       ..write(obj.lastCompletedDate)
       ..writeByte(14)
-      ..write(obj.reminderTime);
+      ..write(obj.reminderTime)
+      ..writeByte(15)
+      ..write(obj.endDate)
+      ..writeByte(16)
+      ..write(obj.lastReset);
   }
 
   @override

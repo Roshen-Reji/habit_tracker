@@ -182,6 +182,11 @@ class _ActionConfirmCard extends StatelessWidget {
         label = 'PLAY SONG';
         color = const Color(0xFFE040FB);
         break;
+      case 'play_vault_video':
+        icon = LucideIcons.youtube;
+        label = 'PLAY VAULT VIDEO';
+        color = Colors.redAccent;
+        break;
       default:
         icon = LucideIcons.info;
         label = 'ACTION';
@@ -290,6 +295,20 @@ class _ActionConfirmCard extends StatelessWidget {
             Expanded(
               child: Text(
                 action.payload['search_query'] ?? 'Unknown Song',
+                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ],
+        );
+
+      case 'play_vault_video':
+        return Row(
+          children: [
+            const Icon(LucideIcons.youtube, color: Colors.redAccent, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                action.payload['query'] ?? 'Vault Video',
                 style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),

@@ -24,6 +24,9 @@ class HabitTrackerApp extends StatelessWidget {
               navigatorKey: globalNavigatorKey,
               title: 'Habit Tracker',
               themeMode: mode,
+              scrollBehavior: const MaterialScrollBehavior().copyWith(
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              ),
               theme: ThemeData(
                 brightness: Brightness.light,
                 scaffoldBackgroundColor: NeuTheme.background,

@@ -147,7 +147,7 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuTheme.background,
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [NeuTheme.accent.withValues(alpha: 0.15), Colors.transparent], stops: [0.0, 0.7])))),
@@ -546,7 +546,20 @@ class _HomeTab extends StatelessWidget {
         ],
 
         SectionHeader(title: "RECENT ACTIVITY", onAdd: onAddTx),
-        if (transactions.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No transactions recorded yet.", style: TextStyle(color: Colors.white54))))
+        if (transactions.isEmpty) Padding(
+          padding: EdgeInsets.all(32), 
+          child: Center(
+            child: Column(
+              children: [
+                Icon(LucideIcons.wind, size: 48, color: Colors.white24)
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .moveY(begin: -8, end: 8, duration: 2.seconds, curve: Curves.easeInOut),
+                SizedBox(height: 16),
+                Text("No transactions recorded yet.", style: TextStyle(color: Colors.white54)),
+              ],
+            ),
+          ),
+        )
         else ...transactions.take(4).toList().asMap().entries.map((entry) => TxRow(tx: entry.value, onTap: () { if(onEditTx != null) onEditTx!(entry.value); })
           .animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)
         ).toList(),

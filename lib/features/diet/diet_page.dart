@@ -56,7 +56,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
     final accent = NeuTheme.accent;
 
     return Scaffold(
-      backgroundColor: NeuTheme.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -171,6 +171,24 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               // Food Log Section
               _buildSectionHeader("FOOD LOG", LucideIcons.utensils, accent),
               const SizedBox(height: 8),
+              
+              // Quick Add (Task 11)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildQuickAddChip("💧 Water", 0, "water", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Water", calories: 0, mealType: MealType.snack)); setState((){}); }),
+                    const SizedBox(width: 8),
+                    _buildQuickAddChip("☕ Coffee", 50, "coffee", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Black Coffee", calories: 50, mealType: MealType.breakfast)); setState((){}); }),
+                    const SizedBox(width: 8),
+                    _buildQuickAddChip("🍎 Apple", 95, "apple", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Apple", calories: 95, carbs: 25, mealType: MealType.snack)); setState((){}); }),
+                    const SizedBox(width: 8),
+                    _buildQuickAddChip("🥚 Egg", 78, "egg", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Boiled Egg", calories: 78, protein: 6, fat: 5, mealType: MealType.breakfast)); setState((){}); }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               ManualFoodInputWidget(onFoodAdded: () => setState(() {})),
               const SizedBox(height: 8),
 
@@ -404,6 +422,28 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAddChip(String label, int calories, String type, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: NeuContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        borderRadius: 24,
+        child: Row(
+          children: [
+            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+            if (calories > 0) ...[
+              const SizedBox(width: 8),
+              Text("$calories kcal", style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+            ]
+          ],
+        ),
       ),
     );
   }

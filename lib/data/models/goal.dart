@@ -76,7 +76,10 @@ class Goal extends HiveObject {
   @HiveField(14)
   DateTime? reminderTime;
 
-  @HiveField(10)
+  @HiveField(15)
+  DateTime? endDate;
+
+  @HiveField(16)
   DateTime? lastReset;
 
   int get xpValue {
@@ -103,6 +106,8 @@ class Goal extends HiveObject {
     this.createdDate,
     this.lastCompletedDate,
     this.reminderTime,
+    this.endDate,
+    this.lastReset,
   });
 
   double get completionPercentage => (targetValue > 0) ? (currentValue / targetValue * 100).clamp(0, 100) : 0;

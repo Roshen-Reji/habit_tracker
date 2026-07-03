@@ -38,7 +38,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuTheme.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         centerTitle: true,
         title: NeuContainer(
@@ -83,8 +83,8 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             : const PreferredSize(preferredSize: Size.zero, child: SizedBox.shrink()),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          color: NeuTheme.background,
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),

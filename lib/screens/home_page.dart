@@ -114,15 +114,24 @@ class _HomePageState extends State<HomePage> {
           StarBackground(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+              transitionBuilder: (child, animation) {
+                final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                );
+                final scaleAnim = Tween<double>(begin: 0.98, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                );
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: slideAnim,
+                    child: ScaleTransition(
+                      scale: scaleAnim,
+                      child: child,
+                    ),
                   ),
-                  child: child,
-                ),
-              ),
+                );
+              },
               child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
             ),
           ),

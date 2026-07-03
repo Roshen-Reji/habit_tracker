@@ -49,8 +49,8 @@ class AiService {
   }
 
   bool get isConfigured {
-    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '')?.trim() ?? '';
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '').trim();
     return apiKey.isNotEmpty;
   }
 
@@ -100,6 +100,160 @@ class AiService {
     return 'general';
   }
 
+  // --- Local NLP Engine ---
+  AiResponse? _handleLocally(String message, String intent) {
+    final lower = message.toLowerCase().trim();
+
+    if (intent == 'tasks') {
+      // Create daily task: "i am going to do 10 push ups everyday" or "do 10 push ups everyday"
+      final dailyRegex = RegExp(r'(?:i am going to do|do|i will do)?\s*(\d+)?\s*(.*?)\s*(everyday|daily)');
+      final dailyMatch = dailyRegex.firstMatch(lower);
+      if (dailyMatch != null && dailyMatch.group(2) != null && dailyMatch.group(2)!.trim().isNotEmpty) {
+        final targetStr = dailyMatch.group(1);
+        final title = dailyMatch.group(2)!.trim();
+        return AiResponse(
+          message: 'Created a daily mission to do $title.',
+          intent: 'task_create',
+          actions: [
+            AiAction(type: 'task_create', payload: {
+              'title': title,
+              'type': 'daily',
+              'target_value': targetStr != null ? double.tryParse(targetStr) : 1.0,
+              'unit': 'times',
+              'category': 'productivity'
+            })
+          ]
+        );
+      }
+
+      // Create today task: "i will do hw today"
+      final todayRegex = RegExp(r'(?:i will do|do)\s+(.*?)\s+today');
+      final todayMatch = todayRegex.firstMatch(lower);
+      if (todayMatch != null && todayMatch.group(1) != null) {
+        final title = todayMatch.group(1)!.trim();
+        return AiResponse(
+          message: 'Created a mission for today: $title.',
+          intent: 'task_create',
+          actions: [
+            AiAction(type: 'task_create', payload: {
+              'title': title,
+              'type': 'today',
+              'target_value': 1.0,
+              'unit': 'times',
+              'category': 'productivity'
+            })
+          ]
+        );
+      }
+
+      // Status query: "how much task i finished" or "remaining for today"
+      if (lower.contains('how much') && lower.contains('finished') || lower.contains('remaining')) {
+        final box = Hive.box<Goal>('mission_box_v4');
+        final todayGoals = box.values.where((g) => g.type == GoalType.today || g.type == GoalType.daily).toList();
+        final completed = todayGoals.where((g) => g.isCompleted).length;
+        final total = todayGoals.length;
+        final remaining = total - completed;
+        return AiResponse(
+          message: 'You have completed $completed out of $total missions today. You have $remaining remaining.',
+          intent: 'general_chat',
+        );
+      }
+    } else if (intent == 'finance') {
+      // Add income: "add 100rs to my income"
+      final incomeRegex = RegExp(r'(?:add)\s+(\d+)(?:rs)?\s+to\s+(?:my\s+)?income');
+      final incomeMatch = incomeRegex.firstMatch(lower);
+      if (incomeMatch != null) {
+        final amount = double.tryParse(incomeMatch.group(1) ?? '0') ?? 0;
+        final txBox = Hive.box<Transaction>('finance_transactions');
+        txBox.add(Transaction(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: 'Income',
+          amount: amount,
+          date: DateTime.now(),
+          type: TransactionType.income,
+          vaultName: 'Main',
+        ));
+        return AiResponse(
+          message: 'Added $amount to your income.',
+          intent: 'general_chat'
+        );
+      }
+
+      // Add expense: "i bought a pepsi for 40rs"
+      final expenseRegex = RegExp(r'(?:i\s+)?bought\s+(?:a\s+)?(.*?)\s+for\s+(\d+)(?:rs)?');
+      final expenseMatch = expenseRegex.firstMatch(lower);
+      if (expenseMatch != null) {
+        final title = expenseMatch.group(1)!.trim();
+        final amount = double.tryParse(expenseMatch.group(2) ?? '0') ?? 0;
+        final txBox = Hive.box<Transaction>('finance_transactions');
+        txBox.add(Transaction(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: title,
+          amount: amount,
+          date: DateTime.now(),
+          type: TransactionType.expense,
+          vaultName: 'Main',
+          category: 'Shopping'
+        ));
+        return AiResponse(
+          message: 'Logged an expense of $amount for $title.',
+          intent: 'general_chat'
+        );
+      }
+
+      // SIP query: "whats my current sip"
+      if (lower.contains('my current sip') || lower.contains('what is my sip')) {
+        final vaultBox = Hive.box<AssetVault>('finance_vaults');
+        double sipTotal = 0;
+        for (var vault in vaultBox.values) {
+          if (vault.type == 'SIP') {
+            sipTotal += vault.balance;
+          }
+        }
+        return AiResponse(
+          message: 'Your total active SIP balance across vaults is $sipTotal.',
+          intent: 'general_chat'
+        );
+      }
+    } else if (intent == 'diet') {
+      // Hydration: "drank 2 glass of water"
+      final drinkRegex = RegExp(r'(?:drank|drink)\s+(\d+(?:\.\d+)?)\s*(glass|glasses|liter|liters|ml)?\s*(?:of\s+)?(water|milk)');
+      final drinkMatch = drinkRegex.firstMatch(lower);
+      if (drinkMatch != null) {
+        return AiResponse(
+          message: 'Got it, logging your drink locally. (Feature parsed locally, routing to Diet tab via API logic fallback if complex, else just logged).',
+          intent: 'diet_log',
+          actions: [
+            AiAction(type: 'food_entry', payload: {
+              'name': '${drinkMatch.group(1)} ${drinkMatch.group(2) ?? 'units'} of ${drinkMatch.group(3)}',
+              'calories': drinkMatch.group(3) == 'water' ? 0 : 50,
+              'protein': 0.0, 'carbs': 0.0, 'fat': 0.0,
+              'meal_type': 'snack'
+            })
+          ]
+        );
+      }
+    } else if (intent == 'general' || lower.contains('play') || lower.contains('video')) {
+      // Speech vault: "play a motivation video"
+      final playVideoRegex = RegExp(r'play\s+(?:a\s+)?(.*)\s*(?:video|speech)');
+      final playMatch = playVideoRegex.firstMatch(lower);
+      if (playMatch != null) {
+        final query = playMatch.group(1)!.trim().toLowerCase();
+        return AiResponse(
+          message: 'Opening video related to "$query" from the Speech Vault.',
+          intent: 'general_chat',
+          actions: [
+            // We can send a custom action that the UI can catch, but for now we fallback or show a message.
+            AiAction(type: 'play_vault_video', payload: {'query': query})
+          ]
+        );
+      }
+    }
+
+    // Return null to fallback to Gemini if no regex matches confidently
+    return null;
+  }
+
   void _initModel() {
     _messagesHistory = [];
   }
@@ -143,6 +297,17 @@ RULES:
       // Smart intent detection - only attach relevant context
       final detectedIntent = detectIntent(userMessage, hasImage: imageBytes != null);
 
+      // Attempt to handle locally using Regex NLP engine first (saves time and tokens)
+      if (imageBytes == null) {
+        final localResponse = _handleLocally(userMessage, detectedIntent);
+        if (localResponse != null) {
+          // Add to history so future Gemini calls know what happened
+          _messagesHistory.add({'role': 'user', 'parts': [{'text': userMessage}]});
+          _messagesHistory.add({'role': 'model', 'parts': [{'text': localResponse.message}]});
+          return localResponse;
+        }
+      }
+
       // Build minimal context based on detected intent
       String contextData = '';
       if (detectedIntent == 'diet') {
@@ -184,8 +349,8 @@ RULES:
         _messagesHistory = _messagesHistory.sublist(_messagesHistory.length - 6);
       }
 
-      String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
-      if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+      String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '')?.trim() ?? '';
+      if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '').trim();
 
       // Prepend system prompt to the first user message instead of using system_instruction
       if (parts.isNotEmpty) {

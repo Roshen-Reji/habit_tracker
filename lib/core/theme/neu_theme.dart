@@ -60,31 +60,31 @@ class NeuTheme {
     if (isDark) {
       return [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.3),
-          offset: const Offset(3, 3),
-          blurRadius: 6,
-          spreadRadius: 0,
+          color: Colors.black.withValues(alpha: 0.35),
+          offset: const Offset(4, 4),
+          blurRadius: 10,
+          spreadRadius: 1,
         ),
         BoxShadow(
-          color: Colors.white.withValues(alpha: 0.03),
-          offset: const Offset(-3, -3),
-          blurRadius: 6,
-          spreadRadius: 0,
+          color: Colors.white.withValues(alpha: 0.05),
+          offset: const Offset(-4, -4),
+          blurRadius: 10,
+          spreadRadius: 1,
         ),
       ];
     } else {
       return [
         BoxShadow(
-          color: const Color(0xFF3F72AF).withValues(alpha: 0.15),
-          offset: const Offset(3, 3),
-          blurRadius: 6,
-          spreadRadius: 0,
+          color: const Color(0xFF3F72AF).withValues(alpha: 0.2),
+          offset: const Offset(4, 4),
+          blurRadius: 10,
+          spreadRadius: 1,
         ),
         const BoxShadow(
           color: Colors.white,
-          offset: Offset(-3, -3),
-          blurRadius: 6,
-          spreadRadius: 0,
+          offset: Offset(-4, -4),
+          blurRadius: 10,
+          spreadRadius: 1,
         ),
       ];
     }
@@ -127,21 +127,27 @@ class NeuContainer extends StatelessWidget {
       ? (NeuTheme.isDark ? baseColor.withValues(alpha: 0.8) : baseColor.withValues(alpha: 0.95)) 
       : baseColor;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: width,
-      height: height,
-      margin: margin,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: displayColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: isPressed ? [] : NeuTheme.shadows,
-        border: isPressed 
-            ? Border.all(color: NeuTheme.isDark ? Colors.black26 : Colors.black12, width: 1.5)
-            : null,
+    return AnimatedScale(
+      scale: isPressed ? 0.97 : 1.0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutBack,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        width: width,
+        height: height,
+        margin: margin,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: displayColor,
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: isPressed ? [] : NeuTheme.shadows,
+          border: isPressed 
+              ? Border.all(color: NeuTheme.isDark ? Colors.black26 : Colors.black12, width: 1.5)
+              : Border.all(color: Colors.white.withValues(alpha: NeuTheme.isDark ? 0.05 : 0.3), width: 1.0),
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 }

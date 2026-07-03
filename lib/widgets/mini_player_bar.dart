@@ -9,6 +9,7 @@ import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 class GlobalFloatingPlayer extends StatefulWidget {
   const GlobalFloatingPlayer({super.key});
 
@@ -170,13 +171,16 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                // Vinyl/CD Top Graphic
                 Positioned(
                   top: -25,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
+                  child: StreamBuilder<PlayerState>(
+                    stream: musicManager.audioPlayer.playerStateStream,
+                    builder: (context, snap) {
+                      final playing = snap.data?.playing ?? false;
+                      Widget record = Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const SweepGradient(
                         colors: [
@@ -212,8 +216,14 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                             )
                           ],
                         ),
-                      ),
-                    ),
+                      );
+                      
+                      if (playing) {
+                        return record.animate(onPlay: (c) => c.repeat(reverse: true))
+                          .scaleXY(begin: 0.98, end: 1.02, duration: 1.seconds, curve: Curves.easeInOut);
+                      }
+                      return record;
+                    }
                   ),
                 ),
 
