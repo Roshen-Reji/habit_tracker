@@ -5,6 +5,7 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter/services.dart';
 
 class TaskCard extends StatelessWidget {
   final Goal goal;
@@ -115,13 +116,15 @@ class TaskCard extends StatelessWidget {
                     if (!box.containsKey(goal.id)) return;
                     
                     if (goal.isCompleted) {
+                      HapticFeedback.mediumImpact();
                       goal.reset();
                     } else {
+                      HapticFeedback.heavyImpact();
                       goal.complete();
                     }
                     box.put(goal.id, goal);
                   },
-                ),
+                ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
               ],
             ),
             const SizedBox(height: 12),

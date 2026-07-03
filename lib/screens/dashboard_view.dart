@@ -38,28 +38,18 @@ class DashboardView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ValueListenableBuilder(
-                          valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-                          builder: (context, Box<Goal> missionBox, _) {
-                            final record = RankService.calculateServiceRecord(missionBox.values.toList());
+                        Builder(
+                          builder: (context) {
+                            final hour = DateTime.now().hour;
+                            String greeting = "GOOD EVENING,";
+                            if (hour >= 5 && hour < 12) greeting = "GOOD MORNING,";
+                            else if (hour >= 12 && hour < 17) greeting = "GOOD AFTERNOON,";
+                            
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("WELCOME,", style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
+                                Text(greeting, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
                                 Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.5, color: NeuTheme.textPrimary)),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: NeuTheme.accent.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.3)),
-                                  ),
-                                  child: Text(
-                                    "${record.title} • LVL ${record.level}",
-                                    style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                                  ),
-                                ),
                               ],
                             ).animate().slideX(begin: -0.1, duration: 400.ms, curve: Curves.easeOutQuad).fade();
                           }

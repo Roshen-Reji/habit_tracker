@@ -49,69 +49,81 @@ class AiService {
   }
 
   bool get isConfigured {
-    String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
+    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
     return apiKey.isNotEmpty;
   }
 
-  void _initModel() {
-    String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
-    if (apiKey.isEmpty) return;
+  // --- Smart Local Intent Detection ---
+  // Detects intent from user message BEFORE sending to AI to minimize token usage
+  String detectIntent(String message, {bool hasImage = false}) {
+    final lower = message.toLowerCase().trim();
 
-    _messagesHistory = [
-      {'role': 'system', 'content': _buildSystemPrompt()},
-      {'role': 'assistant', 'content': 'Understood. I\'m your AI assistant. I can help with diet tracking, task management, finance analysis, music playback, and general advice. What can I do for you?'},
-    ];
+    // Image -> most likely food logging
+    if (hasImage) return 'diet';
+
+    // Music keywords (broad coverage for informal phrasing)
+    final musicWords = ['play', 'song', 'track', 'music', 'listen', 'queue', 'album', 'artist',
+      'sing', 'bajao', 'gana', 'gaana', 'sunao', 'suno', 'laga do', 'chalao', 'baja',
+      'put on', 'shuffle', 'next song', 'skip', 'pause', 'resume', 'playing'];
+    for (final w in musicWords) {
+      if (lower.contains(w)) return 'music';
+    }
+
+    // Diet keywords
+    final dietWords = ['eat', 'ate', 'food', 'calorie', 'protein', 'carb', 'fat', 'burn',
+      'meal', 'breakfast', 'lunch', 'dinner', 'snack', 'diet', 'drink', 'drank', 'khaya',
+      'khana', 'piya', 'kcal', 'macro', 'nutrition', 'fiber', 'consumed', 'intake',
+      'biryani', 'rice', 'roti', 'dal', 'chicken', 'egg', 'milk', 'juice', 'water',
+      'coffee', 'tea', 'oats', 'bread', 'pizza', 'burger', 'salad', 'fruit', 'weight'];
+    for (final w in dietWords) {
+      if (lower.contains(w)) return 'diet';
+    }
+
+    // Finance keywords
+    final financeWords = ['spend', 'spent', 'money', 'expense', 'income', 'budget', 'save',
+      'savings', 'finance', 'cost', 'buy', 'bought', 'paid', 'pay', 'rupee', 'rs',
+      'salary', 'emi', 'sip', 'invest', 'loan', 'debt', 'rent', 'bill', 'recharge',
+      'shopping', 'paisa', 'kharcha', 'transaction'];
+    for (final w in financeWords) {
+      if (lower.contains(w)) return 'finance';
+    }
+
+    // Task keywords
+    final taskWords = ['task', 'goal', 'mission', 'todo', 'complete', 'finish', 'study',
+      'work', 'exercise', 'gym', 'read', 'habit', 'streak', 'progress', 'daily',
+      'weekly', 'monthly', 'schedule', 'routine', 'padhai', 'kaam', 'target'];
+    for (final w in taskWords) {
+      if (lower.contains(w)) return 'tasks';
+    }
+
+    return 'general';
+  }
+
+  void _initModel() {
+    _messagesHistory = [];
   }
 
   String _buildSystemPrompt() {
-    return '''You are a powerful personal AI assistant integrated into a habit tracking app. You handle MULTIPLE domains:
+    return '''You are a concise personal AI assistant in a habit tracking app.
 
-## CAPABILITIES:
-1. **DIET TRACKING**: Log food, estimate calories/macros, track burns, generate reports
-2. **TASK MANAGEMENT**: Parse natural language into structured goals/tasks
-3. **FINANCE ANALYSIS**: Query expenses, provide spending diagnostics and honest opinions
-4. **MUSIC CONTROL**: Search and play songs from user's local library
-5. **GOAL ANALYSIS**: Analyze completion rates, streaks, provide motivational feedback
+CAPABILITIES: Diet tracking, task management, finance analysis, goal feedback.
 
-## RESPONSE FORMAT:
-You MUST respond with valid JSON in this exact format:
-{
-  "intent": "<one of: diet_log, diet_burn, diet_report, diet_advice, task_create, finance_query, finance_advice, music_play, goal_opinion, general_chat>",
-  "message": "<your conversational response to the user>",
-  "actions": [
-    {
-      "type": "<food_entry | burn_entry | task_create | music_play>",
-      "payload": { ... }
-    }
-  ]
-}
+RESPOND IN JSON:
+{"intent":"<diet_log|diet_burn|diet_report|diet_advice|task_create|finance_query|finance_advice|goal_opinion|general_chat>","message":"<your response>","actions":[{"type":"<food_entry|burn_entry|task_create>","payload":{}}]}
 
-## ACTION PAYLOADS:
+ACTION PAYLOADS:
+food_entry: {"name":"2 Eggs","calories":140,"protein":12.0,"carbs":1.0,"fat":10.0,"meal_type":"breakfast"}
+burn_entry: {"activity":"Running","calories_burned":150,"duration_minutes":20}
+task_create: {"title":"Study","type":"today|daily|weekly|monthly","target_value":2,"unit":"hours","category":"learning|health|productivity|fitness|hobby"}
 
-### food_entry:
-{"name": "2 Eggs", "calories": 140, "protein": 12.0, "carbs": 1.0, "fat": 10.0, "meal_type": "breakfast"}
-
-### burn_entry:
-{"activity": "Running", "calories_burned": 150, "duration_minutes": 20}
-
-### task_create:
-{"title": "Physics Lectures", "type": "today|daily|weekly|monthly", "target_value": 2, "unit": "lectures", "category": "learning|health|productivity|fitness|hobby"}
-
-### music_play:
-{"search_query": "blinding lights", "artist_hint": "the weeknd"}
-
-## RULES:
-- For diet: Estimate macros based on common nutritional data. Be accurate. Don't use ~ symbols.
-- For diet reports: Calculate totals precisely. Double-check math.
-- For tasks: Infer the correct type from context ("today" = today, "everyday" / "daily" = daily, "this week" = weekly, "this month" = monthly)
-- For finance: Provide honest, unbiased analysis. Highlight concerning patterns.
-- For music: Extract the song name and artist if mentioned.
-- Always respond in JSON format. No markdown outside the JSON.
-- If the user's message is ambiguous, classify as general_chat and ask for clarification.
-- You can include multiple actions in one response (e.g., logging multiple food items).
-''';
+RULES:
+- Estimate macros accurately. No ~ symbols.
+- Infer task type from context.
+- For finance: honest analysis.
+- Always respond in JSON. No markdown outside JSON.
+- Keep responses short and direct.
+- Multiple actions allowed in one response.''';
   }
 
   /// Process a user message and return an AI response
@@ -128,76 +140,97 @@ You MUST respond with valid JSON in this exact format:
     }
 
     try {
-      // Build context
+      // Smart intent detection - only attach relevant context
+      final detectedIntent = detectIntent(userMessage, hasImage: imageBytes != null);
+
+      // Build minimal context based on detected intent
       String contextData = '';
-      if (contextHint == 'diet' || contextHint == null) {
-        contextData += _buildDietContext();
+      if (detectedIntent == 'diet') {
+        contextData = _buildDietContext();
+      } else if (detectedIntent == 'finance') {
+        contextData = _buildFinanceContext();
+      } else if (detectedIntent == 'tasks') {
+        contextData = _buildTaskContext();
       }
-      if (contextHint == 'finance' || contextHint == null) {
-        contextData += _buildFinanceContext();
-      }
-      if (contextHint == 'tasks' || contextHint == null) {
-        contextData += _buildTaskContext();
-      }
-      if (contextHint == 'music' || contextHint == null) {
-        contextData += _buildMusicContext();
-      }
+      // 'music' intent is handled on-device - never reaches AI
+      // 'general' intent gets no context - saves tokens
 
       final fullMessage = contextData.isNotEmpty
           ? '[CONTEXT]\n$contextData\n[USER MESSAGE]\n$userMessage'
           : userMessage;
 
-      Map<String, dynamic> userMessageContent;
+      // Build Gemini API request parts
+      List<Map<String, dynamic>> parts = [];
+      parts.add({'text': fullMessage});
+      
       if (imageBytes != null) {
         final base64Image = base64Encode(imageBytes);
-        userMessageContent = {
-          'role': 'user',
-          'content': [
-            {'type': 'text', 'text': fullMessage},
-            {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,$base64Image'}}
-          ]
-        };
-      } else {
-        userMessageContent = {
-          'role': 'user',
-          'content': fullMessage
-        };
+        parts.add({
+          'inline_data': {
+            'mime_type': 'image/jpeg',
+            'data': base64Image,
+          }
+        });
       }
 
-      _messagesHistory.add(userMessageContent);
+      // Add user message to history (text only for history)
+      _messagesHistory.add({
+        'role': 'user',
+        'parts': [{'text': fullMessage}],
+      });
 
-      String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
-      if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
+      // Cap history to last 6 messages to prevent token bloat
+      if (_messagesHistory.length > 6) {
+        _messagesHistory = _messagesHistory.sublist(_messagesHistory.length - 6);
+      }
 
+      String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
+      if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+
+      // Prepend system prompt to the first user message instead of using system_instruction
+      if (parts.isNotEmpty) {
+        final originalText = parts[0]['text'] ?? '';
+        parts[0]['text'] = _buildSystemPrompt() + '\n\n' + originalText;
+      } else {
+        parts.insert(0, {'text': _buildSystemPrompt()});
+      }
+
+      // Build Gemini API request
       final requestBody = {
-        'model': 'opc/deepseek-v4-flash-free',
-        'messages': _messagesHistory,
-        'temperature': 0.7,
+        'contents': [
+          ..._messagesHistory.sublist(0, _messagesHistory.length > 0 ? _messagesHistory.length - 1 : 0),
+          {
+            'role': 'user',
+            'parts': parts, // Use parts with image if present
+          }
+        ],
+        'generationConfig': {
+          'temperature': 0.7,
+          'responseMimeType': 'application/json',
+        },
       };
 
       final response = await http.post(
-        Uri.parse('https://api.freetheai.xyz/v1/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-          'HTTP-Referer': 'https://github.com/habit-tracker', // Optional OpenRouter header
-          'X-Title': 'Commander Habit Tracker',
-        },
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        final responseText = json['choices'][0]['message']['content'];
+        final responseText = json['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
         
         // Append assistant response to history
-        _messagesHistory.add({'role': 'assistant', 'content': responseText});
+        _messagesHistory.add({
+          'role': 'model',
+          'parts': [{'text': responseText}],
+        });
         
         return _parseResponse(responseText);
       } else {
-        debugPrint('FreeTheAI Error: ${response.statusCode} - ${response.body}');
+        debugPrint('Gemini API Error: ${response.statusCode} - ${response.body}');
         return AiResponse(
-          message: 'Error communicating with AI service. Please try again.',
+          message: 'Error communicating with Gemini. Please check your API key.',
           intent: 'error',
         );
       }
@@ -252,7 +285,7 @@ You MUST respond with valid JSON in this exact format:
     }
   }
 
-  // --- Context Builders ---
+  // --- Context Builders (Trimmed for minimal tokens) ---
 
   String _buildDietContext() {
     try {
@@ -260,34 +293,16 @@ You MUST respond with valid JSON in this exact format:
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final todayLog = box.get(today);
 
-      if (todayLog == null) return '\n[DIET TODAY: No meals logged yet. Target: ${_getCalorieTarget()} kcal]\n';
+      if (todayLog == null) return '\n[DIET: No meals today. Target: ${_getCalorieTarget()} kcal]\n';
 
       final buffer = StringBuffer();
-      buffer.writeln('\n[DIET TODAY - $today]');
+      buffer.writeln('\n[DIET TODAY]');
       buffer.writeln('Target: ${todayLog.targetCalories} kcal');
-      buffer.writeln('Foods logged:');
       for (var e in todayLog.entries) {
-        buffer.writeln('  - ${e.name}: ${e.calories} kcal, P:${e.protein}g, C:${e.carbs}g, F:${e.fat}g (${e.mealType.name})');
+        buffer.writeln('  ${e.name}: ${e.calories}cal P:${e.protein}g C:${e.carbs}g F:${e.fat}g (${e.mealType.name})');
       }
-      buffer.writeln('Total intake: ${todayLog.totalCalories} kcal');
-      buffer.writeln('Burns logged:');
-      for (var b in todayLog.burnEntries) {
-        buffer.writeln('  - ${b.activity}: ${b.caloriesBurned} kcal (${b.durationMinutes} min)');
-      }
-      buffer.writeln('Total burned: ${todayLog.totalBurned} kcal');
-      buffer.writeln('Net: ${todayLog.netCalories} kcal');
-      buffer.writeln('Deficit/Surplus: ${todayLog.isDeficit ? "DEFICIT" : "SURPLUS"} ${todayLog.deficit.abs().toStringAsFixed(0)} kcal');
-
-      // Last 7 days summary
-      buffer.writeln('\n[DIET LAST 7 DAYS]');
-      for (int i = 6; i >= 0; i--) {
-        final date = DateTime.now().subtract(Duration(days: i));
-        final key = DateFormat('yyyy-MM-dd').format(date);
-        final log = box.get(key);
-        if (log != null) {
-          buffer.writeln('  $key: ${log.totalCalories.toStringAsFixed(0)} kcal in, ${log.totalBurned.toStringAsFixed(0)} burned');
-        }
-      }
+      buffer.writeln('Total: ${todayLog.totalCalories}cal in, ${todayLog.totalBurned}cal burned');
+      buffer.writeln('Net: ${todayLog.netCalories}cal | ${todayLog.isDeficit ? "DEFICIT" : "SURPLUS"} ${todayLog.deficit.abs().toStringAsFixed(0)}');
 
       return buffer.toString();
     } catch (e) {
@@ -300,55 +315,19 @@ You MUST respond with valid JSON in this exact format:
       final txBox = Hive.box<Transaction>('finance_transactions');
       final transactions = txBox.values.toList();
 
-      if (transactions.isEmpty) return '\n[FINANCE: No transactions recorded]\n';
+      if (transactions.isEmpty) return '\n[FINANCE: No transactions]\n';
 
       final now = DateTime.now();
-      final buffer = StringBuffer();
-
-      // This month
       double monthIncome = 0, monthExpense = 0;
-      Map<String, double> categorySpend = {};
 
       for (var tx in transactions) {
         if (tx.date.month == now.month && tx.date.year == now.year) {
-          if (tx.amount > 0) {
-            monthIncome += tx.amount;
-          } else {
-            monthExpense += tx.amount.abs();
-            categorySpend[tx.category] = (categorySpend[tx.category] ?? 0) + tx.amount.abs();
-          }
+          if (tx.amount > 0) monthIncome += tx.amount;
+          else monthExpense += tx.amount.abs();
         }
       }
 
-      buffer.writeln('\n[FINANCE - ${DateFormat('MMMM yyyy').format(now)}]');
-      buffer.writeln('Income: ${monthIncome.toStringAsFixed(0)}');
-      buffer.writeln('Expenses: ${monthExpense.toStringAsFixed(0)}');
-      buffer.writeln('Savings: ${(monthIncome - monthExpense).toStringAsFixed(0)}');
-      buffer.writeln('Savings Rate: ${monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome * 100).toStringAsFixed(1) : 0}%');
-      buffer.writeln('Spending by category:');
-      final sorted = categorySpend.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-      for (var e in sorted) {
-        buffer.writeln('  - ${e.key}: ${e.value.toStringAsFixed(0)}');
-      }
-
-      // Last week transactions
-      final weekAgo = now.subtract(const Duration(days: 7));
-      double weekExpense = 0;
-      Map<String, double> weekCategories = {};
-      for (var tx in transactions) {
-        if (tx.date.isAfter(weekAgo) && tx.amount < 0) {
-          weekExpense += tx.amount.abs();
-          weekCategories[tx.category] = (weekCategories[tx.category] ?? 0) + tx.amount.abs();
-        }
-      }
-      buffer.writeln('\n[LAST 7 DAYS]');
-      buffer.writeln('Total spent: ${weekExpense.toStringAsFixed(0)}');
-      final weekSorted = weekCategories.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-      for (var e in weekSorted) {
-        buffer.writeln('  - ${e.key}: ${e.value.toStringAsFixed(0)}');
-      }
-
-      return buffer.toString();
+      return '\n[FINANCE ${DateFormat('MMM yyyy').format(now)}] Income: ${monthIncome.toStringAsFixed(0)} | Spent: ${monthExpense.toStringAsFixed(0)} | Saved: ${(monthIncome - monthExpense).toStringAsFixed(0)}\n';
     } catch (e) {
       return '\n[FINANCE: Data unavailable]\n';
     }
@@ -359,51 +338,13 @@ You MUST respond with valid JSON in this exact format:
       final box = Hive.box<Goal>('mission_box_v4');
       final goals = box.values.toList();
 
-      if (goals.isEmpty) return '\n[TASKS: No missions created]\n';
-
-      final buffer = StringBuffer();
-      buffer.writeln('\n[TASKS/MISSIONS]');
+      if (goals.isEmpty) return '\n[TASKS: None]\n';
 
       int completed = goals.where((g) => g.isCompleted).length;
       int active = goals.where((g) => !g.isCompleted && !g.isArchived).length;
-      buffer.writeln('Active: $active, Completed: $completed, Total: ${goals.length}');
-
-      // Group by type
-      for (var type in GoalType.values) {
-        final typeGoals = goals.where((g) => g.type == type && !g.isArchived).toList();
-        if (typeGoals.isNotEmpty) {
-          buffer.writeln('${type.name.toUpperCase()} (${typeGoals.length}):');
-          for (var g in typeGoals.take(5)) {
-            buffer.writeln('  - ${g.title}: ${g.isCompleted ? "✓" : "${g.currentValue.toInt()}/${g.targetValue.toInt()} ${g.unit}"} (streak: ${g.streakCount})');
-          }
-        }
-      }
-
-      return buffer.toString();
+      return '\n[TASKS] Active: $active, Completed: $completed, Total: ${goals.length}\n';
     } catch (e) {
       return '\n[TASKS: Data unavailable]\n';
-    }
-  }
-
-  String _buildMusicContext() {
-    try {
-      final manager = MusicManager();
-      final songs = manager.currentPlaylist;
-      if (songs == null || songs.isEmpty) return '\n[MUSIC: No songs loaded. User needs to open Music tab first to load library.]\n';
-
-      final buffer = StringBuffer();
-      buffer.writeln('\n[MUSIC LIBRARY - ${songs.length} songs available]');
-      buffer.writeln('Song list (title | artist):');
-      for (var s in songs.take(50)) {
-        buffer.writeln('  - ${s.title} | ${s.artist}');
-      }
-      if (songs.length > 50) {
-        buffer.writeln('  ... and ${songs.length - 50} more');
-      }
-
-      return buffer.toString();
-    } catch (e) {
-      return '\n[MUSIC: Library unavailable]\n';
     }
   }
 
@@ -449,7 +390,6 @@ You MUST respond with valid JSON in this exact format:
 
     log.entries.add(entry);
 
-    // If the log is already in the box, save it; otherwise put it
     if (box.containsKey(today)) {
       log.save();
     } else {
@@ -536,52 +476,44 @@ You MUST respond with valid JSON in this exact format:
     box.put(goal.id, goal);
   }
 
-  /// Execute music play action — fuzzy search and play
-  SongModel? executeMusicAction(AiAction action, List<SongModel> availableSongs) {
-    final query = (action.payload['search_query'] ?? '').toString().toLowerCase();
-    final artistHint = (action.payload['artist_hint'] ?? '').toString().toLowerCase();
-
+  /// On-device fuzzy search for music - no AI needed
+  SongModel? searchAndPlayMusic(String query, List<SongModel> availableSongs) {
     if (query.isEmpty || availableSongs.isEmpty) return null;
 
-    // Fuzzy search: score each song
+    final queryLower = query.toLowerCase().trim();
+    
+    // Phase 1: Search by title (exact, contains, word match)
     SongModel? bestMatch;
-    double bestScore = -1;
+    double bestScore = 0; // Initialize at 0 instead of -1
 
     for (var song in availableSongs) {
-      double score = 0;
       final title = song.title.toLowerCase();
       final artist = song.artist.toLowerCase();
+      double score = 0;
 
       // Exact title match
-      if (title == query) {
-        score += 100;
+      if (title == queryLower) {
+        score = 100;
       }
       // Title contains query
-      else if (title.contains(query)) {
-        score += 60 + (query.length / title.length) * 30;
+      else if (title.contains(queryLower)) {
+        score = 60 + (queryLower.length / title.length) * 30;
       }
       // Query contains title
-      else if (query.contains(title)) {
-        score += 40;
+      else if (queryLower.contains(title) && title.length > 2) {
+        score = 40;
       }
-      // Fuzzy: Levenshtein-like word matching
+      // Word-by-word matching
       else {
-        final queryWords = query.split(RegExp(r'\s+'));
+        final queryWords = queryLower.split(RegExp(r'\s+'));
         int matchedWords = 0;
         for (var word in queryWords) {
-          if (title.contains(word) || artist.contains(word)) {
+          if (word.length > 2 && (title.contains(word) || artist.contains(word))) {
             matchedWords++;
           }
         }
-        score += (matchedWords / queryWords.length) * 50;
-      }
-
-      // Artist bonus
-      if (artistHint.isNotEmpty) {
-        if (artist == artistHint) {
-          score += 30;
-        } else if (artist.contains(artistHint) || artistHint.contains(artist)) {
-          score += 15;
+        if (queryWords.isNotEmpty && matchedWords > 0) {
+          score = (matchedWords / queryWords.length) * 50;
         }
       }
 
@@ -591,14 +523,83 @@ You MUST respond with valid JSON in this exact format:
       }
     }
 
-    if (bestMatch != null && bestScore > 10) {
-      // Play the song
+    // Phase 1 success - title match found
+    if (bestMatch != null && bestScore > 15) {
       final index = availableSongs.indexOf(bestMatch);
       MusicManager().setPlaylist(availableSongs, index);
       return bestMatch;
     }
 
-    return null;
+    // Phase 2: Search by artist name
+    bestScore = 0;
+    bestMatch = null;
+    for (var song in availableSongs) {
+      final artist = song.artist.toLowerCase();
+      double score = 0;
+      
+      if (artist == queryLower) {
+        score = 80;
+      } else if (artist.contains(queryLower)) {
+        score = 30 + (queryLower.length / artist.length) * 20;
+      } else {
+        final queryWords = queryLower.split(RegExp(r'\s+'));
+        for (var word in queryWords) {
+          if (word.length > 3 && artist.contains(word)) { // Increased to > 3 to avoid matching "the", "and", etc.
+            score += 10;
+          }
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = song;
+      }
+    }
+
+    if (bestMatch != null && bestScore >= 10) { // Increased threshold to 10
+      final index = availableSongs.indexOf(bestMatch);
+      MusicManager().setPlaylist(availableSongs, index);
+      return bestMatch;
+    }
+
+    return null; // No match found
+  }
+
+  /// Extract song query from natural language message
+  String extractSongQuery(String message) {
+    final lower = message.toLowerCase().trim();
+    
+    // Remove common prefixes
+    final prefixes = [
+      'play ', 'play me ', 'put on ', 'can you play ', 'please play ',
+      'play the song ', 'play song ', 'i want to listen to ', 'listen to ',
+      'bajao ', 'chalao ', 'laga do ', 'sunao ', 'suno ',
+      'play the track ', 'queue ', 'add to queue ',
+    ];
+    
+    String cleaned = lower;
+    for (final prefix in prefixes) {
+      if (cleaned.startsWith(prefix)) {
+        cleaned = cleaned.substring(prefix.length).trim();
+        break;
+      }
+    }
+    
+    // Remove trailing common words
+    final suffixes = [' please', ' now', ' for me', ' bro', ' dude', ' yaar'];
+    for (final suffix in suffixes) {
+      if (cleaned.endsWith(suffix)) {
+        cleaned = cleaned.substring(0, cleaned.length - suffix.length).trim();
+      }
+    }
+    
+    // Remove "by [artist]" to get just the song name for primary search
+    final byMatch = RegExp(r'\s+by\s+.+$').firstMatch(cleaned);
+    if (byMatch != null) {
+      cleaned = cleaned.substring(0, byMatch.start).trim();
+    }
+    
+    return cleaned;
   }
 
   /// Confirm and execute an action
@@ -612,11 +613,6 @@ You MUST respond with valid JSON in this exact format:
         break;
       case 'task_create':
         executeTaskAction(action);
-        break;
-      case 'music_play':
-        if (availableSongs != null) {
-          executeMusicAction(action, availableSongs);
-        }
         break;
     }
     action.isConfirmed = true;

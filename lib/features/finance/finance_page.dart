@@ -164,7 +164,17 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
                       valueListenable: settingsBox.listenable(),
                       builder: (context, Box sBox, _) {
                         
-                        double totalBalance = vBox.values.fold(0, (sum, item) => sum + item.balance);
+                        double vaultTotal = vBox.values.fold(0, (sum, item) => sum + item.balance);
+                        double allTimeNet = tBox.values.fold(0.0, (sum, tx) => sum + tx.amount);
+                        
+                        List goals = sBox.get('goals', defaultValue: []);
+                        double goalsSaved = goals.fold(0.0, (sum, g) => sum + (g['saved'] as double));
+                        
+                        Map planner = sBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []});
+                        List sips = planner['sips'] ?? [];
+                        double sipAmount = sips.fold(0.0, (sum, s) => sum + (s['amount'] as double));
+
+                        double totalBalance = vaultTotal + allTimeNet + goalsSaved + sipAmount;
                         double monthIncome = 0;
                         double monthExpense = 0;
                         Map<String, double> categorySpentMap = {};
@@ -608,13 +618,13 @@ class _TransactionsTabState extends State<_TransactionsTab> {
         ),
         SizedBox(height: 16),
         if (filtered.isEmpty) const Padding(padding: EdgeInsets.all(40), child: Center(child: Text("No transactions found.", style: TextStyle(color: Colors.white54))))
-        else ...filtered.map((t) => Dismissible(
-          key: Key(t.key.toString()),
+        else ...filtered.asMap().entries.map((entry) => Dismissible(
+          key: Key(entry.value.key.toString()),
           direction: DismissDirection.endToStart,
           background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
-          confirmDismiss: (direction) async { widget.onDelete(t); return false; },
-          child: TxRow(tx: t, onTap: () { if(widget.onEditTx != null) widget.onEditTx!(t); }),
-        )).toList(),
+          confirmDismiss: (direction) async { widget.onDelete(entry.value); return false; },
+          child: TxRow(tx: entry.value, onTap: () { if(widget.onEditTx != null) widget.onEditTx!(entry.value); }),
+        ).animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)).toList(),
       ],
     );
   }

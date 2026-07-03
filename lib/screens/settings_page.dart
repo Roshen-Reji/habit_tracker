@@ -158,11 +158,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: record['progress'],
-                      backgroundColor: NeuTheme.isDark ? Colors.white10 : Colors.black12,
-                      color: NeuTheme.accent,
-                      minHeight: 6,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: record['progress']),
+                      duration: const Duration(milliseconds: 1500),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, _) {
+                        return LinearProgressIndicator(
+                          value: value,
+                          backgroundColor: NeuTheme.isDark ? Colors.white10 : Colors.black12,
+                          color: NeuTheme.accent,
+                          minHeight: 6,
+                        );
+                      }
                     ),
                   ),
                 ],
@@ -219,11 +226,11 @@ class _SettingsPageState extends State<SettingsPage> {
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings').listenable(),
       builder: (context, Box settings, _) {
-        String apiKey = settings.get('freetheai_key', defaultValue: '');
+        String apiKey = settings.get('gemini_api_key', defaultValue: '');
         int calorieTarget = settings.get('daily_calorie_target', defaultValue: 2000);
         
         return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
-          _buildActionTile(LucideIcons.key, "Set AI Key", apiKey.isEmpty ? "Not configured" : "Configured", () => _editAiKey(settings)),
+          _buildActionTile(LucideIcons.key, "Gemini API Key", apiKey.isEmpty ? "Not configured" : "Configured", () => _editAiKey(settings)),
           _buildActionTile(LucideIcons.flame, "Daily Calorie Target", "$calorieTarget kcal", () => _editCalorieTarget(settings)),
         ]);
       }
@@ -263,9 +270,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
   
   void _editAiKey(Box box) {
-    final controller = TextEditingController(text: box.get('ai_key', defaultValue: ''));
-    _showInputDialog("Update AI Key", controller, (val) {
-      box.put('ai_key', val);
+    final controller = TextEditingController(text: box.get('gemini_api_key', defaultValue: ''));
+    _showInputDialog("Update Gemini API Key", controller, (val) {
+      box.put('gemini_api_key', val);
     });
   }
   

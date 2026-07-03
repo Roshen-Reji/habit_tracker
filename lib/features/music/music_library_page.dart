@@ -61,7 +61,7 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
         artist: s.artist ?? 'Unknown Artist',
         album: s.album ?? 'Unknown Album',
         artworkUrl: '',
-        audioUrl: s.uri ?? '',
+        audioUrl: s.uri ?? s.data,
         source: SongSource.local,
       )).toList();
       _isLoading = false;
@@ -185,7 +185,12 @@ class _ListenNowView extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Stack(
+            fit: StackFit.expand,
             children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(color: NeuTheme.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03)),
+              ),
               Positioned(right: -20, bottom: -20, child: Icon(LucideIcons.activity, size: 150, color: NeuTheme.accent.withValues(alpha: 0.1))),
               Padding(
                 padding: const EdgeInsets.all(24),

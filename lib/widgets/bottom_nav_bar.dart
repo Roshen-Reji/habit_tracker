@@ -36,23 +36,29 @@ class BottomNavBar extends StatelessWidget {
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 60,
-        height: 55,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        width: 65,
+        height: 60,
         child: NeuContainer(
           borderRadius: 20,
-          isPressed: false,
+          isPressed: isSelected, // Depressed 3D state for active tab!
           padding: EdgeInsets.zero,
-          customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-                size: 26,
-              ),
-            ],
+          customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
+          child: AnimatedScale(
+            scale: isSelected ? 1.1 : 1.0,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.elasticOut,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
+                  size: 26,
+                ),
+              ],
+            ),
           ),
         ),
       ),

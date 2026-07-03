@@ -19,9 +19,24 @@ class NeuTheme {
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.05), base);
+      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.18), base);
     }
     return base;
+  }
+
+  static RadialGradient? get backgroundGradient {
+    bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
+    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
+      return RadialGradient(
+        center: Alignment.topRight,
+        colors: [
+          MusicManager().currentDominantColor.value!.withValues(alpha: 0.25),
+          Colors.transparent
+        ],
+        radius: 1.5,
+      );
+    }
+    return null;
   }
   
   static Color get surface {
@@ -196,7 +211,9 @@ class NeuToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: () { 
+        onChanged(!value);
+      },
       child: NeuContainer(
         isPressed: !value, // Press inwards when off
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -204,15 +221,19 @@ class NeuToggle extends StatelessWidget {
         width: 50,
         height: 28,
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutBack,
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: value ? NeuTheme.accent : (NeuTheme.isDark ? Colors.white30 : Colors.black26),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 200),
+            scale: 1.0,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: value ? NeuTheme.accent : (NeuTheme.isDark ? Colors.white30 : Colors.black26),
+              ),
             ),
           ),
         ),

@@ -441,51 +441,26 @@ Future<void> _extractArtwork() async {
 
   String _format(Duration d) => "${d.inMinutes}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
 
-  // Aesthetic Waveform Builder
-  Widget _buildAestheticWaveform(Duration position, Duration total) {
-    final double progress = total.inMilliseconds > 0 
-        ? position.inMilliseconds / total.inMilliseconds 
-        : 0.0;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (details) {
-            final percent = (details.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
-            _audioPlayer.seek(Duration(milliseconds: (total.inMilliseconds * percent).toInt()));
-          },
-          onTapDown: (details) {
-            final percent = (details.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
-            _audioPlayer.seek(Duration(milliseconds: (total.inMilliseconds * percent).toInt()));
-          },
-          child: Container(
-            height: 32, // Sleek, smaller height
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(55, (index) { // More, thinner bars
-                // Create a smooth, pseudo-random wave pattern
-                double sineValue = math.sin(index * 0.5) * 6;
-                double variation = (index % 3 == 0) ? 4.0 : 0.0;
-                double barHeight = 8.0 + sineValue.abs() + variation;
-                
-                bool isPlayed = (index / 55) <= progress;
-
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 2.5, // Thinner bars for a premium look
-                  height: barHeight.clamp(4.0, 24.0),
-                  decoration: BoxDecoration(
-                    color: isPlayed ? AppColors.primary : Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                );
-              }),
-            ),
-          ),
-        );
-      }
+  Widget _buildSleekProgressBar(Duration pos, Duration total) {
+    if (total == Duration.zero) return const SizedBox(height: 32);
+    
+    return SliderTheme(
+      data: SliderThemeData(
+        trackHeight: 12,
+        activeTrackColor: AppColors.primary,
+        inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+        thumbColor: Colors.white,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0), // Hidden thumb
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+        trackShape: const RoundedRectSliderTrackShape(),
+      ),
+      child: Slider(
+        value: pos.inMilliseconds.toDouble().clamp(0.0, total.inMilliseconds.toDouble()),
+        max: total.inMilliseconds.toDouble(),
+        onChanged: (val) {
+          _audioPlayer.seek(Duration(milliseconds: val.toInt()));
+        },
+      ),
     );
   }
 
@@ -562,6 +537,10 @@ Widget _buildArtworkView() {
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.all(isPlaying ? 30 : 45),
       child: Center(
+        child: AnimatedScale(
+        scale: isPlaying ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
         child: NeuContainer(
           padding: EdgeInsets.zero,
           borderRadius: 24,
@@ -584,6 +563,7 @@ Widget _buildArtworkView() {
             )
           )
         )
+      )
       )
     );
   }
@@ -736,7 +716,7 @@ Widget _buildArtworkView() {
                     final pos = snapshot.data ?? Duration.zero;
                     return Column(
                       children: [
-                        _buildAestheticWaveform(pos, totalDuration),
+                        _buildSleekProgressBar(pos, totalDuration),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween, 

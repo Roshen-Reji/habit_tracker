@@ -32,7 +32,10 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
       children: [
         // 1. The Background Layer
         Container(
-          color: NeuTheme.background,
+          decoration: BoxDecoration(
+            color: NeuTheme.background,
+            gradient: NeuTheme.backgroundGradient,
+          ),
         ),
         // 2. The Star Layer
         AnimatedBuilder(
@@ -40,7 +43,7 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
           builder: (context, child) {
             return RepaintBoundary(
               child: CustomPaint(
-                painter: StarPainter(_stars, _controller.value),
+                painter: StarPainter(_stars, _controller.value, NeuTheme.accent),
                 size: Size.infinite,
               ),
             );
@@ -56,8 +59,9 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
 class StarPainter extends CustomPainter {
   final List<Star> stars;
   final double animationValue;
+  final Color starColor;
 
-  StarPainter(this.stars, this.animationValue);
+  StarPainter(this.stars, this.animationValue, this.starColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -65,7 +69,7 @@ class StarPainter extends CustomPainter {
     for (var star in stars) {
       // Twinkle effect: Opacity changes based on animation value
       final double opacity = (star.baseOpacity + (sin(animationValue * star.speed) * 0.3)).clamp(0.0, 1.0);
-      paint.color = Colors.white.withValues(alpha: opacity);
+      paint.color = Color.alphaBlend(starColor.withValues(alpha: 0.15), Colors.white).withValues(alpha: opacity);
 
       // Draw star at random position scaled to screen size
       final dx = star.x * size.width;

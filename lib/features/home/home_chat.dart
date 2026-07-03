@@ -43,10 +43,7 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
           return Transform.scale(
             scale: anim1.value,
             alignment: const Alignment(0.8, 0.8),
-            child: Opacity(
-              opacity: anim1.value,
-              child: child,
-            ),
+            child: child,
           );
         },
       ).then((_) {
@@ -85,6 +82,11 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
         ),
       ).animate(
         onPlay: (controller) => controller.repeat(reverse: true),
+      ).scale(
+        begin: const Offset(1, 1),
+        end: const Offset(1.05, 1.05),
+        duration: 2.seconds,
+        curve: Curves.easeInOut,
       ).shimmer(
         delay: 2000.ms,
         duration: 1500.ms,
@@ -117,30 +119,23 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
   }
 
   Future<void> _loadLocalSongs() async {
-    // Try to get songs from MusicManager if available
-    final manager = MusicManager();
-    if (manager.currentPlaylist != null && manager.currentPlaylist!.isNotEmpty) {
-      _localSongs = manager.currentPlaylist!;
-    } else {
-      // Try to query directly
-      try {
-        final audioQuery = audio_query.OnAudioQuery();
-        final songs = await audioQuery.querySongs(
-          sortType: audio_query.SongSortType.TITLE,
-          uriType: audio_query.UriType.EXTERNAL,
-        );
-        _localSongs = songs.map((s) => SongModel(
-          id: s.id.toString(),
-          title: s.title,
-          artist: s.artist ?? 'Unknown Artist',
-          album: s.album ?? 'Unknown Album',
-          artworkUrl: '',
-          audioUrl: s.uri ?? '',
-          source: SongSource.local,
-        )).toList();
-      } catch (e) {
-        // Music library unavailable
-      }
+    try {
+      final audioQuery = audio_query.OnAudioQuery();
+      final songs = await audioQuery.querySongs(
+        sortType: audio_query.SongSortType.TITLE,
+        uriType: audio_query.UriType.EXTERNAL,
+      );
+      _localSongs = songs.map((s) => SongModel(
+        id: s.id.toString(),
+        title: s.title,
+        artist: s.artist ?? 'Unknown Artist',
+        album: s.album ?? 'Unknown Album',
+        artworkUrl: '',
+        audioUrl: s.uri ?? s.data,
+        source: SongSource.local,
+      )).toList();
+    } catch (e) {
+      // Music library unavailable
     }
   }
 
@@ -177,6 +172,41 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     _controller.clear();
     _scrollToBottom();
 
+    // ON-DEVICE MUSIC INTERCEPTION
+    if (imageBytes == null) {
+      final intent = AiService.instance.detectIntent(text);
+      final wordCount = text.trim().split(RegExp(r'\s+')).length;
+      
+      if (intent == 'music' || wordCount <= 4) {
+        final query = intent == 'music' ? AiService.instance.extractSongQuery(text) : text;
+        final matched = AiService.instance.searchAndPlayMusic(query, _localSongs);
+        
+        if (matched != null) {
+          setState(() {
+            _isLoading = false;
+            _messages.add(ChatMessage(
+              text: "🎵 Now playing: ${matched.title} by ${matched.artist}",
+              isUser: false,
+            ));
+          });
+          _scrollToBottom();
+          return;
+        } else if (intent == 'music') {
+          // Explicitly asked for music but wasn't found
+          setState(() {
+            _isLoading = false;
+            _messages.add(ChatMessage(
+              text: "I couldn't find a song matching '$query' in your local library.",
+              isUser: false,
+            ));
+          });
+          _scrollToBottom();
+          return;
+        }
+        // If it was a short message (<= 4 words) but didn't match any song, fall through to Gemini!
+      }
+    }
+
     final response = await AiService.instance.processMessage(text, imageBytes: imageBytes);
 
     setState(() {
@@ -188,23 +218,6 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       ));
     });
     _scrollToBottom();
-
-    // Auto-execute music play actions (no confirmation needed for playing music)
-    for (var action in response.actions) {
-      if (action.type == 'music_play') {
-        final matched = AiService.instance.executeMusicAction(action, _localSongs);
-        if (matched != null) {
-          setState(() {
-            action.isConfirmed = true;
-            _messages.add(ChatMessage(
-              text: "🎵 Now playing: ${matched.title} by ${matched.artist}",
-              isUser: false,
-            ));
-          });
-          _scrollToBottom();
-        }
-      }
-    }
   }
 
   void _confirmAction(AiAction action) {

@@ -15,6 +15,7 @@ import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
+import 'package:habit_tracker/widgets/star_background.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -110,7 +111,21 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: NeuTheme.background,
       body: Stack(
         children: [
-          AnimatedSwitcher(duration: const Duration(milliseconds: 300), transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(animation), child: child)), child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex])),
+          StarBackground(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                  ),
+                  child: child,
+                ),
+              ),
+              child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavBar(selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),

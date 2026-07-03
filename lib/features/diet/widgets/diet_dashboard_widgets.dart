@@ -150,76 +150,60 @@ class MacroBreakdownBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = protein + carbs + fat;
-    if (total == 0) {
-      return const SizedBox.shrink();
-    }
+    if (total == 0) return const SizedBox.shrink();
 
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            height: 10,
-            child: Row(
-              children: [
-                _buildSegment(protein / total, proteinColor),
-                _buildSegment(carbs / total, carbsColor),
-                _buildSegment(fat / total, fatColor),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildMacroLabel("Protein", protein, proteinColor),
-            _buildMacroLabel("Carbs", carbs, carbsColor),
-            _buildMacroLabel("Fat", fat, fatColor),
-          ],
-        ),
+        _buildMacroRing("Protein", protein, total, proteinColor),
+        _buildMacroRing("Carbs", carbs, total, carbsColor),
+        _buildMacroRing("Fat", fat, total, fatColor),
       ],
     );
   }
 
-  Widget _buildSegment(double fraction, Color color) {
-    return Expanded(
-      flex: (fraction * 100).toInt().clamp(1, 100),
-      child: Container(color: color),
-    );
-  }
-
-  Widget _buildMacroLabel(String label, double grams, Color color) {
+  Widget _buildMacroRing(String label, double amount, double total, Color color) {
+    double progress = (amount / total).clamp(0.0, 1.0);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
+        SizedBox(
+          width: 50,
+          height: 50,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: 1.0,
+                strokeWidth: 6,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(NeuTheme.isDark ? Colors.white10 : Colors.black12),
               ),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: NeuTheme.textSecondary,
-                fontSize: 11,
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 1000),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) {
+                  return CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 6,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  );
+                },
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
         ),
         Text(
-          "${grams.toStringAsFixed(1)}g",
-          style: TextStyle(
-            color: NeuTheme.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          "${amount.toStringAsFixed(0)}g",
+          style: TextStyle(color: NeuTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w900),
         ),
       ],
     );

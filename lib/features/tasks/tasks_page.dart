@@ -156,12 +156,30 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
 
   Widget _buildGoalList(List<Goal> allGoals, GoalType type) {
     final allTypeGoals = allGoals.where((g) => g.type == type && !g.isArchived).toList();
-    final activeGoals = allTypeGoals.where((g) => !g.isCompleted).toList();
-    final completedGoals = allTypeGoals.where((g) => g.isCompleted).toList();
+    final activeGoals = allTypeGoals.where((g) => !g.isCompleted).toList()
+      ..sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
+    final completedGoals = allTypeGoals.where((g) => g.isCompleted).toList()
+      ..sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
 
     return ListView(
       padding: EdgeInsets.all(16),
       children: [
+        if (activeGoals.isEmpty && completedGoals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Column(
+              children: [
+                Icon(LucideIcons.wind, size: 60, color: NeuTheme.textSecondary.withValues(alpha: 0.5))
+                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                  .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
+                const SizedBox(height: 16),
+                Text("No missions here yet.", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text("Time to assign yourself a new objective.", style: TextStyle(color: NeuTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+              ],
+            ),
+          ).animate().fade().scale(curve: Curves.easeOutBack),
+        
         ...activeGoals.asMap().entries.map((entry) => TaskCard(
           goal: entry.value, 
           onTap: () => _showGoalDetails(entry.value)
