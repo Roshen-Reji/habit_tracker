@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -17,11 +18,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // Rank Ladder
   final List<String> _ranks = [
-    "RECRUIT", 
-    "OPERATIVE", 
-    "SPECIALIST", 
-    "VETERAN", 
-    "LEADER", 
+    "RECRUIT",
+    "OPERATIVE",
+    "SPECIALIST",
+    "VETERAN",
+    "LEADER",
     "LEGEND"
   ];
 
@@ -29,28 +30,43 @@ class _SettingsPageState extends State<SettingsPage> {
   Map<String, dynamic> _calculateServiceRecord(List<Goal> goals) {
     double totalXp = 0;
     Map<GoalCategory, int> categoryPoints = {};
-    
+
     for (var goal in goals) {
       // Priority weighting for XP
-      double weight = goal.type == GoalType.monthly ? 50.0 : (goal.type == GoalType.weekly ? 20.0 : 5.0);
-      
+      double weight = goal.type == GoalType.monthly
+          ? 50.0
+          : (goal.type == GoalType.weekly ? 20.0 : 5.0);
+
       if (goal.isCompleted) {
         totalXp += weight;
-        categoryPoints[goal.category] = (categoryPoints[goal.category] ?? 0) + weight.toInt();
+        categoryPoints[goal.category] =
+            (categoryPoints[goal.category] ?? 0) + weight.toInt();
       }
-      totalXp += (goal.streakCount * (weight * 0.1)); 
+      totalXp += (goal.streakCount * (weight * 0.1));
     }
 
     // Determine "Position" (Specialization) based on max points in a category
     String position = "UNASSIGNED";
     if (categoryPoints.isNotEmpty) {
-      final bestCategory = categoryPoints.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+      final bestCategory = categoryPoints.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
       switch (bestCategory) {
-        case GoalCategory.learning: position = "LEAD RESEARCHER"; break;
-        case GoalCategory.fitness: position = "TACTICAL ATHLETE"; break;
-        case GoalCategory.productivity: position = "OPERATIONS CHIEF"; break;
-        case GoalCategory.health: position = "BIO-SECURITY OFFICER"; break;
-        case GoalCategory.hobby: position = "CREATIVE DIRECTOR"; break;
+        case GoalCategory.learning:
+          position = "LEAD RESEARCHER";
+          break;
+        case GoalCategory.fitness:
+          position = "TACTICAL ATHLETE";
+          break;
+        case GoalCategory.productivity:
+          position = "OPERATIONS CHIEF";
+          break;
+        case GoalCategory.health:
+          position = "BIO-SECURITY OFFICER";
+          break;
+        case GoalCategory.hobby:
+          position = "CREATIVE DIRECTOR";
+          break;
       }
     }
 
@@ -72,36 +88,36 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: NeuTheme.background,
       body: ValueListenableBuilder(
-        valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-        builder: (context, Box<Goal> missionBox, _) {
-          final goals = missionBox.values.toList();
-          final record = _calculateServiceRecord(goals);
+          valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
+          builder: (context, Box<Goal> missionBox, _) {
+            final goals = missionBox.values.toList();
+            final record = _calculateServiceRecord(goals);
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildAppBar(),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  child: Column(
-                    children: [
-                      _buildProfileSection(record),
-                      const SizedBox(height: 32),
-                      _buildSystemConfigGroup(),
-                      const SizedBox(height: 24),
-                      _buildAiConfigGroup(),
-                      const SizedBox(height: 24),
-                      _buildDataManagementGroup(),
-                      const SizedBox(height: 120), 
-                    ],
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildAppBar(),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 20),
+                    child: Column(
+                      children: [
+                        _buildProfileSection(record),
+                        const SizedBox(height: 32),
+                        _buildSystemConfigGroup(),
+                        const SizedBox(height: 24),
+                        _buildAiConfigGroup(),
+                        const SizedBox(height: 24),
+                        _buildDataManagementGroup(),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }
-      ),
+              ],
+            );
+          }),
     );
   }
 
@@ -113,7 +129,12 @@ class _SettingsPageState extends State<SettingsPage> {
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-        title: Text("S E T T I N G S", style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 16, color: NeuTheme.textPrimary)),
+        title: Text("S E T T I N G S",
+            style: TextStyle(
+                letterSpacing: 2,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: NeuTheme.textPrimary)),
       ),
     );
   }
@@ -129,19 +150,40 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(radius: 30, backgroundColor: NeuTheme.accent, child: Icon(LucideIcons.user, size: 35, color: Colors.black)),
+                  CircleAvatar(
+                      radius: 30,
+                      backgroundColor: NeuTheme.accent,
+                      child: Icon(LucideIcons.user,
+                          size: 35, color: Colors.black)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(record['position'], style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                        Text("RANK: ${record['title']} (LVL ${record['level']})", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(name,
+                            style: TextStyle(
+                                color: NeuTheme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        Text(record['position'],
+                            style: TextStyle(
+                                color: NeuTheme.accent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5)),
+                        Text(
+                            "RANK: ${record['title']} (LVL ${record['level']})",
+                            style: TextStyle(
+                                color: NeuTheme.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  IconButton(icon: Icon(LucideIcons.edit, color: NeuTheme.textSecondary, size: 18), onPressed: () => _editUsername(settings)),
+                  IconButton(
+                      icon: Icon(LucideIcons.edit,
+                          color: NeuTheme.textSecondary, size: 18),
+                      onPressed: () => _editUsername(settings)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -151,26 +193,33 @@ class _SettingsPageState extends State<SettingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("EVOLUTION PROGRESS", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text("${record['xp']} XP", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10)),
+                      Text("EVOLUTION PROGRESS",
+                          style: TextStyle(
+                              color: NeuTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
+                      Text("${record['xp']} XP",
+                          style: TextStyle(
+                              color: NeuTheme.textSecondary, fontSize: 10)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0, end: record['progress']),
-                      duration: const Duration(milliseconds: 1500),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, _) {
-                        return LinearProgressIndicator(
-                          value: value,
-                          backgroundColor: NeuTheme.isDark ? Colors.white10 : Colors.black12,
-                          color: NeuTheme.accent,
-                          minHeight: 6,
-                        );
-                      }
-                    ),
+                        tween: Tween<double>(begin: 0, end: record['progress']),
+                        duration: const Duration(milliseconds: 1500),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, _) {
+                          return LinearProgressIndicator(
+                            value: value,
+                            backgroundColor: NeuTheme.isDark
+                                ? Colors.white10
+                                : Colors.black12,
+                            color: NeuTheme.accent,
+                            minHeight: 6,
+                          );
+                        }),
                   ),
                 ],
               )
@@ -187,7 +236,12 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16, bottom: 8),
-          child: Text(title, style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          child: Text(title,
+              style: TextStyle(
+                  color: NeuTheme.accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2)),
         ),
         NeuContainer(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -202,82 +256,119 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSystemConfigGroup() {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(),
-      builder: (context, Box settings, _) {
-        bool dynamicBackground = settings.get('dynamic_background', defaultValue: true);
-        String currency = settings.get('currency_symbol', defaultValue: '\$');
-        bool isDarkMode = settings.get('theme_mode', defaultValue: 'dark') == 'dark';
-        
-        return _buildSettingGroup("SYSTEM CONFIGURATION", [
-          _buildToggleTile(LucideIcons.moon, "Dark Mode", isDarkMode, (v) {
-            settings.put('theme_mode', v ? 'dark' : 'light');
-          }),
-          _buildToggleTile(LucideIcons.bellRing, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
-          _buildToggleTile(LucideIcons.palette, "Dynamic Background", dynamicBackground, (v) {
-            settings.put('dynamic_background', v);
-          }),
-          _buildActionTile(LucideIcons.coins, "Finance Currency", currency, () => _editCurrency(settings)),
-        ]);
-      }
-    );
+        valueListenable: Hive.box('settings').listenable(),
+        builder: (context, Box settings, _) {
+          bool dynamicBackground =
+              settings.get('dynamic_background', defaultValue: true);
+          String currency = settings.get('currency_symbol', defaultValue: '\$');
+          bool isDarkMode =
+              settings.get('theme_mode', defaultValue: 'dark') == 'dark';
+
+          return _buildSettingGroup("SYSTEM CONFIGURATION", [
+            _buildToggleTile(LucideIcons.moon, "Dark Mode", isDarkMode, (v) {
+              settings.put('theme_mode', v ? 'dark' : 'light');
+            }),
+            _buildToggleTile(
+                LucideIcons.bellRing,
+                "Mission Alerts",
+                _notificationsEnabled,
+                (v) => setState(() => _notificationsEnabled = v)),
+            _buildToggleTile(
+                LucideIcons.palette, "Dynamic Background", dynamicBackground,
+                (v) {
+              settings.put('dynamic_background', v);
+            }),
+            _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
+                () => _editCurrency(settings)),
+          ]);
+        });
   }
-  
+
   Widget _buildAiConfigGroup() {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(),
-      builder: (context, Box settings, _) {
-        String apiKey = settings.get('gemini_api_key', defaultValue: '');
-        int calorieTarget = settings.get('daily_calorie_target', defaultValue: 2000);
-        
-        return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
-          _buildActionTile(LucideIcons.key, "Gemini API Key", apiKey.isEmpty ? "Not configured" : "Configured", () => _editAiKey(settings)),
-          _buildActionTile(LucideIcons.flame, "Daily Calorie Target", "$calorieTarget kcal", () => _editCalorieTarget(settings)),
-        ]);
-      }
-    );
+        valueListenable: Hive.box('settings').listenable(),
+        builder: (context, Box settings, _) {
+          int calorieTarget =
+              settings.get('daily_calorie_target', defaultValue: 2000);
+
+          return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
+            _buildActionTile(
+                LucideIcons.key,
+                "Gemini API Key",
+                AiService.instance.configurationSummary,
+                () => _editAiKey(settings)),
+            _buildActionTile(LucideIcons.flame, "Daily Calorie Target",
+                "$calorieTarget kcal", () => _editCalorieTarget(settings)),
+          ]);
+        });
   }
-  
+
   Widget _buildDataManagementGroup() {
     return _buildSettingGroup("DATA MANAGEMENT", [
-      _buildActionTile(LucideIcons.trash2, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
-      _buildActionTile(LucideIcons.refreshCw, "Reset Daily Streaks", "Keep rank, reset daily targets", _resetAllDailyGoals),
+      _buildActionTile(LucideIcons.trash2, "Purge Mission Data",
+          "Wipe progress and reset position", _confirmDataPurge,
+          isDestructive: true),
+      _buildActionTile(LucideIcons.refreshCw, "Reset Daily Streaks",
+          "Keep rank, reset daily targets", _resetAllDailyGoals),
     ]);
   }
 
-  Widget _buildToggleTile(IconData icon, String title, bool value, Function(bool) onChanged) {
+  Widget _buildToggleTile(
+      IconData icon, String title, bool value, Function(bool) onChanged) {
     return ListTile(
       leading: Icon(icon, color: NeuTheme.textPrimary, size: 22),
-      title: Text(title, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 15)),
-      trailing: NeuToggle(value: value, onChanged: (v) { HapticFeedback.lightImpact(); onChanged(v); }),
+      title: Text(title,
+          style: TextStyle(color: NeuTheme.textPrimary, fontSize: 15)),
+      trailing: NeuToggle(
+          value: value,
+          onChanged: (v) {
+            HapticFeedback.lightImpact();
+            onChanged(v);
+          }),
     );
   }
 
-  Widget _buildActionTile(IconData icon, String title, String subtitle, VoidCallback onTap, {bool isDestructive = false}) {
+  Widget _buildActionTile(
+      IconData icon, String title, String subtitle, VoidCallback onTap,
+      {bool isDestructive = false}) {
     return ListTile(
-      onTap: () { HapticFeedback.mediumImpact(); onTap(); },
-      leading: Icon(icon, color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary, size: 22),
-      title: Text(title, style: TextStyle(color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary, fontSize: 15)),
-      subtitle: Text(subtitle, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
-      trailing: Icon(LucideIcons.chevronRight, color: NeuTheme.textSecondary, size: 20),
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      leading: Icon(icon,
+          color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary,
+          size: 22),
+      title: Text(title,
+          style: TextStyle(
+              color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary,
+              fontSize: 15)),
+      subtitle: Text(subtitle,
+          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+      trailing: Icon(LucideIcons.chevronRight,
+          color: NeuTheme.textSecondary, size: 20),
     );
   }
 
   void _editUsername(Box box) {
-    final controller = TextEditingController(text: box.get('username', defaultValue: 'USER'));
+    final controller =
+        TextEditingController(text: box.get('username', defaultValue: 'USER'));
     _showInputDialog("Update Username", controller, (val) {
       box.put('username', val.toUpperCase());
     });
   }
-  
+
   void _editAiKey(Box box) {
-    final controller = TextEditingController(text: box.get('gemini_api_key', defaultValue: ''));
+    final controller = TextEditingController(
+        text: box.get('gemini_api_key', defaultValue: ''));
     _showInputDialog("Update Gemini API Key", controller, (val) {
-      box.put('gemini_api_key', val);
+      box.put('gemini_api_key', val.trim());
     });
   }
-  
+
   void _editCalorieTarget(Box box) {
-    final controller = TextEditingController(text: box.get('daily_calorie_target', defaultValue: 2000).toString());
+    final controller = TextEditingController(
+        text: box.get('daily_calorie_target', defaultValue: 2000).toString());
     _showInputDialog("Update Calorie Target", controller, (val) {
       final target = int.tryParse(val);
       if (target != null) {
@@ -285,51 +376,59 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     }, isNumber: true);
   }
-  
+
   void _editCurrency(Box box) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: NeuTheme.background,
-        title: Text("Select Currency", style: TextStyle(color: NeuTheme.textPrimary)),
+        title: Text("Select Currency",
+            style: TextStyle(color: NeuTheme.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ['\$', '€', '£', '₹', '¥'].map((sym) => ListTile(
-            title: Text(sym, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20)),
-            onTap: () {
-              box.put('currency_symbol', sym);
-              Navigator.pop(context);
-            },
-          )).toList(),
+          children: ['\$', '€', '£', '₹', '¥']
+              .map((sym) => ListTile(
+                    title: Text(sym,
+                        style: TextStyle(
+                            color: NeuTheme.textPrimary, fontSize: 20)),
+                    onTap: () {
+                      box.put('currency_symbol', sym);
+                      Navigator.pop(context);
+                    },
+                  ))
+              .toList(),
         ),
       ),
     );
   }
-  
-  void _showInputDialog(String title, TextEditingController controller, Function(String) onSave, {bool isNumber = false}) {
+
+  void _showInputDialog(
+      String title, TextEditingController controller, Function(String) onSave,
+      {bool isNumber = false}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: NeuTheme.background,
         title: Text(title, style: TextStyle(color: NeuTheme.textPrimary)),
         content: TextField(
-          controller: controller, 
-          autofocus: true, 
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: TextStyle(color: NeuTheme.textPrimary), 
-          decoration: InputDecoration(
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent))
-          )
-        ),
+            controller: controller,
+            autofocus: true,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+            style: TextStyle(color: NeuTheme.textPrimary),
+            decoration: InputDecoration(
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: NeuTheme.accent)))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel", style: TextStyle(color: NeuTheme.textSecondary))),
           TextButton(
-            onPressed: () { 
-              onSave(controller.text); 
-              Navigator.pop(context); 
-            }, 
-            child: Text("Apply", style: TextStyle(color: NeuTheme.accent))
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel",
+                  style: TextStyle(color: NeuTheme.textSecondary))),
+          TextButton(
+              onPressed: () {
+                onSave(controller.text);
+                Navigator.pop(context);
+              },
+              child: Text("Apply", style: TextStyle(color: NeuTheme.accent))),
         ],
       ),
     );
@@ -340,11 +439,24 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: NeuTheme.background,
-        title: const Text("PURGE ALL DATA?", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-        content: Text("This will permanently delete missions and reset your service record.", style: TextStyle(color: NeuTheme.textSecondary)),
+        title: const Text("PURGE ALL DATA?",
+            style: TextStyle(
+                color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text(
+            "This will permanently delete missions and reset your service record.",
+            style: TextStyle(color: NeuTheme.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Abort", style: TextStyle(color: NeuTheme.textSecondary))),
-          TextButton(onPressed: () async { await Hive.box<Goal>('mission_box_v4').clear(); if (mounted) Navigator.pop(context); }, child: const Text("Confirm Purge", style: TextStyle(color: Colors.redAccent))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Abort",
+                  style: TextStyle(color: NeuTheme.textSecondary))),
+          TextButton(
+              onPressed: () async {
+                await Hive.box<Goal>('mission_box_v4').clear();
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text("Confirm Purge",
+                  style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
@@ -352,7 +464,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _resetAllDailyGoals() {
     final box = Hive.box<Goal>('mission_box_v4');
-    for (var goal in box.values) { if (goal.type == GoalType.daily) goal.reset(); }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Daily missions reset.")));
+    for (var goal in box.values) {
+      if (goal.type == GoalType.daily) goal.reset();
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Daily missions reset.")));
   }
 }

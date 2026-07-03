@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class TaskCard extends StatelessWidget {
   final Goal goal;
@@ -15,21 +16,40 @@ class TaskCard extends StatelessWidget {
 
   Color _getCategoryColor(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return AppColors.health;
-      case GoalCategory.productivity: return AppColors.productivity;
-      case GoalCategory.learning: return AppColors.learning;
-      case GoalCategory.fitness: return AppColors.fitness;
-      case GoalCategory.hobby: return AppColors.hobby;
+      case GoalCategory.health:
+        return AppColors.health;
+      case GoalCategory.productivity:
+        return AppColors.productivity;
+      case GoalCategory.learning:
+        return AppColors.learning;
+      case GoalCategory.fitness:
+        return AppColors.fitness;
+      case GoalCategory.hobby:
+        return AppColors.hobby;
     }
+  }
+
+  bool _isExpired(Goal goal) {
+    if (goal.endDate == null || goal.isCompleted) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final end =
+        DateTime(goal.endDate!.year, goal.endDate!.month, goal.endDate!.day);
+    return today.isAfter(end);
   }
 
   IconData _getCategoryIcon(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return LucideIcons.heartPulse;
-      case GoalCategory.productivity: return LucideIcons.zap;
-      case GoalCategory.learning: return LucideIcons.bookOpen;
-      case GoalCategory.fitness: return LucideIcons.dumbbell;
-      case GoalCategory.hobby: return LucideIcons.puzzle;
+      case GoalCategory.health:
+        return LucideIcons.heartPulse;
+      case GoalCategory.productivity:
+        return LucideIcons.zap;
+      case GoalCategory.learning:
+        return LucideIcons.bookOpen;
+      case GoalCategory.fitness:
+        return LucideIcons.dumbbell;
+      case GoalCategory.hobby:
+        return LucideIcons.puzzle;
     }
   }
 
@@ -50,7 +70,8 @@ class TaskCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getCategoryColor(goal.category).withValues(alpha: 0.15),
+                    color: _getCategoryColor(goal.category)
+                        .withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -70,51 +91,83 @@ class TaskCard extends StatelessWidget {
                           color: NeuTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          decoration: goal.isCompleted ? TextDecoration.lineThrough : null,
+                          decoration: goal.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                       if (goal.description.isNotEmpty)
                         Text(
                           goal.description,
-                          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: NeuTheme.textSecondary, fontSize: 12),
+                        ),
+                      if (goal.endDate != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _isExpired(goal)
+                                ? Colors.redAccent.withValues(alpha: 0.2)
+                                : NeuTheme.textSecondary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _isExpired(goal)
+                                ? 'Expired: ${DateFormat('MMM dd').format(goal.endDate!)}'
+                                : 'Ends: ${DateFormat('MMM dd').format(goal.endDate!)}',
+                            style: TextStyle(
+                                color: _isExpired(goal)
+                                    ? Colors.redAccent
+                                    : NeuTheme.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
+                          ),
                         ),
                     ],
                   ),
                 ),
                 if (goal.streakCount > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
                       color: NeuTheme.accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color: NeuTheme.accent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.flame, color: NeuTheme.accent, size: 14),
+                        Icon(LucideIcons.flame,
+                            color: NeuTheme.accent, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '${goal.streakCount}',
                           style: TextStyle(
-                            color: NeuTheme.accent, 
-                            fontSize: 12, 
-                            fontWeight: FontWeight.bold
-                          ),
+                              color: NeuTheme.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
                 IconButton(
                   icon: Icon(
-                    goal.isCompleted ? LucideIcons.checkCircle2 : LucideIcons.circle,
-                    color: goal.isCompleted ? NeuTheme.accent : NeuTheme.textSecondary,
+                    goal.isCompleted
+                        ? LucideIcons.checkCircle2
+                        : LucideIcons.circle,
+                    color: goal.isCompleted
+                        ? NeuTheme.accent
+                        : NeuTheme.textSecondary,
                   ),
                   onPressed: () {
                     final box = Hive.box<Goal>('mission_box_v4');
                     if (!box.containsKey(goal.id)) return;
-                    
+
                     if (goal.isCompleted) {
                       HapticFeedback.mediumImpact();
                       goal.reset();
@@ -124,7 +177,8 @@ class TaskCard extends StatelessWidget {
                     }
                     box.put(goal.id, goal);
                   },
-                ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
+                ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(
+                    end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
               ],
             ),
             const SizedBox(height: 12),
@@ -138,7 +192,8 @@ class TaskCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: goal.progress,
-                          backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
+                          backgroundColor:
+                              NeuTheme.isDark ? Colors.black26 : Colors.black12,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             _getCategoryColor(goal.category),
                           ),
@@ -148,7 +203,8 @@ class TaskCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}',
-                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
+                        style: TextStyle(
+                            color: NeuTheme.textSecondary, fontSize: 10),
                       ),
                     ],
                   ),
@@ -167,10 +223,17 @@ class TaskCard extends StatelessWidget {
           ],
         ),
       ),
-    ).animate(target: goal.isCompleted ? 1 : 0)
-     .scaleXY(begin: 1.0, end: 1.05, curve: Curves.easeOutBack, duration: 150.ms)
-     .then().scaleXY(begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
-     .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms)
-     .shimmer(duration: 1000.ms, curve: Curves.easeOutQuad, color: NeuTheme.accent.withValues(alpha: 0.1));
+    )
+        .animate(target: goal.isCompleted ? 1 : 0)
+        .scaleXY(
+            begin: 1.0, end: 1.05, curve: Curves.easeOutBack, duration: 150.ms)
+        .then()
+        .scaleXY(
+            begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
+        .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms)
+        .shimmer(
+            duration: 1000.ms,
+            curve: Curves.easeOutQuad,
+            color: NeuTheme.accent.withValues(alpha: 0.1));
   }
 }

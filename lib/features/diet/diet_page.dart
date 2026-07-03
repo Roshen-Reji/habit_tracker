@@ -176,15 +176,14 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    _buildQuickAddChip("💧 Water", 0, "water", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Water", calories: 0, mealType: MealType.snack)); setState((){}); }),
-                    const SizedBox(width: 8),
-                    _buildQuickAddChip("☕ Coffee", 50, "coffee", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Black Coffee", calories: 50, mealType: MealType.breakfast)); setState((){}); }),
-                    const SizedBox(width: 8),
-                    _buildQuickAddChip("🍎 Apple", 95, "apple", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Apple", calories: 95, carbs: 25, mealType: MealType.snack)); setState((){}); }),
-                    const SizedBox(width: 8),
-                    _buildQuickAddChip("🥚 Egg", 78, "egg", () { log.addEntry(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Boiled Egg", calories: 78, protein: 6, fat: 5, mealType: MealType.breakfast)); setState((){}); }),
+                    _buildQuickAddChip("💧 Water", 0, "water", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Water", calories: 0, protein: 0, carbs: 0, fat: 0, timestamp: DateTime.now(), mealType: MealType.snack)); setState((){}); }),
+                    _buildQuickAddChip("☕ Coffee", 50, "coffee", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Black Coffee", calories: 50, protein: 0, carbs: 0, fat: 0, timestamp: DateTime.now(), mealType: MealType.breakfast)); setState((){}); }),
+                    _buildQuickAddChip("🍎 Apple", 95, "apple", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Apple", calories: 95, protein: 0, carbs: 25, fat: 0, timestamp: DateTime.now(), mealType: MealType.snack)); setState((){}); }),
+                    _buildQuickAddChip("🥚 Egg", 78, "egg", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Boiled Egg", calories: 78, protein: 6, carbs: 0, fat: 5, timestamp: DateTime.now(), mealType: MealType.breakfast)); setState((){}); }),
                   ],
                 ),
               ),
@@ -435,12 +434,13 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
       child: NeuContainer(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         borderRadius: 24,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(label, style: TextStyle(color: NeuTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
             if (calories > 0) ...[
-              const SizedBox(width: 8),
-              Text("$calories kcal", style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+              const SizedBox(height: 4),
+              Text("$calories kcal", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
             ]
           ],
         ),

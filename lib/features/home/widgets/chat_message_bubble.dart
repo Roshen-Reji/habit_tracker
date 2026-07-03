@@ -51,15 +51,15 @@ class ChatMessageBubble extends StatelessWidget {
           right: isUser ? 0 : 50,
         ),
         child: Column(
-          crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             // Main bubble
             NeuContainer(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               borderRadius: 18,
-              customColor: isUser
-                  ? accent.withValues(alpha: 0.2)
-                  : NeuTheme.background,
+              customColor:
+                  isUser ? accent.withValues(alpha: 0.2) : NeuTheme.background,
               margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +97,9 @@ class ChatMessageBubble extends StatelessWidget {
                   Text(
                     message.text,
                     style: TextStyle(
-                      color: isUser ? AppColors.textPrimary : AppColors.textSecondary,
+                      color: isUser
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -109,10 +111,10 @@ class ChatMessageBubble extends StatelessWidget {
             // Action cards
             if (message.actions != null && message.actions!.isNotEmpty)
               ...message.actions!.map((action) => _ActionConfirmCard(
-                action: action,
-                onConfirm: () => onConfirmAction?.call(action),
-                onReject: () => onRejectAction?.call(action),
-              )),
+                    action: action,
+                    onConfirm: () => onConfirmAction?.call(action),
+                    onReject: () => onRejectAction?.call(action),
+                  )),
           ],
         ),
       ),
@@ -140,7 +142,9 @@ class _ActionConfirmCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
       borderRadius: 14,
-      customColor: action.isConfirmed ? AppColors.success.withValues(alpha: 0.1) : NeuTheme.background,
+      customColor: action.isConfirmed
+          ? AppColors.success.withValues(alpha: 0.1)
+          : NeuTheme.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -183,9 +187,14 @@ class _ActionConfirmCard extends StatelessWidget {
         color = const Color(0xFFE040FB);
         break;
       case 'play_vault_video':
-        icon = LucideIcons.youtube;
+        icon = LucideIcons.video;
         label = 'PLAY VAULT VIDEO';
         color = Colors.redAccent;
+        break;
+      case 'finance_transaction':
+        icon = LucideIcons.receipt;
+        label = 'FINANCE LOG';
+        color = AppColors.warning;
         break;
       default:
         icon = LucideIcons.info;
@@ -210,9 +219,14 @@ class _ActionConfirmCard extends StatelessWidget {
         if (action.isConfirmed)
           Row(
             children: [
-              const Icon(LucideIcons.checkCircle2, color: AppColors.success, size: 14),
+              const Icon(LucideIcons.checkCircle2,
+                  color: AppColors.success, size: 14),
               const SizedBox(width: 4),
-              const Text("Done", style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold)),
+              const Text("Done",
+                  style: TextStyle(
+                      color: AppColors.success,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
       ],
@@ -227,15 +241,22 @@ class _ActionConfirmCard extends StatelessWidget {
           children: [
             Text(
               action.payload['name'] ?? 'Unknown Food',
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
             ),
             const SizedBox(height: 4),
             Row(
               children: [
-                _buildMiniStat("${_numStr(action.payload['calories'])} kcal", AppColors.textPrimary),
-                _buildMiniStat("P: ${_numStr(action.payload['protein'])}g", MacroBreakdownBar.proteinColor),
-                _buildMiniStat("C: ${_numStr(action.payload['carbs'])}g", MacroBreakdownBar.carbsColor),
-                _buildMiniStat("F: ${_numStr(action.payload['fat'])}g", MacroBreakdownBar.fatColor),
+                _buildMiniStat("${_numStr(action.payload['calories'])} kcal",
+                    AppColors.textPrimary),
+                _buildMiniStat("P: ${_numStr(action.payload['protein'])}g",
+                    MacroBreakdownBar.proteinColor),
+                _buildMiniStat("C: ${_numStr(action.payload['carbs'])}g",
+                    MacroBreakdownBar.carbsColor),
+                _buildMiniStat("F: ${_numStr(action.payload['fat'])}g",
+                    MacroBreakdownBar.fatColor),
               ],
             ),
           ],
@@ -246,18 +267,26 @@ class _ActionConfirmCard extends StatelessWidget {
           children: [
             Text(
               action.payload['activity'] ?? 'Exercise',
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
             ),
             const Spacer(),
             Text(
               "-${_numStr(action.payload['calories_burned'])} kcal",
-              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
             ),
-            if (action.payload['duration_minutes'] != null && action.payload['duration_minutes'] > 0) ...[
+            if (action.payload['duration_minutes'] != null &&
+                action.payload['duration_minutes'] > 0) ...[
               const SizedBox(width: 8),
               Text(
                 "${action.payload['duration_minutes']} min",
-                style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                style: const TextStyle(
+                    color: AppColors.textTertiary, fontSize: 12),
               ),
             ],
           ],
@@ -269,18 +298,35 @@ class _ActionConfirmCard extends StatelessWidget {
           children: [
             Text(
               action.payload['title'] ?? 'Untitled',
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
             ),
             const SizedBox(height: 4),
             Row(
               children: [
-                _buildTag((action.payload['type'] ?? 'today').toString().toUpperCase(), AppColors.primary),
+                _buildTag(
+                    (action.payload['type'] ?? 'today')
+                        .toString()
+                        .toUpperCase(),
+                    AppColors.primary),
                 const SizedBox(width: 6),
-                _buildTag((action.payload['category'] ?? 'productivity').toString().toUpperCase(), AppColors.warning),
+                _buildTag(
+                    (action.payload['category'] ?? 'productivity')
+                        .toString()
+                        .toUpperCase(),
+                    AppColors.warning),
+                if (action.payload['end_date'] != null) ...[
+                  const SizedBox(width: 6),
+                  _buildTag("ENDS ${_dateLabel(action.payload['end_date'])}",
+                      AppColors.error),
+                ],
                 const Spacer(),
                 Text(
                   "Target: ${_numStr(action.payload['target_value'])} ${action.payload['unit'] ?? 'units'}",
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                  style: const TextStyle(
+                      color: AppColors.textTertiary, fontSize: 12),
                 ),
               ],
             ),
@@ -290,12 +336,16 @@ class _ActionConfirmCard extends StatelessWidget {
       case 'music_play':
         return Row(
           children: [
-            const Icon(LucideIcons.playCircle, color: AppColors.primary, size: 24),
+            const Icon(LucideIcons.playCircle,
+                color: AppColors.primary, size: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 action.payload['search_query'] ?? 'Unknown Song',
-                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
               ),
             ),
           ],
@@ -304,12 +354,47 @@ class _ActionConfirmCard extends StatelessWidget {
       case 'play_vault_video':
         return Row(
           children: [
-            const Icon(LucideIcons.youtube, color: Colors.redAccent, size: 24),
+            const Icon(LucideIcons.video, color: Colors.redAccent, size: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 action.payload['query'] ?? 'Vault Video',
-                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+              ),
+            ),
+          ],
+        );
+
+      case 'finance_transaction':
+        final mode = (action.payload['mode'] ?? 'expense').toString();
+        final amount = action.payload['amount'] ?? 0;
+        final isIncome = mode.toLowerCase() == 'income';
+        return Row(
+          children: [
+            Icon(
+              isIncome ? LucideIcons.trendingUp : LucideIcons.trendingDown,
+              color: isIncome ? AppColors.success : AppColors.error,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                action.payload['title'] ?? 'Transaction',
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+              ),
+            ),
+            Text(
+              "${isIncome ? '+' : '-'}Rs $amount",
+              style: TextStyle(
+                color: isIncome ? AppColors.success : AppColors.error,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ],
@@ -333,14 +418,17 @@ class _ActionConfirmCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: AppColors.textTertiary.withValues(alpha: 0.3)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(LucideIcons.x, color: AppColors.textTertiary, size: 14),
                 SizedBox(width: 4),
-                Text("Reject", style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                Text("Reject",
+                    style:
+                        TextStyle(color: AppColors.textTertiary, fontSize: 12)),
               ],
             ),
           ),
@@ -359,7 +447,11 @@ class _ActionConfirmCard extends StatelessWidget {
               children: [
                 const Icon(LucideIcons.check, color: Colors.black, size: 14),
                 const SizedBox(width: 4),
-                const Text("Accept", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                const Text("Accept",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -371,7 +463,9 @@ class _ActionConfirmCard extends StatelessWidget {
   Widget _buildMiniStat(String text, Color color) {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
-      child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(text,
+          style: TextStyle(
+              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -383,13 +477,28 @@ class _ActionConfirmCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(text, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+      child: Text(text,
+          style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5)),
     );
   }
 
   String _numStr(dynamic value) {
     if (value == null) return '0';
-    if (value is double) return value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1);
+    if (value is double)
+      return value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1);
     return value.toString();
+  }
+
+  String _dateLabel(dynamic value) {
+    try {
+      final date = DateTime.parse(value.toString());
+      return '${date.day}/${date.month}';
+    } catch (_) {
+      return value.toString();
+    }
   }
 }

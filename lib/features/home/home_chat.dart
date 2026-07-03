@@ -7,9 +7,7 @@ import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/models/song_model.dart';
-import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/features/home/widgets/chat_message_bubble.dart';
-import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -23,7 +21,8 @@ class HomeChatFAB extends StatefulWidget {
   State<HomeChatFAB> createState() => _HomeChatFABState();
 }
 
-class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStateMixin {
+class _HomeChatFABState extends State<HomeChatFAB>
+    with SingleTickerProviderStateMixin {
   bool _isOpen = false;
 
   void _toggleChat() {
@@ -83,18 +82,21 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
             size: 26,
           ),
         ),
-      ).animate(
-        onPlay: (controller) => controller.repeat(reverse: true),
-      ).scale(
-        begin: const Offset(1, 1),
-        end: const Offset(1.05, 1.05),
-        duration: 2.seconds,
-        curve: Curves.easeInOut,
-      ).shimmer(
-        delay: 2000.ms,
-        duration: 1500.ms,
-        color: Colors.white.withValues(alpha: 0.2),
-      ),
+      )
+          .animate(
+            onPlay: (controller) => controller.repeat(reverse: true),
+          )
+          .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.05, 1.05),
+            duration: 2.seconds,
+            curve: Curves.easeInOut,
+          )
+          .shimmer(
+            delay: 2000.ms,
+            duration: 1500.ms,
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
     );
   }
 }
@@ -128,15 +130,17 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         sortType: audio_query.SongSortType.TITLE,
         uriType: audio_query.UriType.EXTERNAL,
       );
-      _localSongs = songs.map((s) => SongModel(
-        id: s.id.toString(),
-        title: s.title,
-        artist: s.artist ?? 'Unknown Artist',
-        album: s.album ?? 'Unknown Album',
-        artworkUrl: '',
-        audioUrl: s.uri ?? s.data,
-        source: SongSource.local,
-      )).toList();
+      _localSongs = songs
+          .map((s) => SongModel(
+                id: s.id.toString(),
+                title: s.title,
+                artist: s.artist ?? 'Unknown Artist',
+                album: s.album ?? 'Unknown Album',
+                artworkUrl: '',
+                audioUrl: s.uri ?? s.data,
+                source: SongSource.local,
+              ))
+          .toList();
     } catch (e) {
       // Music library unavailable
     }
@@ -166,9 +170,10 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     if (text.trim().isEmpty && _selectedImageBytes == null) return;
 
     final imageBytes = _selectedImageBytes;
-    
+
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true, imageBytes: imageBytes));
+      _messages
+          .add(ChatMessage(text: text, isUser: true, imageBytes: imageBytes));
       _isLoading = true;
       _selectedImageBytes = null;
     });
@@ -179,11 +184,14 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     if (imageBytes == null) {
       final intent = AiService.instance.detectIntent(text);
       final wordCount = text.trim().split(RegExp(r'\s+')).length;
-      
-      if (intent == 'music' || wordCount <= 4) {
-        final query = intent == 'music' ? AiService.instance.extractSongQuery(text) : text;
-        final matched = AiService.instance.searchAndPlayMusic(query, _localSongs);
-        
+
+      if (intent == 'music' || (intent == 'general' && wordCount <= 4)) {
+        final query = intent == 'music'
+            ? AiService.instance.extractSongQuery(text)
+            : text;
+        final matched =
+            AiService.instance.searchAndPlayMusic(query, _localSongs);
+
         if (matched != null) {
           setState(() {
             _isLoading = false;
@@ -199,7 +207,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
           setState(() {
             _isLoading = false;
             _messages.add(ChatMessage(
-              text: "I couldn't find a song matching '$query' in your local library.",
+              text:
+                  "I couldn't find a song matching '$query' in your local library.",
               isUser: false,
             ));
           });
@@ -210,7 +219,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       }
     }
 
-    final response = await AiService.instance.processMessage(text, imageBytes: imageBytes);
+    final response =
+        await AiService.instance.processMessage(text, imageBytes: imageBytes);
 
     setState(() {
       _isLoading = false;
@@ -229,18 +239,23 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       final box = Hive.box<SpeechModel>('speech_vault');
       SpeechModel? match;
       for (var speech in box.values) {
-        if (speech.title.toLowerCase().contains(query) || query.contains(speech.title.toLowerCase())) {
+        if (speech.title.toLowerCase().contains(query) ||
+            query.contains(speech.title.toLowerCase())) {
           match = speech;
           break;
         }
       }
-      
+
       setState(() => action.isConfirmed = true);
-      
+
       if (match != null) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => SamsungVideoAssistant(speech: match!)));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => SamsungVideoAssistant(speech: match!)));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video not found in Vault.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Video not found in Vault.')));
       }
       return;
     }
@@ -279,6 +294,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         return '🎵 Playing: ${action.payload['search_query']}';
       case 'play_vault_video':
         return '▶️ Opening Vault Video: ${action.payload['query']}';
+      case 'finance_transaction':
+        return 'Logged transaction: ${action.payload['title']}';
       default:
         return '✓ Done';
     }
@@ -301,7 +318,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     final accent = NeuTheme.accent;
     final screenHeight = MediaQuery.of(context).size.height;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    
+
     double height = screenHeight * 0.75;
     if (height + bottomInset > screenHeight * 0.9) {
       height = screenHeight * 0.9 - bottomInset;
@@ -310,184 +327,200 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
-      type: MaterialType.transparency,
-      child: ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: AppColors.background.withValues(alpha: 0.95),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: accent.withValues(alpha: 0.15)),
-          ),
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.textTertiary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        type: MaterialType.transparency,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              height: height,
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: 0.95),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border.all(color: accent.withValues(alpha: 0.15)),
               ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(LucideIcons.sparkles, color: accent, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      "AI ASSISTANT",
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                      ),
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textTertiary.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(LucideIcons.x, color: AppColors.textTertiary, size: 20),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.sparkles, color: accent, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          "AI ASSISTANT",
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(LucideIcons.x,
+                              color: AppColors.textTertiary, size: 20),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
-              const Divider(color: AppColors.glassBorder, height: 1),
+                  const Divider(color: AppColors.glassBorder, height: 1),
 
-              // Messages
-              Expanded(
-                child: _messages.isEmpty
-                    ? _buildEmptyState(accent)
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length + (_isLoading ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _messages.length && _isLoading) {
-                            return _buildLoadingIndicator(accent);
-                          }
-                          return ChatMessageBubble(
-                            message: _messages[index],
-                            onConfirmAction: _confirmAction,
-                            onRejectAction: _rejectAction,
-                          );
-                        },
-                      ),
-              ),
+                  // Messages
+                  Expanded(
+                    child: _messages.isEmpty
+                        ? _buildEmptyState(accent)
+                        : ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _messages.length + (_isLoading ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _messages.length && _isLoading) {
+                                return _buildLoadingIndicator(accent);
+                              }
+                              return ChatMessageBubble(
+                                message: _messages[index],
+                                onConfirmAction: _confirmAction,
+                                onRejectAction: _rejectAction,
+                              );
+                            },
+                          ),
+                  ),
 
-              // Input
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(top: BorderSide(color: accent.withValues(alpha: 0.1))),
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_selectedImageBytes != null)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Stack(
-                            children: [
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.memory(
-                                    _selectedImageBytes!,
-                                    height: 80,
-                                    width: 80,
-                                    fit: BoxFit.cover,
+                  // Input
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border(
+                          top:
+                              BorderSide(color: accent.withValues(alpha: 0.1))),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_selectedImageBytes != null)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.memory(
+                                        _selectedImageBytes!,
+                                        height: 80,
+                                        width: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
                                   ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => setState(
+                                          () => _selectedImageBytes = null),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(LucideIcons.x,
+                                            color: Colors.white, size: 14),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(LucideIcons.image,
+                                      color: AppColors.textSecondary, size: 22),
                                 ),
                               ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _selectedImageBytes = null),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
+                              Expanded(
+                                child: TextField(
+                                  controller: _controller,
+                                  style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 14),
+                                  maxLines: null,
+                                  decoration: InputDecoration(
+                                    hintText: "Ask anything — diet, tasks...",
+                                    hintStyle: const TextStyle(
+                                        color: AppColors.textTertiary,
+                                        fontSize: 13),
+                                    filled: true,
+                                    fillColor: AppColors.surfaceLight,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: BorderSide.none,
                                     ),
-                                    child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 10),
                                   ),
+                                  onSubmitted: _sendMessage,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _sendMessage(_controller.text),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        accent,
+                                        accent.withValues(alpha: 0.7)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(LucideIcons.send,
+                                      color: Colors.black, size: 22),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _pickImage,
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceLight,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(LucideIcons.image, color: AppColors.textSecondary, size: 22),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                              maxLines: null,
-                              decoration: InputDecoration(
-                                hintText: "Ask anything — diet, tasks...",
-                                hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
-                                filled: true,
-                                fillColor: AppColors.surfaceLight,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              ),
-                              onSubmitted: _sendMessage,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => _sendMessage(_controller.text),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [accent, accent.withValues(alpha: 0.7)],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(LucideIcons.send, color: Colors.black, size: 22),
-                            ),
-                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
-      ),
       ),
     );
   }
@@ -500,7 +533,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(LucideIcons.sparkles, color: accent.withValues(alpha: 0.3), size: 48),
+              Icon(LucideIcons.sparkles,
+                  color: accent.withValues(alpha: 0.3), size: 48),
               const SizedBox(height: 16),
               Text(
                 "Your Super AI Assistant",
@@ -514,7 +548,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
               const Text(
                 "I can handle diet, tasks, finance,\nmusic, and more!",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textTertiary, fontSize: 13, height: 1.4),
+                style: TextStyle(
+                    color: AppColors.textTertiary, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 28),
               Wrap(

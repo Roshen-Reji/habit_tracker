@@ -10,6 +10,7 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SpeechVaultPage extends StatefulWidget {
   const SpeechVaultPage({super.key});

@@ -216,8 +216,10 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                             )
                           ],
                         ),
-                      );
-                      
+                      ),
+                    ),
+                  );
+                  
                       if (playing) {
                         return record.animate(onPlay: (c) => c.repeat(reverse: true))
                           .scaleXY(begin: 0.98, end: 1.02, duration: 1.seconds, curve: Curves.easeInOut);
