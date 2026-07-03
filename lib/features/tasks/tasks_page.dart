@@ -41,16 +41,67 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         centerTitle: true,
-        title: BentoContainer(
+        title: Container(
           height: 50,
-          padding: EdgeInsets.zero,
-          borderRadius: 25,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: BentoTheme.surface,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 0.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.02),
+                blurRadius: 1,
+                offset: const Offset(0, -1),
+              )
+            ],
+          ),
+          child: Stack(
             children: [
-              _buildToggleTab("MISSIONS", 'missions'),
-              _buildToggleTab("FINANCE", 'finance'),
-              _buildToggleTab("VAULT", 'vault'),
+              Positioned.fill(
+                child: AnimatedAlign(
+                  alignment: _currentView == 'missions' 
+                      ? Alignment.centerLeft 
+                      : _currentView == 'finance' 
+                          ? Alignment.center 
+                          : Alignment.centerRight,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: Container(
+                    width: 70,
+                    height: 40,
+                  decoration: BoxDecoration(
+                    color: Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light' ? Colors.white : const Color(0xFF2C2C2E),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        blurRadius: 1,
+                        offset: const Offset(0, -1),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildToggleTab(LucideIcons.target, 'missions'),
+                  _buildToggleTab(LucideIcons.wallet, 'finance'),
+                  _buildToggleTab(LucideIcons.shield, 'vault'),
+                ],
+              ),
             ],
           ),
         ),
@@ -107,30 +158,22 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildToggleTab(String text, String viewKey) {
+  Widget _buildToggleTab(IconData icon, String viewKey) {
     final isSelected = _currentView == viewKey;
     return GestureDetector(
       onTap: () => setState(() {
         _currentView = viewKey;
       }),
-      child: BentoContainer(
-        borderRadius: 25,
-        isPressed: false,
-        padding: EdgeInsets.zero,
-        customColor: isSelected ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              letterSpacing: 1.5,
-              fontSize: 12,
-            ),
-          ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        width: 70,
+        height: 40,
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 20,
+          color: isSelected ? (Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light' ? Colors.black : Colors.white) : BentoTheme.textSecondary,
         ),
       ),
     );

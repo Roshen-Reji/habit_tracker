@@ -4,41 +4,49 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 
 class BentoTheme {
-  // Base Background Color - strict pure black #000000
+  // Base Background Color
   static Color get background {
-    Color base = const Color(0xFF000000);
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    Color base = isLight ? const Color(0xFFF9F9F9) : const Color(0xFF000000);
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      // Tint the pure black slightly with the dominant album color
       return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.1), base);
     }
     return base;
   }
 
-  // Cards and surfaces - dark gray #1C1C1E
+  // Cards and surfaces
   static Color get surface {
-    Color base = const Color(0xFF1C1C1E);
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    Color base = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF141414);
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      // Tint the surface slightly with the dominant album color
       return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.08), base);
     }
     return base;
   }
 
-  // Accent Color - Teal blue default #3798A1 or dynamic
+  // Accent Color - Dynamic or Strict Black/White default
   static Color get accent {
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
       return MusicManager().currentDominantColor.value!;
     }
-    return const Color(0xFF3798A1);
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
   }
 
-  static Color get textPrimary => const Color(0xFFFFFFFF);
-  static Color get textSecondary => const Color(0xFFE1E1E6).withValues(alpha: 0.6); // Muted translucent gray
+  static Color get textPrimary {
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+  }
+
+  static Color get textSecondary {
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? const Color(0xFF000000).withValues(alpha: 0.6) : const Color(0xFFFFFFFF).withValues(alpha: 0.6);
+  }
 }
 
 // Replaces BentoContainer with a flat Bento-style container

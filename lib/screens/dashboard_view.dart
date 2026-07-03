@@ -61,7 +61,6 @@ class DashboardView extends StatelessWidget {
                   const SizedBox(height: 10),
                   const MysteriousMomentumGraph(),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("Diet Today"),
                   _buildDietSummaryCard(),
                   const SizedBox(height: 20),
                   _buildSectionHeader("Tasks"),
@@ -155,15 +154,27 @@ class DashboardView extends StatelessWidget {
     final net = intake - burned;
     final isOver = net > target;
     final progress = target > 0 ? (net / target).clamp(0.0, 1.0) : 0.0;
+    
+    final protein = log?.totalProtein ?? 0;
+    final carbs = log?.totalCarbs ?? 0;
+    final fat = log?.totalFat ?? 0;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: BentoContainer(
         borderRadius: 20,
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Icon(LucideIcons.radar, color: BentoTheme.accent, size: 16),
+                const SizedBox(width: 8),
+                Text("DIET TODAY", style: TextStyle(color: BentoTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -203,7 +214,7 @@ class DashboardView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             LinearProgressIndicator(
               value: progress.toDouble(),
               minHeight: 6,
@@ -213,8 +224,17 @@ class DashboardView extends StatelessWidget {
                 isOver ? Colors.redAccent : BentoTheme.accent,
               ),
             ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildMacroText("Protein", "${protein.toStringAsFixed(0)}g"),
+                _buildMacroText("Carbs", "${carbs.toStringAsFixed(0)}g"),
+                _buildMacroText("Fat", "${fat.toStringAsFixed(0)}g"),
+              ],
+            ),
             if (log != null && log.entries.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 log.entries.take(3).map((e) => e.name).join(", ") + (log.entries.length > 3 ? "..." : ""),
                 style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
@@ -225,5 +245,15 @@ class DashboardView extends StatelessWidget {
         ),
       ),
     ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildMacroText(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+      ],
+    );
   }
 }

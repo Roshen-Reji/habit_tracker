@@ -65,7 +65,7 @@ class BottomNavBar extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : const Color(0xFFE1E1E6),
+              color: isSelected ? BentoTheme.background : const Color(0xFFE1E1E6),
               size: 26,
             ),
           ],

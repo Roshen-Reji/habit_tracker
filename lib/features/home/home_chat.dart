@@ -166,6 +166,17 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     }
   }
 
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _selectedImageBytes = bytes;
+      });
+    }
+  }
+
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty && _selectedImageBytes == null) return;
 
@@ -465,6 +476,19 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(LucideIcons.image,
+                                      color: AppColors.textSecondary, size: 22),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: _takePhoto,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(LucideIcons.camera,
                                       color: AppColors.textSecondary, size: 22),
                                 ),
                               ),

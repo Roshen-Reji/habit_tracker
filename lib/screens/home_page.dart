@@ -58,9 +58,9 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: const Color(0xFF1C1C1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24), 
-            side: const BorderSide(color: Colors.tealAccent)
+            side: const BorderSide(color: Colors.white)
           ),
-          title: const Text("Welcome", style: TextStyle(color: Colors.tealAccent, letterSpacing: 2)),
+          title: const Text("Welcome", style: TextStyle(color: Colors.white, letterSpacing: 2)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -73,7 +73,7 @@ class _HomePageState extends State<HomePage> {
                   hintText: "Enter Name...",
                   hintStyle: TextStyle(color: Colors.white24),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
                 ),
               ),
             ],
@@ -87,7 +87,7 @@ class _HomePageState extends State<HomePage> {
                   setState(() {}); 
                 }
               },
-              child: const Text("ENGAGE", style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
+              child: const Text("ENGAGE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
