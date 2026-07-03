@@ -7,10 +7,17 @@ import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/app.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
+
   // Initialize Hive for Flutter
   await Hive.initFlutter();
 
@@ -43,6 +50,9 @@ void main() async {
   // Open Diet boxes
   await Hive.openBox<DietDayLog>('diet_logs');
 
+  // Open XP box
+  await Hive.openBox('xp_history');
+
   // Check and reset tasks daily/weekly/monthly based on date
   TaskResetService.checkAndResetTasks();
 
@@ -50,5 +60,5 @@ void main() async {
   await NotificationService().init();
 
   // runApp MUST be the last call after all async initializations
-  runApp(const CommanderApp());
+  runApp(const HabitTrackerApp());
 }

@@ -12,6 +12,7 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/services/lyrics_service.dart';
 import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
 // --- Persistent Global State ---
@@ -561,13 +562,9 @@ Widget _buildArtworkView() {
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.all(isPlaying ? 30 : 45),
       child: Center(
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40, offset: const Offset(0, 20))
-            ]
-          ),
+        child: NeuContainer(
+          padding: EdgeInsets.zero,
+          borderRadius: 24,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: AspectRatio(
@@ -576,7 +573,7 @@ Widget _buildArtworkView() {
                 ? Image.memory(
                     _artworkData!, 
                     fit: BoxFit.cover,
-                    filterQuality: FilterQuality.high, // High-fidelity rendering
+                    filterQuality: FilterQuality.high,
                   )
                 : ProceduralArtwork(
                     title: currentSong.title, 
@@ -591,7 +588,8 @@ Widget _buildArtworkView() {
     );
   }
 
-Widget _buildLyricEngine() {
+  // ... (keeping LyricEngine as is) ...
+  Widget _buildLyricEngine() {
     if (_isLoadingLyrics) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     if (_lyrics == null || _lyrics!.isEmpty) return const Center(child: Text("Lyrics not synced.", style: TextStyle(color: Colors.white54, fontSize: 18)));
     
@@ -616,7 +614,7 @@ Widget _buildLyricEngine() {
                   keyContext,
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
-                  alignment: 0.35, // Align slightly above center
+                  alignment: 0.35, 
                 );
               }
             }
@@ -697,18 +695,10 @@ Widget _buildLyricEngine() {
   Widget _buildGlassConsole() {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Column(
+      child: NeuContainer(
+        borderRadius: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Column(
               children: [
                 if (!showLyrics) ...[
                   Row(
@@ -822,9 +812,7 @@ Widget _buildLyricEngine() {
                 ),
               ]
             )
-          ),
         ),
-      ),
     );
   }
 }

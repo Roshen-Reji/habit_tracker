@@ -15,68 +15,61 @@ class NeuTheme {
 
   // Base Background Color
   static Color get background {
-    // Start with a base dark or light color suitable for neumorphism
-    Color base = isDark ? const Color(0xFF232323) : const Color(0xFFE0E5EC);
+    Color base = isDark ? const Color(0xFF222831) : const Color(0xFFF9F7F7);
+    bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
-    // Subtly tint with music dominant color
-    final manager = MusicManager();
-    if (manager.currentPlaylist != null &&
-        manager.currentIndex != null &&
-        manager.audioPlayer.playing) {
-      final song = manager.currentPlaylist![manager.currentIndex!];
-      // Tint the base color 5% with the song's color
-      return Color.alphaBlend(song.dominantColor.withValues(alpha: 0.05), base);
+    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
+      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.05), base);
     }
     return base;
+  }
+  
+  static Color get surface {
+    return isDark ? const Color(0xFF393E46) : const Color(0xFFDBE2EF);
   }
 
   // Accent Color (Music adaptive)
   static Color get accent {
-    final manager = MusicManager();
-    if (manager.currentPlaylist != null &&
-        manager.currentIndex != null &&
-        manager.audioPlayer.playing) {
-      final song = manager.currentPlaylist![manager.currentIndex!];
-      return song.dominantColor;
+    bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
+    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
+      return MusicManager().currentDominantColor.value!;
     }
-    return AppColors.primary;
+    return isDark ? const Color(0xFF00ADB5) : const Color(0xFF3F72AF);
   }
 
-  static Color get textPrimary => isDark ? Colors.white : Colors.black87;
-  static Color get textSecondary => isDark ? Colors.white70 : Colors.black54;
+  static Color get textPrimary => isDark ? const Color(0xFFEEEEEE) : const Color(0xFF112D4E);
+  static Color get textSecondary => isDark ? const Color(0xFFEEEEEE).withValues(alpha: 0.7) : const Color(0xFF112D4E).withValues(alpha: 0.6);
 
-  // Neumorphic Shadows
+  // Neumorphic Shadows (Apple-like matte finish)
   static List<BoxShadow> get shadows {
     if (isDark) {
       return [
-        // Dark shadow (bottom right)
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.6),
-          offset: const Offset(4, 4),
-          blurRadius: 10,
-          spreadRadius: 1,
+          color: Colors.black.withValues(alpha: 0.3),
+          offset: const Offset(3, 3),
+          blurRadius: 6,
+          spreadRadius: 0,
         ),
-        // Light shadow (top left)
         BoxShadow(
-          color: Colors.white.withValues(alpha: 0.05),
-          offset: const Offset(-4, -4),
-          blurRadius: 10,
-          spreadRadius: 1,
+          color: Colors.white.withValues(alpha: 0.03),
+          offset: const Offset(-3, -3),
+          blurRadius: 6,
+          spreadRadius: 0,
         ),
       ];
     } else {
       return [
         BoxShadow(
-          color: const Color(0xFFA3B1C6).withValues(alpha: 0.6),
-          offset: const Offset(5, 5),
-          blurRadius: 10,
-          spreadRadius: 1,
+          color: const Color(0xFF3F72AF).withValues(alpha: 0.15),
+          offset: const Offset(3, 3),
+          blurRadius: 6,
+          spreadRadius: 0,
         ),
         const BoxShadow(
           color: Colors.white,
-          offset: Offset(-5, -5),
-          blurRadius: 10,
-          spreadRadius: 1,
+          offset: Offset(-3, -3),
+          blurRadius: 6,
+          spreadRadius: 0,
         ),
       ];
     }

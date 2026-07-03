@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_tracker/theme/app_theme.dart';
-import 'dart:ui';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 class MysteriousMomentumGraph extends StatelessWidget {
   const MysteriousMomentumGraph({super.key});
@@ -19,77 +19,43 @@ class MysteriousMomentumGraph extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface.withValues(alpha: 0.2),
-                  gradient: AppTheme.glassGradient,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "M O M E N T U M   S I G N A L",
-                style: TextStyle(
-                  color: Colors.tealAccent,
-                  fontSize: 14,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-                  AspectRatio(
-                    aspectRatio: 1.70,
-                    child: LineChart(mainData(spots)),
+          child: NeuContainer(
+            borderRadius: 20,
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "M O M E N T U M   S I G N A L",
+                  style: TextStyle(
+                    color: NeuTheme.accent,
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+                AspectRatio(
+                  aspectRatio: 1.70,
+                  child: LineChart(mainData(spots)),
+                ),
+              ],
             ),
           ),
-        ),
-      );
-    },
+        );
+      },
     );
   }
 
   List<FlSpot> _calculateCalendarMomentum(List<Goal> goals) {
-    if (goals.isEmpty) return List.generate(7, (index) => FlSpot(index.toDouble(), 0));
-
+    List<int> xpHistory = GlobalXPService.getPast7DaysXP();
+    
+    // Reverse it so the oldest is at index 0 and today is at index 6
+    xpHistory = xpHistory.reversed.toList();
+    
     List<FlSpot> spots = [];
-    DateTime now = DateTime.now();
-
     for (int i = 0; i < 7; i++) {
-      double dayScore = 0;
-      double totalWeight = 0;
-
-      for (var goal in goals) {
-        // Engineering Note: Applying priority weights
-        // Monthly = 5.0, Weekly = 3.0, Daily = 1.0
-        double weight = goal.type == GoalType.monthly 
-            ? 5.0 
-            : (goal.type == GoalType.weekly ? 3.0 : 1.0);
-        
-        totalWeight += weight;
-
-        if (i == 6) {
-          // Current real-time progress
-          dayScore += (goal.progress * weight);
-        } else {
-          // Historical estimation based on streakCount
-          if (goal.streakCount > (6 - i)) {
-            dayScore += weight;
-          }
-        }
-      }
-
-      double percentage = totalWeight > 0 ? (dayScore / totalWeight) * 100 : 0;
-      spots.add(FlSpot(i.toDouble(), percentage.clamp(0, 100)));
+      spots.add(FlSpot(i.toDouble(), xpHistory[i].toDouble()));
     }
     return spots;
   }
@@ -124,7 +90,7 @@ class MysteriousMomentumGraph extends StatelessWidget {
               if (index % 3 != 0 && index != 6) return const SizedBox.shrink();
 
               return SideTitleWidget(
-                axisSide: meta.axisSide,
+                meta: meta,
                 child: Text(
                   label,
                   style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
@@ -154,22 +120,22 @@ class MysteriousMomentumGraph extends StatelessWidget {
         LineChartBarData(
           spots: spots,
           isCurved: true,
-          gradient: const LinearGradient(colors: [AppTheme.textSecondary, AppTheme.primary]),
+          gradient: LinearGradient(colors: [NeuTheme.textSecondary, NeuTheme.accent]),
           barWidth: 3,
           isStrokeCapRound: true,
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
               radius: index == 6 ? 4 : 0, // Only show dot for current day
-              color: Colors.tealAccent,
+              color: NeuTheme.accent,
               strokeWidth: 2,
-              strokeColor: Colors.white,
+              strokeColor: NeuTheme.background,
             ),
           ),
           belowBarData: BarAreaData(
             show: true,
             gradient: LinearGradient(
-              colors: [AppTheme.primary.withValues(alpha: 0.2), Colors.transparent],
+              colors: [NeuTheme.accent.withValues(alpha: 0.2), Colors.transparent],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),

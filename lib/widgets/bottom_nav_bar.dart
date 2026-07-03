@@ -39,29 +39,21 @@ class BottomNavBar extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         width: 60,
         height: 55,
-        decoration: BoxDecoration(
-          color: isSelected ? NeuTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
+        child: NeuContainer(
+          borderRadius: 20,
+          isPressed: false,
+          padding: EdgeInsets.zero,
+          customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
                 color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                size: 26,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

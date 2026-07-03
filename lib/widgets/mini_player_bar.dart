@@ -47,7 +47,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
           return const SizedBox.shrink(); 
         }
 
-        final currentIndex = state.currentIndex;
+        final currentIndex = state.currentIndex ?? 0;
         final currentSong = musicManager.currentPlaylist![currentIndex];
         final size = MediaQuery.of(context).size;
         

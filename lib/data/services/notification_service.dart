@@ -27,7 +27,9 @@ class NotificationService {
       iOS: initializationSettingsDarwin,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      settings: initializationSettings,
+    );
   }
 
   Future<void> scheduleTaskReminder(Goal task) async {
@@ -41,11 +43,11 @@ class NotificationService {
     }
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      task.key.hashCode, // Use hive key hashcode as unique ID
-      "Task Reminder: ${task.title}",
-      "It's time to work on your task!",
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      const NotificationDetails(
+      id: task.key.hashCode, // Use hive key hashcode as unique ID
+      title: "Task Reminder: ${task.title}",
+      body: "It's time to work on your task!",
+      scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'habit_tracker_channel',
           'Habit Reminders',
@@ -59,12 +61,11 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
 
   Future<void> cancelReminder(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id);
+    await flutterLocalNotificationsPlugin.cancel(id: id);
   }
 }

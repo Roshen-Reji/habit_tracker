@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'dart:math';
 
 class StarBackground extends StatefulWidget {
@@ -29,15 +30,9 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 1. The Gradient Layer
+        // 1. The Background Layer
         Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.black, Color(0xFF1A0033)], // Deep Void
-            ),
-          ),
+          color: NeuTheme.background,
         ),
         // 2. The Star Layer
         AnimatedBuilder(

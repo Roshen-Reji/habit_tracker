@@ -3,42 +3,50 @@ import 'package:flutter/material.dart';
 
 class PermissionService {
   static Future<bool> requestAllPermissions() async {
-    // Determine which permissions are required based on Android version
+    // Request all potential permissions
     List<Permission> permissions = [
       Permission.notification,
+      Permission.audio,
+      Permission.storage,
+      Permission.scheduleExactAlarm,
     ];
 
-    // For Android 13+
-    if (await Permission.audio.isRestricted || await Permission.audio.isDenied) {
-      permissions.add(Permission.audio);
-    } else {
-      // For older Android versions
-      permissions.add(Permission.storage);
-    }
-    
-    // We can also request scheduling exact alarms (handled differently in Android 14+)
-    permissions.add(Permission.scheduleExactAlarm);
+    await permissions.request();
 
-    Map<Permission, PermissionStatus> statuses = await permissions.request();
-
-    bool allGranted = true;
-    for (var status in statuses.values) {
-      if (!status.isGranted) {
-        allGranted = false;
-        break;
-      }
+    // Only strictly require notification permission for the app to function well
+    // Storage/Audio are OS-dependent and often return permanentlyDenied on incompatible OS versions.
+    if (await Permission.notification.isGranted) {
+      return true;
     }
 
-    return allGranted;
+    return false;
   }
 
   static Future<void> checkAndRequestPermissions(BuildContext context) async {
     bool granted = await requestAllPermissions();
     if (!granted && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Some permissions were denied. App functionality may be limited."),
-          backgroundColor: Colors.redAccent,
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1E),
+          title: const Text("Permissions Required", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          content: const Text(
+            "Some permissions were denied. App functionality like notifications and music might be limited. Please enable them in Settings.", 
+            style: TextStyle(color: Colors.white70)
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text("Cancel", style: TextStyle(color: Colors.white54))
+            ),
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              }, 
+              child: const Text("Open Settings", style: TextStyle(color: Colors.tealAccent))
+            ),
+          ],
         )
       );
     }

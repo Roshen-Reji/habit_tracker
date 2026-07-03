@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,7 +21,7 @@ class _SettingsPageState extends State<SettingsPage> {
     "OPERATIVE", 
     "SPECIALIST", 
     "VETERAN", 
-    "COMMANDER", 
+    "LEADER", 
     "LEGEND"
   ];
 
@@ -69,7 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: NeuTheme.background,
       body: ValueListenableBuilder(
         valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
         builder: (context, Box<Goal> missionBox, _) {
@@ -87,14 +88,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       _buildProfileSection(record),
                       const SizedBox(height: 32),
-                      _buildSettingGroup("SYSTEM CONFIGURATION", [
-                        _buildToggleTile(LucideIcons.bellRing, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
-                      ]),
+                      _buildSystemConfigGroup(),
                       const SizedBox(height: 24),
-                      _buildSettingGroup("DATA MANAGEMENT", [
-                        _buildActionTile(LucideIcons.trash2, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
-                        _buildActionTile(LucideIcons.refreshCw, "Reset Daily Streaks", "Keep rank, reset daily targets", _resetAllDailyGoals),
-                      ]),
+                      _buildAiConfigGroup(),
+                      const SizedBox(height: 24),
+                      _buildDataManagementGroup(),
                       const SizedBox(height: 120), 
                     ],
                   ),
@@ -108,14 +106,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAppBar() {
-    return const SliverAppBar(
+    return SliverAppBar(
       expandedHeight: 100,
-      backgroundColor: Colors.black,
+      backgroundColor: NeuTheme.background,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
-        titlePadding: EdgeInsets.only(left: 20, bottom: 16),
-        title: Text("S E T T I N G S", style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        title: Text("S E T T I N G S", style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 16, color: NeuTheme.textPrimary)),
       ),
     );
   }
@@ -124,32 +122,26 @@ class _SettingsPageState extends State<SettingsPage> {
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings').listenable(),
       builder: (context, Box settings, _) {
-        final String name = settings.get('username', defaultValue: 'COMMANDER');
+        final String name = settings.get('username', defaultValue: 'USER');
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
+        return NeuContainer(
           child: Column(
             children: [
               Row(
                 children: [
-                  const CircleAvatar(radius: 30, backgroundColor: Colors.tealAccent, child: Icon(LucideIcons.user, size: 35, color: Colors.black)),
+                  CircleAvatar(radius: 30, backgroundColor: NeuTheme.accent, child: Icon(LucideIcons.user, size: 35, color: Colors.black)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(record['position'], style: const TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                        Text("RANK: ${record['title']} (LVL ${record['level']})", style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(name, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(record['position'], style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        Text("RANK: ${record['title']} (LVL ${record['level']})", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(LucideIcons.edit, color: Colors.white54, size: 18), onPressed: () => _editUsername(settings)),
+                  IconButton(icon: Icon(LucideIcons.edit, color: NeuTheme.textSecondary, size: 18), onPressed: () => _editUsername(settings)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -159,8 +151,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("EVOLUTION PROGRESS", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text("${record['xp']} XP", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                      Text("EVOLUTION PROGRESS", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text("${record['xp']} XP", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -168,8 +160,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: record['progress'],
-                      backgroundColor: Colors.white10,
-                      color: Colors.tealAccent,
+                      backgroundColor: NeuTheme.isDark ? Colors.white10 : Colors.black12,
+                      color: NeuTheme.accent,
                       minHeight: 6,
                     ),
                   ),
@@ -188,45 +180,149 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16, bottom: 8),
-          child: Text(title, style: TextStyle(color: Colors.tealAccent.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          child: Text(title, style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         ),
-        Container(
-          decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
-          child: Column(children: children),
+        NeuContainer(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Column(children: children),
+          ),
         ),
       ],
     );
   }
 
+  Widget _buildSystemConfigGroup() {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (context, Box settings, _) {
+        bool dynamicBackground = settings.get('dynamic_background', defaultValue: true);
+        String currency = settings.get('currency_symbol', defaultValue: '\$');
+        bool isDarkMode = settings.get('theme_mode', defaultValue: 'dark') == 'dark';
+        
+        return _buildSettingGroup("SYSTEM CONFIGURATION", [
+          _buildToggleTile(LucideIcons.moon, "Dark Mode", isDarkMode, (v) {
+            settings.put('theme_mode', v ? 'dark' : 'light');
+          }),
+          _buildToggleTile(LucideIcons.bellRing, "Mission Alerts", _notificationsEnabled, (v) => setState(() => _notificationsEnabled = v)),
+          _buildToggleTile(LucideIcons.palette, "Dynamic Background", dynamicBackground, (v) {
+            settings.put('dynamic_background', v);
+          }),
+          _buildActionTile(LucideIcons.coins, "Finance Currency", currency, () => _editCurrency(settings)),
+        ]);
+      }
+    );
+  }
+  
+  Widget _buildAiConfigGroup() {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (context, Box settings, _) {
+        String apiKey = settings.get('freetheai_key', defaultValue: '');
+        int calorieTarget = settings.get('daily_calorie_target', defaultValue: 2000);
+        
+        return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
+          _buildActionTile(LucideIcons.key, "Set AI Key", apiKey.isEmpty ? "Not configured" : "Configured", () => _editAiKey(settings)),
+          _buildActionTile(LucideIcons.flame, "Daily Calorie Target", "$calorieTarget kcal", () => _editCalorieTarget(settings)),
+        ]);
+      }
+    );
+  }
+  
+  Widget _buildDataManagementGroup() {
+    return _buildSettingGroup("DATA MANAGEMENT", [
+      _buildActionTile(LucideIcons.trash2, "Purge Mission Data", "Wipe progress and reset position", _confirmDataPurge, isDestructive: true),
+      _buildActionTile(LucideIcons.refreshCw, "Reset Daily Streaks", "Keep rank, reset daily targets", _resetAllDailyGoals),
+    ]);
+  }
+
   Widget _buildToggleTile(IconData icon, String title, bool value, Function(bool) onChanged) {
     return ListTile(
-      leading: Icon(icon, color: Colors.white70, size: 22),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 15)),
-      trailing: Switch.adaptive(value: value, activeColor: Colors.tealAccent, onChanged: (v) { HapticFeedback.lightImpact(); onChanged(v); }),
+      leading: Icon(icon, color: NeuTheme.textPrimary, size: 22),
+      title: Text(title, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 15)),
+      trailing: NeuToggle(value: value, onChanged: (v) { HapticFeedback.lightImpact(); onChanged(v); }),
     );
   }
 
   Widget _buildActionTile(IconData icon, String title, String subtitle, VoidCallback onTap, {bool isDestructive = false}) {
     return ListTile(
       onTap: () { HapticFeedback.mediumImpact(); onTap(); },
-      leading: Icon(icon, color: isDestructive ? Colors.redAccent : Colors.white70, size: 22),
-      title: Text(title, style: TextStyle(color: isDestructive ? Colors.redAccent : Colors.white, fontSize: 15)),
-      subtitle: Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11)),
-      trailing: const Icon(LucideIcons.chevronRight, color: Colors.white24, size: 20),
+      leading: Icon(icon, color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary, size: 22),
+      title: Text(title, style: TextStyle(color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary, fontSize: 15)),
+      subtitle: Text(subtitle, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+      trailing: Icon(LucideIcons.chevronRight, color: NeuTheme.textSecondary, size: 20),
     );
   }
 
   void _editUsername(Box box) {
-    final controller = TextEditingController(text: box.get('username'));
+    final controller = TextEditingController(text: box.get('username', defaultValue: 'USER'));
+    _showInputDialog("Update Username", controller, (val) {
+      box.put('username', val.toUpperCase());
+    });
+  }
+  
+  void _editAiKey(Box box) {
+    final controller = TextEditingController(text: box.get('ai_key', defaultValue: ''));
+    _showInputDialog("Update AI Key", controller, (val) {
+      box.put('ai_key', val);
+    });
+  }
+  
+  void _editCalorieTarget(Box box) {
+    final controller = TextEditingController(text: box.get('daily_calorie_target', defaultValue: 2000).toString());
+    _showInputDialog("Update Calorie Target", controller, (val) {
+      final target = int.tryParse(val);
+      if (target != null) {
+        box.put('daily_calorie_target', target);
+      }
+    }, isNumber: true);
+  }
+  
+  void _editCurrency(Box box) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text("Update Callsign", style: TextStyle(color: Colors.white)),
-        content: TextField(controller: controller, autofocus: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)))),
+        backgroundColor: NeuTheme.background,
+        title: Text("Select Currency", style: TextStyle(color: NeuTheme.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ['\$', '€', '£', '₹', '¥'].map((sym) => ListTile(
+            title: Text(sym, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20)),
+            onTap: () {
+              box.put('currency_symbol', sym);
+              Navigator.pop(context);
+            },
+          )).toList(),
+        ),
+      ),
+    );
+  }
+  
+  void _showInputDialog(String title, TextEditingController controller, Function(String) onSave, {bool isNumber = false}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: NeuTheme.background,
+        title: Text(title, style: TextStyle(color: NeuTheme.textPrimary)),
+        content: TextField(
+          controller: controller, 
+          autofocus: true, 
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          style: TextStyle(color: NeuTheme.textPrimary), 
+          decoration: InputDecoration(
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent))
+          )
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(onPressed: () { box.put('username', controller.text.toUpperCase()); Navigator.pop(context); }, child: const Text("Apply", style: TextStyle(color: Colors.tealAccent))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel", style: TextStyle(color: NeuTheme.textSecondary))),
+          TextButton(
+            onPressed: () { 
+              onSave(controller.text); 
+              Navigator.pop(context); 
+            }, 
+            child: Text("Apply", style: TextStyle(color: NeuTheme.accent))
+          ),
         ],
       ),
     );
@@ -236,11 +332,11 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
+        backgroundColor: NeuTheme.background,
         title: const Text("PURGE ALL DATA?", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-        content: const Text("This will permanently delete missions and reset your service record.", style: TextStyle(color: Colors.white70)),
+        content: Text("This will permanently delete missions and reset your service record.", style: TextStyle(color: NeuTheme.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Abort")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Abort", style: TextStyle(color: NeuTheme.textSecondary))),
           TextButton(onPressed: () async { await Hive.box<Goal>('mission_box_v4').clear(); if (mounted) Navigator.pop(context); }, child: const Text("Confirm Purge", style: TextStyle(color: Colors.redAccent))),
         ],
       ),

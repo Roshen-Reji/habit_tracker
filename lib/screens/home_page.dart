@@ -13,6 +13,7 @@ import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -106,7 +107,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true, 
-      backgroundColor: Colors.black,
+      backgroundColor: NeuTheme.background,
       body: Stack(
         children: [
           AnimatedSwitcher(duration: const Duration(milliseconds: 300), transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(animation), child: child)), child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex])),

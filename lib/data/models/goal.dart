@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 part 'goal.g.dart';
 
@@ -75,6 +76,17 @@ class Goal extends HiveObject {
   @HiveField(14)
   DateTime? reminderTime;
 
+  @HiveField(10)
+  DateTime? lastReset;
+
+  int get xpValue {
+    switch (type) {
+      case GoalType.monthly: return 50;
+      case GoalType.weekly: return 20;
+      default: return 5;
+    }
+  }
+
   Goal({
     required this.id,
     required this.title,
@@ -113,6 +125,9 @@ class Goal extends HiveObject {
   }
 
   void complete() {
+    if (!isCompleted) {
+      GlobalXPService.addXP(xpValue);
+    }
     isCompleted = true;
     currentValue = targetValue;
     progress = 1.0;

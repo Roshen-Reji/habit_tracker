@@ -246,8 +246,8 @@ class WeeklyCalorieChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: NeuTheme.background,
-              tooltipRoundedRadius: 8,
+              getTooltipColor: (touchedGroup) => NeuTheme.background,
+              tooltipBorderRadius: BorderRadius.circular(8),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${rod.toY.toStringAsFixed(0)} kcal',
@@ -425,8 +425,8 @@ class MonthlyTrendChart extends StatelessWidget {
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              tooltipBgColor: NeuTheme.background,
-              tooltipRoundedRadius: 8,
+              getTooltipColor: (touchedSpot) => NeuTheme.background,
+              tooltipBorderRadius: BorderRadius.circular(8),
               getTooltipItems: (spots) {
                 return spots.map((s) {
                   return LineTooltipItem(

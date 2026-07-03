@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
-import 'package:habit_tracker/features/diet/diet_chat.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
+import 'package:habit_tracker/features/diet/widgets/manual_food_input.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -25,7 +25,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -79,7 +79,6 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
           tabs: const [
             Tab(text: "TODAY"),
             Tab(text: "DASHBOARD"),
-            Tab(text: "CHAT"),
           ],
         ),
       ),
@@ -88,7 +87,6 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
         children: [
           _buildTodayView(),
           _buildDashboardView(),
-          DietChat(onDataChanged: () => setState(() {})),
         ],
       ),
     );
@@ -172,6 +170,8 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
               // Food Log Section
               _buildSectionHeader("FOOD LOG", LucideIcons.utensils, accent),
+              const SizedBox(height: 8),
+              ManualFoodInputWidget(onFoodAdded: () => setState(() {})),
               const SizedBox(height: 8),
 
               if (log.entries.isEmpty)

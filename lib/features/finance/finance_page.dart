@@ -9,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 
 
@@ -449,20 +450,20 @@ class _HomeTab extends StatelessWidget {
             itemCount: vaults.length + 1,
             itemBuilder: (context, i) {
               if (i == vaults.length) {
-                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.15), style: BorderStyle.none), borderRadius: BorderRadius.circular(24)), child: CustomPaint(painter: DashedBorderPainter(), child: Center(child: Text("+", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 32, fontWeight: FontWeight.w300))))));
+                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), child: NeuContainer(borderRadius: 24, child: Center(child: Icon(LucideIcons.plus, color: NeuTheme.textSecondary, size: 32)))));
               }
               final v = vaults[i]; Color vColor = Color(v.colorValue);
               return GestureDetector(
                 onLongPress: () => onDeleteVault(v),
                 child: Container(
                   width: 200, margin: EdgeInsets.only(right: 12),
-                  child: GlassCard(
-                    padding: EdgeInsets.all(18), borderColor: vColor.withValues(alpha: 0.2), gradient: LinearGradient(colors: [vColor.withValues(alpha: 0.1), Colors.transparent], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  child: NeuContainer(
+                    padding: EdgeInsets.all(18), borderRadius: 16,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
-                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: vColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: TextStyle(color: NeuTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
                       ],
                     ),
                   ),
@@ -1054,6 +1055,7 @@ class _AddVaultModalState extends State<_AddVaultModal> {
   void _save() {
     if (name.isEmpty || balance.isEmpty) return;
     widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: NeuTheme.accent.value));
+    GlobalXPService.addXP(15);
     Navigator.pop(context);
   }
   @override
@@ -1113,6 +1115,7 @@ class _UpdateGoalModalState extends State<_UpdateGoalModal> {
     g['saved'] = (g['saved'] as double) + amt;
     goals[widget.goalIndex] = g;
     widget.settingsBox.put('goals', goals);
+    GlobalXPService.addXP(20);
     Navigator.pop(context);
   }
   @override

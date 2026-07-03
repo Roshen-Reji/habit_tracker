@@ -113,21 +113,23 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       onTap: () => setState(() {
         _currentView = viewKey;
       }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            letterSpacing: 1.5,
-            fontSize: 12,
+      child: NeuContainer(
+        borderRadius: 25,
+        isPressed: false,
+        padding: EdgeInsets.zero,
+        customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              letterSpacing: 1.5,
+              fontSize: 12,
+            ),
           ),
         ),
       ),

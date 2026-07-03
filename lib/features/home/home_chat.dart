@@ -11,6 +11,7 @@ import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/features/home/widgets/chat_message_bubble.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 
 class HomeChatFAB extends StatefulWidget {
   const HomeChatFAB({super.key});
@@ -26,11 +27,28 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
     HapticFeedback.mediumImpact();
     setState(() => _isOpen = !_isOpen);
     if (_isOpen) {
-      showModalBottomSheet(
+      showGeneralDialog(
         context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => const _ChatBottomSheet(),
+        barrierDismissible: true,
+        barrierLabel: 'Chat',
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, anim1, anim2) {
+          return const Align(
+            alignment: Alignment.bottomCenter,
+            child: _ChatBottomSheet(),
+          );
+        },
+        transitionBuilder: (context, anim1, anim2, child) {
+          return Transform.scale(
+            scale: anim1.value,
+            alignment: const Alignment(0.8, 0.8),
+            child: Opacity(
+              opacity: anim1.value,
+              child: child,
+            ),
+          );
+        },
       ).then((_) {
         if (mounted) setState(() => _isOpen = false);
       });
@@ -58,13 +76,6 @@ class _HomeChatFABState extends State<HomeChatFAB> with SingleTickerProviderStat
               colors: [accent, accent.withValues(alpha: 0.7)],
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
           ),
           child: const Icon(
             LucideIcons.sparkles,
@@ -140,17 +151,33 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     super.dispose();
   }
 
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+  Uint8List? _selectedImageBytes;
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _selectedImageBytes = bytes;
+      });
+    }
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty && _selectedImageBytes == null) return;
+
+    final imageBytes = _selectedImageBytes;
+    
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      _messages.add(ChatMessage(text: text, isUser: true, imageBytes: imageBytes));
       _isLoading = true;
+      _selectedImageBytes = null;
     });
     _controller.clear();
     _scrollToBottom();
 
-    final response = await AiService.instance.processMessage(text);
+    final response = await AiService.instance.processMessage(text, imageBytes: imageBytes);
 
     setState(() {
       _isLoading = false;
@@ -233,9 +260,19 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final accent = NeuTheme.accent;
-    final height = MediaQuery.of(context).size.height * 0.75;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    
+    double height = screenHeight * 0.75;
+    if (height + bottomInset > screenHeight * 0.9) {
+      height = screenHeight * 0.9 - bottomInset;
+    }
 
-    return ClipRRect(
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Material(
+      type: MaterialType.transparency,
+      child: ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
@@ -267,7 +304,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                     Icon(LucideIcons.sparkles, color: accent, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      "COMMANDER AI",
+                      "AI ASSISTANT",
                       style: TextStyle(
                         color: accent,
                         fontSize: 14,
@@ -316,40 +353,92 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                 ),
                 child: SafeArea(
                   top: false,
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          maxLines: null,
-                          decoration: InputDecoration(
-                            hintText: "Ask anything — diet, tasks, finance, music...",
-                            hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
-                            filled: true,
-                            fillColor: AppColors.surfaceLight,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      if (_selectedImageBytes != null)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Stack(
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.memory(
+                                    _selectedImageBytes!,
+                                    height: 80,
+                                    width: 80,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _selectedImageBytes = null),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(LucideIcons.x, color: Colors.white, size: 14),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          onSubmitted: _sendMessage,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _sendMessage(_controller.text),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [accent, accent.withValues(alpha: 0.7)],
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceLight,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(LucideIcons.image, color: AppColors.textSecondary, size: 22),
                             ),
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(LucideIcons.send, color: Colors.black, size: 22),
-                        ),
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                              maxLines: null,
+                              decoration: InputDecoration(
+                                hintText: "Ask anything — diet, tasks...",
+                                hintStyle: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                                filled: true,
+                                fillColor: AppColors.surfaceLight,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              ),
+                              onSubmitted: _sendMessage,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _sendMessage(_controller.text),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [accent, accent.withValues(alpha: 0.7)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(LucideIcons.send, color: Colors.black, size: 22),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -358,6 +447,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
             ],
           ),
         ),
+      ),
+      ),
       ),
     );
   }

@@ -7,7 +7,7 @@ class RankService {
     "OPERATIVE", 
     "SPECIALIST", 
     "VETERAN", 
-    "COMMANDER", 
+    "LEADER", 
     "LEGEND"
   ];
 

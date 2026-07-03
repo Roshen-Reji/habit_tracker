@@ -6,21 +6,24 @@ import 'package:habit_tracker/services/music_manager.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
-class CommanderApp extends StatelessWidget {
-  const CommanderApp({super.key});
+class HabitTrackerApp extends StatelessWidget {
+  const HabitTrackerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(keys: ['theme_mode']),
-      builder: (context, box, child) {
-        return StreamBuilder(
-          stream: MusicManager().audioPlayer.sequenceStateStream,
-          builder: (context, snapshot) {
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (context, Box settings, _) {
+        final modeStr = settings.get('theme_mode', defaultValue: 'dark');
+        final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
+        
+        return ValueListenableBuilder<Color?>(
+          valueListenable: MusicManager().currentDominantColor,
+          builder: (context, color, snapshot) {
             return MaterialApp(
               navigatorKey: globalNavigatorKey,
-              title: 'Commander Habit Tracker',
-              themeMode: NeuTheme.currentMode,
+              title: 'Habit Tracker',
+              themeMode: mode,
               theme: ThemeData(
                 brightness: Brightness.light,
                 scaffoldBackgroundColor: NeuTheme.background,

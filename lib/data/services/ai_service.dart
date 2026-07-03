@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
@@ -39,8 +39,7 @@ class AiAction {
 // --- Main AI Service ---
 class AiService {
   static AiService? _instance;
-  GenerativeModel? _model;
-  ChatSession? _chatSession;
+  List<Map<String, dynamic>> _messagesHistory = [];
 
   AiService._();
 
@@ -50,34 +49,24 @@ class AiService {
   }
 
   bool get isConfigured {
-    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
     return apiKey.isNotEmpty;
   }
 
   void _initModel() {
-    String apiKey = Hive.box('settings').get('gemini_api_key', defaultValue: '');
-    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
+    if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
     if (apiKey.isEmpty) return;
 
-    _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(
-        temperature: 0.7,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-      ),
-    );
-
-    _chatSession = _model!.startChat(history: [
-      Content.text(_buildSystemPrompt()),
-      Content.model([TextPart('Understood. I\'m your Commander AI assistant. I can help with diet tracking, task management, finance analysis, music playback, and general advice. What can I do for you?')]),
-    ]);
+    _messagesHistory = [
+      {'role': 'system', 'content': _buildSystemPrompt()},
+      {'role': 'assistant', 'content': 'Understood. I\'m your AI assistant. I can help with diet tracking, task management, finance analysis, music playback, and general advice. What can I do for you?'},
+    ];
   }
 
   String _buildSystemPrompt() {
-    return '''You are Commander AI, a powerful personal assistant integrated into a habit tracking app. You handle MULTIPLE domains:
+    return '''You are a powerful personal AI assistant integrated into a habit tracking app. You handle MULTIPLE domains:
 
 ## CAPABILITIES:
 1. **DIET TRACKING**: Log food, estimate calories/macros, track burns, generate reports
@@ -126,7 +115,7 @@ You MUST respond with valid JSON in this exact format:
   }
 
   /// Process a user message and return an AI response
-  Future<AiResponse> processMessage(String userMessage, {String? contextHint}) async {
+  Future<AiResponse> processMessage(String userMessage, {String? contextHint, Uint8List? imageBytes}) async {
     if (!isConfigured) {
       return AiResponse(
         message: 'Please set your Gemini API key in Settings to use AI features.',
@@ -134,7 +123,7 @@ You MUST respond with valid JSON in this exact format:
       );
     }
 
-    if (_model == null || _chatSession == null) {
+    if (_messagesHistory.isEmpty) {
       _initModel();
     }
 
@@ -158,15 +147,63 @@ You MUST respond with valid JSON in this exact format:
           ? '[CONTEXT]\n$contextData\n[USER MESSAGE]\n$userMessage'
           : userMessage;
 
-      final response = await _chatSession!.sendMessage(Content.text(fullMessage));
-      final responseText = response.text ?? '';
+      Map<String, dynamic> userMessageContent;
+      if (imageBytes != null) {
+        final base64Image = base64Encode(imageBytes);
+        userMessageContent = {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': fullMessage},
+            {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,$base64Image'}}
+          ]
+        };
+      } else {
+        userMessageContent = {
+          'role': 'user',
+          'content': fullMessage
+        };
+      }
 
-      return _parseResponse(responseText);
+      _messagesHistory.add(userMessageContent);
+
+      String apiKey = Hive.box('settings').get('freetheai_key', defaultValue: '');
+      if (apiKey.isEmpty) apiKey = const String.fromEnvironment('FREETHEAI_API_KEY', defaultValue: '');
+
+      final requestBody = {
+        'model': 'opc/deepseek-v4-flash-free',
+        'messages': _messagesHistory,
+        'temperature': 0.7,
+      };
+
+      final response = await http.post(
+        Uri.parse('https://api.freetheai.xyz/v1/chat/completions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+          'HTTP-Referer': 'https://github.com/habit-tracker', // Optional OpenRouter header
+          'X-Title': 'Commander Habit Tracker',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final responseText = json['choices'][0]['message']['content'];
+        
+        // Append assistant response to history
+        _messagesHistory.add({'role': 'assistant', 'content': responseText});
+        
+        return _parseResponse(responseText);
+      } else {
+        debugPrint('FreeTheAI Error: ${response.statusCode} - ${response.body}');
+        return AiResponse(
+          message: 'Error communicating with AI service. Please try again.',
+          intent: 'error',
+        );
+      }
     } catch (e) {
       debugPrint('AI Service Error: $e');
-      // Try to reinitialize on error
-      _chatSession = null;
-      _model = null;
+      _messagesHistory.clear();
       return AiResponse(
         message: 'Sorry, I encountered an error. Please try again. ($e)',
         intent: 'error',
@@ -591,8 +628,7 @@ You MUST respond with valid JSON in this exact format:
 
   /// Reset chat session
   void resetChat() {
-    _chatSession = null;
-    _model = null;
+    _messagesHistory.clear();
   }
 
   /// Get today's diet log

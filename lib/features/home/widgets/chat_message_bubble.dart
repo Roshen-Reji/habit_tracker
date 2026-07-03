@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:habit_tracker/core/theme/neu_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
@@ -12,11 +13,13 @@ class ChatMessage {
   final bool isUser;
   final List<AiAction>? actions;
   final DateTime timestamp;
+  final Uint8List? imageBytes;
 
   ChatMessage({
     required this.text,
     required this.isUser,
     this.actions,
+    this.imageBytes,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 }
@@ -51,22 +54,13 @@ class ChatMessageBubble extends StatelessWidget {
           crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             // Main bubble
-            Container(
+            NeuContainer(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? accent.withValues(alpha: 0.12)
-                    : AppColors.surfaceLight,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isUser ? 18 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 18),
-                ),
-                border: isUser
-                    ? Border.all(color: accent.withValues(alpha: 0.25))
-                    : Border.all(color: AppColors.glassBorder),
-              ),
+              borderRadius: 18,
+              customColor: isUser
+                  ? accent.withValues(alpha: 0.2)
+                  : NeuTheme.background,
+              margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -77,7 +71,7 @@ class ChatMessageBubble extends StatelessWidget {
                         Icon(LucideIcons.sparkles, color: accent, size: 12),
                         const SizedBox(width: 4),
                         Text(
-                          "COMMANDER AI",
+                          "AI ASSISTANT",
                           style: TextStyle(
                             color: accent,
                             fontSize: 9,
@@ -88,6 +82,17 @@ class ChatMessageBubble extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
+                  ],
+                  if (message.imageBytes != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        message.imageBytes!,
+                        width: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                   Text(
                     message.text,
@@ -131,24 +136,11 @@ class _ActionConfirmCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = NeuTheme.accent;
 
-    return Container(
+    return NeuContainer(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: action.isConfirmed
-              ? AppColors.success.withValues(alpha: 0.3)
-              : accent.withValues(alpha: 0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (action.isConfirmed ? AppColors.success : accent).withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+      borderRadius: 14,
+      customColor: action.isConfirmed ? AppColors.success.withValues(alpha: 0.1) : NeuTheme.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

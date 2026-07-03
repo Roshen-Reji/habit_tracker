@@ -12,6 +12,7 @@ import 'package:habit_tracker/data/services/rank_service.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
@@ -21,7 +22,7 @@ class DashboardView extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings').listenable(),
       builder: (context, Box settings, _) {
-        final String name = settings.get('username', defaultValue: 'COMMANDER');
+        final String name = settings.get('username', defaultValue: 'USER');
 
         return StarBackground(
           child: SafeArea(
@@ -132,6 +133,11 @@ class DashboardView extends StatelessWidget {
         child: ListTile(
           onTap: () { 
             goal.isCompleted = !goal.isCompleted; 
+            if (goal.isCompleted) {
+              GlobalXPService.addXP(goal.xpValue);
+            } else {
+              GlobalXPService.subtractXP(goal.xpValue);
+            }
             goal.save(); 
           },
           leading: AnimatedSwitcher(
