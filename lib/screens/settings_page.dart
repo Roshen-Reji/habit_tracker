@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -86,7 +86,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       body: ValueListenableBuilder(
           valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
           builder: (context, Box<Goal> missionBox, _) {
@@ -124,7 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildAppBar() {
     return SliverAppBar(
       expandedHeight: 100,
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
@@ -134,7 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 letterSpacing: 2,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: NeuTheme.textPrimary)),
+                color: BentoTheme.textPrimary)),
       ),
     );
   }
@@ -145,14 +145,14 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context, Box settings, _) {
         final String name = settings.get('username', defaultValue: 'USER');
 
-        return NeuContainer(
+        return BentoContainer(
           child: Column(
             children: [
               Row(
                 children: [
                   CircleAvatar(
                       radius: 30,
-                      backgroundColor: NeuTheme.accent,
+                      backgroundColor: BentoTheme.accent,
                       child: Icon(LucideIcons.user,
                           size: 35, color: Colors.black)),
                   const SizedBox(width: 16),
@@ -162,19 +162,19 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         Text(name,
                             style: TextStyle(
-                                color: NeuTheme.textPrimary,
+                                color: BentoTheme.textPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold)),
                         Text(record['position'],
                             style: TextStyle(
-                                color: NeuTheme.accent,
+                                color: BentoTheme.accent,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.5)),
                         Text(
                             "RANK: ${record['title']} (LVL ${record['level']})",
                             style: TextStyle(
-                                color: NeuTheme.textSecondary,
+                                color: BentoTheme.textSecondary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold)),
                       ],
@@ -182,7 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   IconButton(
                       icon: Icon(LucideIcons.edit,
-                          color: NeuTheme.textSecondary, size: 18),
+                          color: BentoTheme.textSecondary, size: 18),
                       onPressed: () => _editUsername(settings)),
                 ],
               ),
@@ -195,12 +195,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       Text("EVOLUTION PROGRESS",
                           style: TextStyle(
-                              color: NeuTheme.textSecondary,
+                              color: BentoTheme.textSecondary,
                               fontSize: 10,
                               fontWeight: FontWeight.bold)),
                       Text("${record['xp']} XP",
                           style: TextStyle(
-                              color: NeuTheme.textSecondary, fontSize: 10)),
+                              color: BentoTheme.textSecondary, fontSize: 10)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -213,10 +213,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         builder: (context, value, _) {
                           return LinearProgressIndicator(
                             value: value,
-                            backgroundColor: NeuTheme.isDark
+                            backgroundColor: true
                                 ? Colors.white10
                                 : Colors.black12,
-                            color: NeuTheme.accent,
+                            color: BentoTheme.accent,
                             minHeight: 6,
                           );
                         }),
@@ -238,12 +238,12 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.only(left: 16, bottom: 8),
           child: Text(title,
               style: TextStyle(
-                  color: NeuTheme.accent,
+                  color: BentoTheme.accent,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2)),
         ),
-        NeuContainer(
+        BentoContainer(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Material(
             type: MaterialType.transparency,
@@ -316,10 +316,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildToggleTile(
       IconData icon, String title, bool value, Function(bool) onChanged) {
     return ListTile(
-      leading: Icon(icon, color: NeuTheme.textPrimary, size: 22),
+      leading: Icon(icon, color: BentoTheme.textPrimary, size: 22),
       title: Text(title,
-          style: TextStyle(color: NeuTheme.textPrimary, fontSize: 15)),
-      trailing: NeuToggle(
+          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 15)),
+      trailing: BentoToggle(
           value: value,
           onChanged: (v) {
             HapticFeedback.lightImpact();
@@ -337,16 +337,16 @@ class _SettingsPageState extends State<SettingsPage> {
         onTap();
       },
       leading: Icon(icon,
-          color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary,
+          color: isDestructive ? Colors.redAccent : BentoTheme.textPrimary,
           size: 22),
       title: Text(title,
           style: TextStyle(
-              color: isDestructive ? Colors.redAccent : NeuTheme.textPrimary,
+              color: isDestructive ? Colors.redAccent : BentoTheme.textPrimary,
               fontSize: 15)),
       subtitle: Text(subtitle,
-          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
       trailing: Icon(LucideIcons.chevronRight,
-          color: NeuTheme.textSecondary, size: 20),
+          color: BentoTheme.textSecondary, size: 20),
     );
   }
 
@@ -381,16 +381,16 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: NeuTheme.background,
+        backgroundColor: BentoTheme.background,
         title: Text("Select Currency",
-            style: TextStyle(color: NeuTheme.textPrimary)),
+            style: TextStyle(color: BentoTheme.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['\$', '€', '£', '₹', '¥']
               .map((sym) => ListTile(
                     title: Text(sym,
                         style: TextStyle(
-                            color: NeuTheme.textPrimary, fontSize: 20)),
+                            color: BentoTheme.textPrimary, fontSize: 20)),
                     onTap: () {
                       box.put('currency_symbol', sym);
                       Navigator.pop(context);
@@ -408,27 +408,27 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: NeuTheme.background,
-        title: Text(title, style: TextStyle(color: NeuTheme.textPrimary)),
+        backgroundColor: BentoTheme.background,
+        title: Text(title, style: TextStyle(color: BentoTheme.textPrimary)),
         content: TextField(
             controller: controller,
             autofocus: true,
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-            style: TextStyle(color: NeuTheme.textPrimary),
+            style: TextStyle(color: BentoTheme.textPrimary),
             decoration: InputDecoration(
                 focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: NeuTheme.accent)))),
+                    borderSide: BorderSide(color: BentoTheme.accent)))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text("Cancel",
-                  style: TextStyle(color: NeuTheme.textSecondary))),
+                  style: TextStyle(color: BentoTheme.textSecondary))),
           TextButton(
               onPressed: () {
                 onSave(controller.text);
                 Navigator.pop(context);
               },
-              child: Text("Apply", style: TextStyle(color: NeuTheme.accent))),
+              child: Text("Apply", style: TextStyle(color: BentoTheme.accent))),
         ],
       ),
     );
@@ -438,18 +438,18 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: NeuTheme.background,
+        backgroundColor: BentoTheme.background,
         title: const Text("PURGE ALL DATA?",
             style: TextStyle(
                 color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: Text(
             "This will permanently delete missions and reset your service record.",
-            style: TextStyle(color: NeuTheme.textSecondary)),
+            style: TextStyle(color: BentoTheme.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text("Abort",
-                  style: TextStyle(color: NeuTheme.textSecondary))),
+                  style: TextStyle(color: BentoTheme.textSecondary))),
           TextButton(
               onPressed: () async {
                 await Hive.box<Goal>('mission_box_v4').clear();

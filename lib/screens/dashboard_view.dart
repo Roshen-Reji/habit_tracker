@@ -7,7 +7,7 @@ import 'package:habit_tracker/widgets/mysterious_quote_card.dart';
 import 'package:habit_tracker/widgets/mysterious_momentum_graph.dart';
 
 import 'package:habit_tracker/screens/settings_page.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
@@ -37,26 +37,21 @@ class DashboardView extends StatelessWidget {
                       children: [
                         Builder(
                           builder: (context) {
-                            final hour = DateTime.now().hour;
-                            String greeting = "GOOD EVENING,";
-                            if (hour >= 5 && hour < 12) greeting = "GOOD MORNING,";
-                            else if (hour >= 12 && hour < 17) greeting = "GOOD AFTERNOON,";
-                            
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(greeting, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-                                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.5, color: NeuTheme.textPrimary)),
+                                Text("Welcome back,", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 14, letterSpacing: 1.2)),
+                                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, letterSpacing: 1.0, color: BentoTheme.textPrimary)),
                               ],
                             ).animate().slideX(begin: -0.1, duration: 400.ms, curve: Curves.easeOutQuad).fade();
                           }
                         ),
                         GestureDetector(
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage())),
-                          child: NeuContainer(
-                            borderRadius: 20,
+                          child: BentoContainer(
+                            borderRadius: 12,
                             padding: const EdgeInsets.all(10),
-                            child: Icon(LucideIcons.settings, color: NeuTheme.accent, size: 20),
+                            child: Icon(LucideIcons.settings, color: BentoTheme.textPrimary, size: 20),
                           ),
                         ).animate().scale(delay: 200.ms, duration: 300.ms, curve: Curves.easeOutBack),
                       ],
@@ -84,9 +79,9 @@ class DashboardView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
       child: Row(
         children: [
-          Icon(LucideIcons.radar, color: NeuTheme.accent, size: 16),
+          Icon(LucideIcons.radar, color: BentoTheme.accent, size: 16),
           const SizedBox(width: 8),
-          Text(title, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(title, style: TextStyle(color: BentoTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
@@ -97,7 +92,7 @@ class DashboardView extends StatelessWidget {
       valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
       builder: (context, Box<Goal> box, _) {
         final dailyGoals = box.values.where((g) => g.type == GoalType.daily).toList();
-        if (dailyGoals.isEmpty) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text("NO ACTIVE MISSIONS", style: TextStyle(color: NeuTheme.textSecondary))));
+        if (dailyGoals.isEmpty) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text("NO ACTIVE MISSIONS", style: TextStyle(color: BentoTheme.textSecondary))));
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -112,7 +107,7 @@ class DashboardView extends StatelessWidget {
   Widget _buildGoalTile(Goal goal) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 16,
         isPressed: goal.isCompleted,
         padding: EdgeInsets.zero,
@@ -132,13 +127,13 @@ class DashboardView extends StatelessWidget {
             child: Icon(
               goal.isCompleted ? LucideIcons.checkCircle2 : LucideIcons.circle, 
               key: ValueKey<bool>(goal.isCompleted),
-              color: goal.isCompleted ? NeuTheme.accent : NeuTheme.textSecondary,
+              color: goal.isCompleted ? BentoTheme.accent : BentoTheme.textSecondary,
             ),
           ),
           title: AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 300),
             style: TextStyle(
-              color: goal.isCompleted ? NeuTheme.textSecondary : NeuTheme.textPrimary, 
+              color: goal.isCompleted ? BentoTheme.textSecondary : BentoTheme.textPrimary, 
               decoration: goal.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
               fontSize: 16,
             ),
@@ -163,7 +158,7 @@ class DashboardView extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 20,
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -178,14 +173,14 @@ class DashboardView extends StatelessWidget {
                     Text(
                       "${net.toStringAsFixed(0)} kcal",
                       style: TextStyle(
-                        color: NeuTheme.textPrimary,
+                        color: BentoTheme.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       "of ${target.toStringAsFixed(0)} kcal target",
-                      style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -213,16 +208,16 @@ class DashboardView extends StatelessWidget {
               value: progress.toDouble(),
               minHeight: 6,
               borderRadius: BorderRadius.circular(6),
-              backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
+              backgroundColor: Colors.white12,
               valueColor: AlwaysStoppedAnimation(
-                isOver ? Colors.redAccent : NeuTheme.accent,
+                isOver ? Colors.redAccent : BentoTheme.accent,
               ),
             ),
             if (log != null && log.entries.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
                 log.entries.take(3).map((e) => e.name).join(", ") + (log.entries.length > 3 ? "..." : ""),
-                style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 overflow: TextOverflow.ellipsis,
               ),
             ],

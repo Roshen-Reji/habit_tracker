@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
@@ -39,7 +39,7 @@ class ChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     final isUser = message.isUser;
 
     return Align(
@@ -55,11 +55,11 @@ class ChatMessageBubble extends StatelessWidget {
               isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             // Main bubble
-            NeuContainer(
+            BentoContainer(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               borderRadius: 18,
               customColor:
-                  isUser ? accent.withValues(alpha: 0.2) : NeuTheme.background,
+                  isUser ? accent.withValues(alpha: 0.2) : BentoTheme.background,
               margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,15 +136,15 @@ class _ActionConfirmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
 
-    return NeuContainer(
+    return BentoContainer(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
       borderRadius: 14,
       customColor: action.isConfirmed
           ? AppColors.success.withValues(alpha: 0.1)
-          : NeuTheme.background,
+          : BentoTheme.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -13,7 +13,7 @@ import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
 import 'package:habit_tracker/widgets/star_background.dart';
 
@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true, 
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
           StarBackground(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -57,7 +57,7 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: NeuContainer(
+      child: BentoContainer(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         isPressed: goal.isCompleted,
@@ -88,7 +88,7 @@ class TaskCard extends StatelessWidget {
                       Text(
                         goal.title,
                         style: TextStyle(
-                          color: NeuTheme.textPrimary,
+                          color: BentoTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           decoration: goal.isCompleted
@@ -100,7 +100,7 @@ class TaskCard extends StatelessWidget {
                         Text(
                           goal.description,
                           style: TextStyle(
-                              color: NeuTheme.textSecondary, fontSize: 12),
+                              color: BentoTheme.textSecondary, fontSize: 12),
                         ),
                       if (goal.endDate != null)
                         Container(
@@ -110,7 +110,7 @@ class TaskCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: _isExpired(goal)
                                 ? Colors.redAccent.withValues(alpha: 0.2)
-                                : NeuTheme.textSecondary.withValues(alpha: 0.2),
+                                : BentoTheme.textSecondary.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -120,7 +120,7 @@ class TaskCard extends StatelessWidget {
                             style: TextStyle(
                                 color: _isExpired(goal)
                                     ? Colors.redAccent
-                                    : NeuTheme.textSecondary,
+                                    : BentoTheme.textSecondary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold),
                           ),
@@ -134,21 +134,21 @@ class TaskCard extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: NeuTheme.accent.withValues(alpha: 0.1),
+                      color: BentoTheme.accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: NeuTheme.accent.withValues(alpha: 0.2)),
+                          color: BentoTheme.accent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(LucideIcons.flame,
-                            color: NeuTheme.accent, size: 14),
+                            color: BentoTheme.accent, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '${goal.streakCount}',
                           style: TextStyle(
-                              color: NeuTheme.accent,
+                              color: BentoTheme.accent,
                               fontSize: 12,
                               fontWeight: FontWeight.bold),
                         ),
@@ -161,8 +161,8 @@ class TaskCard extends StatelessWidget {
                         ? LucideIcons.checkCircle2
                         : LucideIcons.circle,
                     color: goal.isCompleted
-                        ? NeuTheme.accent
-                        : NeuTheme.textSecondary,
+                        ? BentoTheme.accent
+                        : BentoTheme.textSecondary,
                   ),
                   onPressed: () {
                     final box = Hive.box<Goal>('mission_box_v4');
@@ -192,7 +192,7 @@ class TaskCard extends StatelessWidget {
                         value: goal.progress,
                         borderRadius: BorderRadius.circular(4),
                         backgroundColor:
-                            NeuTheme.isDark ? Colors.black26 : Colors.black12,
+                            true ? Colors.black26 : Colors.black12,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           _getCategoryColor(goal.category),
                         ),
@@ -202,7 +202,7 @@ class TaskCard extends StatelessWidget {
                       Text(
                         '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}',
                         style: TextStyle(
-                            color: NeuTheme.textSecondary, fontSize: 10),
+                            color: BentoTheme.textSecondary, fontSize: 10),
                       ),
                     ],
                   ),
@@ -211,7 +211,7 @@ class TaskCard extends StatelessWidget {
                 Text(
                   '${goal.completionPercentage.toInt()}%',
                   style: TextStyle(
-                    color: NeuTheme.textPrimary,
+                    color: BentoTheme.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -228,6 +228,6 @@ class TaskCard extends StatelessWidget {
         .then()
         .scaleXY(
             begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
-        .tint(color: NeuTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
+        .tint(color: BentoTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
   }
 }

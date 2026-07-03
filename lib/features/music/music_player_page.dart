@@ -12,7 +12,7 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/services/lyrics_service.dart';
 import 'package:habit_tracker/theme/app_theme.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
 // --- Persistent Global State ---
@@ -541,7 +541,7 @@ Widget _buildArtworkView() {
         scale: isPlaying ? 1.05 : 1.0,
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeOutCubic,
-        child: NeuContainer(
+        child: BentoContainer(
           padding: EdgeInsets.zero,
           borderRadius: 24,
           child: ClipRRect(
@@ -675,7 +675,7 @@ Widget _buildArtworkView() {
   Widget _buildGlassConsole() {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 30,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(

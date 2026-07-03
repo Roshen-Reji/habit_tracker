@@ -1,4 +1,4 @@
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -56,7 +56,7 @@ class _HomeChatFABState extends State<HomeChatFAB>
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
 
     return Positioned(
       bottom: 100,
@@ -315,7 +315,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     final screenHeight = MediaQuery.of(context).size.height;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 

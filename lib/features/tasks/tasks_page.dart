@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart'; 
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -41,7 +41,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         centerTitle: true,
-        title: NeuContainer(
+        title: BentoContainer(
           height: 50,
           padding: EdgeInsets.zero,
           borderRadius: 25,
@@ -59,7 +59,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         actions: [
           if (_currentView == 'missions') 
             IconButton(
-              icon: Icon(LucideIcons.barChart2, color: NeuTheme.accent),
+              icon: Icon(LucideIcons.barChart2, color: BentoTheme.accent),
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskAnalyticsPage()));
               },
@@ -69,9 +69,9 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         bottom: _currentView == 'missions' 
             ? TabBar(
                 controller: _tabController,
-                indicatorColor: NeuTheme.accent,
-                labelColor: NeuTheme.accent,
-                unselectedLabelColor: NeuTheme.textSecondary,
+                indicatorColor: BentoTheme.accent,
+                labelColor: BentoTheme.accent,
+                unselectedLabelColor: BentoTheme.textSecondary,
                 indicatorWeight: 3,
                 tabs: const [
                   Tab(text: "TODAY"), 
@@ -113,11 +113,11 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       onTap: () => setState(() {
         _currentView = viewKey;
       }),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 25,
         isPressed: false,
         padding: EdgeInsets.zero,
-        customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
+        customColor: isSelected ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
@@ -125,7 +125,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           child: Text(
             text,
             style: TextStyle(
-              color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
+              color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               letterSpacing: 1.5,
               fontSize: 12,
@@ -169,13 +169,13 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             sliver: SliverToBoxAdapter(
               child: Column(
                 children: [
-                  Icon(LucideIcons.wind, size: 60, color: NeuTheme.textSecondary.withValues(alpha: 0.5))
+                  Icon(LucideIcons.wind, size: 60, color: BentoTheme.textSecondary.withValues(alpha: 0.5))
                     .animate(onPlay: (controller) => controller.repeat(reverse: true))
                     .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
                   const SizedBox(height: 16),
-                  Text("No missions here yet.", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text("No missions here yet.", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text("Time to assign yourself a new objective.", style: TextStyle(color: NeuTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                  Text("Time to assign yourself a new objective.", style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
                 ],
               ).animate().fade().scale(curve: Curves.easeOutBack),
             ),
@@ -227,17 +227,17 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.5), width: 2),
+          border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.5), width: 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(LucideIcons.plus, color: NeuTheme.accent),
+            Icon(LucideIcons.plus, color: BentoTheme.accent),
             SizedBox(width: 8),
             Text(
               "ADD NEW MISSION",
               style: TextStyle(
-                color: NeuTheme.accent,
+                color: BentoTheme.accent,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
@@ -250,12 +250,12 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
 
   Widget _buildCompletedSection(List<Goal> completedGoals) {
     return ExpansionTile(
-      collapsedIconColor: NeuTheme.textSecondary,
-      iconColor: NeuTheme.accent,
+      collapsedIconColor: BentoTheme.textSecondary,
+      iconColor: BentoTheme.accent,
       title: Text(
         "COMPLETED (${completedGoals.length})",
         style: TextStyle(
-          color: NeuTheme.textSecondary,
+          color: BentoTheme.textSecondary,
           letterSpacing: 2,
           fontSize: 12,
         ),
@@ -269,7 +269,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   void _showGoalDetails(Goal goal) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -286,14 +286,14 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                     child: Text(
                       goal.title,
                       style: TextStyle(
-                        color: NeuTheme.textPrimary,
+                        color: BentoTheme.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary),
+                    icon: Icon(LucideIcons.x, color: BentoTheme.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -327,7 +327,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('${goal.title} deleted'),
-                            backgroundColor: NeuTheme.background,
+                            backgroundColor: BentoTheme.background,
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -353,8 +353,8 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: NeuTheme.textSecondary)),
-          Text(value, style: TextStyle(color: NeuTheme.textPrimary, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: BentoTheme.textSecondary)),
+          Text(value, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
         ],
       ),
     );

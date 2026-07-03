@@ -7,7 +7,7 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
 
 class MusicLibraryPage extends StatefulWidget {
@@ -106,20 +106,20 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return Scaffold(backgroundColor: NeuTheme.background, body: Center(child: CircularProgressIndicator(color: NeuTheme.accent)));
-    if (!_hasPermission) return Scaffold(backgroundColor: NeuTheme.background, body: const Center(child: Text("Storage permission required.", style: TextStyle(color: Colors.white54))));
+    if (_isLoading) return Scaffold(backgroundColor: BentoTheme.background, body: Center(child: CircularProgressIndicator(color: BentoTheme.accent)));
+    if (!_hasPermission) return Scaffold(backgroundColor: BentoTheme.background, body: const Center(child: Text("Storage permission required.", style: TextStyle(color: Colors.white54))));
 
     return Scaffold(
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 0,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: NeuTheme.accent,
-          labelColor: NeuTheme.accent,
-          unselectedLabelColor: NeuTheme.textSecondary,
+          indicatorColor: BentoTheme.accent,
+          labelColor: BentoTheme.accent,
+          unselectedLabelColor: BentoTheme.textSecondary,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
           tabs: const [Tab(text: 'LISTEN NOW'), Tab(text: 'LIBRARY'), Tab(text: 'SEARCH')],
         ),
@@ -127,9 +127,9 @@ class _MusicLibraryPageState extends State<MusicLibraryPage> with SingleTickerPr
       body: TabBarView(
         controller: _tabController,
         children: [
-          _ListenNowView(songs: _localSongs, accent: NeuTheme.accent),
-          _LibraryView(songs: _localSongs, accent: NeuTheme.accent, onCreatePlaylist: _showCreatePlaylistDialog),
-          _SearchView(songs: _localSongs, accent: NeuTheme.accent),
+          _ListenNowView(songs: _localSongs, accent: BentoTheme.accent),
+          _LibraryView(songs: _localSongs, accent: BentoTheme.accent, onCreatePlaylist: _showCreatePlaylistDialog),
+          _SearchView(songs: _localSongs, accent: BentoTheme.accent),
         ],
       ),
     );
@@ -178,7 +178,7 @@ class _ListenNowView extends StatelessWidget {
         MusicManager().setPlaylist(songs, 0);
         Navigator.push(context, MaterialPageRoute(builder: (context) => MysteriousMusicPlayer(playlist: songs, initialIndex: 0)));
       },
-      child: NeuContainer(
+      child: BentoContainer(
         margin: const EdgeInsets.symmetric(horizontal: 20),
         height: 200,
         padding: EdgeInsets.zero,
@@ -189,9 +189,9 @@ class _ListenNowView extends StatelessWidget {
             children: [
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                child: Container(color: NeuTheme.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03)),
+                child: Container(color: true ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03)),
               ),
-              Positioned(right: -20, bottom: -20, child: Icon(LucideIcons.activity, size: 150, color: NeuTheme.accent.withValues(alpha: 0.1))),
+              Positioned(right: -20, bottom: -20, child: Icon(LucideIcons.activity, size: 150, color: BentoTheme.accent.withValues(alpha: 0.1))),
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -199,12 +199,12 @@ class _ListenNowView extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: NeuTheme.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-                      child: Text('AUTO-GENERATED', style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      decoration: BoxDecoration(color: BentoTheme.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                      child: Text('AUTO-GENERATED', style: TextStyle(color: BentoTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
                     ),
                     const Spacer(),
-                    Text('Full Library Mix', style: TextStyle(color: NeuTheme.textPrimary, fontSize: 26, fontWeight: FontWeight.bold)),
-                    Text('Shuffle all your local tracks', style: TextStyle(color: NeuTheme.textSecondary, fontSize: 14)),
+                    Text('Full Library Mix', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 26, fontWeight: FontWeight.bold)),
+                    Text('Shuffle all your local tracks', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 14)),
                   ],
                 ),
               ),
@@ -291,20 +291,20 @@ class _ListenNowView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: NeuContainer(
+              child: BentoContainer(
                 padding: EdgeInsets.zero,
                 child: Center(
                   child: Icon(
                     isLikedSongs ? LucideIcons.heart : LucideIcons.listMusic, 
-                    color: isLikedSongs ? Colors.redAccent : NeuTheme.accent, 
+                    color: isLikedSongs ? Colors.redAccent : BentoTheme.accent, 
                     size: 40
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12)),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
           ],
         ),
       ),

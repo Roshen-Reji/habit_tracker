@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
@@ -53,7 +53,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -74,7 +74,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
           controller: _tabController,
           indicatorColor: accent,
           labelColor: accent,
-          unselectedLabelColor: NeuTheme.textSecondary,
+          unselectedLabelColor: BentoTheme.textSecondary,
           indicatorWeight: 3,
           tabs: const [
             Tab(text: "TODAY"),
@@ -102,7 +102,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
           dateKey: today,
           targetCalories: AiService.instance.getTodayLog().targetCalories,
         );
-        final accent = NeuTheme.accent;
+        final accent = BentoTheme.accent;
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -111,7 +111,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Summary Card
-              NeuContainer(
+              BentoContainer(
                 padding: const EdgeInsets.all(16),
                 borderRadius: 20,
                 child: Column(
@@ -197,11 +197,11 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(LucideIcons.frown, color: NeuTheme.textSecondary.withValues(alpha: 0.3), size: 40),
+                        Icon(LucideIcons.frown, color: BentoTheme.textSecondary.withValues(alpha: 0.3), size: 40),
                         const SizedBox(height: 12),
                         Text(
                           "No food logged yet",
-                          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
@@ -282,7 +282,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
     return ValueListenableBuilder(
       valueListenable: Hive.box<DietDayLog>('diet_logs').listenable(),
       builder: (context, Box<DietDayLog> box, _) {
-        final accent = NeuTheme.accent;
+        final accent = BentoTheme.accent;
         final weekLogs = AiService.instance.getLogsForRange(7);
         final monthLogs = AiService.instance.getLogsForRange(30);
 
@@ -304,7 +304,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               // Weekly Overview
               _buildSectionHeader("WEEKLY OVERVIEW", LucideIcons.calendarDays, accent),
               const SizedBox(height: 8),
-              NeuContainer(
+              BentoContainer(
                 borderRadius: 20,
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -316,10 +316,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Avg. Daily", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+                            Text("Avg. Daily", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
                             Text(
                               "${weekAvg.toStringAsFixed(0)} kcal",
-                              style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -337,7 +337,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               // Monthly Trend
               _buildSectionHeader("MONTHLY TREND", LucideIcons.lineChart, accent),
               const SizedBox(height: 8),
-              NeuContainer(
+              BentoContainer(
                 borderRadius: 20,
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -349,10 +349,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Avg. Daily (logged days)", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+                            Text("Avg. Daily (logged days)", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
                             Text(
                               "${monthAvg.toStringAsFixed(0)} kcal",
-                              style: TextStyle(color: NeuTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -376,7 +376,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               if (_aiOpinion.isEmpty && !_isLoadingOpinion)
                 GestureDetector(
                   onTap: _fetchAiOpinion,
-                  child: NeuContainer(
+                  child: BentoContainer(
                     borderRadius: 20,
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -431,16 +431,16 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
         HapticFeedback.lightImpact();
         onTap();
       },
-      child: NeuContainer(
+      child: BentoContainer(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         borderRadius: 24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: NeuTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(label, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
             if (calories > 0) ...[
               const SizedBox(height: 4),
-              Text("$calories kcal", style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11)),
+              Text("$calories kcal", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
             ]
           ],
         ),

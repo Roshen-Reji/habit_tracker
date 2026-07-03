@@ -7,7 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 
@@ -101,12 +101,12 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
-          backgroundColor: NeuTheme.background,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15))),
+          backgroundColor: BentoTheme.background,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.15))),
           title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           content: Text("This action cannot be undone.", style: TextStyle(color: Colors.white54, fontSize: 14)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text("CANCEL", style: TextStyle(color: NeuTheme.accent))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text("CANCEL", style: TextStyle(color: BentoTheme.accent))),
             Container(
               decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF6B6B), Color(0xFFD32F2F)]), borderRadius: BorderRadius.circular(8)),
               child: TextButton(
@@ -150,7 +150,7 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [NeuTheme.accent.withValues(alpha: 0.15), Colors.transparent], stops: [0.0, 0.7])))),
+          Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [BentoTheme.accent.withValues(alpha: 0.15), Colors.transparent], stops: [0.0, 0.7])))),
           Positioned(bottom: -100, right: -100, child: Container(width: 350, height: 350, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x1E6C63FF), Colors.transparent], stops: [0.0, 0.7])))),
 
           SafeArea(
@@ -304,12 +304,12 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("F I N A N C E", style: TextStyle(color: NeuTheme.accent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
+          Text("F I N A N C E", style: TextStyle(color: BentoTheme.accent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
           Theme(
             data: Theme.of(context).copyWith(
               popupMenuTheme: PopupMenuThemeData(
-                color: NeuTheme.background.withValues(alpha: 0.95),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
+                color: BentoTheme.background.withValues(alpha: 0.95),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5)),
               )
             ),
             child: PopupMenuButton<String>(
@@ -317,12 +317,12 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
               offset: const Offset(0, 40),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5)),
                 child: Row(
                   children: [
                     Text(_activeTab[0].toUpperCase() + _activeTab.substring(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                     SizedBox(width: 6),
-                    Icon(LucideIcons.chevronDown, color: NeuTheme.accent, size: 18),
+                    Icon(LucideIcons.chevronDown, color: BentoTheme.accent, size: 18),
                   ],
                 ),
               ),
@@ -348,12 +348,12 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(LucideIcons.chevronLeft, color: NeuTheme.accent),
+            icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.accent),
             onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1)),
           ),
           Text(monthStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           IconButton(
-            icon: Icon(LucideIcons.chevronRight, color: NeuTheme.accent),
+            icon: Icon(LucideIcons.chevronRight, color: BentoTheme.accent),
             onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1)),
           ),
         ],
@@ -367,9 +367,9 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       value: value,
       child: Row(
         children: [
-          Icon(icon, color: isSel ? NeuTheme.accent : Colors.white54, size: 18),
+          Icon(icon, color: isSel ? BentoTheme.accent : Colors.white54, size: 18),
           SizedBox(width: 12),
-          Text(label, style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+          Text(label, style: TextStyle(color: isSel ? BentoTheme.accent : Colors.white, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
@@ -402,7 +402,7 @@ class _HomeTab extends StatelessWidget {
       children: [
         GlassCard(
           glow: true, padding: EdgeInsets.all(24),
-          gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: LinearGradient(colors: [BentoTheme.accent.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -416,7 +416,7 @@ class _HomeTab extends StatelessWidget {
               SizedBox(height: 16),
               Row(
                 children: [
-                  _buildStatCard("↑ INCOME", FormatUtils.formatCompactCurrency(monthIncome), monthName, NeuTheme.accent),
+                  _buildStatCard("↑ INCOME", FormatUtils.formatCompactCurrency(monthIncome), monthName, BentoTheme.accent),
                   SizedBox(width: 12),
                   _buildStatCard("↓ SPENT", FormatUtils.formatCompactCurrency(monthExpense), monthName, const Color(0xFFFF6B6B)),
                   SizedBox(width: 12),
@@ -432,7 +432,7 @@ class _HomeTab extends StatelessWidget {
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              AnimatedRingProgress(progress: savingsRate / 100, color: NeuTheme.accent, size: 72, stroke: 7, label: "${savingsRate.toInt()}%", sublabel: "SAVED"),
+              AnimatedRingProgress(progress: savingsRate / 100, color: BentoTheme.accent, size: 72, stroke: 7, label: "${savingsRate.toInt()}%", sublabel: "SAVED"),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -441,7 +441,7 @@ class _HomeTab extends StatelessWidget {
                     Text("SAVINGS RATE", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
                     Text("Great Job! 🎉", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                     SizedBox(height: 8),
-                    AnimatedProgressBar(progress: savingsRate / 100, color1: NeuTheme.accent, color2: NeuTheme.accent),
+                    AnimatedProgressBar(progress: savingsRate / 100, color1: BentoTheme.accent, color2: BentoTheme.accent),
                     SizedBox(height: 6),
                     Text("Target: 50% | ${FormatUtils.formatCompactCurrency(leftover)} saved", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
                   ],
@@ -460,20 +460,20 @@ class _HomeTab extends StatelessWidget {
             itemCount: vaults.length + 1,
             itemBuilder: (context, i) {
               if (i == vaults.length) {
-                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), child: NeuContainer(borderRadius: 24, child: Center(child: Icon(LucideIcons.plus, color: NeuTheme.textSecondary, size: 32)))));
+                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), child: BentoContainer(borderRadius: 24, child: Center(child: Icon(LucideIcons.plus, color: BentoTheme.textSecondary, size: 32)))));
               }
               final v = vaults[i]; Color vColor = Color(v.colorValue);
               return GestureDetector(
                 onLongPress: () => onDeleteVault(v),
                 child: Container(
                   width: 200, margin: EdgeInsets.only(right: 12),
-                  child: NeuContainer(
+                  child: BentoContainer(
                     padding: EdgeInsets.all(18), borderRadius: 16,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
-                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: TextStyle(color: NeuTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: TextStyle(color: BentoTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: BentoTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
                       ],
                     ),
                   ),
@@ -500,7 +500,7 @@ class _HomeTab extends StatelessWidget {
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
-                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['income'] as double)).toList(), isCurved: true, color: NeuTheme.accent, barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
+                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['income'] as double)).toList(), isCurved: true, color: BentoTheme.accent, barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [BentoTheme.accent.withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
                 LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['expense'] as double)).toList(), isCurved: true, color: const Color(0xFFFF6B6B), barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [const Color(0xFFFF6B6B).withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)))
               ]
             )),
@@ -607,7 +607,7 @@ class _TransactionsTabState extends State<_TransactionsTab> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("All Transactions", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-            GestureDetector(onTap: widget.onAdd, child: Container(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(12)), child: Text("+ ADD", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))))
+            GestureDetector(onTap: widget.onAdd, child: Container(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(gradient: LinearGradient(colors: [BentoTheme.accent, BentoTheme.accent]), borderRadius: BorderRadius.circular(12)), child: Text("+ ADD", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))))
           ],
         ),
         SizedBox(height: 16),
@@ -622,8 +622,8 @@ class _TransactionsTabState extends State<_TransactionsTab> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: EdgeInsets.only(right: 8), padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: isSel ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSel ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(20)),
-                  alignment: Alignment.center, child: Text(cats[i], style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  decoration: BoxDecoration(color: isSel ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSel ? BentoTheme.accent : BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(20)),
+                  alignment: Alignment.center, child: Text(cats[i], style: TextStyle(color: isSel ? BentoTheme.accent : Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ),
               );
             },
@@ -666,9 +666,9 @@ class _BudgetTab extends StatelessWidget {
               SizedBox(height: 4),
               RichText(text: TextSpan(children: [TextSpan(text: FormatUtils.formatCompactCurrency(totalSpent), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)), TextSpan(text: " / Limit: ${FormatUtils.formatCompactCurrency(totalLimit)}", style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.bold))])),
               SizedBox(height: 12),
-              AnimatedProgressBar(progress: totalPct, color1: NeuTheme.accent, color2: const Color(0xFFFFD93D)),
+              AnimatedProgressBar(progress: totalPct, color1: BentoTheme.accent, color2: const Color(0xFFFFD93D)),
               SizedBox(height: 8),
-              Text("${(totalPct * 100).toStringAsFixed(1)}% used · ${FormatUtils.formatCompactCurrency(totalLimit > totalSpent ? totalLimit - totalSpent : 0)} remaining", style: TextStyle(color: NeuTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text("${(totalPct * 100).toStringAsFixed(1)}% used · ${FormatUtils.formatCompactCurrency(totalLimit > totalSpent ? totalLimit - totalSpent : 0)} remaining", style: TextStyle(color: BentoTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -772,7 +772,7 @@ class _PlannerTab extends StatelessWidget {
                 builder: (context, val, child) => Text(FormatUtils.formatCompactCurrency(val), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
               ),
               SizedBox(height: 12),
-              Row(children: [_buildMiniCard("📋 FIXED", FormatUtils.formatCompactCurrency(totalFixed), const Color(0xFFFF6B6B)), SizedBox(width: 10), _buildMiniCard("📈 SIP", FormatUtils.formatCompactCurrency(totalSIP), NeuTheme.accent)]),
+              Row(children: [_buildMiniCard("📋 FIXED", FormatUtils.formatCompactCurrency(totalFixed), const Color(0xFFFF6B6B)), SizedBox(width: 10), _buildMiniCard("📈 SIP", FormatUtils.formatCompactCurrency(totalSIP), BentoTheme.accent)]),
             ],
           ),
         ),
@@ -797,7 +797,7 @@ class _PlannerTab extends StatelessWidget {
               lineBarsData: [
                 LineChartBarData(
                   spots: [FlSpot(0, monthIncome), FlSpot(1, monthIncome - totalFixed), FlSpot(2, (monthIncome - totalFixed) - (actualVariable > 0 ? actualVariable : 0)), FlSpot(3, actualSavings > 0 ? actualSavings : 0)],
-                  isCurved: true, color: NeuTheme.accent, barWidth: 3, dotData: FlDotData(show: true, getDotPainter: (s,p,b,i) => FlDotCirclePainter(color: NeuTheme.accent, strokeWidth: 0, radius: 5)),
+                  isCurved: true, color: BentoTheme.accent, barWidth: 3, dotData: FlDotData(show: true, getDotPainter: (s,p,b,i) => FlDotCirclePainter(color: BentoTheme.accent, strokeWidth: 0, radius: 5)),
                 )
               ]
             ))
@@ -821,7 +821,7 @@ class _PlannerTab extends StatelessWidget {
           key: UniqueKey(), direction: DismissDirection.endToStart,
           background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
           confirmDismiss: (d) async { onDeleteSip(s.key); return false; },
-          child: _buildPlannerRow("📈", s.value['name'], "Due ${s.value['due']}st · ${s.value['folio']}", FormatUtils.formatCompactCurrency(s.value['amount']), NeuTheme.accent),
+          child: _buildPlannerRow("📈", s.value['name'], "Due ${s.value['due']}st · ${s.value['folio']}", FormatUtils.formatCompactCurrency(s.value['amount']), BentoTheme.accent),
         )).toList(),
       ],
     );
@@ -913,10 +913,10 @@ class GlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin ?? EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: glow ? [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, 8)), BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))] : [BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 4))]),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: glow ? [BoxShadow(color: BentoTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, 8)), BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))] : [BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 4))]),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: Container(padding: padding, decoration: BoxDecoration(color: NeuTheme.background, gradient: gradient, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor ?? NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), child: child)),
+        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: Container(padding: padding, decoration: BoxDecoration(color: BentoTheme.background, gradient: gradient, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor ?? BentoTheme.accent.withValues(alpha: 0.15), width: 1.5)), child: child)),
       ),
     );
   }
@@ -983,7 +983,7 @@ class TxRow extends StatelessWidget {
         child: Row(children: [
           Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text(tx.icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? NeuTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? BentoTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
         ])
       ),
     );
@@ -1002,8 +1002,8 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
-          if (onAdd != null) GestureDetector(onTap: onAdd, child: Container(width: 24, height: 24, decoration: BoxDecoration(color: NeuTheme.accent.withValues(alpha: 0.15), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15)), shape: BoxShape.circle), child: Icon(LucideIcons.plus, color: NeuTheme.accent, size: 14)))
+          Text(title, style: TextStyle(color: BentoTheme.accent.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
+          if (onAdd != null) GestureDetector(onTap: onAdd, child: Container(width: 24, height: 24, decoration: BoxDecoration(color: BentoTheme.accent.withValues(alpha: 0.15), border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15)), shape: BoxShape.circle), child: Icon(LucideIcons.plus, color: BentoTheme.accent, size: 14)))
         ],
       ),
     );
@@ -1058,7 +1058,7 @@ class _AddEditTransactionModalState extends State<_AddEditTransactionModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: widget.existingTx != null ? "EDIT TRANSACTION" : "LOG TRANSACTION", onSave: _save, child: Column(children: [
-      Row(children: ["expense", "income"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
+      Row(children: ["expense", "income"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? BentoTheme.accent : BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? BentoTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
       _ModalInput(hint: "Title (e.g., Swiggy, Salary)", initialValue: title, onChanged: (v) => title = v),
       _ModalInput(hint: "Amount (₹)", initialValue: amount, keyboardType: TextInputType.number, onChanged: (v) => amount = v),
       if (type == "expense") _ModalDropdown(value: category, items: kExpenseCategories, onChanged: (v) => setState(() => category = v!)),
@@ -1077,7 +1077,7 @@ class _AddVaultModalState extends State<_AddVaultModal> {
   String name = "", balance = "", type = "Savings";
   void _save() {
     if (name.isEmpty || balance.isEmpty) return;
-    widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: NeuTheme.accent.value));
+    widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: BentoTheme.accent.value));
     GlobalXPService.addXP(15);
     Navigator.pop(context);
   }
@@ -1110,7 +1110,7 @@ class _AddGoalModalState extends State<_AddGoalModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: "NEW GOAL", onSave: _save, child: Column(children: [
-      Wrap(spacing: 8, runSpacing: 8, children: icons.map((e) => GestureDetector(onTap: () => setState(() => icon = e), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 36, height: 36, decoration: BoxDecoration(color: icon == e ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: icon == e ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(e, style: const TextStyle(fontSize: 18))))).toList()),
+      Wrap(spacing: 8, runSpacing: 8, children: icons.map((e) => GestureDetector(onTap: () => setState(() => icon = e), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 36, height: 36, decoration: BoxDecoration(color: icon == e ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: icon == e ? BentoTheme.accent : BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(e, style: const TextStyle(fontSize: 18))))).toList()),
       SizedBox(height: 12),
       _ModalInput(hint: "Goal Name", onChanged: (v) => name = v),
       _ModalInput(hint: "Target Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => target = v),
@@ -1203,7 +1203,7 @@ class _AddPlannerModalState extends State<_AddPlannerModal> {
   @override
   Widget build(BuildContext context) {
     return _BaseModal(title: "NEW COMMITMENT", onSave: _save, child: Column(children: [
-      Row(children: ["Fixed", "SIP"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
+      Row(children: ["Fixed", "SIP"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? BentoTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? BentoTheme.accent : BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? BentoTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
       _ModalInput(hint: "Name (e.g., Rent, Groww)", onChanged: (v) => name = v),
       _ModalInput(hint: "Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => amount = v),
       _ModalInput(hint: "Due Date (e.g., 5)", keyboardType: TextInputType.number, onChanged: (v) => due = v),
@@ -1222,18 +1222,18 @@ class _BaseModal extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: BoxDecoration(color: const Color(0xFF0F1923), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), boxShadow: [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, -8))]),
+      decoration: BoxDecoration(color: const Color(0xFF0F1923), border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), boxShadow: [BoxShadow(color: BentoTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, -8))]),
       child: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(title, style: TextStyle(color: NeuTheme.accent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)), GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: Icon(LucideIcons.x, color: Colors.white, size: 16)))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(title, style: TextStyle(color: BentoTheme.accent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)), GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: Icon(LucideIcons.x, color: Colors.white, size: 16)))]),
             SizedBox(height: 20), child, SizedBox(height: 8),
             Row(children: [
               Expanded(child: GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("CANCEL", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))))),
               SizedBox(width: 10),
-              Expanded(flex: 2, child: GestureDetector(onTap: onSave, child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("SAVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1))))),
+              Expanded(flex: 2, child: GestureDetector(onTap: onSave, child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: LinearGradient(colors: [BentoTheme.accent, BentoTheme.accent]), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("SAVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1))))),
             ])
           ],
         ),
@@ -1247,7 +1247,7 @@ class _ModalInput extends StatelessWidget {
   const _ModalInput({required this.hint, required this.onChanged, this.keyboardType = TextInputType.text, this.initialValue});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: EdgeInsets.only(bottom: 10), child: TextFormField(initialValue: initialValue, onChanged: onChanged, keyboardType: keyboardType, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), filled: true, fillColor: Colors.white.withValues(alpha: 0.05), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent, width: 1.5)), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
+    return Padding(padding: EdgeInsets.only(bottom: 10), child: TextFormField(initialValue: initialValue, onChanged: onChanged, keyboardType: keyboardType, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), filled: true, fillColor: Colors.white.withValues(alpha: 0.05), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: BentoTheme.accent, width: 1.5)), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
   }
 }
 
@@ -1256,7 +1256,7 @@ class _ModalDropdown extends StatelessWidget {
   const _ModalDropdown({required this.value, required this.items, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: EdgeInsets.only(bottom: 10), child: Container(padding: EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, dropdownColor: NeuTheme.background, style: const TextStyle(color: Colors.white, fontSize: 14), icon: Icon(LucideIcons.chevronDown, color: Colors.white54), items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged))));
+    return Padding(padding: EdgeInsets.only(bottom: 10), child: Container(padding: EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, dropdownColor: BentoTheme.background, style: const TextStyle(color: Colors.white, fontSize: 14), icon: Icon(LucideIcons.chevronDown, color: Colors.white54), items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged))));
   }
 }
 

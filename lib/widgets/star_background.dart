@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'dart:math';
 
 class StarBackground extends StatefulWidget {
@@ -33,8 +33,8 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
         // 1. The Background Layer
         Container(
           decoration: BoxDecoration(
-            color: NeuTheme.background,
-            gradient: NeuTheme.backgroundGradient,
+            color: BentoTheme.background,
+            
           ),
         ),
         // 2. The Star Layer
@@ -43,7 +43,7 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
           builder: (context, child) {
             return RepaintBoundary(
               child: CustomPaint(
-                painter: StarPainter(_stars, _controller.value, NeuTheme.accent),
+                painter: StarPainter(_stars, _controller.value, BentoTheme.accent),
                 size: Size.infinite,
               ),
             );

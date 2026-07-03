@@ -2,7 +2,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:habit_tracker/models/quote.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'dart:ui';
 
 class MysteriousQuoteCard extends StatefulWidget {
@@ -77,22 +77,22 @@ class _MysteriousQuoteCardState extends State<MysteriousQuoteCard> with SingleTi
   Widget _buildCardContent() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 20,
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(LucideIcons.sparkles, color: NeuTheme.accent, size: 30),
+            Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 30),
             const SizedBox(height: 16),
             Text(
               '"${_todaysQuote.text}"',
               textAlign: TextAlign.center,
-              style: TextStyle(color: NeuTheme.textPrimary, fontSize: 18, fontStyle: FontStyle.italic),
+              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontStyle: FontStyle.italic),
             ),
             const SizedBox(height: 16),
             Text(
               "-   ${_todaysQuote.author.toUpperCase()}   -",
-              style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2),
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2),
             ),
           ],
         ),

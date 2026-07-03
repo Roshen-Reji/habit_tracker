@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
@@ -133,7 +133,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 24,
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -146,7 +146,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   child: Text(
                     _isAiMode ? "AI MISSION" : "NEW MISSION",
                     style: TextStyle(
-                        color: NeuTheme.textPrimary,
+                        color: BentoTheme.textPrimary,
                         letterSpacing: 1.5,
                         fontSize: 18,
                         fontWeight: FontWeight.bold),
@@ -160,13 +160,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: _isAiMode
-                          ? NeuTheme.accent.withValues(alpha: 0.15)
+                          ? BentoTheme.accent.withValues(alpha: 0.15)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _isAiMode
-                            ? NeuTheme.accent
-                            : NeuTheme.textSecondary.withValues(alpha: 0.3),
+                            ? BentoTheme.accent
+                            : BentoTheme.textSecondary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -175,8 +175,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         Icon(
                           LucideIcons.sparkles,
                           color: _isAiMode
-                              ? NeuTheme.accent
-                              : NeuTheme.textSecondary,
+                              ? BentoTheme.accent
+                              : BentoTheme.textSecondary,
                           size: 14,
                         ),
                         const SizedBox(width: 4),
@@ -184,8 +184,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                           "AI",
                           style: TextStyle(
                             color: _isAiMode
-                                ? NeuTheme.accent
-                                : NeuTheme.textSecondary,
+                                ? BentoTheme.accent
+                                : BentoTheme.textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -210,10 +210,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text("CANCEL",
-                        style: TextStyle(color: NeuTheme.textSecondary)),
+                        style: TextStyle(color: BentoTheme.textSecondary)),
                   ),
                   const SizedBox(width: 8),
-                  NeuButton(
+                  BentoButton(
                     onTap: () {
                       final title = titleController.text;
                       final target = double.tryParse(targetController.text);
@@ -253,7 +253,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         horizontal: 20, vertical: 12),
                     child: Text("ENGAGE",
                         style: TextStyle(
-                            color: NeuTheme.accent,
+                            color: BentoTheme.accent,
                             fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -272,60 +272,60 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       children: [
         DropdownButtonFormField<GoalType>(
           initialValue: selectedType,
-          dropdownColor: NeuTheme.background,
+          dropdownColor: BentoTheme.background,
           onChanged: (GoalType? newValue) {
             if (newValue != null) setState(() => selectedType = newValue);
           },
           decoration: InputDecoration(
               labelText: 'Mission Cycle',
-              labelStyle: TextStyle(color: NeuTheme.textSecondary)),
+              labelStyle: TextStyle(color: BentoTheme.textSecondary)),
           items: GoalType.values.map((type) {
             return DropdownMenuItem(
               value: type,
               child: Text(type.name.toUpperCase(),
-                  style: TextStyle(color: NeuTheme.textPrimary)),
+                  style: TextStyle(color: BentoTheme.textPrimary)),
             );
           }).toList(),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: titleController,
-          style: TextStyle(color: NeuTheme.textPrimary),
+          style: TextStyle(color: BentoTheme.textPrimary),
           decoration: InputDecoration(
             hintText: "Mission title...",
-            hintStyle: TextStyle(color: NeuTheme.textSecondary),
+            hintStyle: TextStyle(color: BentoTheme.textSecondary),
             enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                    color: NeuTheme.textSecondary.withValues(alpha: 0.3))),
+                    color: BentoTheme.textSecondary.withValues(alpha: 0.3))),
             focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: NeuTheme.accent)),
+                borderSide: BorderSide(color: BentoTheme.accent)),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: targetController,
           keyboardType: TextInputType.number,
-          style: TextStyle(color: NeuTheme.textPrimary),
+          style: TextStyle(color: BentoTheme.textPrimary),
           decoration: InputDecoration(
             hintText: "Target value (e.g., 20)...",
-            hintStyle: TextStyle(color: NeuTheme.textSecondary),
+            hintStyle: TextStyle(color: BentoTheme.textSecondary),
             enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
-                    color: NeuTheme.textSecondary.withValues(alpha: 0.3))),
+                    color: BentoTheme.textSecondary.withValues(alpha: 0.3))),
             focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: NeuTheme.accent)),
+                borderSide: BorderSide(color: BentoTheme.accent)),
           ),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<GoalCategory>(
           initialValue: selectedCategory,
-          dropdownColor: NeuTheme.background,
+          dropdownColor: BentoTheme.background,
           onChanged: (GoalCategory? newValue) {
             if (newValue != null) setState(() => selectedCategory = newValue);
           },
           decoration: InputDecoration(
               labelText: 'Category',
-              labelStyle: TextStyle(color: NeuTheme.textSecondary)),
+              labelStyle: TextStyle(color: BentoTheme.textSecondary)),
           items: GoalCategory.values.map((category) {
             return DropdownMenuItem(
               value: category,
@@ -335,7 +335,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       color: _getCategoryColor(category), size: 20),
                   const SizedBox(width: 8),
                   Text(_getCategoryName(category),
-                      style: TextStyle(color: NeuTheme.textPrimary)),
+                      style: TextStyle(color: BentoTheme.textPrimary)),
                 ],
               ),
             );
@@ -346,16 +346,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("Reminder Alert",
-                style: TextStyle(color: NeuTheme.textSecondary)),
+                style: TextStyle(color: BentoTheme.textSecondary)),
             TextButton.icon(
               onPressed: _pickTime,
               icon: Icon(LucideIcons.alarmClock,
-                  color: NeuTheme.accent, size: 20),
+                  color: BentoTheme.accent, size: 20),
               label: Text(
                 selectedReminderTime != null
                     ? selectedReminderTime!.format(context)
                     : "Set Time",
-                style: TextStyle(color: NeuTheme.accent),
+                style: TextStyle(color: BentoTheme.accent),
               ),
             )
           ],
@@ -365,7 +365,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             padding: const EdgeInsets.only(top: 8.0),
             child: Text("Plays default system notification sound.",
                 style: TextStyle(
-                    color: NeuTheme.textSecondary,
+                    color: BentoTheme.textSecondary,
                     fontSize: 12,
                     fontStyle: FontStyle.italic)),
           ),
@@ -374,16 +374,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("Mission Deadline",
-                style: TextStyle(color: NeuTheme.textSecondary)),
+                style: TextStyle(color: BentoTheme.textSecondary)),
             TextButton.icon(
               onPressed: _pickEndDate,
               icon:
-                  Icon(LucideIcons.calendar, color: NeuTheme.accent, size: 20),
+                  Icon(LucideIcons.calendar, color: BentoTheme.accent, size: 20),
               label: Text(
                 selectedEndDate != null
                     ? "${selectedEndDate!.day}/${selectedEndDate!.month}/${selectedEndDate!.year}"
                     : "Set End Date",
-                style: TextStyle(color: NeuTheme.accent),
+                style: TextStyle(color: BentoTheme.accent),
               ),
             )
           ],
@@ -399,23 +399,23 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       children: [
         Text(
           "Describe your mission in natural language",
-          style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _aiController,
-          style: TextStyle(color: NeuTheme.textPrimary),
+          style: TextStyle(color: BentoTheme.textPrimary),
           maxLines: 3,
           decoration: InputDecoration(
             hintText: "e.g., Today I want to finish 2 lectures of physics",
-            hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+            hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
-                  color: NeuTheme.textSecondary.withValues(alpha: 0.3)),
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.3)),
               borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: NeuTheme.accent),
+              borderSide: BorderSide(color: BentoTheme.accent),
               borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             contentPadding: const EdgeInsets.all(14),
@@ -424,7 +424,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
-          child: NeuButton(
+          child: BentoButton(
             onTap: _isAiLoading ? () {} : _processAiTask,
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(
@@ -435,14 +435,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: NeuTheme.accent))
+                          strokeWidth: 2, color: BentoTheme.accent))
                 else
-                  Icon(LucideIcons.sparkles, size: 18, color: NeuTheme.accent),
+                  Icon(LucideIcons.sparkles, size: 18, color: BentoTheme.accent),
                 const SizedBox(width: 8),
                 Text(
                   _isAiLoading ? "ANALYZING..." : "CREATE MISSION",
                   style: TextStyle(
-                      color: NeuTheme.accent, fontWeight: FontWeight.bold),
+                      color: BentoTheme.accent, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -471,12 +471,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: NeuTheme.accent.withValues(alpha: 0.08),
+          color: BentoTheme.accent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15)),
+          border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15)),
         ),
         child:
-            Text(text, style: TextStyle(color: NeuTheme.accent, fontSize: 11)),
+            Text(text, style: TextStyle(color: BentoTheme.accent, fontSize: 11)),
       ),
     );
   }
@@ -508,7 +508,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         SnackBar(
           content: Text(
               "✓ Mission created: ${response.actions.first.payload['title'] ?? 'New Mission'}"),
-          backgroundColor: NeuTheme.accent,
+          backgroundColor: BentoTheme.accent,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -516,7 +516,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response.message),
-          backgroundColor: NeuTheme.background,
+          backgroundColor: BentoTheme.background,
           duration: const Duration(seconds: 3),
         ),
       );
