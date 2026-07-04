@@ -131,7 +131,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         uriType: audio_query.UriType.EXTERNAL,
       );
 
-      List<dynamic> rawFolders = Hive.box('settings').get('music_folders', defaultValue: []);
+      List<dynamic> rawFolders =
+          Hive.box('settings').get('music_folders', defaultValue: []);
       List<String> folders = rawFolders.cast<String>();
 
       if (folders.isNotEmpty) {
@@ -317,6 +318,14 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         return '▶️ Opening Vault Video: ${action.payload['query']}';
       case 'finance_transaction':
         return 'Logged transaction: ${action.payload['title']}';
+      case 'finance_budget':
+        return 'Updated budget: ${action.payload['category']}';
+      case 'finance_commitment':
+        return 'Added commitment: ${action.payload['name']}';
+      case 'finance_sip':
+        return 'Added SIP: ${action.payload['name']}';
+      case 'finance_goal':
+        return 'Added finance goal: ${action.payload['name']}';
       default:
         return '✓ Done';
     }

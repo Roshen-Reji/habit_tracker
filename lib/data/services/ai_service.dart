@@ -116,6 +116,7 @@ class AiService {
     if (hasImage) return 'diet';
 
     if (_looksLikeVaultCommand(lower)) return 'vault';
+    if (_looksLikeFinanceIntent(lower)) return 'finance';
     if (_looksLikeTaskCreate(lower) || _isTaskStatusQuery(lower))
       return 'tasks';
 
@@ -500,12 +501,15 @@ class AiService {
       final budgetMatch = budgetRegex.firstMatch(lower);
       if (budgetMatch != null) {
         final category = _titleCase(budgetMatch.group(1) ?? 'Other');
-        final amount = _parseAmount(budgetMatch.group(2) ?? '0', budgetMatch.group(3));
+        final amount =
+            _parseAmount(budgetMatch.group(2) ?? '0', budgetMatch.group(3));
         return AiResponse(
             message: 'Set a budget of $amount for $category.',
             intent: 'general_chat',
             actions: [
-              AiAction(type: 'finance_budget', payload: {'category': category, 'total': amount})
+              AiAction(
+                  type: 'finance_budget',
+                  payload: {'category': category, 'total': amount})
             ]);
       }
 
@@ -516,12 +520,15 @@ class AiService {
       final sipAddMatch = sipAddRegex.firstMatch(lower);
       if (sipAddMatch != null) {
         final name = _titleCase(sipAddMatch.group(1) ?? 'Mutual Fund');
-        final amount = _parseAmount(sipAddMatch.group(2) ?? '0', sipAddMatch.group(3));
+        final amount =
+            _parseAmount(sipAddMatch.group(2) ?? '0', sipAddMatch.group(3));
         return AiResponse(
             message: 'Added monthly SIP $name for $amount.',
             intent: 'general_chat',
             actions: [
-              AiAction(type: 'finance_sip', payload: {'name': name, 'amount': amount, 'due': 5})
+              AiAction(
+                  type: 'finance_sip',
+                  payload: {'name': name, 'amount': amount, 'due': 5})
             ]);
       }
 
@@ -532,12 +539,15 @@ class AiService {
       final commitMatch = commitRegex.firstMatch(lower);
       if (commitMatch != null) {
         final name = _titleCase(commitMatch.group(1) ?? 'Subscription');
-        final amount = _parseAmount(commitMatch.group(2) ?? '0', commitMatch.group(3));
+        final amount =
+            _parseAmount(commitMatch.group(2) ?? '0', commitMatch.group(3));
         return AiResponse(
             message: 'Added monthly commitment $name for $amount.',
             intent: 'general_chat',
             actions: [
-              AiAction(type: 'finance_commitment', payload: {'name': name, 'amount': amount, 'date': 1})
+              AiAction(
+                  type: 'finance_commitment',
+                  payload: {'name': name, 'amount': amount, 'date': 1})
             ]);
       }
 
@@ -548,12 +558,15 @@ class AiService {
       final goalMatch = goalRegex.firstMatch(lower);
       if (goalMatch != null) {
         final name = _titleCase(goalMatch.group(1) ?? 'Goal');
-        final amount = _parseAmount(goalMatch.group(2) ?? '0', goalMatch.group(3));
+        final amount =
+            _parseAmount(goalMatch.group(2) ?? '0', goalMatch.group(3));
         return AiResponse(
             message: 'Added finance goal $name for $amount.',
             intent: 'general_chat',
             actions: [
-              AiAction(type: 'finance_goal', payload: {'name': name, 'target': amount})
+              AiAction(
+                  type: 'finance_goal',
+                  payload: {'name': name, 'target': amount})
             ]);
       }
     } else if (intent == 'diet') {
@@ -981,36 +994,88 @@ class AiService {
     final amount = _extractMoneyAmount(lower);
     if (amount == null || amount <= 0) return null;
 
+    final budgetDraft = _parseFinanceBudgetDraft(lower, amount);
+    if (budgetDraft != null) {
+      return AiResponse(
+        message:
+            'Ready to set ${budgetDraft['category']} budget to ${_formatMoney(amount)}.',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_budget', payload: budgetDraft),
+        ],
+      );
+    }
+
+    final sipDraft = _parseFinanceSipDraft(lower, amount);
+    if (sipDraft != null) {
+      return AiResponse(
+        message:
+            'Ready to add SIP ${sipDraft['name']} for ${_formatMoney(amount)} per month.',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_sip', payload: sipDraft),
+        ],
+      );
+    }
+
+    final commitmentDraft = _parseFinanceCommitmentDraft(lower, amount);
+    if (commitmentDraft != null) {
+      return AiResponse(
+        message:
+            'Ready to add monthly commitment ${commitmentDraft['name']} for ${_formatMoney(amount)}.',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_commitment', payload: commitmentDraft),
+        ],
+      );
+    }
+
+    final goalDraft = _parseFinanceGoalDraft(lower, amount);
+    if (goalDraft != null) {
+      return AiResponse(
+        message:
+            'Ready to add finance goal ${goalDraft['name']} for ${_formatMoney(amount)}.',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_goal', payload: goalDraft),
+        ],
+      );
+    }
+
     final isExpense = _looksLikeExpense(lower);
     final isIncome = _looksLikeIncome(lower);
 
     if (isIncome && !isExpense) {
       final title = _extractIncomeTitle(lower);
-      _recordFinanceTransaction(
-        title: title,
-        amount: amount,
-        isExpense: false,
-        category: 'Income',
-      );
       return AiResponse(
-        message: 'Added ${_formatMoney(amount)} to income as "$title".',
-        intent: 'general_chat',
+        message: 'Ready to add ${_formatMoney(amount)} income as "$title".',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_transaction', payload: {
+            'title': title,
+            'amount': amount,
+            'mode': 'income',
+            'category': 'Income',
+          }),
+        ],
       );
     }
 
     if (isExpense) {
       final title = _extractExpenseTitle(lower);
       final category = _inferExpenseCategory(title);
-      _recordFinanceTransaction(
-        title: title,
-        amount: amount,
-        isExpense: true,
-        category: category,
-      );
       return AiResponse(
         message:
-            'Logged ${_formatMoney(amount)} expense for "$title" under $category.',
-        intent: 'general_chat',
+            'Ready to log ${_formatMoney(amount)} expense for "$title" under $category.',
+        intent: 'finance_advice',
+        actions: [
+          AiAction(type: 'finance_transaction', payload: {
+            'title': title,
+            'amount': amount,
+            'mode': 'expense',
+            'category': category,
+          }),
+        ],
       );
     }
 
@@ -1242,6 +1307,48 @@ class AiService {
     return false;
   }
 
+  bool _looksLikeFinanceIntent(String lower) {
+    if (_containsAny(lower, [
+      'sip',
+      'emi',
+      'budget',
+      'finance',
+      'income',
+      'salary',
+      'expense',
+      'spent',
+      'bought',
+      'paid',
+      'rupee',
+      'rupees',
+      'rs',
+      'inr',
+      'money',
+      'savings',
+      'invest',
+      'investment',
+      'mutual fund',
+      'loan',
+      'debt',
+      'rent',
+      'bill',
+      'recharge',
+      'shopping',
+      'paisa',
+      'kharcha',
+      'transaction'
+    ])) {
+      return true;
+    }
+
+    final hasMoney = _extractMoneyAmount(lower) != null;
+    if (hasMoney &&
+        _containsAny(lower, ['save', 'buy', 'worth', 'goal', 'fund'])) {
+      return true;
+    }
+    return false;
+  }
+
   bool _looksLikeVaultCommand(String lower) {
     if (_containsAny(lower, ['song', 'music', 'track', 'album'])) return false;
     final wantsMedia =
@@ -1350,6 +1457,289 @@ class AiService {
     ]);
   }
 
+  Map<String, dynamic>? _parseFinanceBudgetDraft(String lower, double amount) {
+    if (!lower.contains('budget')) return null;
+    return {
+      'category': _inferBudgetCategory(lower),
+      'total': amount,
+    };
+  }
+
+  Map<String, dynamic>? _parseFinanceSipDraft(String lower, double amount) {
+    final looksLikeSip = lower.contains('sip') ||
+        lower.contains('mutual fund') ||
+        (_containsAny(lower, ['invest', 'investment']) &&
+            _containsAny(lower, ['monthly', 'every month', 'per month']));
+    if (!looksLikeSip) return null;
+
+    final name = _extractFinanceName(
+      lower,
+      fallback: 'Mutual Fund',
+      noiseWords: const [
+        'add',
+        'set',
+        'start',
+        'create',
+        'new',
+        'my',
+        'monthly',
+        'month',
+        'sip',
+        'invest',
+        'investment',
+        'amount',
+        'worth',
+        'of',
+        'for',
+        'in',
+        'into',
+        'to',
+      ],
+    );
+
+    return {
+      'name': name,
+      'amount': amount,
+      'due': _extractDueDay(lower) ?? 5,
+    };
+  }
+
+  Map<String, dynamic>? _parseFinanceCommitmentDraft(
+      String lower, double amount) {
+    if (lower.contains('sip') || lower.contains('budget')) return null;
+    final recurring = _containsAny(lower, [
+      'monthly',
+      'every month',
+      'per month',
+      'each month',
+      'recurring',
+      'commitment',
+      'fixed expense',
+      'fixed cost',
+      'subscription',
+      'emi',
+      'rent',
+      'insurance',
+      'saving',
+      'savings'
+    ]);
+    if (!recurring) return null;
+
+    final category = _inferCommitmentCategory(lower);
+    final name = _extractFinanceName(
+      lower,
+      fallback: category,
+      noiseWords: const [
+        'add',
+        'set',
+        'create',
+        'new',
+        'my',
+        'monthly',
+        'month',
+        'every',
+        'per',
+        'each',
+        'recurring',
+        'commitment',
+        'fixed',
+        'expense',
+        'cost',
+        'payment',
+        'emi',
+        'loan',
+        'rent',
+        'insurance',
+        'subscription',
+        'amount',
+        'of',
+        'for',
+        'on',
+        'to',
+      ],
+    );
+
+    return {
+      'name': name,
+      'amount': amount,
+      'date': _extractDueDay(lower) ?? 1,
+      'category': category,
+    };
+  }
+
+  Map<String, dynamic>? _parseFinanceGoalDraft(String lower, double amount) {
+    if (lower.contains('budget') || lower.contains('sip')) return null;
+    if (lower.contains('emi') &&
+        _containsAny(lower, ['monthly', 'every month', 'per month'])) {
+      return null;
+    }
+
+    final explicitGoal = _containsAny(lower, [
+      'finance goal',
+      'financial goal',
+      'saving goal',
+      'savings goal',
+      'goal'
+    ]);
+    final saveFor = RegExp(r'\bsav(?:e|ing)\b.*\bfor\b').hasMatch(lower);
+    final buyWorth = lower.contains('buy') &&
+        (_containsAny(lower, ['worth', 'for']) || amount >= 5000);
+    if (!explicitGoal && !saveFor && !buyWorth) return null;
+    if (_looksLikeExpense(lower) && !saveFor && !explicitGoal && !buyWorth) {
+      return null;
+    }
+
+    final name = _extractFinanceName(
+      lower,
+      fallback: 'Goal',
+      noiseWords: const [
+        'add',
+        'set',
+        'create',
+        'new',
+        'my',
+        'finance',
+        'financial',
+        'saving',
+        'savings',
+        'save',
+        'goal',
+        'target',
+        'want',
+        'need',
+        'buy',
+        'purchase',
+        'worth',
+        'amount',
+        'of',
+        'for',
+        'to',
+      ],
+    );
+
+    return {
+      'name': name,
+      'target': amount,
+    };
+  }
+
+  String _inferBudgetCategory(String lower) {
+    const categories = [
+      'Food',
+      'Shopping',
+      'Transport',
+      'Utilities',
+      'Health',
+      'Entertainment',
+      'OTT',
+      'Groceries',
+      'EMI',
+      'Other',
+    ];
+
+    for (final category in categories) {
+      if (lower.contains(category.toLowerCase())) return category;
+    }
+    if (_containsAny(lower, ['grocery', 'vegetable', 'milk'])) {
+      return 'Groceries';
+    }
+    if (_containsAny(lower, ['movie', 'netflix', 'prime', 'spotify'])) {
+      return lower.contains('netflix') ||
+              lower.contains('prime') ||
+              lower.contains('spotify')
+          ? 'OTT'
+          : 'Entertainment';
+    }
+    if (_containsAny(lower, ['loan', 'emi'])) return 'EMI';
+    return 'Other';
+  }
+
+  String _inferCommitmentCategory(String lower) {
+    if (lower.contains('emi') || lower.contains('loan')) return 'EMI';
+    if (lower.contains('rent')) return 'Rent';
+    if (lower.contains('insurance')) return 'Insurance';
+    if (_containsAny(lower, ['saving', 'savings'])) return 'Savings';
+    if (_containsAny(lower, ['netflix', 'prime', 'spotify', 'subscription'])) {
+      return 'Subscription';
+    }
+    return 'Fixed';
+  }
+
+  int? _extractDueDay(String lower) {
+    final explicit = RegExp(
+      r'\b(?:due|date|day|on)\s*(?:day\s*)?(\d{1,2})(?:st|nd|rd|th)?\b',
+      caseSensitive: false,
+    ).firstMatch(lower);
+    final parsed = int.tryParse(explicit?.group(1) ?? '');
+    if (parsed != null && parsed >= 1 && parsed <= 31) return parsed;
+    return null;
+  }
+
+  String _extractFinanceName(String lower,
+      {required String fallback, required List<String> noiseWords}) {
+    var clean = lower;
+    clean = clean.replaceAll(
+      RegExp(
+        r'(?:rs\.?|inr|rupees?|\$)?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|thousand|lakh|lakhs|lac|lacs|m|million|cr|crore|crores)?\s*(?:rs\.?|inr|rupees?|\$)?',
+        caseSensitive: false,
+      ),
+      ' ',
+    );
+    clean = clean.replaceAll(RegExp(r'\b\d{1,2}(?:st|nd|rd|th)\b'), ' ');
+    clean = clean.replaceAll(RegExp(r'[^\w\s]'), ' ');
+
+    final words = [
+      ...noiseWords,
+      'i',
+      'am',
+      'a',
+      'an',
+      'the',
+      'please',
+      'rs',
+      'inr',
+      'rupee',
+      'rupees',
+      'k',
+      'lakh',
+      'lakhs',
+      'lac',
+      'lacs',
+      'crore',
+      'crores',
+      'due',
+      'date',
+      'day',
+      'on',
+      'at',
+      'by',
+      'from',
+      'with',
+      'and',
+      'of',
+      'for',
+      'to',
+      'in',
+      'into',
+      'worth',
+      'amount',
+      'buy',
+      'purchase',
+      'invest',
+      'investment',
+      'save',
+      'saving',
+      'savings',
+    ];
+    for (final word in words) {
+      clean = clean.replaceAll(RegExp('\\b${RegExp.escape(word)}\\b'), ' ');
+    }
+
+    clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (clean.isEmpty) return fallback;
+    return _titleCase(clean);
+  }
+
   bool _isDietStatusQuery(String lower) {
     final asksDiet = _containsAny(lower, [
       'diet',
@@ -1453,29 +1843,56 @@ class AiService {
       DateTime(value.year, value.month, value.day, 23, 59, 59);
 
   double? _extractMoneyAmount(String lower) {
-    final contextualMatch = RegExp(
-      r'\b(?:for|on|paid|spent|reduce|deduct(?:ed)?|add|earned|received|income|salary|credited|deposit(?:ed)?)\s+(?:rs\.?|inr|rupees?|\$)?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:rs\.?|inr|rupees?|\$)?',
-      caseSensitive: false,
-    ).firstMatch(lower);
-    if (contextualMatch != null) {
-      return double.tryParse(
-          (contextualMatch.group(1) ?? '').replaceAll(',', ''));
-    }
-
     final currencyMatch = RegExp(
-      r'(?:rs\.?|inr|rupees?|\$)\s*(\d+(?:,\d{3})*(?:\.\d+)?)|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:rs\.?|inr|rupees?|\$)',
+      r'(?:rs\.?|inr|rupees?|\$)\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(k|thousand|lakh|lakhs|lac|lacs|m|million|cr|crore|crores)?|(\d+(?:,\d{3})*(?:\.\d+)?)\s*(k|thousand|lakh|lakhs|lac|lacs|m|million|cr|crore|crores)?\s*(?:rs\.?|inr|rupees?|\$)',
       caseSensitive: false,
     ).firstMatch(lower);
     if (currencyMatch != null) {
-      return double.tryParse(
-        (currencyMatch.group(1) ?? currencyMatch.group(2) ?? '')
-            .replaceAll(',', ''),
-      );
+      final value = currencyMatch.group(1) ?? currencyMatch.group(3) ?? '';
+      final suffix = currencyMatch.group(2) ?? currencyMatch.group(4);
+      return _parseMoneyValue(value, suffix);
     }
 
-    final match = RegExp(r'\b(\d+(?:,\d{3})*(?:\.\d+)?)\b').firstMatch(lower);
-    if (match == null) return null;
-    return double.tryParse((match.group(1) ?? '').replaceAll(',', ''));
+    final contextualMatch = RegExp(
+      r'\b(?:for|on|paid|spent|reduce|deduct(?:ed)?|add|set|create|start|earned|received|income|salary|credited|deposit(?:ed)?|worth|amount|target|save|invest)\s+(?:rs\.?|inr|rupees?|\$)?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(k|thousand|lakh|lakhs|lac|lacs|m|million|cr|crore|crores)?\s*(?:rs\.?|inr|rupees?|\$)?',
+      caseSensitive: false,
+    ).firstMatch(lower);
+    if (contextualMatch != null) {
+      return _parseMoneyValue(
+          contextualMatch.group(1) ?? '', contextualMatch.group(2));
+    }
+
+    final suffixMatch = RegExp(
+      r'\b(\d+(?:,\d{3})*(?:\.\d+)?)\s*(k|thousand|lakh|lakhs|lac|lacs|m|million|cr|crore|crores)\b',
+      caseSensitive: false,
+    ).firstMatch(lower);
+    if (suffixMatch != null) {
+      return _parseMoneyValue(suffixMatch.group(1) ?? '', suffixMatch.group(2));
+    }
+
+    final matches = RegExp(r'\b(\d+(?:,\d{3})*(?:\.\d+)?)\b')
+        .allMatches(lower)
+        .map((match) => _parseMoneyValue(match.group(1) ?? '', null))
+        .whereType<double>()
+        .toList();
+    if (matches.isEmpty) return null;
+    return matches.reduce((a, b) => a > b ? a : b);
+  }
+
+  double? _parseMoneyValue(String raw, String? suffix) {
+    final value = double.tryParse(raw.replaceAll(',', ''));
+    if (value == null) return null;
+    final unit = suffix?.toLowerCase();
+    if (unit == null || unit.isEmpty) return value;
+    if (unit == 'k' || unit == 'thousand') return value * 1000;
+    if (unit == 'lakh' || unit == 'lakhs' || unit == 'lac' || unit == 'lacs') {
+      return value * 100000;
+    }
+    if (unit == 'm' || unit == 'million') return value * 1000000;
+    if (unit == 'cr' || unit == 'crore' || unit == 'crores') {
+      return value * 10000000;
+    }
+    return value;
   }
 
   String _extractIncomeTitle(String lower) {
@@ -1639,6 +2056,10 @@ RULES:
 - For bounded daily tasks such as "this week" or "for 10 days", include end_date.
 - For finance logging, use finance_transaction; amount must be positive and mode says income or expense.
 - CRITICAL: If the user wants to buy something expensive or save for a big purchase (e.g. "buy a macbook worth 1.5 lakhs", "save for car"), categorize it as a `finance_goal`, NOT a task.
+- If the user mentions monthly SIP, mutual fund investment, or recurring investment, use `finance_sip`.
+- If the user mentions monthly EMI, loan payment, rent, insurance, subscription, or fixed recurring cost, use `finance_commitment`.
+- If the user says monthly budget or category limit, use `finance_budget`.
+- Parse Indian money terms correctly: 5k = 5000, 1 lakh = 100000, 1 crore = 10000000.
 - Always respond in JSON. No markdown outside JSON.
 - Keep responses short and direct.
 - Multiple actions allowed in one response.''';
@@ -1886,23 +2307,35 @@ RULES:
   String _buildFinanceContext() {
     try {
       final txBox = Hive.box<Transaction>('finance_transactions');
+      final settingsBox = Hive.box('finance_settings');
       final transactions = txBox.values.toList();
-
-      if (transactions.isEmpty) return '\n[FINANCE: No transactions]\n';
 
       final now = DateTime.now();
       double monthIncome = 0, monthExpense = 0;
 
       for (var tx in transactions) {
         if (tx.date.month == now.month && tx.date.year == now.year) {
-          if (tx.amount > 0)
-            monthIncome += tx.amount;
-          else
+          final mode = tx.mode.toLowerCase();
+          final isExpense = mode == 'expense' || tx.amount < 0;
+          if (isExpense)
             monthExpense += tx.amount.abs();
+          else
+            monthIncome += tx.amount.abs();
         }
       }
 
-      return '\n[FINANCE ${DateFormat('MMM yyyy').format(now)}] Income: ${monthIncome.toStringAsFixed(0)} | Spent: ${monthExpense.toStringAsFixed(0)} | Saved: ${(monthIncome - monthExpense).toStringAsFixed(0)}\n';
+      final planner = Map.from(settingsBox
+          .get('planner', defaultValue: {'fixedExpenses': [], 'sips': []}));
+      final fixed = List.from(planner['fixedExpenses'] ?? []);
+      final sips = List.from(planner['sips'] ?? []);
+      final budgets = List.from(settingsBox.get('budgets', defaultValue: []));
+      final goals = List.from(settingsBox.get('goals', defaultValue: []));
+      final fixedTotal = fixed.fold<double>(
+          0, (sum, item) => sum + _asDouble((item as Map)['amount']));
+      final sipTotal = sips.fold<double>(
+          0, (sum, item) => sum + _asDouble((item as Map)['amount']));
+
+      return '\n[FINANCE ${DateFormat('MMM yyyy').format(now)}] Income: ${monthIncome.toStringAsFixed(0)} | Spent: ${monthExpense.toStringAsFixed(0)} | Saved: ${(monthIncome - monthExpense).toStringAsFixed(0)} | Budgets: ${budgets.length} | Goals: ${goals.length} | Fixed/mo: ${fixedTotal.toStringAsFixed(0)} | SIP/mo: ${sipTotal.toStringAsFixed(0)}\n';
     } catch (e) {
       return '\n[FINANCE: Data unavailable]\n';
     }
@@ -2086,18 +2519,25 @@ RULES:
     final payload = action.payload;
     final category = payload['category']?.toString() ?? 'Other';
     final total = _asDouble(payload['total'] ?? 0);
-    
-    final settingsBox = Hive.box('settings');
+    if (total <= 0) return;
+
+    final settingsBox = Hive.box('finance_settings');
     List budgets = List.from(settingsBox.get('budgets', defaultValue: []));
-    
-    int existingIdx = budgets.indexWhere((b) => b['category'] == category);
+
+    int existingIdx = budgets.indexWhere((b) {
+      final item = Map.from(b as Map);
+      return item['category']?.toString().toLowerCase() ==
+          category.toLowerCase();
+    });
     if (existingIdx != -1) {
-      budgets[existingIdx]['total'] = total;
+      final existing = Map.from(budgets[existingIdx] as Map);
+      existing['total'] = total;
+      budgets[existingIdx] = existing;
     } else {
       budgets.add({
         'category': category,
         'total': total,
-        'color': 0xFF00FF00, // Default green color
+        'color': 0xFF22C55E,
       });
     }
     settingsBox.put('budgets', budgets);
@@ -2108,18 +2548,20 @@ RULES:
     final name = payload['name']?.toString() ?? 'Subscription';
     final amount = _asDouble(payload['amount'] ?? 0);
     final date = payload['date'] ?? 1;
+    if (amount <= 0) return;
 
-    final settingsBox = Hive.box('settings');
-    Map p = Map.from(settingsBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
+    final settingsBox = Hive.box('finance_settings');
+    Map p = Map.from(settingsBox
+        .get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
     List fixed = List.from(p['fixedExpenses'] ?? []);
-    
+
     fixed.add({
       'name': name,
       'amount': amount,
       'due': int.tryParse(date.toString()) ?? 1,
-      'category': 'Subscription',
+      'category': payload['category']?.toString() ?? 'Fixed',
     });
-    
+
     p['fixedExpenses'] = fixed;
     settingsBox.put('planner', p);
   }
@@ -2128,17 +2570,17 @@ RULES:
     final payload = action.payload;
     final name = payload['name']?.toString() ?? 'Goal';
     final target = _asDouble(payload['target'] ?? 0);
+    if (target <= 0) return;
 
-    final settingsBox = Hive.box('settings');
+    final settingsBox = Hive.box('finance_settings');
     List goals = List.from(settingsBox.get('goals', defaultValue: []));
-    
+
     goals.add({
       'name': name,
-      'saved': 0.0,
+      'saved': _asDouble(payload['saved'] ?? 0),
       'target': target,
-      'deadline': 'No Deadline',
-      'icon': 'target',
-      'color': 0xFFFF00FF,
+      'deadline': payload['deadline']?.toString() ?? '',
+      'color': 0xFF2DD4BF,
     });
     settingsBox.put('goals', goals);
   }
@@ -2148,18 +2590,20 @@ RULES:
     final name = payload['name']?.toString() ?? 'SIP';
     final amount = _asDouble(payload['amount'] ?? 0);
     final due = payload['due'] ?? 1;
+    if (amount <= 0) return;
 
-    final settingsBox = Hive.box('settings');
-    Map p = Map.from(settingsBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
+    final settingsBox = Hive.box('finance_settings');
+    Map p = Map.from(settingsBox
+        .get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
     List sipsList = List.from(p['sips'] ?? []);
-    
+
     sipsList.add({
       'name': name,
       'amount': amount,
       'due': int.tryParse(due.toString()) ?? 1,
-      'folio': 'Auto-added',
+      'folio': payload['folio']?.toString() ?? 'Auto-added',
     });
-    
+
     p['sips'] = sipsList;
     settingsBox.put('planner', p);
   }

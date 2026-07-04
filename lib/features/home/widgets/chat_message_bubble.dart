@@ -58,8 +58,9 @@ class ChatMessageBubble extends StatelessWidget {
             BentoContainer(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               borderRadius: 18,
-              customColor:
-                  isUser ? accent.withValues(alpha: 0.2) : BentoTheme.background,
+              customColor: isUser
+                  ? accent.withValues(alpha: 0.2)
+                  : BentoTheme.background,
               margin: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +196,26 @@ class _ActionConfirmCard extends StatelessWidget {
         icon = LucideIcons.receipt;
         label = 'FINANCE LOG';
         color = AppColors.warning;
+        break;
+      case 'finance_budget':
+        icon = LucideIcons.pieChart;
+        label = 'BUDGET';
+        color = AppColors.primary;
+        break;
+      case 'finance_commitment':
+        icon = LucideIcons.calendar;
+        label = 'MONTHLY COMMITMENT';
+        color = AppColors.warning;
+        break;
+      case 'finance_sip':
+        icon = LucideIcons.lineChart;
+        label = 'SIP';
+        color = AppColors.primary;
+        break;
+      case 'finance_goal':
+        icon = LucideIcons.flag;
+        label = 'FINANCE GOAL';
+        color = AppColors.success;
         break;
       default:
         icon = LucideIcons.info;
@@ -400,12 +421,97 @@ class _ActionConfirmCard extends StatelessWidget {
           ],
         );
 
+      case 'finance_budget':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.pieChart,
+          title: '${action.payload['category'] ?? 'Category'} budget',
+          subtitle: 'Monthly limit',
+          amount: action.payload['total'],
+          color: AppColors.primary,
+        );
+
+      case 'finance_commitment':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.calendar,
+          title: action.payload['name'] ?? 'Commitment',
+          subtitle:
+              '${action.payload['category'] ?? 'Fixed'} - due day ${action.payload['date'] ?? 1}',
+          amount: action.payload['amount'],
+          color: AppColors.warning,
+        );
+
+      case 'finance_sip':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.lineChart,
+          title: action.payload['name'] ?? 'SIP',
+          subtitle: 'Due day ${action.payload['due'] ?? 5}',
+          amount: action.payload['amount'],
+          color: AppColors.primary,
+        );
+
+      case 'finance_goal':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.flag,
+          title: action.payload['name'] ?? 'Finance goal',
+          subtitle: 'Target amount',
+          amount: action.payload['target'],
+          color: AppColors.success,
+        );
+
       default:
         return Text(
           action.payload.toString(),
           style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
         );
     }
+  }
+
+  Widget _buildFinanceActionRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required dynamic amount,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: AppColors.textTertiary, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          'Rs ${_numStr(amount)}',
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildActions(Color accent) {
