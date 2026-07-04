@@ -481,6 +481,81 @@ class AiService {
                 'Your total active SIP balance across vaults is $sipTotal.',
             intent: 'general_chat');
       }
+
+      double _parseAmount(String digits, String? suffix) {
+        double val = double.tryParse(digits) ?? 0;
+        if (suffix != null) {
+          final s = suffix.toLowerCase();
+          if (s.startsWith('k')) val *= 1000;
+          if (s.startsWith('lakh')) val *= 100000;
+          if (s.startsWith('m')) val *= 1000000;
+        }
+        return val;
+      }
+
+      // Budget query
+      final budgetRegex = RegExp(
+          r'(?:set|add|create)\s+(?:a\s+)?budget\s+(?:for|on)\s+(.*?)\s+(\d+(?:\.\d+)?)\s*(k|lakh|lakhs|m)?\s*(?:rs|₹|\$)?',
+          caseSensitive: false);
+      final budgetMatch = budgetRegex.firstMatch(lower);
+      if (budgetMatch != null) {
+        final category = _titleCase(budgetMatch.group(1) ?? 'Other');
+        final amount = _parseAmount(budgetMatch.group(2) ?? '0', budgetMatch.group(3));
+        return AiResponse(
+            message: 'Set a budget of $amount for $category.',
+            intent: 'general_chat',
+            actions: [
+              AiAction(type: 'finance_budget', payload: {'category': category, 'total': amount})
+            ]);
+      }
+
+      // SIP adding query
+      final sipAddRegex = RegExp(
+          r'(?:add|set)\s+(?:a\s+)?(?:monthly\s+)?sip\s+(?:for\s+)?(.*?)\s+(?:for\s+|of\s+)?(\d+(?:\.\d+)?)\s*(k|lakh|lakhs|m)?\s*(?:rs|₹|\$)?',
+          caseSensitive: false);
+      final sipAddMatch = sipAddRegex.firstMatch(lower);
+      if (sipAddMatch != null) {
+        final name = _titleCase(sipAddMatch.group(1) ?? 'Mutual Fund');
+        final amount = _parseAmount(sipAddMatch.group(2) ?? '0', sipAddMatch.group(3));
+        return AiResponse(
+            message: 'Added monthly SIP $name for $amount.',
+            intent: 'general_chat',
+            actions: [
+              AiAction(type: 'finance_sip', payload: {'name': name, 'amount': amount, 'due': 5})
+            ]);
+      }
+
+      // Commitment query
+      final commitRegex = RegExp(
+          r'(?:add|set)\s+(?:a\s+)?(?:monthly\s+)?commitment\s+(?:for\s+)?(.*?)\s+(?:for\s+|of\s+)?(\d+(?:\.\d+)?)\s*(k|lakh|lakhs|m)?\s*(?:rs|₹|\$)?',
+          caseSensitive: false);
+      final commitMatch = commitRegex.firstMatch(lower);
+      if (commitMatch != null) {
+        final name = _titleCase(commitMatch.group(1) ?? 'Subscription');
+        final amount = _parseAmount(commitMatch.group(2) ?? '0', commitMatch.group(3));
+        return AiResponse(
+            message: 'Added monthly commitment $name for $amount.',
+            intent: 'general_chat',
+            actions: [
+              AiAction(type: 'finance_commitment', payload: {'name': name, 'amount': amount, 'date': 1})
+            ]);
+      }
+
+      // Goal query
+      final goalRegex = RegExp(
+          r'(?:add|set)\s+(?:a\s+)?(?:finance\s+)?goal\s+(?:to\s+buy\s+|for\s+)?(.*?)\s+(?:worth\s+|for\s+|of\s+)?(\d+(?:\.\d+)?)\s*(k|lakh|lakhs|m)?\s*(?:rs|₹|\$)?',
+          caseSensitive: false);
+      final goalMatch = goalRegex.firstMatch(lower);
+      if (goalMatch != null) {
+        final name = _titleCase(goalMatch.group(1) ?? 'Goal');
+        final amount = _parseAmount(goalMatch.group(2) ?? '0', goalMatch.group(3));
+        return AiResponse(
+            message: 'Added finance goal $name for $amount.',
+            intent: 'general_chat',
+            actions: [
+              AiAction(type: 'finance_goal', payload: {'name': name, 'target': amount})
+            ]);
+      }
     } else if (intent == 'diet') {
       // Quick calorie intake: "i ate 200kcal today" or "ate 200 kcal"
       final intakeRegex = RegExp(
@@ -1545,13 +1620,17 @@ class AiService {
 CAPABILITIES: Diet tracking, task management, finance logging/analysis, vault video commands, goal feedback.
 
 RESPOND IN JSON:
-{"intent":"<diet_log|diet_burn|diet_report|diet_advice|task_create|finance_query|finance_advice|goal_opinion|general_chat>","message":"<your response>","actions":[{"type":"<food_entry|burn_entry|task_create|finance_transaction|play_vault_video>","payload":{}}]}
+{"intent":"<diet_log|diet_burn|diet_report|diet_advice|task_create|finance_query|finance_advice|goal_opinion|general_chat>","message":"<your response>","actions":[{"type":"<food_entry|burn_entry|task_create|finance_transaction|finance_budget|finance_commitment|finance_sip|finance_goal|play_vault_video>","payload":{}}]}
 
 ACTION PAYLOADS:
 food_entry: {"name":"2 Eggs","calories":140,"protein":12.0,"carbs":1.0,"fat":10.0,"meal_type":"breakfast"}
 burn_entry: {"activity":"Running","calories_burned":150,"duration_minutes":20}
 task_create: {"title":"Study","type":"today|daily|weekly|monthly","target_value":2,"unit":"hours","category":"learning|health|productivity|fitness|hobby","end_date":"2026-07-10T23:59:59"}
 finance_transaction: {"title":"Pepsi","amount":40.0,"mode":"expense|income","category":"Food|Shopping|Transport|Utilities|Health|Entertainment|OTT|Groceries|EMI|Other"}
+finance_budget: {"category":"Food","total":1000.0}
+finance_commitment: {"name":"Netflix","amount":199.0,"date":15}
+finance_sip: {"name":"Mutual Fund","amount":5000.0,"due":5}
+finance_goal: {"name":"Car","target":500000.0}
 play_vault_video: {"query":"motivation"}
 
 RULES:
@@ -1559,6 +1638,7 @@ RULES:
 - Infer task type from context.
 - For bounded daily tasks such as "this week" or "for 10 days", include end_date.
 - For finance logging, use finance_transaction; amount must be positive and mode says income or expense.
+- CRITICAL: If the user wants to buy something expensive or save for a big purchase (e.g. "buy a macbook worth 1.5 lakhs", "save for car"), categorize it as a `finance_goal`, NOT a task.
 - Always respond in JSON. No markdown outside JSON.
 - Keep responses short and direct.
 - Multiple actions allowed in one response.''';
@@ -2002,6 +2082,88 @@ RULES:
     );
   }
 
+  void _executeFinanceBudgetAction(AiAction action) {
+    final payload = action.payload;
+    final category = payload['category']?.toString() ?? 'Other';
+    final total = _asDouble(payload['total'] ?? 0);
+    
+    final settingsBox = Hive.box('settings');
+    List budgets = List.from(settingsBox.get('budgets', defaultValue: []));
+    
+    int existingIdx = budgets.indexWhere((b) => b['category'] == category);
+    if (existingIdx != -1) {
+      budgets[existingIdx]['total'] = total;
+    } else {
+      budgets.add({
+        'category': category,
+        'total': total,
+        'color': 0xFF00FF00, // Default green color
+      });
+    }
+    settingsBox.put('budgets', budgets);
+  }
+
+  void _executeFinanceCommitmentAction(AiAction action) {
+    final payload = action.payload;
+    final name = payload['name']?.toString() ?? 'Subscription';
+    final amount = _asDouble(payload['amount'] ?? 0);
+    final date = payload['date'] ?? 1;
+
+    final settingsBox = Hive.box('settings');
+    Map p = Map.from(settingsBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
+    List fixed = List.from(p['fixedExpenses'] ?? []);
+    
+    fixed.add({
+      'name': name,
+      'amount': amount,
+      'due': int.tryParse(date.toString()) ?? 1,
+      'category': 'Subscription',
+    });
+    
+    p['fixedExpenses'] = fixed;
+    settingsBox.put('planner', p);
+  }
+
+  void _executeFinanceGoalAction(AiAction action) {
+    final payload = action.payload;
+    final name = payload['name']?.toString() ?? 'Goal';
+    final target = _asDouble(payload['target'] ?? 0);
+
+    final settingsBox = Hive.box('settings');
+    List goals = List.from(settingsBox.get('goals', defaultValue: []));
+    
+    goals.add({
+      'name': name,
+      'saved': 0.0,
+      'target': target,
+      'deadline': 'No Deadline',
+      'icon': 'target',
+      'color': 0xFFFF00FF,
+    });
+    settingsBox.put('goals', goals);
+  }
+
+  void _executeFinanceSipAction(AiAction action) {
+    final payload = action.payload;
+    final name = payload['name']?.toString() ?? 'SIP';
+    final amount = _asDouble(payload['amount'] ?? 0);
+    final due = payload['due'] ?? 1;
+
+    final settingsBox = Hive.box('settings');
+    Map p = Map.from(settingsBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
+    List sipsList = List.from(p['sips'] ?? []);
+    
+    sipsList.add({
+      'name': name,
+      'amount': amount,
+      'due': int.tryParse(due.toString()) ?? 1,
+      'folio': 'Auto-added',
+    });
+    
+    p['sips'] = sipsList;
+    settingsBox.put('planner', p);
+  }
+
   /// On-device fuzzy search for music - no AI needed
   SongModel? searchAndPlayMusic(String query, List<SongModel> availableSongs) {
     if (query.isEmpty || availableSongs.isEmpty) return null;
@@ -2158,6 +2320,18 @@ RULES:
         break;
       case 'finance_transaction':
         executeFinanceAction(action);
+        break;
+      case 'finance_budget':
+        _executeFinanceBudgetAction(action);
+        break;
+      case 'finance_commitment':
+        _executeFinanceCommitmentAction(action);
+        break;
+      case 'finance_sip':
+        _executeFinanceSipAction(action);
+        break;
+      case 'finance_goal':
+        _executeFinanceGoalAction(action);
         break;
     }
     action.isConfirmed = true;

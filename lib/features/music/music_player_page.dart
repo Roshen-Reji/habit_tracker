@@ -15,6 +15,7 @@ import 'package:habit_tracker/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
+import 'package:habit_tracker/widgets/wobbly_slider.dart';
 // --- Persistent Global State ---
 final ValueNotifier<Set<String>> likedSongIds = ValueNotifier<Set<String>>({});
 final ValueNotifier<List<PlaylistModel>> userPlaylists = ValueNotifier<List<PlaylistModel>>([]);
@@ -444,17 +445,9 @@ Future<void> _extractArtwork() async {
   Widget _buildSleekProgressBar(Duration pos, Duration total) {
     if (total == Duration.zero) return const SizedBox(height: 32);
     
-    return SliderTheme(
-      data: SliderThemeData(
-        trackHeight: 12,
-        activeTrackColor: AppColors.primary,
-        inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-        thumbColor: Colors.white,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0), // Hidden thumb
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
-        trackShape: const RoundedRectSliderTrackShape(),
-      ),
-      child: Slider(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: WobblySlider(
         value: pos.inMilliseconds.toDouble().clamp(0.0, total.inMilliseconds.toDouble()),
         max: total.inMilliseconds.toDouble(),
         onChanged: (val) {

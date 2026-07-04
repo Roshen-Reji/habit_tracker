@@ -11,8 +11,8 @@ class MysteriousMomentumGraph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-      builder: (context, Box<Goal> box, _) {
+      valueListenable: Hive.box('xp_history').listenable(),
+      builder: (context, Box box, _) {
         List<int> xpHistory = GlobalXPService.getPast7DaysXP();
 
         return Padding(
