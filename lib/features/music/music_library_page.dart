@@ -1,6 +1,7 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import 'package:permission_handler/permission_handler.dart';
@@ -187,7 +188,7 @@ class _ListenNowView extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         MusicManager().setPlaylist(songs, 0);
-        Navigator.push(context, MaterialPageRoute(builder: (context) => MysteriousMusicPlayer(playlist: songs, initialIndex: 0)));
+        Navigator.push(context, PageTransitions.fadeScale(MysteriousMusicPlayer(playlist: songs, initialIndex: 0)));
       },
       child: BentoContainer(
         margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -249,6 +250,7 @@ class _ListenNowView extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
+                    itemExtent: 150,
                     itemCount: playlists.length + 1, // +1 for Liked Songs
                     itemBuilder: (context, i) {
                       if (i == 0) {
@@ -259,7 +261,7 @@ class _ListenNowView extends StatelessWidget {
                           isLikedSongs: true,
                           onTap: () {
                             if (likedSongsList.isNotEmpty) {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
+                              Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No liked songs yet."), backgroundColor: Colors.white24));
                             }
@@ -275,7 +277,7 @@ class _ListenNowView extends StatelessWidget {
                         isLikedSongs: false,
                         onTap: () {
                           if (p.songs.isNotEmpty) {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: p.name, songs: p.songs)));
+                            Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: p.name, songs: p.songs)));
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${p.name} is empty."), backgroundColor: Colors.white24));
                           }
@@ -334,11 +336,12 @@ class _ListenNowView extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemExtent: 150,
             itemCount: list.length,
             itemBuilder: (context, i) {
               final s = list[i];
               return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => MysteriousMusicPlayer(playlist: list, initialIndex: i))),
+                onTap: () => Navigator.push(context, PageTransitions.fadeScale(MysteriousMusicPlayer(playlist: list, initialIndex: i))),
                 child: Container(
                   width: 120,
                   margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -398,10 +401,10 @@ class _LibraryView extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(top: 20, bottom: 120),
       children: [
-        _buildLibraryItem(context, 'Playlists', LucideIcons.listMusic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _PlaylistsPage(onCreate: onCreatePlaylist, allSongs: songs)))),
-        _buildLibraryItem(context, 'Artists', LucideIcons.mic, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Artists', groupedData: _groupedByArtist)))),
-        _buildLibraryItem(context, 'Albums', LucideIcons.disc, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _GroupedListPage(title: 'Albums', groupedData: _groupedByAlbum, isGrid: true)))),
-        _buildLibraryItem(context, 'Songs', LucideIcons.music, () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(songs: songs)))),
+        _buildLibraryItem(context, 'Playlists', LucideIcons.listMusic, () => Navigator.push(context, PageTransitions.fadeScale(_PlaylistsPage(onCreate: onCreatePlaylist, allSongs: songs)))),
+        _buildLibraryItem(context, 'Artists', LucideIcons.mic, () => Navigator.push(context, PageTransitions.fadeScale(_GroupedListPage(title: 'Artists', groupedData: _groupedByArtist)))),
+        _buildLibraryItem(context, 'Albums', LucideIcons.disc, () => Navigator.push(context, PageTransitions.fadeScale(_GroupedListPage(title: 'Albums', groupedData: _groupedByAlbum, isGrid: true)))),
+        _buildLibraryItem(context, 'Songs', LucideIcons.music, () => Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(songs: songs)))),
       ],
     );
   }
@@ -445,6 +448,7 @@ class _PlaylistsPage extends StatelessWidget {
             builder: (context, playlists, _) {
               return ListView.builder(
                 padding: const EdgeInsets.only(bottom: 100),
+                prototypeItem: const ListTile(contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), leading: SizedBox(width: 55, height: 55), title: Text(''), subtitle: Text('')),
                 itemCount: playlists.length + 1,
                 itemBuilder: (context, i) {
                   if (i == 0) {
@@ -465,7 +469,7 @@ class _PlaylistsPage extends StatelessWidget {
                       subtitle: Text('${likedSongsList.length} Tracks', style: const TextStyle(color: Colors.white54)),
                       onTap: () {
                         if (likedSongsList.isNotEmpty) {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
+                          Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: 'Liked Songs', songs: likedSongsList)));
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No liked songs yet. Tap the heart icon in the player!"), backgroundColor: Colors.white24));
                         }
@@ -483,7 +487,7 @@ class _PlaylistsPage extends StatelessWidget {
                     ),
                     title: Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     subtitle: Text('${p.songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: p.name, songs: p.songs))),
+                    onTap: () => Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: p.name, songs: p.songs))),
                   );
                 }
               );
@@ -518,7 +522,7 @@ class _GroupedListPage extends StatelessWidget {
               final groupName = keys[i];
               final songs = groupedData[groupName]!;
               return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: groupName, songs: songs))),
+                onTap: () => Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: groupName, songs: songs))),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -549,7 +553,7 @@ class _GroupedListPage extends StatelessWidget {
                 title: Text(groupName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 subtitle: Text('${songs.length} Tracks', style: const TextStyle(color: Colors.white54)),
                 trailing: const Icon(LucideIcons.chevronRight, color: Colors.white38),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _SongsListPage(title: groupName, songs: songs))),
+                onTap: () => Navigator.push(context, PageTransitions.fadeScale(_SongsListPage(title: groupName, songs: songs))),
               );
             },
           ),
@@ -571,6 +575,7 @@ class _SongsListPage extends StatelessWidget {
         ? const Center(child: Text("No tracks found.", style: TextStyle(color: Colors.white54)))
         : ListView.builder(
             padding: const EdgeInsets.only(bottom: 100),
+            prototypeItem: const ListTile(leading: SizedBox(width: 45, height: 45), title: Text(''), subtitle: Text('')),
             itemCount: songs.length,
             itemBuilder: (context, i) {
               final s = songs[i];
@@ -581,7 +586,7 @@ class _SongsListPage extends StatelessWidget {
                 ),
                 title: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white)),
                 subtitle: Text(s.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54)),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MysteriousMusicPlayer(playlist: songs, initialIndex: i))),
+                onTap: () => Navigator.push(context, PageTransitions.fadeScale(MysteriousMusicPlayer(playlist: songs, initialIndex: i))),
               );
             }
           ),
@@ -629,6 +634,8 @@ class _SearchViewState extends State<_SearchView> {
           Expanded(
             child: ListView.builder(
               physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100),
+              prototypeItem: const ListTile(leading: SizedBox(width: 50, height: 50), title: Text(''), subtitle: Text('')),
               itemCount: _results.length,
               itemBuilder: (context, i) {
                 final s = _results[i];
@@ -637,7 +644,7 @@ class _SearchViewState extends State<_SearchView> {
                   leading: ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 50, height: 50, child: audio_query.QueryArtworkWidget(id: int.parse(s.id), type: audio_query.ArtworkType.AUDIO, nullArtworkWidget: ProceduralArtwork(title: s.title, artist: s.artist, size: 50)))),
                   title: Text(s.title, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.artist, style: const TextStyle(color: Colors.white54)),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MysteriousMusicPlayer(playlist: _results, initialIndex: i))),
+                  onTap: () => Navigator.push(context, PageTransitions.fadeScale(MysteriousMusicPlayer(playlist: _results, initialIndex: i))),
                 );
               },
             ),

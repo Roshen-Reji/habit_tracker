@@ -112,7 +112,23 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             IconButton(
               icon: Icon(LucideIcons.barChart2, color: BentoTheme.accent),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskAnalyticsPage()));
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => const TaskAnalyticsPage(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      final fadeAnim = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+                      final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+                        CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                      );
+                      return FadeTransition(
+                        opacity: fadeAnim,
+                        child: SlideTransition(position: slideAnim, child: child),
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 300),
+                  ),
+                );
               },
             ),
         ],
@@ -210,17 +226,19 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
             sliver: SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  Icon(LucideIcons.wind, size: 60, color: BentoTheme.textSecondary.withValues(alpha: 0.5))
-                    .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                    .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
-                  const SizedBox(height: 16),
-                  Text("No missions here yet.", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text("Time to assign yourself a new objective.", style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
-                ],
-              ).animate().fade().scale(curve: Curves.easeOutBack),
+              child: RepaintBoundary(
+                child: Column(
+                  children: [
+                    Icon(LucideIcons.wind, size: 60, color: BentoTheme.textSecondary.withValues(alpha: 0.5))
+                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                      .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
+                    const SizedBox(height: 16),
+                    Text("No missions here yet.", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text("Time to assign yourself a new objective.", style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                  ],
+                ).animate().fade().scale(curve: Curves.easeOutBack),
+              ),
             ),
           ),
         

@@ -108,7 +108,6 @@ class DashboardView extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: BentoContainer(
         borderRadius: 16,
-        isPressed: goal.isCompleted,
         padding: EdgeInsets.zero,
         child: ListTile(
           onTap: () { 

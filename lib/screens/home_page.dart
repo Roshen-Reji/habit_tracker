@@ -113,16 +113,17 @@ class _HomePageState extends State<HomePage> {
         children: [
           StarBackground(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 500),
               transitionBuilder: (child, animation) {
                 final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
                 );
-                final scaleAnim = Tween<double>(begin: 0.98, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
+                final scaleAnim = Tween<double>(begin: 0.97, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
                 );
+                final fadeAnim = CurvedAnimation(parent: animation, curve: Curves.easeOut);
                 return FadeTransition(
-                  opacity: animation,
+                  opacity: fadeAnim,
                   child: SlideTransition(
                     position: slideAnim,
                     child: ScaleTransition(

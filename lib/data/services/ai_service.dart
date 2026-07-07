@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:habit_tracker/data/services/ai_context.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
@@ -2031,39 +2032,7 @@ class AiService {
     _messagesHistory = [];
   }
 
-  String _buildSystemPrompt() {
-    return '''You are a concise personal AI assistant in a habit tracking app.
-
-CAPABILITIES: Diet tracking, task management, finance logging/analysis, vault video commands, goal feedback.
-
-RESPOND IN JSON:
-{"intent":"<diet_log|diet_burn|diet_report|diet_advice|task_create|finance_query|finance_advice|goal_opinion|general_chat>","message":"<your response>","actions":[{"type":"<food_entry|burn_entry|task_create|finance_transaction|finance_budget|finance_commitment|finance_sip|finance_goal|play_vault_video>","payload":{}}]}
-
-ACTION PAYLOADS:
-food_entry: {"name":"2 Eggs","calories":140,"protein":12.0,"carbs":1.0,"fat":10.0,"meal_type":"breakfast"}
-burn_entry: {"activity":"Running","calories_burned":150,"duration_minutes":20}
-task_create: {"title":"Study","type":"today|daily|weekly|monthly","target_value":2,"unit":"hours","category":"learning|health|productivity|fitness|hobby","end_date":"2026-07-10T23:59:59"}
-finance_transaction: {"title":"Pepsi","amount":40.0,"mode":"expense|income","category":"Food|Shopping|Transport|Utilities|Health|Entertainment|OTT|Groceries|EMI|Other"}
-finance_budget: {"category":"Food","total":1000.0}
-finance_commitment: {"name":"Netflix","amount":199.0,"date":15}
-finance_sip: {"name":"Mutual Fund","amount":5000.0,"due":5}
-finance_goal: {"name":"Car","target":500000.0}
-play_vault_video: {"query":"motivation"}
-
-RULES:
-- Estimate macros accurately. No ~ symbols.
-- Infer task type from context.
-- For bounded daily tasks such as "this week" or "for 10 days", include end_date.
-- For finance logging, use finance_transaction; amount must be positive and mode says income or expense.
-- CRITICAL: If the user wants to buy something expensive or save for a big purchase (e.g. "buy a macbook worth 1.5 lakhs", "save for car"), categorize it as a `finance_goal`, NOT a task.
-- If the user mentions monthly SIP, mutual fund investment, or recurring investment, use `finance_sip`.
-- If the user mentions monthly EMI, loan payment, rent, insurance, subscription, or fixed recurring cost, use `finance_commitment`.
-- If the user says monthly budget or category limit, use `finance_budget`.
-- Parse Indian money terms correctly: 5k = 5000, 1 lakh = 100000, 1 crore = 10000000.
-- Always respond in JSON. No markdown outside JSON.
-- Keep responses short and direct.
-- Multiple actions allowed in one response.''';
-  }
+  // System prompt moved to AiContext
 
   /// Process a user message and return an AI response
   Future<AiResponse> processMessage(String userMessage,
@@ -2113,11 +2082,11 @@ RULES:
       // Build minimal context based on detected intent
       String contextData = '';
       if (detectedIntent == 'diet') {
-        contextData = _buildDietContext();
+        contextData = AiContext.buildDietContext(_getCalorieTarget());
       } else if (detectedIntent == 'finance') {
-        contextData = _buildFinanceContext();
+        contextData = AiContext.buildFinanceContext();
       } else if (detectedIntent == 'tasks') {
-        contextData = _buildTaskContext();
+        contextData = AiContext.buildTaskContext();
       }
       // 'music' intent is handled on-device - never reaches AI
       // 'general' intent gets no context - saves tokens
@@ -2148,10 +2117,10 @@ RULES:
         ],
       });
 
-      // Cap history to last 6 messages to prevent token bloat
-      if (_messagesHistory.length > 6) {
+      // Cap history to last 2 messages (1 turn) to prevent token bloat
+      if (_messagesHistory.length > 2) {
         _messagesHistory =
-            _messagesHistory.sublist(_messagesHistory.length - 6);
+            _messagesHistory.sublist(_messagesHistory.length - 2);
       }
 
       // Do NOT prepend system prompt to user message text.
@@ -2161,7 +2130,7 @@ RULES:
       final requestBody = {
         'system_instruction': {
           'parts': [
-            {'text': _buildSystemPrompt()}
+            {'text': AiContext.buildSystemPrompt()}
           ]
         },
         'contents': [
@@ -2272,87 +2241,6 @@ RULES:
         message: responseText,
         intent: 'general_chat',
       );
-    }
-  }
-
-  // --- Context Builders (Trimmed for minimal tokens) ---
-
-  String _buildDietContext() {
-    try {
-      final box = Hive.box<DietDayLog>('diet_logs');
-      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final todayLog = box.get(today);
-
-      if (todayLog == null)
-        return '\n[DIET: No meals today. Target: ${_getCalorieTarget()} kcal]\n';
-
-      final buffer = StringBuffer();
-      buffer.writeln('\n[DIET TODAY]');
-      buffer.writeln('Target: ${todayLog.targetCalories} kcal');
-      for (var e in todayLog.entries) {
-        buffer.writeln(
-            '  ${e.name}: ${e.calories}cal P:${e.protein}g C:${e.carbs}g F:${e.fat}g (${e.mealType.name})');
-      }
-      buffer.writeln(
-          'Total: ${todayLog.totalCalories}cal in, ${todayLog.totalBurned}cal burned');
-      buffer.writeln(
-          'Net: ${todayLog.netCalories}cal | ${todayLog.isDeficit ? "DEFICIT" : "SURPLUS"} ${todayLog.deficit.abs().toStringAsFixed(0)}');
-
-      return buffer.toString();
-    } catch (e) {
-      return '\n[DIET: Data unavailable]\n';
-    }
-  }
-
-  String _buildFinanceContext() {
-    try {
-      final txBox = Hive.box<Transaction>('finance_transactions');
-      final settingsBox = Hive.box('finance_settings');
-      final transactions = txBox.values.toList();
-
-      final now = DateTime.now();
-      double monthIncome = 0, monthExpense = 0;
-
-      for (var tx in transactions) {
-        if (tx.date.month == now.month && tx.date.year == now.year) {
-          final mode = tx.mode.toLowerCase();
-          final isExpense = mode == 'expense' || tx.amount < 0;
-          if (isExpense)
-            monthExpense += tx.amount.abs();
-          else
-            monthIncome += tx.amount.abs();
-        }
-      }
-
-      final planner = Map.from(settingsBox
-          .get('planner', defaultValue: {'fixedExpenses': [], 'sips': []}));
-      final fixed = List.from(planner['fixedExpenses'] ?? []);
-      final sips = List.from(planner['sips'] ?? []);
-      final budgets = List.from(settingsBox.get('budgets', defaultValue: []));
-      final goals = List.from(settingsBox.get('goals', defaultValue: []));
-      final fixedTotal = fixed.fold<double>(
-          0, (sum, item) => sum + _asDouble((item as Map)['amount']));
-      final sipTotal = sips.fold<double>(
-          0, (sum, item) => sum + _asDouble((item as Map)['amount']));
-
-      return '\n[FINANCE ${DateFormat('MMM yyyy').format(now)}] Income: ${monthIncome.toStringAsFixed(0)} | Spent: ${monthExpense.toStringAsFixed(0)} | Saved: ${(monthIncome - monthExpense).toStringAsFixed(0)} | Budgets: ${budgets.length} | Goals: ${goals.length} | Fixed/mo: ${fixedTotal.toStringAsFixed(0)} | SIP/mo: ${sipTotal.toStringAsFixed(0)}\n';
-    } catch (e) {
-      return '\n[FINANCE: Data unavailable]\n';
-    }
-  }
-
-  String _buildTaskContext() {
-    try {
-      final box = Hive.box<Goal>('mission_box_v4');
-      final goals = box.values.toList();
-
-      if (goals.isEmpty) return '\n[TASKS: None]\n';
-
-      int completed = goals.where((g) => g.isCompleted).length;
-      int active = goals.where((g) => !g.isCompleted && !g.isArchived).length;
-      return '\n[TASKS] Active: $active, Completed: $completed, Total: ${goals.length}\n';
-    } catch (e) {
-      return '\n[TASKS: Data unavailable]\n';
     }
   }
 

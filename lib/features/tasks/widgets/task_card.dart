@@ -55,14 +55,12 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return BentoButton(
       onTap: onTap,
-      child: BentoContainer(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        isPressed: goal.isCompleted,
-        borderRadius: 16,
-        child: Column(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      borderRadius: 16,
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -188,15 +186,16 @@ class TaskCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      LinearProgressIndicator(
-                        value: goal.progress,
-                        borderRadius: BorderRadius.circular(4),
-                        backgroundColor:
-                            true ? Colors.black26 : Colors.black12,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _getCategoryColor(goal.category),
+                      RepaintBoundary(
+                        child: LinearProgressIndicator(
+                          value: goal.progress,
+                          borderRadius: BorderRadius.circular(4),
+                          backgroundColor: Colors.black12,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _getCategoryColor(goal.category),
+                          ),
+                          minHeight: 6,
                         ),
-                        minHeight: 6,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -220,8 +219,7 @@ class TaskCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    )
+      )
         .animate(target: goal.isCompleted ? 1 : 0)
         .scaleXY(
             begin: 1.0, end: 1.05, curve: Curves.easeOutBack, duration: 150.ms)

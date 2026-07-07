@@ -514,6 +514,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     color: BentoTheme.textSecondary,
                                     fontStyle: FontStyle.italic)))
                         : ListView.builder(
+                            prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
                             itemCount: folders.length,
                             itemBuilder: (context, i) {
                               return ListTile(

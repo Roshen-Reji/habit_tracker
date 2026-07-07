@@ -683,9 +683,9 @@ Widget _buildArtworkView() {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(currentSong.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(currentSong.title, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 4),
-                            Text(currentSong.artist, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(currentSong.artist, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
@@ -694,7 +694,7 @@ Widget _buildArtworkView() {
                         builder: (context, likes, _) {
                           final isLiked = likes.contains(currentSong.id);
                           return IconButton(
-                            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart, color: isLiked ? AppColors.primary : Colors.white, size: 28), 
+                            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart, color: isLiked ? AppColors.primary : BentoTheme.textPrimary, size: 28), 
                             onPressed: _toggleLike
                           );
                         }
@@ -716,8 +716,8 @@ Widget _buildArtworkView() {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                           children: [
-                            Text(_format(pos), style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500)), 
-                            Text("-${_format(totalDuration - pos)}", style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500))
+                            Text(_format(pos), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)), 
+                            Text("-${_format(totalDuration - pos)}", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500))
                           ]
                         ),
                       ]
@@ -733,14 +733,14 @@ Widget _buildArtworkView() {
                   children: [
                     // Shuffle Button
                     IconButton(
-                      icon: Icon(LucideIcons.shuffle, color: isShuffleOn ? AppColors.primary : Colors.white54, size: 24), 
+                      icon: Icon(LucideIcons.shuffle, color: isShuffleOn ? AppColors.primary : BentoTheme.textSecondary, size: 24), 
                       onPressed: () {
                         _audioPlayer.setShuffleModeEnabled(!isShuffleOn);
                         HapticFeedback.selectionClick();
                       }
                     ),
                     // Skip Previous
-                    IconButton(icon: const Icon(LucideIcons.skipBack, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToPrevious()),
+                    IconButton(icon: Icon(LucideIcons.skipBack, size: 36, color: BentoTheme.textPrimary), onPressed: () => _audioPlayer.seekToPrevious()),
                     // Play/Pause
                     GestureDetector(
                       onTap: _onPlayPause, 
@@ -751,12 +751,12 @@ Widget _buildArtworkView() {
                       )
                     ),
                     // Skip Next
-                    IconButton(icon: const Icon(LucideIcons.skipForward, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToNext()),
+                    IconButton(icon: Icon(LucideIcons.skipForward, size: 36, color: BentoTheme.textPrimary), onPressed: () => _audioPlayer.seekToNext()),
                     // Repeat Button
                     IconButton(
                       icon: Icon(
                         loopMode == LoopMode.one ? LucideIcons.repeat1 : LucideIcons.repeat, 
-                        color: loopMode != LoopMode.off ? AppColors.primary : Colors.white54, 
+                        color: loopMode != LoopMode.off ? AppColors.primary : BentoTheme.textSecondary, 
                         size: 24
                       ), 
                       onPressed: () {
@@ -777,10 +777,10 @@ Widget _buildArtworkView() {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center, 
                   children: [
-                    IconButton(icon: Icon(LucideIcons.messageSquare, color: showLyrics ? AppColors.primary : Colors.white54, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
+                    IconButton(icon: Icon(LucideIcons.messageSquare, color: showLyrics ? AppColors.primary : BentoTheme.textSecondary, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
                     const SizedBox(width: 40),
                     IconButton(
-                      icon: const Icon(LucideIcons.list, color: Colors.white54, size: 22), 
+                      icon: Icon(LucideIcons.list, color: BentoTheme.textSecondary, size: 22), 
                       onPressed: _showCurrentQueue, 
                     ),
                   ]

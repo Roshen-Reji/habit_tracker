@@ -7,11 +7,11 @@ class BentoTheme {
   // Base Background Color
   static Color get background {
     bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    Color base = isLight ? const Color(0xFFF9F9F9) : const Color(0xFF000000);
+    Color base = isLight ? const Color(0xFFF3F4F6) : const Color(0xFF000000); // Sleek soft gray for light
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.1), base);
+      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: isLight ? 0.05 : 0.1), base);
     }
     return base;
   }
@@ -23,7 +23,7 @@ class BentoTheme {
     bool dynamicBg = Hive.box('settings').get('dynamic_background', defaultValue: true);
     
     if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: 0.08), base);
+      return Color.alphaBlend(MusicManager().currentDominantColor.value!.withValues(alpha: isLight ? 0.03 : 0.08), base);
     }
     return base;
   }
@@ -35,17 +35,17 @@ class BentoTheme {
       return MusicManager().currentDominantColor.value!;
     }
     bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+    return isLight ? const Color(0xFF111827) : const Color(0xFFFFFFFF); // Slate 900 for Light Accent
   }
 
   static Color get textPrimary {
     bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+    return isLight ? const Color(0xFF1F2937) : const Color(0xFFFFFFFF);
   }
 
   static Color get textSecondary {
     bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? const Color(0xFF000000).withValues(alpha: 0.6) : const Color(0xFFFFFFFF).withValues(alpha: 0.6);
+    return isLight ? const Color(0xFF6B7280) : const Color(0xFFFFFFFF).withValues(alpha: 0.6);
   }
 }
 
@@ -55,7 +55,6 @@ class BentoContainer extends StatelessWidget {
   final double borderRadius;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
-  final bool isPressed;
   final Color? customColor;
   final double? width;
   final double? height;
@@ -66,7 +65,6 @@ class BentoContainer extends StatelessWidget {
     this.borderRadius = 16.0, // Bento box soft rounded corners
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
-    this.isPressed = false,
     this.customColor,
     this.width,
     this.height,
@@ -74,32 +72,27 @@ class BentoContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isLight = Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
     final baseColor = customColor ?? BentoTheme.surface;
     
-    // For pressed state, just slightly darken or lighten (since we're flat)
-    final displayColor = isPressed 
-      ? baseColor.withValues(alpha: 0.8) 
-      : baseColor;
-
-    return AnimatedScale(
-      scale: isPressed ? 0.97 : 1.0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutBack,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        width: width,
-        height: height,
-        margin: margin,
-        padding: padding,
-        decoration: BoxDecoration(
-          color: displayColor,
-          borderRadius: BorderRadius.circular(borderRadius),
-          // Subtle border to differentiate cards against pure black
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.0),
-        ),
-        child: child,
+    return Container(
+      width: width,
+      height: height,
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: baseColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: isLight ? Colors.black.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.05), width: 1.0),
+        boxShadow: isLight ? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ] : [],
       ),
+      child: child,
     );
   }
 }
@@ -129,18 +122,12 @@ class BentoButton extends StatefulWidget {
 class _BentoButtonState extends State<BentoButton> {
   bool _isPressed = false;
 
-  void _handleTapDown(TapDownDetails details) {
-    setState(() => _isPressed = true);
-  }
-
+  void _handleTapDown(TapDownDetails details) => setState(() => _isPressed = true);
   void _handleTapUp(TapUpDetails details) {
     setState(() => _isPressed = false);
     widget.onTap();
   }
-
-  void _handleTapCancel() {
-    setState(() => _isPressed = false);
-  }
+  void _handleTapCancel() => setState(() => _isPressed = false);
 
   @override
   Widget build(BuildContext context) {
@@ -149,12 +136,17 @@ class _BentoButtonState extends State<BentoButton> {
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
       child: BentoContainer(
-        isPressed: _isPressed,
         borderRadius: widget.borderRadius,
         padding: widget.padding,
-        customColor: widget.color,
+        customColor: _isPressed 
+            ? (widget.color ?? BentoTheme.surface).withValues(alpha: 0.8) 
+            : widget.color,
         margin: widget.margin,
         child: widget.child,
+      ).animate(target: _isPressed ? 1 : 0).scale(
+        end: const Offset(0.95, 0.95),
+        duration: 150.ms,
+        curve: Curves.easeOutBack,
       ),
     );
   }

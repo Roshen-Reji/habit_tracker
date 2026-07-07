@@ -34,7 +34,7 @@ class _HomeChatFABState extends State<HomeChatFAB>
         barrierDismissible: true,
         barrierLabel: 'Chat',
         barrierColor: Colors.black54,
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (context, anim1, anim2) {
           return const Align(
             alignment: Alignment.bottomCenter,
@@ -42,10 +42,17 @@ class _HomeChatFABState extends State<HomeChatFAB>
           );
         },
         transitionBuilder: (context, anim1, anim2, child) {
+          final curve = CurvedAnimation(
+            parent: anim1,
+            curve: Curves.easeOutExpo,
+          );
           return Transform.scale(
-            scale: anim1.value,
-            alignment: const Alignment(0.8, 0.8),
-            child: child,
+            scale: curve.value,
+            alignment: const Alignment(0.8, 0.9), // Match FAB location
+            child: FadeTransition(
+              opacity: curve,
+              child: child,
+            ),
           );
         },
       ).then((_) {
