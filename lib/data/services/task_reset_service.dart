@@ -3,10 +3,15 @@ import 'package:habit_tracker/data/models/goal.dart';
 
 class TaskResetService {
   static void checkAndResetTasks() {
-    final box = Hive.box<Goal>('mission_box_v4'); // Note: changed to v4 since model changed drastically
+    final box = Hive.box<Goal>(
+        'mission_box_v4'); // Note: changed to v4 since model changed drastically
     final now = DateTime.now();
 
     for (var goal in box.values) {
+      if (goal.endDate != null && _isAfterDateOnly(now, goal.endDate!)) {
+        continue;
+      }
+
       if (!goal.isCompleted) continue;
 
       if (goal.lastCompletedDate == null) {
@@ -15,7 +20,7 @@ class TaskResetService {
       }
 
       bool shouldReset = false;
-      
+
       switch (goal.type) {
         case GoalType.today:
           // Today tasks disappear or reset next day
@@ -40,6 +45,12 @@ class TaskResetService {
 
   static bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  static bool _isAfterDateOnly(DateTime a, DateTime b) {
+    final left = DateTime(a.year, a.month, a.day);
+    final right = DateTime(b.year, b.month, b.day);
+    return left.isAfter(right);
   }
 
   static bool _isDifferentWeek(DateTime now, DateTime lastCompleted) {

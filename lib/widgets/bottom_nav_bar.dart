@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -14,47 +15,62 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeuContainer(
+    return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      borderRadius: 32,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: BentoTheme.surface, // #1C1C1E
+        borderRadius: BorderRadius.circular(32),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildNeuTab(LucideIcons.home, "HOME", 0),
-          _buildNeuTab(LucideIcons.target, "GOALS", 1),
-          _buildNeuTab(LucideIcons.utensils, "DIET", 2),
-          _buildNeuTab(LucideIcons.music, "AUDIO", 3),
+          Expanded(child: _buildBentoTab(LucideIcons.home, 0)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildBentoTab(LucideIcons.target, 1)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildBentoTab(LucideIcons.utensils, 2)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildBentoTab(LucideIcons.music, 3)),
         ],
       ),
     );
   }
 
-  Widget _buildNeuTab(IconData icon, String label, int index) {
+  Widget _buildBentoTab(IconData icon, int index) {
     final bool isSelected = selectedIndex == index;
+    
     return GestureDetector(
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 60,
-        height: 55,
-        child: NeuContainer(
-          borderRadius: 20,
-          isPressed: false,
-          padding: EdgeInsets.zero,
-          customColor: isSelected ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? NeuTheme.accent : NeuTheme.textSecondary,
-                size: 26,
-              ),
-            ],
-          ),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        height: 60,
+        decoration: BoxDecoration(
+          color: isSelected ? BentoTheme.accent : BentoTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          // Inner glow effect simulated with a bright, subtle top/left border
+          border: isSelected ? Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0) : null,
+          boxShadow: isSelected ? [
+             BoxShadow(
+              color: Colors.white.withValues(alpha: 0.15),
+              blurRadius: 10,
+              spreadRadius: -2,
+            )
+          ] : [],
         ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? BentoTheme.background : const Color(0xFFE1E1E6),
+              size: 26,
+            ),
+          ],
+        ).animate(target: isSelected ? 1 : 0)
+         .scaleXY(end: 1.1, duration: 400.ms, curve: Curves.easeOutBack),
       ),
     );
   }

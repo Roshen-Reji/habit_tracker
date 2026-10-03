@@ -2,6 +2,8 @@
 
 Commander Habit Tracker is a comprehensive, multi-functional Flutter application designed to help you build better habits, manage your finances, organize inspirational speeches, and enjoy music. 
 
+> 📖 **Full System Architecture & Technical Documentation:** For an in-depth breakdown of the database schemas, hybrid AI engine, feature lifecycles, and directory architecture, see [APP_DOCUMENTATION.md](file:///d:/Roshen/Habit%20Tracker/habit_tracker/APP_DOCUMENTATION.md).
+
 ## Features
 
 This application combines multiple productivity and lifestyle tools into one cohesive experience:

@@ -38,4 +38,23 @@ class AppTheme {
       // fontFamily: 'Inter',
     );
   }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: const Color(0xFFF3F4F6),
+      primaryColor: const Color(0xFF111827),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.black),
+      ),
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFF111827),
+        surface: Color(0xFFFFFFFF),
+      ),
+      // fontFamily: 'Inter',
+    );
+  }
 }

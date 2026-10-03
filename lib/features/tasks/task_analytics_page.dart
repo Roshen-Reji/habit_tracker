@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 
@@ -21,7 +22,7 @@ class TaskAnalyticsPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.primary),
+        iconTheme: IconThemeData(color: BentoTheme.accent),
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
@@ -47,16 +48,16 @@ class TaskAnalyticsPage extends StatelessWidget {
               children: [
                 _buildOverallProgressCard(completionRate, completedCount, goals.length),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   "CATEGORY FOCUS",
-                  style: TextStyle(color: AppColors.primary, letterSpacing: 1.5, fontWeight: bold),
+                  style: TextStyle(color: BentoTheme.accent, letterSpacing: 1.5, fontWeight: bold),
                 ),
                 const SizedBox(height: 16),
                 _buildCategoryBreakdown(goals),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   "STREAK MASTERS",
-                  style: TextStyle(color: AppColors.primary, letterSpacing: 1.5, fontWeight: bold),
+                  style: TextStyle(color: BentoTheme.accent, letterSpacing: 1.5, fontWeight: bold),
                 ),
                 const SizedBox(height: 16),
                 _buildTopStreaks(goals),
@@ -88,7 +89,7 @@ class TaskAnalyticsPage extends StatelessWidget {
                   value: rate,
                   strokeWidth: 8,
                   backgroundColor: AppColors.surfaceLight,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(BentoTheme.accent),
                 ),
                 Center(
                   child: Text(
@@ -155,7 +156,7 @@ class TaskAnalyticsPage extends StatelessWidget {
               radarShape: RadarShape.polygon,
               radarBorderData: const BorderSide(color: AppColors.glassBorder),
               tickBorderData: const BorderSide(color: Colors.transparent),
-              gridBorderData: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1),
+              gridBorderData: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.2), width: 1),
               titlePositionPercentageOffset: 0.1,
               getTitle: (index, angle) {
                 final cat = GoalCategory.values[index];
@@ -168,8 +169,8 @@ class TaskAnalyticsPage extends StatelessWidget {
               titleTextStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
               dataSets: [
                 RadarDataSet(
-                  fillColor: AppColors.primary.withValues(alpha: 0.3),
-                  borderColor: AppColors.primary,
+                  fillColor: BentoTheme.accent.withValues(alpha: 0.3),
+                  borderColor: BentoTheme.accent,
                   entryRadius: 3,
                   dataEntries: GoalCategory.values.map((cat) {
                     return RadarEntry(value: (categoryCounts[cat] ?? 0).toDouble());
@@ -255,7 +256,7 @@ class TaskAnalyticsPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+            border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

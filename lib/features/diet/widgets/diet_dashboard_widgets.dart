@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -28,7 +28,7 @@ class CalorieRingChart extends StatelessWidget {
     final net = intake - burned;
     final progress = target > 0 ? (net / target).clamp(0.0, 1.5) : 0.0;
     final isOver = net > target;
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
 
     return SizedBox(
       width: size,
@@ -60,7 +60,7 @@ class CalorieRingChart extends StatelessWidget {
               strokeWidth: 12,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                NeuTheme.background.withValues(alpha: 0.3),
+                BentoTheme.background.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -92,7 +92,7 @@ class CalorieRingChart extends StatelessWidget {
               Text(
                 net.toStringAsFixed(0),
                 style: TextStyle(
-                  color: NeuTheme.textPrimary,
+                  color: BentoTheme.textPrimary,
                   fontSize: size * 0.16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -100,7 +100,7 @@ class CalorieRingChart extends StatelessWidget {
               Text(
                 "of ${target.toStringAsFixed(0)} kcal",
                 style: TextStyle(
-                  color: NeuTheme.textSecondary,
+                  color: BentoTheme.textSecondary,
                   fontSize: size * 0.065,
                 ),
               ),
@@ -150,76 +150,60 @@ class MacroBreakdownBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = protein + carbs + fat;
-    if (total == 0) {
-      return const SizedBox.shrink();
-    }
+    if (total == 0) return const SizedBox.shrink();
 
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            height: 10,
-            child: Row(
-              children: [
-                _buildSegment(protein / total, proteinColor),
-                _buildSegment(carbs / total, carbsColor),
-                _buildSegment(fat / total, fatColor),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildMacroLabel("Protein", protein, proteinColor),
-            _buildMacroLabel("Carbs", carbs, carbsColor),
-            _buildMacroLabel("Fat", fat, fatColor),
-          ],
-        ),
+        _buildMacroRing("Protein", protein, total, proteinColor),
+        _buildMacroRing("Carbs", carbs, total, carbsColor),
+        _buildMacroRing("Fat", fat, total, fatColor),
       ],
     );
   }
 
-  Widget _buildSegment(double fraction, Color color) {
-    return Expanded(
-      flex: (fraction * 100).toInt().clamp(1, 100),
-      child: Container(color: color),
-    );
-  }
-
-  Widget _buildMacroLabel(String label, double grams, Color color) {
+  Widget _buildMacroRing(String label, double amount, double total, Color color) {
+    double progress = (amount / total).clamp(0.0, 1.0);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
+        SizedBox(
+          width: 50,
+          height: 50,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: 1.0,
+                strokeWidth: 6,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(true ? Colors.white10 : Colors.black12),
               ),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: NeuTheme.textSecondary,
-                fontSize: 11,
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 1000),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) {
+                  return CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 6,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  );
+                },
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
         ),
         Text(
-          "${grams.toStringAsFixed(1)}g",
-          style: TextStyle(
-            color: NeuTheme.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          "${amount.toStringAsFixed(0)}g",
+          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w900),
         ),
       ],
     );
@@ -234,7 +218,7 @@ class WeeklyCalorieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     final target = logs.isNotEmpty ? logs.first.targetCalories : 2000;
 
     return SizedBox(
@@ -246,12 +230,12 @@ class WeeklyCalorieChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (touchedGroup) => NeuTheme.background,
+              getTooltipColor: (touchedGroup) => BentoTheme.background,
               tooltipBorderRadius: BorderRadius.circular(8),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${rod.toY.toStringAsFixed(0)} kcal',
-                  TextStyle(color: NeuTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                 );
               },
             ),
@@ -264,7 +248,7 @@ class WeeklyCalorieChart extends StatelessWidget {
               if (value == target) {
                 return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
               }
-              return FlLine(color: NeuTheme.background.withValues(alpha: 0.3), strokeWidth: 0.5);
+              return FlLine(color: BentoTheme.background.withValues(alpha: 0.3), strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
@@ -277,7 +261,7 @@ class WeeklyCalorieChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
+                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -293,7 +277,7 @@ class WeeklyCalorieChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         date != null ? DateFormat('E').format(date).substring(0, 2) : '',
-                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
+                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -341,7 +325,7 @@ class MonthlyTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     final target = logs.isNotEmpty ? logs.first.targetCalories : 2000;
 
     final spots = logs.asMap().entries.map((e) {
@@ -361,7 +345,7 @@ class MonthlyTrendChart extends StatelessWidget {
               if (value == target) {
                 return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
               }
-              return FlLine(color: NeuTheme.background.withValues(alpha: 0.2), strokeWidth: 0.5);
+              return FlLine(color: BentoTheme.background.withValues(alpha: 0.2), strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
@@ -374,7 +358,7 @@ class MonthlyTrendChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
+                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -391,7 +375,7 @@ class MonthlyTrendChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         date != null ? DateFormat('d/M').format(date) : '',
-                        style: TextStyle(color: NeuTheme.textSecondary, fontSize: 10),
+                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -425,13 +409,13 @@ class MonthlyTrendChart extends StatelessWidget {
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (touchedSpot) => NeuTheme.background,
+              getTooltipColor: (touchedSpot) => BentoTheme.background,
               tooltipBorderRadius: BorderRadius.circular(8),
               getTooltipItems: (spots) {
                 return spots.map((s) {
                   return LineTooltipItem(
                     '${s.y.toStringAsFixed(0)} kcal',
-                    TextStyle(color: NeuTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                    TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                   );
                 }).toList();
               },
@@ -499,7 +483,7 @@ class AiOpinionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -542,7 +526,7 @@ class AiOpinionCard extends StatelessWidget {
                 Text(
                   opinion,
                   style: TextStyle(
-                    color: NeuTheme.textSecondary,
+                    color: BentoTheme.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -590,7 +574,7 @@ class BurnEntryTile extends StatelessWidget {
                 Text(
                   burn.activity,
                   style: TextStyle(
-                    color: NeuTheme.textPrimary,
+                    color: BentoTheme.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -599,7 +583,7 @@ class BurnEntryTile extends StatelessWidget {
                   Text(
                     "${burn.durationMinutes} min",
                     style: TextStyle(
-                      color: NeuTheme.textSecondary,
+                      color: BentoTheme.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -616,7 +600,7 @@ class BurnEntryTile extends StatelessWidget {
           ),
           if (onDelete != null)
             IconButton(
-              icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary, size: 16),
+              icon: Icon(LucideIcons.x, color: BentoTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -636,12 +620,12 @@ class FoodEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: NeuTheme.background,
+        color: BentoTheme.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.transparent),
       ),
@@ -663,7 +647,7 @@ class FoodEntryTile extends StatelessWidget {
                 Text(
                   entry.name,
                   style: TextStyle(
-                    color: NeuTheme.textPrimary,
+                    color: BentoTheme.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -671,7 +655,7 @@ class FoodEntryTile extends StatelessWidget {
                 Text(
                   "P: ${entry.protein.toStringAsFixed(1)}g  C: ${entry.carbs.toStringAsFixed(1)}g  F: ${entry.fat.toStringAsFixed(1)}g",
                   style: TextStyle(
-                    color: NeuTheme.textSecondary,
+                    color: BentoTheme.textSecondary,
                     fontSize: 10,
                   ),
                 ),
@@ -688,7 +672,7 @@ class FoodEntryTile extends StatelessWidget {
           ),
           if (onDelete != null)
             IconButton(
-              icon: Icon(LucideIcons.x, color: NeuTheme.textSecondary, size: 16),
+              icon: Icon(LucideIcons.x, color: BentoTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -734,11 +718,11 @@ class DailyReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     final date = DateTime.tryParse(log.dateKey) ?? DateTime.now();
     final dateStr = DateFormat('MMMM d, yyyy').format(date);
 
-    return NeuContainer(
+    return BentoContainer(
       borderRadius: 20,
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -823,11 +807,11 @@ class DailyReportCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(e.name, style: TextStyle(color: NeuTheme.textPrimary, fontSize: 12), overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 2, child: Text(e.calories.toStringAsFixed(0), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.protein.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.carbs.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.fat.toStringAsFixed(1), style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 3, child: Text(e.name, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 2, child: Text(e.calories.toStringAsFixed(0), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.protein.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.carbs.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text(e.fat.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -839,7 +823,7 @@ class DailyReportCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
@@ -886,11 +870,11 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
+    final accent = BentoTheme.accent;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: NeuTheme.background,
+        color: BentoTheme.background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.transparent),
       ),
@@ -913,14 +897,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 flex: 3,
                 child: TextField(
                   controller: _activityController,
-                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Activity (e.g., Running)",
-                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),
@@ -930,14 +914,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 child: TextField(
                   controller: _caloriesController,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "kcal",
-                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),
@@ -947,14 +931,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                 child: TextField(
                   controller: _durationController,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "min",
-                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: NeuTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),

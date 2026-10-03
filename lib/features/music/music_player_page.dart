@@ -12,9 +12,10 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/services/lyrics_service.dart';
 import 'package:habit_tracker/theme/app_theme.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
+import 'package:habit_tracker/widgets/wobbly_slider.dart';
 // --- Persistent Global State ---
 final ValueNotifier<Set<String>> likedSongIds = ValueNotifier<Set<String>>({});
 final ValueNotifier<List<PlaylistModel>> userPlaylists = ValueNotifier<List<PlaylistModel>>([]);
@@ -441,51 +442,18 @@ Future<void> _extractArtwork() async {
 
   String _format(Duration d) => "${d.inMinutes}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
 
-  // Aesthetic Waveform Builder
-  Widget _buildAestheticWaveform(Duration position, Duration total) {
-    final double progress = total.inMilliseconds > 0 
-        ? position.inMilliseconds / total.inMilliseconds 
-        : 0.0;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (details) {
-            final percent = (details.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
-            _audioPlayer.seek(Duration(milliseconds: (total.inMilliseconds * percent).toInt()));
-          },
-          onTapDown: (details) {
-            final percent = (details.localPosition.dx / constraints.maxWidth).clamp(0.0, 1.0);
-            _audioPlayer.seek(Duration(milliseconds: (total.inMilliseconds * percent).toInt()));
-          },
-          child: Container(
-            height: 32, // Sleek, smaller height
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(55, (index) { // More, thinner bars
-                // Create a smooth, pseudo-random wave pattern
-                double sineValue = math.sin(index * 0.5) * 6;
-                double variation = (index % 3 == 0) ? 4.0 : 0.0;
-                double barHeight = 8.0 + sineValue.abs() + variation;
-                
-                bool isPlayed = (index / 55) <= progress;
-
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 2.5, // Thinner bars for a premium look
-                  height: barHeight.clamp(4.0, 24.0),
-                  decoration: BoxDecoration(
-                    color: isPlayed ? AppColors.primary : Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                );
-              }),
-            ),
-          ),
-        );
-      }
+  Widget _buildSleekProgressBar(Duration pos, Duration total) {
+    if (total == Duration.zero) return const SizedBox(height: 32);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: WobblySlider(
+        value: pos.inMilliseconds.toDouble().clamp(0.0, total.inMilliseconds.toDouble()),
+        max: total.inMilliseconds.toDouble(),
+        onChanged: (val) {
+          _audioPlayer.seek(Duration(milliseconds: val.toInt()));
+        },
+      ),
     );
   }
 
@@ -544,11 +512,13 @@ Widget _buildBlurredBackground() {
         mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
           IconButton(icon: const Icon(LucideIcons.chevronDown, color: Colors.white, size: 36), onPressed: () => Navigator.pop(context)),
-          Column(
-            children: [
-              const Text("NOW PLAYING", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
-              Text(currentSong.album, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
-            ],
+          Expanded(
+            child: Column(
+              children: [
+                const Text("NOW PLAYING", maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                Text(currentSong.album, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
           IconButton(icon: const Icon(LucideIcons.moreHorizontal, color: Colors.white, size: 28), onPressed: _showOptions),
         ]
@@ -562,7 +532,11 @@ Widget _buildArtworkView() {
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.all(isPlaying ? 30 : 45),
       child: Center(
-        child: NeuContainer(
+        child: AnimatedScale(
+        scale: isPlaying ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
+        child: BentoContainer(
           padding: EdgeInsets.zero,
           borderRadius: 24,
           child: ClipRRect(
@@ -584,6 +558,7 @@ Widget _buildArtworkView() {
             )
           )
         )
+      )
       )
     );
   }
@@ -695,7 +670,7 @@ Widget _buildArtworkView() {
   Widget _buildGlassConsole() {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 30,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
@@ -708,9 +683,9 @@ Widget _buildArtworkView() {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(currentSong.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(currentSong.title, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 4),
-                            Text(currentSong.artist, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(currentSong.artist, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
@@ -719,7 +694,7 @@ Widget _buildArtworkView() {
                         builder: (context, likes, _) {
                           final isLiked = likes.contains(currentSong.id);
                           return IconButton(
-                            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart, color: isLiked ? AppColors.primary : Colors.white, size: 28), 
+                            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart, color: isLiked ? AppColors.primary : BentoTheme.textPrimary, size: 28), 
                             onPressed: _toggleLike
                           );
                         }
@@ -736,13 +711,13 @@ Widget _buildArtworkView() {
                     final pos = snapshot.data ?? Duration.zero;
                     return Column(
                       children: [
-                        _buildAestheticWaveform(pos, totalDuration),
+                        _buildSleekProgressBar(pos, totalDuration),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                           children: [
-                            Text(_format(pos), style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500)), 
-                            Text("-${_format(totalDuration - pos)}", style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500))
+                            Text(_format(pos), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)), 
+                            Text("-${_format(totalDuration - pos)}", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500))
                           ]
                         ),
                       ]
@@ -758,14 +733,14 @@ Widget _buildArtworkView() {
                   children: [
                     // Shuffle Button
                     IconButton(
-                      icon: Icon(LucideIcons.shuffle, color: isShuffleOn ? AppColors.primary : Colors.white54, size: 24), 
+                      icon: Icon(LucideIcons.shuffle, color: isShuffleOn ? AppColors.primary : BentoTheme.textSecondary, size: 24), 
                       onPressed: () {
                         _audioPlayer.setShuffleModeEnabled(!isShuffleOn);
                         HapticFeedback.selectionClick();
                       }
                     ),
                     // Skip Previous
-                    IconButton(icon: const Icon(LucideIcons.skipBack, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToPrevious()),
+                    IconButton(icon: Icon(LucideIcons.skipBack, size: 36, color: BentoTheme.textPrimary), onPressed: () => _audioPlayer.seekToPrevious()),
                     // Play/Pause
                     GestureDetector(
                       onTap: _onPlayPause, 
@@ -776,12 +751,12 @@ Widget _buildArtworkView() {
                       )
                     ),
                     // Skip Next
-                    IconButton(icon: const Icon(LucideIcons.skipForward, size: 36, color: Colors.white), onPressed: () => _audioPlayer.seekToNext()),
+                    IconButton(icon: Icon(LucideIcons.skipForward, size: 36, color: BentoTheme.textPrimary), onPressed: () => _audioPlayer.seekToNext()),
                     // Repeat Button
                     IconButton(
                       icon: Icon(
                         loopMode == LoopMode.one ? LucideIcons.repeat1 : LucideIcons.repeat, 
-                        color: loopMode != LoopMode.off ? AppColors.primary : Colors.white54, 
+                        color: loopMode != LoopMode.off ? AppColors.primary : BentoTheme.textSecondary, 
                         size: 24
                       ), 
                       onPressed: () {
@@ -802,10 +777,10 @@ Widget _buildArtworkView() {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center, 
                   children: [
-                    IconButton(icon: Icon(LucideIcons.messageSquare, color: showLyrics ? AppColors.primary : Colors.white54, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
+                    IconButton(icon: Icon(LucideIcons.messageSquare, color: showLyrics ? AppColors.primary : BentoTheme.textSecondary, size: 22), onPressed: () => setState(() => showLyrics = !showLyrics)),
                     const SizedBox(width: 40),
                     IconButton(
-                      icon: const Icon(LucideIcons.list, color: Colors.white54, size: 22), 
+                      icon: Icon(LucideIcons.list, color: BentoTheme.textSecondary, size: 22), 
                       onPressed: _showCurrentQueue, 
                     ),
                   ]

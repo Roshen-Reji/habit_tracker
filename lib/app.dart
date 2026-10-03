@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/screens/home_page.dart'; 
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/music_manager.dart';
@@ -24,22 +24,25 @@ class HabitTrackerApp extends StatelessWidget {
               navigatorKey: globalNavigatorKey,
               title: 'Habit Tracker',
               themeMode: mode,
+              scrollBehavior: const MaterialScrollBehavior().copyWith(
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              ),
               theme: ThemeData(
                 brightness: Brightness.light,
-                scaffoldBackgroundColor: NeuTheme.background,
+                scaffoldBackgroundColor: BentoTheme.background,
                 fontFamily: 'Roboto',
                 colorScheme: ColorScheme.light(
-                  primary: NeuTheme.accent,
-                  surface: NeuTheme.background,
+                  primary: BentoTheme.accent,
+                  surface: BentoTheme.background,
                 ),
               ),
               darkTheme: ThemeData(
                 brightness: Brightness.dark,
-                scaffoldBackgroundColor: NeuTheme.background,
+                scaffoldBackgroundColor: BentoTheme.background,
                 fontFamily: 'Roboto',
                 colorScheme: ColorScheme.dark(
-                  primary: NeuTheme.accent,
-                  surface: NeuTheme.background,
+                  primary: BentoTheme.accent,
+                  surface: BentoTheme.background,
                 ),
               ),
               home: const HomePage(),

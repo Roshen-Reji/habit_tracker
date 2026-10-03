@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 
 class ManualFoodInputWidget extends StatefulWidget {
@@ -71,8 +71,8 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NeuTheme.accent;
-    return NeuContainer(
+    final accent = BentoTheme.accent;
+    return BentoContainer(
       padding: const EdgeInsets.all(16),
       borderRadius: 16,
       child: Column(
@@ -94,10 +94,10 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
                 flex: 3,
                 child: TextField(
                   controller: _nameController,
-                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Food Name",
-                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -109,10 +109,10 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
                 child: TextField(
                   controller: _caloriesController,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "kcal",
-                    hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -131,8 +131,8 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
               const SizedBox(width: 12),
               DropdownButton<MealType>(
                 value: _selectedMeal,
-                dropdownColor: NeuTheme.background,
-                style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+                dropdownColor: BentoTheme.background,
+                style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                 icon: Icon(Icons.arrow_drop_down, color: accent),
                 items: MealType.values.map((m) {
                   return DropdownMenuItem(
@@ -167,10 +167,10 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
-      style: TextStyle(color: NeuTheme.textPrimary, fontSize: 13),
+      style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: NeuTheme.textSecondary, fontSize: 13),
+        hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
       ),

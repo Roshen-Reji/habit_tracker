@@ -9,6 +9,9 @@ import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'dart:math' as math;
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:palette_generator/palette_generator.dart';
 class GlobalFloatingPlayer extends StatefulWidget {
   const GlobalFloatingPlayer({super.key});
 
@@ -24,6 +27,9 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
   
   final musicManager = MusicManager();
 
+  Color? dominantColor;
+  SongModel? currentSong;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -32,6 +38,27 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
       xOffset = (size.width - 150) / 2;
       yOffset = size.height - 250;
       isInitialized = true;
+    }
+  }
+
+  Future<void> _updatePalette(SongModel song) async {
+    if (song == currentSong) return;
+    currentSong = song;
+    if (song.source == SongSource.local) {
+      try {
+        final audioQuery = audio_query.OnAudioQuery();
+        final bytes = await audioQuery.queryArtwork(int.parse(song.id), audio_query.ArtworkType.AUDIO);
+        if (bytes != null && mounted) {
+          final palette = await PaletteGenerator.fromImageProvider(MemoryImage(bytes));
+          setState(() {
+            dominantColor = palette.dominantColor?.color;
+          });
+        }
+      } catch (e) {
+        // Fallback
+      }
+    } else {
+      setState(() => dominantColor = null);
     }
   }
 
@@ -49,6 +76,10 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
 
         final currentIndex = state.currentIndex ?? 0;
         final currentSong = musicManager.currentPlaylist![currentIndex];
+        
+        // Asynchronously update palette
+        _updatePalette(currentSong);
+
         final size = MediaQuery.of(context).size;
         
         // Dynamic sizing based on minimized state
@@ -159,9 +190,9 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withValues(alpha: 0.3),  
-                  Colors.white.withValues(alpha: 0.05), 
-                  Colors.black.withValues(alpha: 0.4),  
+                  dominantColor?.withValues(alpha: 0.6) ?? Colors.white.withValues(alpha: 0.3),  
+                  dominantColor?.withValues(alpha: 0.2) ?? Colors.white.withValues(alpha: 0.05), 
+                  Colors.black.withValues(alpha: 0.6),  
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
@@ -170,13 +201,16 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                // Vinyl/CD Top Graphic
                 Positioned(
                   top: -25,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
+                  child: StreamBuilder<PlayerState>(
+                    stream: musicManager.audioPlayer.playerStateStream,
+                    builder: (context, snap) {
+                      final playing = snap.data?.playing ?? false;
+                      Widget record = Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const SweepGradient(
                         colors: [
@@ -214,6 +248,14 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                         ),
                       ),
                     ),
+                  );
+                  
+                      if (playing) {
+                        return record.animate(onPlay: (c) => c.repeat(reverse: true))
+                          .scaleXY(begin: 0.98, end: 1.02, duration: 1.seconds, curve: Curves.easeInOut);
+                      }
+                      return record;
+                    }
                   ),
                 ),
 
@@ -333,17 +375,12 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
 
         return Column(
           children: [
-            Container(
+            SizedBox(
               width: 90,
-              height: 2,
-              color: Colors.white.withValues(alpha: 0.3),
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: progress.clamp(0.0, 1.0),
-                child: Container(color: Colors.white),
-              ),
+              height: 12,
+              child: WaveProgressBar(progress: progress),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               "${_format(pos)} - ${_format(total)}",
               style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.w500),
@@ -360,3 +397,91 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
     return "$min:$sec";
   }
 }
+
+class WaveProgressBar extends StatefulWidget {
+  final double progress;
+  const WaveProgressBar({super.key, required this.progress});
+
+  @override
+  State<WaveProgressBar> createState() => _WaveProgressBarState();
+}
+
+class _WaveProgressBarState extends State<WaveProgressBar> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: WavePainter(progress: widget.progress, animationValue: _controller.value),
+          size: const Size(double.infinity, double.infinity),
+        );
+      },
+    );
+  }
+}
+
+class WavePainter extends CustomPainter {
+  final double progress;
+  final double animationValue;
+
+  WavePainter({required this.progress, required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final activePaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Draw background line
+    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+
+    if (progress <= 0) return;
+
+    // Draw active wave
+    final path = Path();
+    final waveWidth = size.width * progress;
+    path.moveTo(0, size.height / 2);
+
+    for (double i = 0; i <= waveWidth; i++) {
+      final normalizedX = i / waveWidth;
+      // create a sine wave that gets smaller towards the edges of the progress
+      final envelope = math.sin(normalizedX * math.pi);
+      final y = size.height / 2 + math.sin((i / 15) - (animationValue * 2 * math.pi)) * 3 * envelope;
+      path.lineTo(i, y);
+    }
+    
+    canvas.drawPath(path, activePaint);
+    
+    // Draw playhead dot
+    canvas.drawCircle(Offset(waveWidth, size.height / 2), 3, activePaint..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant WavePainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.animationValue != animationValue;
+  }
+}
+

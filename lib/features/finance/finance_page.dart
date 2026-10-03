@@ -1,35 +1,67 @@
-import 'dart:ui';
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/models/finance_model.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:habit_tracker/core/utils/format_utils.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/models/finance_model.dart';
 
-
-
-const List<Color> pieColors = [
-  Color(0xFF00D4B8), Color(0xFF00B4A0), Color(0xFFFF6B6B),
-  Color(0xFFFFD93D), Color(0xFF6C63FF), Color(0xFFFF9800),
-  Color(0xFFE91E63), Color(0xFF00BCD4), Color(0xFF8BC34A),
-];
-
-// Unified Categories to guarantee Budgets and Transactions perfectly sync
 const List<String> kExpenseCategories = [
-  "Food", "Shopping", "Transport", "Utilities", 
-  "Health", "Entertainment", "OTT", "Groceries", "EMI", "Other"
+  'Food',
+  'Shopping',
+  'Transport',
+  'Utilities',
+  'Health',
+  'Entertainment',
+  'OTT',
+  'Groceries',
+  'EMI',
+  'Other',
 ];
 
-// Safely extract numbers from string (handles commas or accidental spaces)
-double safeParse(String val) {
-  String clean = val.replaceAll(RegExp(r'[^0-9.]'), '');
+const List<Color> _chartColors = [
+  Color(0xFF2DD4BF),
+  Color(0xFF60A5FA),
+  Color(0xFFF59E0B),
+  Color(0xFFEF4444),
+  Color(0xFF22C55E),
+  Color(0xFFA78BFA),
+  Color(0xFFF97316),
+  Color(0xFF14B8A6),
+  Color(0xFFE879F9),
+  Color(0xFF94A3B8),
+];
+
+double safeParse(String value) {
+  final clean = value.replaceAll(RegExp(r'[^0-9.]'), '');
   return double.tryParse(clean) ?? 0.0;
 }
+
+double _asDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? 0.0;
+}
+
+int _asInt(dynamic value, {int fallback = 1}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+bool _sameMonth(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month;
+}
+
+bool _isExpense(Transaction tx) {
+  final mode = tx.mode.toLowerCase();
+  return mode == 'expense' || tx.amount < 0;
+}
+
+String _money(double amount) => FormatUtils.formatCurrency(amount);
+String _compactMoney(double amount) =>
+    FormatUtils.formatCompactCurrency(amount);
 
 class FinanceDashboard extends StatefulWidget {
   const FinanceDashboard({super.key});
@@ -38,28 +70,129 @@ class FinanceDashboard extends StatefulWidget {
   State<FinanceDashboard> createState() => _FinanceDashboardState();
 }
 
-class _FinanceDashboardState extends State<FinanceDashboard> {
-  String _activeTab = "home";
+class _FinanceDashboardState extends State<FinanceDashboard>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   late Box<Transaction> txBox;
   late Box<AssetVault> vaultBox;
   late Box settingsBox;
 
+  static const _tabs = [
+    _FinanceTab('overview', 'OVERVIEW', LucideIcons.layoutDashboard),
+    _FinanceTab('transactions', 'TXNS', LucideIcons.arrowRightLeft),
+    _FinanceTab('budget', 'BUDGET', LucideIcons.pieChart),
+    _FinanceTab('planner', 'PLAN', LucideIcons.calendar),
+    _FinanceTab('goals', 'GOALS', LucideIcons.flag),
+  ];
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
     txBox = Hive.box<Transaction>('finance_transactions');
     vaultBox = Hive.box<AssetVault>('finance_vaults');
     settingsBox = Hive.box('finance_settings');
-    _initializeEmptyDefaults();
+    _initializeDefaults();
+    _migrateFinanceDataFromLegacySettings();
   }
 
-  void _initializeEmptyDefaults() {
-    if (settingsBox.get('budgets') == null) settingsBox.put('budgets', []);
-    if (settingsBox.get('goals') == null) settingsBox.put('goals', []);
-    if (settingsBox.get('planner') == null) {
-      settingsBox.put('planner', {"fixedExpenses": [], "sips": []});
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _initializeDefaults() {
+    settingsBox.put(
+        'budgets', List.from(settingsBox.get('budgets', defaultValue: [])));
+    settingsBox.put(
+        'goals', List.from(settingsBox.get('goals', defaultValue: [])));
+    settingsBox.put(
+      'planner',
+      Map.from(settingsBox.get(
+        'planner',
+        defaultValue: {'fixedExpenses': [], 'sips': []},
+      )),
+    );
+  }
+
+  void _migrateFinanceDataFromLegacySettings() {
+    final legacy = Hive.box('settings');
+    var changed = false;
+
+    final legacyBudgets = List.from(legacy.get('budgets', defaultValue: []));
+    if (legacyBudgets.isNotEmpty) {
+      final budgets = List.from(settingsBox.get('budgets', defaultValue: []));
+      for (final item in legacyBudgets) {
+        final budget = Map.from(item as Map);
+        final category = budget['category']?.toString() ?? 'Other';
+        final exists = budgets.any((b) =>
+            (Map.from(b as Map)['category']?.toString() ?? '') == category);
+        if (!exists) budgets.add(budget);
+      }
+      settingsBox.put('budgets', budgets);
+      changed = true;
     }
+
+    final legacyGoals = List.from(legacy.get('goals', defaultValue: []));
+    if (legacyGoals.isNotEmpty) {
+      final goals = List.from(settingsBox.get('goals', defaultValue: []));
+      for (final item in legacyGoals) {
+        final goal = Map.from(item as Map);
+        final name = goal['name']?.toString() ?? '';
+        final target = _asDouble(goal['target']);
+        final exists = goals.any((g) {
+          final map = Map.from(g as Map);
+          return map['name']?.toString() == name &&
+              _asDouble(map['target']) == target;
+        });
+        if (!exists) goals.add(goal);
+      }
+      settingsBox.put('goals', goals);
+      changed = true;
+    }
+
+    final legacyPlanner = Map.from(legacy.get(
+      'planner',
+      defaultValue: {'fixedExpenses': [], 'sips': []},
+    ));
+    final legacyFixed = List.from(legacyPlanner['fixedExpenses'] ?? []);
+    final legacySips = List.from(legacyPlanner['sips'] ?? []);
+    if (legacyFixed.isNotEmpty || legacySips.isNotEmpty) {
+      final planner = Map.from(settingsBox.get(
+        'planner',
+        defaultValue: {'fixedExpenses': [], 'sips': []},
+      ));
+      final fixed = List.from(planner['fixedExpenses'] ?? []);
+      final sips = List.from(planner['sips'] ?? []);
+
+      for (final item in legacyFixed) {
+        final entry = Map.from(item as Map);
+        if (!_containsNamedAmount(fixed, entry)) fixed.add(entry);
+      }
+      for (final item in legacySips) {
+        final entry = Map.from(item as Map);
+        if (!_containsNamedAmount(sips, entry)) sips.add(entry);
+      }
+
+      planner['fixedExpenses'] = fixed;
+      planner['sips'] = sips;
+      settingsBox.put('planner', planner);
+      changed = true;
+    }
+
+    if (changed) settingsBox.flush();
+  }
+
+  bool _containsNamedAmount(List items, Map entry) {
+    final name = entry['name']?.toString() ?? '';
+    final amount = _asDouble(entry['amount']);
+    return items.any((item) {
+      final map = Map.from(item as Map);
+      return map['name']?.toString() == name &&
+          _asDouble(map['amount']) == amount;
+    });
   }
 
   void _showAddModal(String type) {
@@ -68,11 +201,18 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        if (type == 'transaction') return _AddEditTransactionModal(txBox: txBox, vaultBox: vaultBox);
-        if (type == 'vault') return _AddVaultModal(vaultBox: vaultBox);
-        if (type == 'budget') return _AddBudgetModal(settingsBox: settingsBox);
-        if (type == 'planner') return _AddPlannerModal(settingsBox: settingsBox);
-        return _AddGoalModal(settingsBox: settingsBox);
+        switch (type) {
+          case 'transaction':
+            return _AddEditTransactionModal(txBox: txBox);
+          case 'vault':
+            return _AddVaultModal(vaultBox: vaultBox);
+          case 'budget':
+            return _AddBudgetModal(settingsBox: settingsBox);
+          case 'planner':
+            return _AddPlannerModal(settingsBox: settingsBox);
+          default:
+            return _AddGoalModal(settingsBox: settingsBox);
+        }
       },
     );
   }
@@ -82,7 +222,8 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _AddEditTransactionModal(txBox: txBox, vaultBox: vaultBox, existingTx: tx),
+      builder: (context) =>
+          _AddEditTransactionModal(txBox: txBox, existingTx: tx),
     );
   }
 
@@ -91,1009 +232,2436 @@ class _FinanceDashboardState extends State<FinanceDashboard> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _UpdateGoalModal(settingsBox: settingsBox, goalIndex: index, goal: goal),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, String title, VoidCallback onConfirm) {
-    showDialog(
-      context: context,
-      builder: (ctx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: AlertDialog(
-          backgroundColor: NeuTheme.background,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15))),
-          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          content: Text("This action cannot be undone.", style: TextStyle(color: Colors.white54, fontSize: 14)),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text("CANCEL", style: TextStyle(color: NeuTheme.accent))),
-            Container(
-              decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(0xFFFF6B6B), Color(0xFFD32F2F)]), borderRadius: BorderRadius.circular(8)),
-              child: TextButton(
-                onPressed: () { Navigator.pop(ctx); onConfirm(); },
-                child: Text("DELETE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => _UpdateGoalModal(
+        settingsBox: settingsBox,
+        goalIndex: index,
+        goal: goal,
       ),
     );
   }
 
-  List<Map<String, dynamic>> _calculateDynamicCashFlow(Iterable<Transaction> transactions) {
-    Map<String, Map<String, double>> monthlyFlow = {};
-    DateTime now = DateTime.now();
-    for (int i = 5; i >= 0; i--) {
-      DateTime d = DateTime(now.year, now.month - i, 1);
-      String mKey = DateFormat('MMM yy').format(d);
-      monthlyFlow[mKey] = {'income': 0.0, 'expense': 0.0};
-    }
+  void _confirmDelete(String title, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BentoTheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+              color: BentoTheme.textSecondary.withValues(alpha: 0.12)),
+        ),
+        title: Text(title, style: TextStyle(color: BentoTheme.textPrimary)),
+        content: Text(
+          'This cannot be undone.',
+          style: TextStyle(color: BentoTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: TextStyle(color: BentoTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onConfirm();
+            },
+            child: const Text('Delete',
+                style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+  }
 
-    for (var tx in transactions) {
-      String mKey = DateFormat('MMM yy').format(tx.date);
-      if (monthlyFlow.containsKey(mKey)) {
-        if (tx.amount > 0) monthlyFlow[mKey]!['income'] = monthlyFlow[mKey]!['income']! + tx.amount;
-        else monthlyFlow[mKey]!['expense'] = monthlyFlow[mKey]!['expense']! + tx.amount.abs();
+  FinanceSnapshot _buildSnapshot(
+    Iterable<Transaction> transactions,
+    Iterable<AssetVault> vaults,
+    Box settings,
+  ) {
+    double allTimeNet = 0;
+    double monthIncome = 0;
+    double monthExpense = 0;
+    final categorySpent = <String, double>{};
+    final monthTransactions = <Transaction>[];
+
+    for (final tx in transactions) {
+      final expense = _isExpense(tx);
+      final signedAmount = expense ? -tx.amount.abs() : tx.amount.abs();
+      allTimeNet += signedAmount;
+
+      if (_sameMonth(tx.date, _selectedMonth)) {
+        monthTransactions.add(tx);
+        if (expense) {
+          final amount = tx.amount.abs();
+          monthExpense += amount;
+          categorySpent[tx.category] =
+              (categorySpent[tx.category] ?? 0) + amount;
+        } else {
+          monthIncome += tx.amount.abs();
+        }
       }
     }
 
-    List<Map<String, dynamic>> trend = [];
-    monthlyFlow.forEach((key, value) {
-      trend.add({'month': key.split(' ')[0], 'income': value['income'], 'expense': value['expense']});
+    monthTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    final budgets = List.from(settings.get('budgets', defaultValue: []));
+    final goals = List.from(settings.get('goals', defaultValue: []));
+    final planner = Map.from(settings.get(
+      'planner',
+      defaultValue: {'fixedExpenses': [], 'sips': []},
+    ));
+    final fixed = List.from(planner['fixedExpenses'] ?? []);
+    final sips = List.from(planner['sips'] ?? []);
+
+    final vaultTotal =
+        vaults.fold<double>(0, (sum, vault) => sum + vault.balance);
+    final goalsSaved = goals.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['saved']));
+    final goalsTarget = goals.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['target']));
+    final fixedTotal = fixed.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['amount']));
+    final sipTotal = sips.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['amount']));
+    final budgetLimit = budgets.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['total']));
+    final budgetSpent = budgets.fold<double>(0, (sum, item) {
+      final category = (item as Map)['category']?.toString() ?? 'Other';
+      return sum + (categorySpent[category] ?? 0);
     });
-    return trend;
+
+    final categoryBreakdown = categorySpent.entries
+        .map((entry) => {'name': entry.key, 'value': entry.value})
+        .toList()
+      ..sort((a, b) => _asDouble(b['value']).compareTo(_asDouble(a['value'])));
+
+    final savingsRate = monthIncome <= 0
+        ? 0.0
+        : ((monthIncome - monthExpense) / monthIncome).clamp(0.0, 1.0);
+
+    return FinanceSnapshot(
+      totalBalance: vaultTotal + allTimeNet + goalsSaved,
+      monthIncome: monthIncome,
+      monthExpense: monthExpense,
+      monthNet: monthIncome - monthExpense,
+      savingsRate: savingsRate,
+      vaultTotal: vaultTotal,
+      goalsSaved: goalsSaved,
+      goalsTarget: goalsTarget,
+      fixedTotal: fixedTotal,
+      sipTotal: sipTotal,
+      budgetLimit: budgetLimit,
+      budgetSpent: budgetSpent,
+      categorySpent: categorySpent,
+      categoryBreakdown: categoryBreakdown,
+      monthTransactions: monthTransactions,
+      budgets: budgets,
+      goals: goals,
+      planner: planner,
+      cashFlowTrend: _cashFlowTrend(transactions),
+    );
+  }
+
+  List<Map<String, dynamic>> _cashFlowTrend(
+      Iterable<Transaction> transactions) {
+    final buckets = <String, Map<String, double>>{};
+    for (var i = 5; i >= 0; i--) {
+      final date = DateTime(_selectedMonth.year, _selectedMonth.month - i, 1);
+      buckets[DateFormat('MMM').format(date)] = {'income': 0, 'expense': 0};
+    }
+
+    for (final tx in transactions) {
+      final key =
+          DateFormat('MMM').format(DateTime(tx.date.year, tx.date.month, 1));
+      final bucket = buckets[key];
+      if (bucket == null) continue;
+      if (_isExpense(tx)) {
+        bucket['expense'] = bucket['expense']! + tx.amount.abs();
+      } else {
+        bucket['income'] = bucket['income']! + tx.amount.abs();
+      }
+    }
+
+    return buckets.entries
+        .map((entry) => {
+              'month': entry.key,
+              'income': entry.value['income'] ?? 0.0,
+              'expense': entry.value['expense'] ?? 0.0,
+            })
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuTheme.background,
-      body: Stack(
-        children: [
-          Positioned(top: -120, left: -80, child: Container(width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [NeuTheme.accent.withValues(alpha: 0.15), Colors.transparent], stops: [0.0, 0.7])))),
-          Positioned(bottom: -100, right: -100, child: Container(width: 350, height: 350, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x1E6C63FF), Colors.transparent], stops: [0.0, 0.7])))),
-
-          SafeArea(
-            child: ValueListenableBuilder(
-              valueListenable: txBox.listenable(),
-              builder: (context, Box<Transaction> tBox, _) {
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: ValueListenableBuilder(
+          valueListenable: txBox.listenable(),
+          builder: (context, Box<Transaction> tBox, _) {
+            return ValueListenableBuilder(
+              valueListenable: vaultBox.listenable(),
+              builder: (context, Box<AssetVault> vBox, _) {
                 return ValueListenableBuilder(
-                  valueListenable: vaultBox.listenable(),
-                  builder: (context, Box<AssetVault> vBox, _) {
-                    return ValueListenableBuilder(
-                      valueListenable: settingsBox.listenable(),
-                      builder: (context, Box sBox, _) {
-                        
-                        double totalBalance = vBox.values.fold(0, (sum, item) => sum + item.balance);
-                        double monthIncome = 0;
-                        double monthExpense = 0;
-                        Map<String, double> categorySpentMap = {};
+                  valueListenable: settingsBox.listenable(),
+                  builder: (context, Box sBox, _) {
+                    final snapshot =
+                        _buildSnapshot(tBox.values, vBox.values, sBox);
 
-                        // Calculate selected month's totals AND category spends directly from transactions
-                        DateTime now = _selectedMonth;
-                        for (var tx in tBox.values) {
-                          if (tx.date.month == now.month && tx.date.year == now.year) {
-                            if (tx.amount > 0) {
-                              monthIncome += tx.amount;
-                            } else {
-                              double exp = tx.amount.abs();
-                              monthExpense += exp;
-                              // This perfectly maps to the Budget tab!
-                              categorySpentMap[tx.category] = (categorySpentMap[tx.category] ?? 0) + exp;
-                            }
-                          }
-                        }
-
-                        List<Map<String, dynamic>> categoryBreakdown = categorySpentMap.entries
-                            .map((e) => {"name": e.key, "value": e.value})
-                            .toList()..sort((a, b) => (b["value"] as double).compareTo(a["value"] as double));
-
-                        double savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome * 100).clamp(0, 100) : 0;
-                        
-                        List budgets = sBox.get('budgets', defaultValue: []);
-                        double totalBudgetLimit = budgets.fold(0.0, (sum, b) => sum + (b['total'] as double));
-                        
-                        // Total budget spent uses the categories mapped above
-                        double totalBudgetSpent = 0;
-                        for (var b in budgets) {
-                          double spent = categorySpentMap[b['category']] ?? 0.0;
-                          totalBudgetSpent += spent;
-                        }
-
-                        List<Map<String, dynamic>> spendingTrend = _calculateDynamicCashFlow(tBox.values);
-                        Map plannerData = sBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []});
-
-                        Widget currentTabWidget;
-                        switch (_activeTab) {
-                          case "transactions":
-                            currentTabWidget = _TransactionsTab(
-                              transactions: tBox.values.toList().reversed.toList(),
-                              onAdd: () => _showAddModal('transaction'),
-                              onDelete: (tx) => _confirmDelete(context, "Delete Transaction?", () => tx.delete()),
-                              onEditTx: (tx) => _showEditTransactionModal(tx),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _FinanceHeader(
+                          selectedMonth: _selectedMonth,
+                          tabs: _tabs,
+                          tabController: _tabController,
+                          onPreviousMonth: () => setState(() {
+                            _selectedMonth = DateTime(
+                              _selectedMonth.year,
+                              _selectedMonth.month - 1,
                             );
-                            break;
-                          case "budget":
-                            currentTabWidget = _BudgetTab(
-                              budgets: budgets, categorySpentMap: categorySpentMap,
-                              totalSpent: totalBudgetSpent, totalLimit: totalBudgetLimit,
-                              onAdd: () => _showAddModal('budget'),
-                              onDelete: (idx) => _confirmDelete(context, "Delete Budget?", () {
-                                List b = List.from(budgets); b.removeAt(idx); sBox.put('budgets', b);
-                              }),
+                          }),
+                          onNextMonth: () => setState(() {
+                            _selectedMonth = DateTime(
+                              _selectedMonth.year,
+                              _selectedMonth.month + 1,
                             );
-                            break;
-                          case "planner":
-                            currentTabWidget = _PlannerTab(
-                              plannerData: plannerData, monthIncome: monthIncome, monthExpense: monthExpense,
-                              onAdd: () => _showAddModal('planner'),
-                              onDeleteFixed: (idx) => _confirmDelete(context, "Delete Fixed Expense?", () {
-                                Map p = Map.from(plannerData); List f = List.from(p['fixedExpenses']); f.removeAt(idx); p['fixedExpenses'] = f; sBox.put('planner', p);
-                              }),
-                              onDeleteSip: (idx) => _confirmDelete(context, "Delete SIP?", () {
-                                Map p = Map.from(plannerData); List s = List.from(p['sips']); s.removeAt(idx); p['sips'] = s; sBox.put('planner', p);
-                              }),
-                            );
-                            break;
-                          case "goals":
-                            currentTabWidget = _GoalsTab(
-                              goals: sBox.get('goals', defaultValue: []), settingsBox: sBox,
-                              onAdd: () => _showAddModal('goal'),
-                              onUpdate: (idx, goal) => _showUpdateGoalModal(idx, goal),
-                              onDelete: (idx) => _confirmDelete(context, "Delete Goal?", () {
-                                List g = List.from(sBox.get('goals', defaultValue: [])); g.removeAt(idx); sBox.put('goals', g);
-                              }),
-                            );
-                            break;
-                          default:
-                            currentTabWidget = _HomeTab(
-                              totalBalance: totalBalance, monthIncome: monthIncome, monthExpense: monthExpense,
-                              savingsRate: savingsRate, leftover: monthIncome - monthExpense,
-                              vaults: vBox.values.toList(), transactions: tBox.values.toList().reversed.toList(),
-                              spendingTrend: spendingTrend, categoryBreakdown: categoryBreakdown,
-                              onAddTx: () => _showAddModal('transaction'), onAddVault: () => _showAddModal('vault'),
-                              onDeleteVault: (v) => _confirmDelete(context, "Delete Vault?", () => v.delete()),
-                              onEditTx: (tx) => _showEditTransactionModal(tx),
-                            );
-                        }
-
-                        return Column(
-                          children: [
-                            _buildTopNavDropdown(),
-                            _buildMonthSelector(),
-                            Expanded(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                switchInCurve: Curves.easeOut, switchOutCurve: Curves.easeIn,
-                                transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(animation), child: child)),
-                                child: SingleChildScrollView(
-                                  key: ValueKey(_activeTab),
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: EdgeInsets.fromLTRB(16, 8, 16, 40),
-                                  child: currentTabWidget
+                          }),
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: _tabs.map((tab) {
+                              return SingleChildScrollView(
+                                key: ValueKey(tab.id),
+                                physics: const BouncingScrollPhysics(),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 12, 16, 36),
+                                child: _buildTabForId(
+                                  tab.id,
+                                  snapshot,
+                                  vBox.values.toList(),
+                                  tBox.values.toList(),
                                 ),
-                              )
-                            ),
-                          ],
-                        );
-                      }
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
                     );
-                  }
+                  },
                 );
-              }
-            ),
-          ),
-        ],
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildTopNavDropdown() {
+  Widget _buildTabForId(
+    String tabId,
+    FinanceSnapshot snapshot,
+    List<AssetVault> vaults,
+    List<Transaction> allTransactions,
+  ) {
+    switch (tabId) {
+      case 'transactions':
+        return _TransactionsTab(
+          transactions: snapshot.monthTransactions,
+          selectedMonth: _selectedMonth,
+          onAdd: () => _showAddModal('transaction'),
+          onEdit: _showEditTransactionModal,
+          onDelete: (tx) => _confirmDelete('Delete transaction?', tx.delete),
+        );
+      case 'budget':
+        return _BudgetTab(
+          snapshot: snapshot,
+          onAdd: () => _showAddModal('budget'),
+          onDelete: (index) => _confirmDelete('Delete budget?', () {
+            final budgets = List.from(snapshot.budgets);
+            budgets.removeAt(index);
+            settingsBox.put('budgets', budgets);
+          }),
+        );
+      case 'planner':
+        return _PlannerTab(
+          snapshot: snapshot,
+          onAdd: () => _showAddModal('planner'),
+          onDeleteFixed: (index) => _confirmDelete('Delete commitment?', () {
+            final planner = Map.from(snapshot.planner);
+            final fixed = List.from(planner['fixedExpenses'] ?? []);
+            fixed.removeAt(index);
+            planner['fixedExpenses'] = fixed;
+            settingsBox.put('planner', planner);
+          }),
+          onDeleteSip: (index) => _confirmDelete('Delete SIP?', () {
+            final planner = Map.from(snapshot.planner);
+            final sips = List.from(planner['sips'] ?? []);
+            sips.removeAt(index);
+            planner['sips'] = sips;
+            settingsBox.put('planner', planner);
+          }),
+        );
+      case 'goals':
+        return _GoalsTab(
+          goals: snapshot.goals,
+          onAdd: () => _showAddModal('goal'),
+          onUpdate: _showUpdateGoalModal,
+          onDelete: (index) => _confirmDelete('Delete goal?', () {
+            final goals = List.from(snapshot.goals);
+            goals.removeAt(index);
+            settingsBox.put('goals', goals);
+          }),
+        );
+      default:
+        return _OverviewTab(
+          snapshot: snapshot,
+          vaults: vaults,
+          transactions: allTransactions
+            ..sort((a, b) => b.date.compareTo(a.date)),
+          onAddTransaction: () => _showAddModal('transaction'),
+          onAddVault: () => _showAddModal('vault'),
+          onEditTransaction: _showEditTransactionModal,
+          onDeleteVault: (vault) =>
+              _confirmDelete('Delete vault?', vault.delete),
+        );
+    }
+  }
+}
+
+class _FinanceTab {
+  final String id;
+  final String label;
+  final IconData icon;
+  const _FinanceTab(this.id, this.label, this.icon);
+}
+
+class FinanceSnapshot {
+  final double totalBalance;
+  final double monthIncome;
+  final double monthExpense;
+  final double monthNet;
+  final double savingsRate;
+  final double vaultTotal;
+  final double goalsSaved;
+  final double goalsTarget;
+  final double fixedTotal;
+  final double sipTotal;
+  final double budgetLimit;
+  final double budgetSpent;
+  final Map<String, double> categorySpent;
+  final List<Map<String, dynamic>> categoryBreakdown;
+  final List<Transaction> monthTransactions;
+  final List budgets;
+  final List goals;
+  final Map planner;
+  final List<Map<String, dynamic>> cashFlowTrend;
+
+  const FinanceSnapshot({
+    required this.totalBalance,
+    required this.monthIncome,
+    required this.monthExpense,
+    required this.monthNet,
+    required this.savingsRate,
+    required this.vaultTotal,
+    required this.goalsSaved,
+    required this.goalsTarget,
+    required this.fixedTotal,
+    required this.sipTotal,
+    required this.budgetLimit,
+    required this.budgetSpent,
+    required this.categorySpent,
+    required this.categoryBreakdown,
+    required this.monthTransactions,
+    required this.budgets,
+    required this.goals,
+    required this.planner,
+    required this.cashFlowTrend,
+  });
+}
+
+class _FinanceHeader extends StatelessWidget {
+  final DateTime selectedMonth;
+  final List<_FinanceTab> tabs;
+  final TabController tabController;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
+
+  const _FinanceHeader({
+    required this.selectedMonth,
+    required this.tabs,
+    required this.tabController,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text("F I N A N C E", style: TextStyle(color: NeuTheme.accent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16)),
-          Theme(
-            data: Theme.of(context).copyWith(
-              popupMenuTheme: PopupMenuThemeData(
-                color: NeuTheme.background.withValues(alpha: 0.95),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
-              )
-            ),
-            child: PopupMenuButton<String>(
-              onSelected: (val) => setState(() => _activeTab = val),
-              offset: const Offset(0, 40),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)),
-                child: Row(
-                  children: [
-                    Text(_activeTab[0].toUpperCase() + _activeTab.substring(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    SizedBox(width: 6),
-                    Icon(LucideIcons.chevronDown, color: NeuTheme.accent, size: 18),
-                  ],
+          TabBar(
+            controller: tabController,
+            isScrollable: true,
+            indicatorColor: BentoTheme.accent,
+            labelColor: BentoTheme.accent,
+            unselectedLabelColor: BentoTheme.textSecondary,
+            indicatorWeight: 3,
+            tabs: tabs.map((t) => Tab(text: t.label)).toList(),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _IconButton(
+                  icon: LucideIcons.chevronLeft, onTap: onPreviousMonth),
+              SizedBox(
+                width: 150,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 160),
+                  child: Text(
+                    DateFormat('MMMM yyyy').format(selectedMonth),
+                    key: ValueKey(DateFormat('yyyy-MM').format(selectedMonth)),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                    ),
+                  ),
                 ),
               ),
-              itemBuilder: (context) => [
-                _buildMenuItem("home", "Home", LucideIcons.home),
-                _buildMenuItem("transactions", "Transactions", LucideIcons.receipt),
-                _buildMenuItem("budget", "Budget", LucideIcons.pieChart),
-                _buildMenuItem("planner", "Planner", LucideIcons.calendar),
-                _buildMenuItem("goals", "Goals", LucideIcons.flag),
-              ],
-            ),
+              _IconButton(
+                  icon: LucideIcons.chevronRight, onTap: onNextMonth),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMonthSelector() {
-    String monthStr = DateFormat('MMMM yyyy').format(_selectedMonth);
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(LucideIcons.chevronLeft, color: NeuTheme.accent),
-            onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1)),
-          ),
-          Text(monthStr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          IconButton(
-            icon: Icon(LucideIcons.chevronRight, color: NeuTheme.accent),
-            onPressed: () => setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  PopupMenuItem<String> _buildMenuItem(String value, String label, IconData icon) {
-    bool isSel = _activeTab == value;
-    return PopupMenuItem<String>(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: isSel ? NeuTheme.accent : Colors.white54, size: 18),
-          SizedBox(width: 12),
-          Text(label, style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
   }
 }
 
-// ==================== TABS ====================
-
-class _HomeTab extends StatelessWidget {
-  final double totalBalance, monthIncome, monthExpense, savingsRate, leftover;
+class _OverviewTab extends StatelessWidget {
+  final FinanceSnapshot snapshot;
   final List<AssetVault> vaults;
   final List<Transaction> transactions;
-  final List<Map<String, dynamic>> spendingTrend;
-  final List<Map<String, dynamic>> categoryBreakdown;
-  final VoidCallback onAddTx, onAddVault;
-  final Function(AssetVault) onDeleteVault;
-  final Function(Transaction)? onEditTx;
+  final VoidCallback onAddTransaction;
+  final VoidCallback onAddVault;
+  final ValueChanged<Transaction> onEditTransaction;
+  final ValueChanged<AssetVault> onDeleteVault;
 
-  const _HomeTab({
-    required this.totalBalance, required this.monthIncome, required this.monthExpense, required this.savingsRate, required this.leftover, required this.vaults, required this.transactions,
-    required this.spendingTrend, required this.categoryBreakdown, required this.onAddTx, required this.onAddVault, required this.onDeleteVault, this.onEditTx
+  const _OverviewTab({
+    required this.snapshot,
+    required this.vaults,
+    required this.transactions,
+    required this.onAddTransaction,
+    required this.onAddVault,
+    required this.onEditTransaction,
+    required this.onDeleteVault,
   });
 
   @override
   Widget build(BuildContext context) {
-    String monthName = DateFormat('MMM').format(DateTime.now());
-
+    final recent = transactions.take(5).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GlassCard(
-          glow: true, padding: EdgeInsets.all(24),
-          gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("TOTAL NET WORTH", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 3)),
-              SizedBox(height: 6),
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: totalBalance),
-                duration: const Duration(milliseconds: 800),
-                builder: (context, value, child) => Text(FormatUtils.formatCurrency(value), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
-              ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  _buildStatCard("↑ INCOME", FormatUtils.formatCompactCurrency(monthIncome), monthName, NeuTheme.accent),
-                  SizedBox(width: 12),
-                  _buildStatCard("↓ SPENT", FormatUtils.formatCompactCurrency(monthExpense), monthName, const Color(0xFFFF6B6B)),
-                  SizedBox(width: 12),
-                  _buildStatCard("💰 LEFT", FormatUtils.formatCompactCurrency(leftover), "Leftover", const Color(0xFFFFD93D)),
-                ],
-              )
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-
-        GlassCard(
-          padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-              AnimatedRingProgress(progress: savingsRate / 100, color: NeuTheme.accent, size: 72, stroke: 7, label: "${savingsRate.toInt()}%", sublabel: "SAVED"),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("SAVINGS RATE", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
-                    Text("Great Job! 🎉", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                    SizedBox(height: 8),
-                    AnimatedProgressBar(progress: savingsRate / 100, color1: NeuTheme.accent, color2: NeuTheme.accent),
-                    SizedBox(height: 6),
-                    Text("Target: 50% | ${FormatUtils.formatCompactCurrency(leftover)} saved", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
-                  ],
-                ),
-              )
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-
-        SectionHeader(title: "ASSET VAULTS", onAdd: onAddVault),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(),
-            itemCount: vaults.length + 1,
-            itemBuilder: (context, i) {
-              if (i == vaults.length) {
-                return GestureDetector(onTap: onAddVault, child: Container(width: 120, margin: EdgeInsets.only(right: 12), child: NeuContainer(borderRadius: 24, child: Center(child: Icon(LucideIcons.plus, color: NeuTheme.textSecondary, size: 32)))));
-              }
-              final v = vaults[i]; Color vColor = Color(v.colorValue);
-              return GestureDetector(
-                onLongPress: () => onDeleteVault(v),
-                child: Container(
-                  width: 200, margin: EdgeInsets.only(right: 12),
-                  child: NeuContainer(
-                    padding: EdgeInsets.all(18), borderRadius: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(v.name, style: TextStyle(color: NeuTheme.textSecondary, fontSize: 9, letterSpacing: 2, fontWeight: FontWeight.bold)), Text("🏦", style: TextStyle(fontSize: 20))]),
-                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(FormatUtils.formatCompactCurrency(v.balance), style: TextStyle(color: NeuTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)), Text("${v.bank} · ${v.type}", style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1))])
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        SizedBox(height: 16),
-
-        const SectionHeader(title: "CASH FLOW (LAST 6 MONTHS)"),
-        GlassCard(
-          padding: EdgeInsets.fromLTRB(0, 16, 16, 16),
-          child: SizedBox(
-            height: 160,
-            child: LineChart(LineChartData(
-              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1)),
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, meta) {
-                  if (v.toInt() >= 0 && v.toInt() < spendingTrend.length) return Padding(padding: EdgeInsets.only(top: 8), child: Text(spendingTrend[v.toInt()]['month'], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
-                  return SizedBox();
-                })),
-                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['income'] as double)).toList(), isCurved: true, color: NeuTheme.accent, barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [NeuTheme.accent.withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
-                LineChartBarData(spots: spendingTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['expense'] as double)).toList(), isCurved: true, color: const Color(0xFFFF6B6B), barWidth: 2.5, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [const Color(0xFFFF6B6B).withValues(alpha: 0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)))
-              ]
-            )),
-          ),
-        ),
-        SizedBox(height: 16),
-
-        if (categoryBreakdown.isNotEmpty) ...[
-          const SectionHeader(title: "THIS MONTH'S SPEND"),
-          GlassCard(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                SizedBox(
-                  height: 140, width: 140,
-                  child: PieChart(PieChartData(
-                    sectionsSpace: 4, centerSpaceRadius: 42,
-                    sections: categoryBreakdown.asMap().entries.map((e) => PieChartSectionData(color: pieColors[e.key % pieColors.length], value: e.value['value'], radius: 26, showTitle: false)).toList(),
-                  )),
-                ),
-                SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    children: categoryBreakdown.take(5).toList().asMap().entries.map((e) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            Container(width: 8, height: 8, decoration: BoxDecoration(color: pieColors[e.key % pieColors.length], borderRadius: BorderRadius.circular(2))),
-                            SizedBox(width: 8),
-                            Expanded(child: Text(e.value['name'], style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                            Text(FormatUtils.formatCompactCurrency(e.value['value']), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                )
-              ],
-            ),
-          ),
-          SizedBox(height: 16),
-        ],
-
-        SectionHeader(title: "RECENT ACTIVITY", onAdd: onAddTx),
-        if (transactions.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No transactions recorded yet.", style: TextStyle(color: Colors.white54))))
-        else ...transactions.take(4).toList().asMap().entries.map((entry) => TxRow(tx: entry.value, onTap: () { if(onEditTx != null) onEditTx!(entry.value); })
-          .animate().slideY(begin: 0.1, duration: 400.ms, delay: (50 * entry.key).ms, curve: Curves.easeOutBack).fade(duration: 400.ms)
-        ).toList(),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String amount, String subtitle, Color color) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)), SizedBox(height: 4),
-          Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16)),
-          Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
+        _BalancePanel(snapshot: snapshot, onAddTransaction: onAddTransaction),
+        const SizedBox(height: 12),
+        _MetricGrid(cards: [
+          _MetricData('Income', _money(snapshot.monthIncome),
+              LucideIcons.trendingUp, const Color(0xFF22C55E)),
+          _MetricData('Expenses', _money(snapshot.monthExpense),
+              LucideIcons.trendingDown, const Color(0xFFEF4444)),
+          _MetricData('Saved', _money(snapshot.monthNet), LucideIcons.wallet,
+              BentoTheme.accent),
+          _MetricData('SIP / mo', _money(snapshot.sipTotal),
+              LucideIcons.lineChart, const Color(0xFF60A5FA)),
         ]),
-      ),
+        const SizedBox(height: 18),
+        _SectionHeader(title: 'Overview graph'),
+        _OverviewGraphPanel(snapshot: snapshot),
+        const SizedBox(height: 18),
+        _SectionHeader(title: 'Spending by category'),
+        snapshot.categoryBreakdown.isEmpty
+            ? const _EmptyState(text: 'No expenses in this month.')
+            : _CategoryList(items: snapshot.categoryBreakdown),
+        const SizedBox(height: 18),
+        _SectionHeader(
+            title: 'Vaults', actionLabel: 'Add', onAction: onAddVault),
+        vaults.isEmpty
+            ? const _EmptyState(text: 'No vaults yet.')
+            : Column(
+                children: vaults
+                    .map((vault) => _VaultTile(
+                        vault: vault, onDelete: () => onDeleteVault(vault)))
+                    .toList(),
+              ),
+        const SizedBox(height: 18),
+        _SectionHeader(title: 'Recent transactions'),
+        recent.isEmpty
+            ? const _EmptyState(text: 'No transactions yet.')
+            : Column(
+                children: recent
+                    .map((tx) => _TransactionTile(
+                          tx: tx,
+                          onTap: () => onEditTransaction(tx),
+                        ))
+                    .toList(),
+              ),
+      ],
     );
   }
 }
 
 class _TransactionsTab extends StatefulWidget {
   final List<Transaction> transactions;
+  final DateTime selectedMonth;
   final VoidCallback onAdd;
-  final Function(Transaction) onDelete;
-  final Function(Transaction)? onEditTx;
-  const _TransactionsTab({required this.transactions, required this.onAdd, required this.onDelete, this.onEditTx});
+  final ValueChanged<Transaction> onEdit;
+  final ValueChanged<Transaction> onDelete;
+
+  const _TransactionsTab({
+    required this.transactions,
+    required this.selectedMonth,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   State<_TransactionsTab> createState() => _TransactionsTabState();
 }
 
 class _TransactionsTabState extends State<_TransactionsTab> {
-  String filter = "All";
-  final List<String> cats = ["All", ...kExpenseCategories, "Income"];
+  String _filter = 'all';
 
   @override
   Widget build(BuildContext context) {
-    List<Transaction> filtered = filter == "All" ? widget.transactions : widget.transactions.where((t) => t.category == filter).toList();
+    final filtered = widget.transactions.where((tx) {
+      if (_filter == 'income') return !_isExpense(tx);
+      if (_filter == 'expense') return _isExpense(tx);
+      return true;
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("All Transactions", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-            GestureDetector(onTap: widget.onAdd, child: Container(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(12)), child: Text("+ ADD", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))))
-          ],
+        _SectionHeader(
+          title: DateFormat('MMMM transactions').format(widget.selectedMonth),
+          actionLabel: 'Log',
+          onAction: widget.onAdd,
         ),
-        SizedBox(height: 16),
-        SizedBox(
-          height: 32,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(), itemCount: cats.length,
-            itemBuilder: (context, i) {
-              bool isSel = filter == cats[i];
-              return GestureDetector(
-                onTap: () => setState(() => filter = cats[i]),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: EdgeInsets.only(right: 8), padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: isSel ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: isSel ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(20)),
-                  alignment: Alignment.center, child: Text(cats[i], style: TextStyle(color: isSel ? NeuTheme.accent : Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                ),
-              );
-            },
+        _SegmentedControl(
+          values: const {
+            'all': 'All',
+            'income': 'Income',
+            'expense': 'Expense'
+          },
+          selected: _filter,
+          onChanged: (value) => setState(() => _filter = value),
+        ),
+        const SizedBox(height: 14),
+        if (filtered.isEmpty)
+          const _EmptyState(text: 'No matching transactions.')
+        else
+          Column(
+            children: filtered
+                .map((tx) => Dismissible(
+                      key: ValueKey(
+                          '${tx.key}-${tx.date.microsecondsSinceEpoch}'),
+                      direction: DismissDirection.endToStart,
+                      background: const _DismissBackground(),
+                      onDismissed: (_) => widget.onDelete(tx),
+                      child: _TransactionTile(
+                          tx: tx, onTap: () => widget.onEdit(tx)),
+                    ))
+                .toList(),
           ),
-        ),
-        SizedBox(height: 16),
-        if (filtered.isEmpty) const Padding(padding: EdgeInsets.all(40), child: Center(child: Text("No transactions found.", style: TextStyle(color: Colors.white54))))
-        else ...filtered.map((t) => Dismissible(
-          key: Key(t.key.toString()),
-          direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
-          confirmDismiss: (direction) async { widget.onDelete(t); return false; },
-          child: TxRow(tx: t, onTap: () { if(widget.onEditTx != null) widget.onEditTx!(t); }),
-        )).toList(),
       ],
     );
   }
 }
 
 class _BudgetTab extends StatelessWidget {
-  final List budgets;
-  final Map<String, double> categorySpentMap;
-  final double totalSpent, totalLimit;
+  final FinanceSnapshot snapshot;
   final VoidCallback onAdd;
-  final Function(int) onDelete;
-  const _BudgetTab({required this.budgets, required this.categorySpentMap, required this.totalSpent, required this.totalLimit, required this.onAdd, required this.onDelete});
+  final ValueChanged<int> onDelete;
+
+  const _BudgetTab({
+    required this.snapshot,
+    required this.onAdd,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
-    double totalPct = totalLimit > 0 ? (totalSpent / totalLimit).clamp(0.0, 1.0) : 0.0;
+    final progress = snapshot.budgetLimit <= 0
+        ? 0.0
+        : (snapshot.budgetSpent / snapshot.budgetLimit).clamp(0.0, 1.0);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: "MONTHLY OVERVIEW", onAdd: onAdd),
-        GlassCard(
-          glow: true, padding: EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Text("MONTHLY BUDGET USED", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              RichText(text: TextSpan(children: [TextSpan(text: FormatUtils.formatCompactCurrency(totalSpent), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)), TextSpan(text: " / Limit: ${FormatUtils.formatCompactCurrency(totalLimit)}", style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.bold))])),
-              SizedBox(height: 12),
-              AnimatedProgressBar(progress: totalPct, color1: NeuTheme.accent, color2: const Color(0xFFFFD93D)),
-              SizedBox(height: 8),
-              Text("${(totalPct * 100).toStringAsFixed(1)}% used · ${FormatUtils.formatCompactCurrency(totalLimit > totalSpent ? totalLimit - totalSpent : 0)} remaining", style: TextStyle(color: NeuTheme.accent, fontSize: 12, fontWeight: FontWeight.bold)),
-            ],
-          ),
+        _SectionHeader(
+            title: 'Budget control', actionLabel: 'Add', onAction: onAdd),
+        _SummaryPanel(
+          title: 'Monthly budget',
+          amount: _money(snapshot.budgetSpent),
+          subtitle: snapshot.budgetLimit > 0
+              ? '${_money(snapshot.budgetLimit - snapshot.budgetSpent)} remaining'
+              : 'No monthly limits set',
+          progress: progress,
+          progressColor: progress > 0.9
+              ? const Color(0xFFEF4444)
+              : const Color(0xFF22C55E),
         ),
-        SizedBox(height: 16),
-        
-        const SectionHeader(title: "INDIVIDUAL CATEGORIES"),
-        if (budgets.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("No budget categories setup.", style: TextStyle(color: Colors.white54)))
-        else Wrap(
-          spacing: 12, runSpacing: 12,
-          children: budgets.asMap().entries.map((entry) {
-            int idx = entry.key;
-            Map b = entry.value;
-            double limit = b['total'] as double;
-            double spent = categorySpentMap[b['category']] ?? 0.0; // Automatically syncs with transactions!
-            double pct = limit > 0 ? (spent / limit) : 0;
-            Color col = pct > 0.9 ? const Color(0xFFFF6B6B) : Color(b['color']);
-            
-            return GestureDetector(
-              onLongPress: () => onDelete(idx),
-              child: SizedBox(
-                width: (MediaQuery.of(context).size.width - 44) / 2,
-                child: GlassCard(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      AnimatedRingProgress(progress: pct.clamp(0.0, 1.0), color: col, size: 72, stroke: 7, label: "${(pct * 100).toStringAsFixed(0)}%"),
-                      SizedBox(height: 8),
-                      Text("${b['icon']} ${b['category']}", style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1), textAlign: TextAlign.center),
-                      SizedBox(height: 4),
-                      Text("${FormatUtils.formatCompactCurrency(spent)} spent", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
-                      Text("Limit: ${FormatUtils.formatCompactCurrency(limit)}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10)),
-                      if (pct > 0.9) Container(margin: EdgeInsets.only(top: 4), padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0x33FF6B6B), border: Border.all(color: const Color(0x66FF6B6B)), borderRadius: BorderRadius.circular(8)), child: Text("ALERT", style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 9, fontWeight: FontWeight.bold))),
-                    ],
-                  )
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        SizedBox(height: 16),
-
-        if (totalSpent > 0 && budgets.isNotEmpty) ...[
-          const SectionHeader(title: "DYNAMIC BREAKDOWN"),
-          GlassCard(
-            padding: EdgeInsets.all(16),
-            child: SizedBox(
-              height: 200,
-              child: PieChart(PieChartData(
-                sectionsSpace: 3, centerSpaceRadius: 0,
-                sections: budgets.asMap().entries.map((e) {
-                  double spent = categorySpentMap[e.value['category']] ?? 0.0;
-                  if (spent == 0) return PieChartSectionData(value: 0, radius: 0);
-                  return PieChartSectionData(
-                    color: pieColors[e.key % pieColors.length], value: spent, radius: 80,
-                    title: "${((spent / totalSpent) * 100).toStringAsFixed(0)}%",
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+        const SizedBox(height: 16),
+        snapshot.budgets.isEmpty
+            ? const _EmptyState(text: 'No budget categories set.')
+            : Column(
+                children: snapshot.budgets.asMap().entries.map((entry) {
+                  final budget = Map.from(entry.value as Map);
+                  final category = budget['category']?.toString() ?? 'Other';
+                  final limit = _asDouble(budget['total']);
+                  final spent = snapshot.categorySpent[category] ?? 0.0;
+                  return _BudgetTile(
+                    category: category,
+                    spent: spent,
+                    limit: limit,
+                    color: _chartColors[entry.key % _chartColors.length],
+                    onDelete: () => onDelete(entry.key),
                   );
-                }).where((s) => s.value > 0).toList(),
-              )),
-            )
-          )
-        ]
+                }).toList(),
+              ),
+        if (snapshot.budgetSpent > 0 && snapshot.budgets.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _SectionHeader(title: 'Budget allocation'),
+          _ChartPanel(
+            height: 220,
+            child: PieChart(
+              PieChartData(
+                centerSpaceRadius: 54,
+                sectionsSpace: 2,
+                sections: snapshot.budgets.asMap().entries.map((entry) {
+                  final budget = Map.from(entry.value as Map);
+                  final category = budget['category']?.toString() ?? 'Other';
+                  final spent = snapshot.categorySpent[category] ?? 0.0;
+                  return PieChartSectionData(
+                    value: spent <= 0 ? 0.01 : spent,
+                    color: _chartColors[entry.key % _chartColors.length],
+                    radius: 46,
+                    title: spent <= 0 ? '' : _compactMoney(spent),
+                    titleStyle: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
 class _PlannerTab extends StatelessWidget {
-  final Map plannerData;
-  final double monthIncome;
-  final double monthExpense;
+  final FinanceSnapshot snapshot;
   final VoidCallback onAdd;
-  final Function(int) onDeleteFixed;
-  final Function(int) onDeleteSip;
-  
-  const _PlannerTab({required this.plannerData, required this.monthIncome, required this.monthExpense, required this.onAdd, required this.onDeleteFixed, required this.onDeleteSip});
+  final ValueChanged<int> onDeleteFixed;
+  final ValueChanged<int> onDeleteSip;
+
+  const _PlannerTab({
+    required this.snapshot,
+    required this.onAdd,
+    required this.onDeleteFixed,
+    required this.onDeleteSip,
+  });
 
   @override
   Widget build(BuildContext context) {
-    List fixed = plannerData['fixedExpenses'] ?? [];
-    List sips = plannerData['sips'] ?? [];
-    double totalFixed = fixed.fold(0.0, (s, e) => s + (e['amount'] as double));
-    double totalSIP = sips.fold(0.0, (s, e) => s + (e['amount'] as double));
-    double committed = totalFixed + totalSIP;
-    double actualVariable = monthExpense - committed;
-    double actualSavings = monthIncome - monthExpense;
+    final fixed = List.from(snapshot.planner['fixedExpenses'] ?? []);
+    final sips = List.from(snapshot.planner['sips'] ?? []);
+    final plannedTotal = snapshot.fixedTotal + snapshot.sipTotal;
+    final afterPlan =
+        snapshot.monthIncome - snapshot.monthExpense - plannedTotal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: "MONTHLY COMMITMENTS", onAdd: onAdd),
-        GlassCard(
-          glow: true, padding: EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Text("COMMITTED THIS MONTH", style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: committed),
-                duration: const Duration(milliseconds: 800),
-                builder: (context, val, child) => Text(FormatUtils.formatCompactCurrency(val), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+        _SectionHeader(
+            title: 'Monthly planner', actionLabel: 'Add', onAction: onAdd),
+        _MetricGrid(cards: [
+          _MetricData('Fixed', _money(snapshot.fixedTotal),
+              LucideIcons.calendar, const Color(0xFFF59E0B)),
+          _MetricData('SIP', _money(snapshot.sipTotal), LucideIcons.lineChart,
+              const Color(0xFF60A5FA)),
+          _MetricData('Planned', _money(plannedTotal), LucideIcons.pieChart,
+              BentoTheme.accent),
+          _MetricData(
+              'After plan',
+              _money(afterPlan),
+              LucideIcons.wallet,
+              afterPlan >= 0
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFEF4444)),
+        ]),
+        const SizedBox(height: 18),
+        _SectionHeader(title: 'Fixed expenses'),
+        fixed.isEmpty
+            ? const _EmptyState(text: 'No fixed expenses set.')
+            : Column(
+                children: fixed.asMap().entries.map((entry) {
+                  final item = Map.from(entry.value as Map);
+                  return _PlannerTile(
+                    title: item['name']?.toString() ?? 'Commitment',
+                    label: item['category']?.toString() ?? 'Fixed',
+                    amount: _asDouble(item['amount']),
+                    due: _asInt(item['due']),
+                    icon: LucideIcons.calendar,
+                    color: const Color(0xFFF59E0B),
+                    onDelete: () => onDeleteFixed(entry.key),
+                  );
+                }).toList(),
               ),
-              SizedBox(height: 12),
-              Row(children: [_buildMiniCard("📋 FIXED", FormatUtils.formatCompactCurrency(totalFixed), const Color(0xFFFF6B6B)), SizedBox(width: 10), _buildMiniCard("📈 SIP", FormatUtils.formatCompactCurrency(totalSIP), NeuTheme.accent)]),
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
-
-        const SectionHeader(title: "DYNAMIC MONTHLY FLOW"),
-        GlassCard(
-          padding: EdgeInsets.fromLTRB(0, 16, 16, 16),
-          child: SizedBox(
-            height: 140,
-            child: LineChart(LineChartData(
-              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1)),
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, meta) {
-                  List labels = ["Inc", "Fix", "Var", "Sav"];
-                  if (v.toInt() >= 0 && v.toInt() < labels.length) return Padding(padding: EdgeInsets.only(top: 8), child: Text(labels[v.toInt()], style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10)));
-                  return SizedBox();
-                })),
-                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        const SizedBox(height: 18),
+        _SectionHeader(title: 'SIP schedule'),
+        sips.isEmpty
+            ? const _EmptyState(text: 'No SIPs set.')
+            : Column(
+                children: sips.asMap().entries.map((entry) {
+                  final item = Map.from(entry.value as Map);
+                  return _PlannerTile(
+                    title: item['name']?.toString() ?? 'SIP',
+                    label: item['folio']?.toString() ?? 'Investment',
+                    amount: _asDouble(item['amount']),
+                    due: _asInt(item['due'], fallback: 5),
+                    icon: LucideIcons.lineChart,
+                    color: const Color(0xFF60A5FA),
+                    onDelete: () => onDeleteSip(entry.key),
+                  );
+                }).toList(),
               ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: [FlSpot(0, monthIncome), FlSpot(1, monthIncome - totalFixed), FlSpot(2, (monthIncome - totalFixed) - (actualVariable > 0 ? actualVariable : 0)), FlSpot(3, actualSavings > 0 ? actualSavings : 0)],
-                  isCurved: true, color: NeuTheme.accent, barWidth: 3, dotData: FlDotData(show: true, getDotPainter: (s,p,b,i) => FlDotCirclePainter(color: NeuTheme.accent, strokeWidth: 0, radius: 5)),
-                )
-              ]
-            ))
-          )
-        ),
-        SizedBox(height: 16),
-
-        const SectionHeader(title: "FIXED EXPENSES & EMIs"),
-        if (fixed.isEmpty) Text("No fixed expenses tracked.", style: TextStyle(color: Colors.white54)),
-        ...fixed.asMap().entries.map((e) => Dismissible(
-          key: UniqueKey(), direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
-          confirmDismiss: (d) async { onDeleteFixed(e.key); return false; },
-          child: _buildPlannerRow(e.value['category'] == "EMI" ? "🏦" : "🛡️", e.value['name'], "Due on ${e.value['due']}th · ${e.value['category']}", "-${FormatUtils.formatCompactCurrency(e.value['amount'])}", const Color(0xFFFF6B6B)),
-        )).toList(),
-        
-        SizedBox(height: 16),
-        const SectionHeader(title: "SIP / INVESTMENTS"),
-        if (sips.isEmpty) Text("No SIPs tracked.", style: TextStyle(color: Colors.white54)),
-        ...sips.asMap().entries.map((s) => Dismissible(
-          key: UniqueKey(), direction: DismissDirection.endToStart,
-          background: Container(alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(24)), margin: EdgeInsets.only(bottom: 10), child: Icon(LucideIcons.trash, color: Colors.white)),
-          confirmDismiss: (d) async { onDeleteSip(s.key); return false; },
-          child: _buildPlannerRow("📈", s.value['name'], "Due ${s.value['due']}st · ${s.value['folio']}", FormatUtils.formatCompactCurrency(s.value['amount']), NeuTheme.accent),
-        )).toList(),
       ],
-    );
-  }
-
-  Widget _buildMiniCard(String title, String amount, Color color) {
-    return Expanded(child: Container(padding: EdgeInsets.all(12), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16))])));
-  }
-
-  Widget _buildPlannerRow(String icon, String title, String sub, String amt, Color color) {
-    return GlassCard(
-      padding: EdgeInsets.all(16), margin: EdgeInsets.only(bottom: 10),
-      child: Row(children: [
-        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
-        Text(amt, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 16)),
-      ])
     );
   }
 }
 
 class _GoalsTab extends StatelessWidget {
   final List goals;
-  final Box settingsBox;
   final VoidCallback onAdd;
-  final Function(int, Map) onUpdate;
-  final Function(int) onDelete;
-  const _GoalsTab({required this.goals, required this.settingsBox, required this.onAdd, required this.onUpdate, required this.onDelete});
+  final void Function(int index, Map goal) onUpdate;
+  final ValueChanged<int> onDelete;
+
+  const _GoalsTab({
+    required this.goals,
+    required this.onAdd,
+    required this.onUpdate,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final target = goals.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['target']));
+    final saved = goals.fold<double>(
+        0, (sum, item) => sum + _asDouble((item as Map)['saved']));
+    final progress = target <= 0 ? 0.0 : (saved / target).clamp(0.0, 1.0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: "SAVINGS GOALS", onAdd: onAdd),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Text("Tap to add funds. Long press to delete.", style: TextStyle(color: Colors.white30, fontSize: 11)),
+        _SectionHeader(
+            title: 'Finance goals', actionLabel: 'Add', onAction: onAdd),
+        _SummaryPanel(
+          title: 'Saved toward goals',
+          amount: _money(saved),
+          subtitle: target > 0
+              ? '${_money(target - saved)} remaining'
+              : 'No target set',
+          progress: progress,
+          progressColor: const Color(0xFF2DD4BF),
         ),
-        if (goals.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("No goals set yet.", style: TextStyle(color: Colors.white54)))
-        else ...goals.asMap().entries.map((entry) {
-          int idx = entry.key;
-          Map g = entry.value;
-          double target = g['target'] as double;
-          double saved = g['saved'] as double;
-          double pct = target > 0 ? (saved / target).clamp(0.0, 1.0) : 0.0;
-          double rem = target - saved;
-          Color c = Color(g['color']);
-          return GestureDetector(
-            onTap: () => onUpdate(idx, g),
-            onLongPress: () => onDelete(idx),
-            child: GlassCard(
-              padding: EdgeInsets.all(20), margin: EdgeInsets.only(bottom: 14),
-              borderColor: c.withValues(alpha: 0.2), gradient: LinearGradient(colors: [c.withValues(alpha: 0.05), Colors.transparent], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              child: Column(
-                children: [
-                  Row(children: [
-                    Container(width: 52, height: 52, decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: Text(g['icon'], style: const TextStyle(fontSize: 26))), SizedBox(width: 14),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(g['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)), SizedBox(height: 2), Text("Target: ${FormatUtils.formatCurrency(target)} · Due ${g['deadline']}", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11))])),
-                    AnimatedRingProgress(progress: pct, color: c, size: 56, stroke: 6, label: "${(pct * 100).toStringAsFixed(0)}%")
-                  ]),
-                  SizedBox(height: 14),
-                  AnimatedProgressBar(progress: pct, color1: c, color2: c.withValues(alpha: 0.5)),
-                  SizedBox(height: 8),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Saved: ${FormatUtils.formatCompactCurrency(saved)}", style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.bold)), Text("Need: ${FormatUtils.formatCompactCurrency(rem > 0 ? rem : 0)}", style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12))])
-                ],
-              )
-            ),
-          );
-        }).toList(),
+        const SizedBox(height: 16),
+        goals.isEmpty
+            ? const _EmptyState(text: 'No finance goals set.')
+            : Column(
+                children: goals.asMap().entries.map((entry) {
+                  final goal = Map.from(entry.value as Map);
+                  return _GoalTile(
+                    goal: goal,
+                    color: _chartColors[entry.key % _chartColors.length],
+                    onUpdate: () => onUpdate(entry.key, goal),
+                    onDelete: () => onDelete(entry.key),
+                  );
+                }).toList(),
+              ),
       ],
     );
   }
 }
 
-// ==================== SHARED WIDGETS & ANIMATIONS ====================
+class _OverviewGraphPanel extends StatefulWidget {
+  final FinanceSnapshot snapshot;
 
-class GlassCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-  final bool glow;
-  final Color? borderColor;
-  final Gradient? gradient;
-  final EdgeInsetsGeometry? margin;
-
-  const GlassCard({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.glow = false, this.borderColor, this.gradient, this.margin});
+  const _OverviewGraphPanel({required this.snapshot});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: margin ?? EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: glow ? [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, 8)), BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))] : [BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 4))]),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18), child: Container(padding: padding, decoration: BoxDecoration(color: NeuTheme.background, gradient: gradient, borderRadius: BorderRadius.circular(24), border: Border.all(color: borderColor ?? NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), child: child)),
-      ),
-    );
-  }
+  State<_OverviewGraphPanel> createState() => _OverviewGraphPanelState();
 }
 
-class AnimatedRingProgress extends StatelessWidget {
-  final double progress; final Color color; final double size; final double stroke; final String label; final String? sublabel;
-  const AnimatedRingProgress({super.key, required this.progress, required this.color, required this.size, required this.stroke, required this.label, this.sublabel});
+class _OverviewGraphPanelState extends State<_OverviewGraphPanel> {
+  String _mode = 'flow';
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: size, width: size,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: 0, end: progress),
-        duration: const Duration(milliseconds: 1000), curve: Curves.easeOutCubic,
-        builder: (context, value, child) => CustomPaint(
-          painter: RingProgressPainter(progress: value, color: color, strokeWidth: stroke),
-          child: Center(child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: size > 60 ? 14 : 12)),
-              if (sublabel != null) Text(sublabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 8, letterSpacing: 1)),
-            ],
-          )),
-        ),
-      ),
-    );
-  }
-}
+    Widget chart;
+    switch (_mode) {
+      case 'net':
+        chart = _NetTrendChart(data: widget.snapshot.cashFlowTrend);
+        break;
+      case 'categories':
+        chart = widget.snapshot.categoryBreakdown.isEmpty
+            ? const _InlineGraphEmpty(text: 'No category spending this month.')
+            : _CategoryDonutChart(items: widget.snapshot.categoryBreakdown);
+        break;
+      default:
+        chart = _CashFlowChart(data: widget.snapshot.cashFlowTrend);
+    }
 
-class AnimatedProgressBar extends StatelessWidget {
-  final double progress; final Color color1; final Color color2;
-  const AnimatedProgressBar({super.key, required this.progress, required this.color1, required this.color2});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 8, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), alignment: Alignment.centerLeft,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
-        duration: const Duration(milliseconds: 1000), curve: Curves.easeOutCubic,
-        builder: (context, value, child) => FractionallySizedBox(
-          widthFactor: value,
-          child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [color1, color2]), borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: color1.withValues(alpha: 0.4), blurRadius: 8)])),
-        ),
-      ),
-    );
-  }
-}
-
-class TxRow extends StatelessWidget {
-  final Transaction tx;
-  final VoidCallback? onTap;
-  const TxRow({super.key, required this.tx, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    bool isIncome = tx.amount > 0;
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        padding: EdgeInsets.all(14), margin: EdgeInsets.only(bottom: 10),
-        child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text(tx.icon, style: const TextStyle(fontSize: 20))), SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tx.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), SizedBox(height: 2), Text("${DateFormat('MMM d').format(tx.date)} · ${tx.mode}", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11))])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text("${isIncome ? '+' : '-'}${FormatUtils.formatCompactCurrency(tx.amount.abs())}", style: TextStyle(color: isIncome ? NeuTheme.accent : const Color(0xFFFF6B6B), fontWeight: FontWeight.w800, fontSize: 15)), SizedBox(height: 2), Text(tx.category, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10))])
-        ])
-      ),
-    );
-  }
-}
-
-class SectionHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback? onAdd;
-  const SectionHeader({super.key, required this.title, this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return _Panel(
+      padding: const EdgeInsets.all(14),
+      child: Column(
         children: [
-          Text(title, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2)),
-          if (onAdd != null) GestureDetector(onTap: onAdd, child: Container(width: 24, height: 24, decoration: BoxDecoration(color: NeuTheme.accent.withValues(alpha: 0.15), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15)), shape: BoxShape.circle), child: Icon(LucideIcons.plus, color: NeuTheme.accent, size: 14)))
+          _SegmentedControl(
+            values: const {
+              'flow': 'Flow',
+              'net': 'Net',
+              'categories': 'Categories',
+            },
+            selected: _mode,
+            onChanged: (value) => setState(() => _mode = value),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 220,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.04),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(_mode),
+                child: chart,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// --- Modals ---
+class _InlineGraphEmpty extends StatelessWidget {
+  final String text;
+
+  const _InlineGraphEmpty({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.info, color: BentoTheme.textSecondary, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BalancePanel extends StatelessWidget {
+  final FinanceSnapshot snapshot;
+  final VoidCallback onAddTransaction;
+
+  const _BalancePanel({required this.snapshot, required this.onAddTransaction});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Tracked balance',
+                  style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              _SmallActionButton(
+                  label: 'Log',
+                  icon: LucideIcons.plus,
+                  onTap: onAddTransaction),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _money(snapshot.totalBalance),
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: snapshot.savingsRate,
+              color: snapshot.savingsRate >= 0.2
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFF59E0B),
+              backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Savings rate ${(snapshot.savingsRate * 100).toStringAsFixed(0)}%',
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricGrid extends StatelessWidget {
+  final List<_MetricData> cards;
+  const _MetricGrid({required this.cards});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth > 620 ? 4 : 2;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cards.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: columns == 4 ? 1.7 : 1.45,
+          ),
+          itemBuilder: (context, index) => _MetricCard(data: cards[index]),
+        );
+      },
+    );
+  }
+}
+
+class _MetricData {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _MetricData(this.label, this.value, this.icon, this.color);
+}
+
+class _MetricCard extends StatelessWidget {
+  final _MetricData data;
+  const _MetricCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(data.icon, color: data.color, size: 18),
+          const Spacer(),
+          Text(
+            data.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            data.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryPanel extends StatelessWidget {
+  final String title;
+  final String amount;
+  final String subtitle;
+  final double progress;
+  final Color progressColor;
+
+  const _SummaryPanel({
+    required this.title,
+    required this.amount,
+    required this.subtitle,
+    required this.progress,
+    required this.progressColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(
+            amount,
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: progress,
+              color: progressColor,
+              backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(subtitle,
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CashFlowChart extends StatelessWidget {
+  final List<Map<String, dynamic>> data;
+  const _CashFlowChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = data.fold<double>(0, (max, item) {
+      final income = _asDouble(item['income']);
+      final expense = _asDouble(item['expense']);
+      return [max, income, expense].reduce((a, b) => a > b ? a : b);
+    });
+
+    return BarChart(
+      BarChartData(
+        maxY: maxValue <= 0 ? 100 : maxValue * 1.18,
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => BentoTheme.background,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final label = rodIndex == 0 ? 'Income' : 'Expense';
+              return BarTooltipItem(
+                '$label\n${_money(rod.toY)}',
+                TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              );
+            },
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (_) => FlLine(
+            color: BentoTheme.textSecondary.withValues(alpha: 0.08),
+            strokeWidth: 1,
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= data.length)
+                  return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    data[index]['month'].toString(),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 10),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: data.asMap().entries.map((entry) {
+          final item = entry.value;
+          return BarChartGroupData(
+            x: entry.key,
+            barsSpace: 4,
+            barRods: [
+              BarChartRodData(
+                toY: _asDouble(item['income']),
+                width: 8,
+                borderRadius: BorderRadius.circular(4),
+                color: const Color(0xFF22C55E),
+              ),
+              BarChartRodData(
+                toY: _asDouble(item['expense']),
+                width: 8,
+                borderRadius: BorderRadius.circular(4),
+                color: const Color(0xFFEF4444),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+      duration: const Duration(milliseconds: 350),
+    );
+  }
+}
+
+class _NetTrendChart extends StatelessWidget {
+  final List<Map<String, dynamic>> data;
+
+  const _NetTrendChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final spots = data.asMap().entries.map((entry) {
+      final income = _asDouble(entry.value['income']);
+      final expense = _asDouble(entry.value['expense']);
+      return FlSpot(entry.key.toDouble(), income - expense);
+    }).toList();
+
+    final minValue =
+        spots.fold<double>(0, (min, spot) => spot.y < min ? spot.y : min);
+    final maxValue =
+        spots.fold<double>(0, (max, spot) => spot.y > max ? spot.y : max);
+    final padding = ((maxValue - minValue).abs() * 0.18).clamp(100.0, 100000.0);
+
+    return LineChart(
+      LineChartData(
+        minY: minValue - padding,
+        maxY: maxValue + padding,
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => BentoTheme.background,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            getTooltipItems: (spots) {
+              return spots.map((spot) {
+                return LineTooltipItem(
+                  _money(spot.y),
+                  TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: value == 0
+                ? BentoTheme.accent.withValues(alpha: 0.26)
+                : BentoTheme.textSecondary.withValues(alpha: 0.08),
+            strokeWidth: value == 0 ? 1.4 : 1,
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= data.length) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    data[index]['month'].toString(),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 10),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            curveSmoothness: 0.28,
+            color: BentoTheme.accent,
+            barWidth: 2.6,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                final color = spot.y >= 0
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFFEF4444);
+                return FlDotCirclePainter(
+                  radius: 3.2,
+                  color: color,
+                  strokeWidth: 1.5,
+                  strokeColor: BentoTheme.background,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  BentoTheme.accent.withValues(alpha: 0.20),
+                  BentoTheme.accent.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      duration: const Duration(milliseconds: 350),
+    );
+  }
+}
+
+class _CategoryDonutChart extends StatefulWidget {
+  final List<Map<String, dynamic>> items;
+
+  const _CategoryDonutChart({required this.items});
+
+  @override
+  State<_CategoryDonutChart> createState() => _CategoryDonutChartState();
+}
+
+class _CategoryDonutChartState extends State<_CategoryDonutChart> {
+  int _touchedIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.items
+        .fold<double>(0, (sum, item) => sum + _asDouble(item['value']));
+    final selected = _touchedIndex >= 0 && _touchedIndex < widget.items.length
+        ? widget.items[_touchedIndex]
+        : (widget.items.isNotEmpty ? widget.items.first : null);
+
+    return Column(
+      children: [
+        Expanded(
+          child: PieChart(
+            PieChartData(
+              centerSpaceRadius: 52,
+              sectionsSpace: 2,
+              pieTouchData: PieTouchData(
+                touchCallback: (event, response) {
+                  final section = response?.touchedSection;
+                  if (!event.isInterestedForInteractions || section == null) {
+                    setState(() => _touchedIndex = -1);
+                    return;
+                  }
+                  setState(() => _touchedIndex = section.touchedSectionIndex);
+                },
+              ),
+              sections: widget.items.asMap().entries.map((entry) {
+                final amount = _asDouble(entry.value['value']);
+                final selected = entry.key == _touchedIndex;
+                final percent = total <= 0 ? 0 : amount / total * 100;
+                return PieChartSectionData(
+                  value: amount <= 0 ? 0.01 : amount,
+                  color: _chartColors[entry.key % _chartColors.length],
+                  radius: selected ? 58 : 48,
+                  title: percent < 7 ? '' : '${percent.toStringAsFixed(0)}%',
+                  titleStyle: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                );
+              }).toList(),
+            ),
+            duration: const Duration(milliseconds: 350),
+          ),
+        ),
+        const SizedBox(height: 10),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 160),
+          child: selected == null
+              ? const SizedBox.shrink()
+              : Row(
+                  key: ValueKey(selected['name']),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      selected['name'].toString(),
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _money(_asDouble(selected['value'])),
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryList extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  const _CategoryList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final total =
+        items.fold<double>(0, (sum, item) => sum + _asDouble(item['value']));
+    return Column(
+      children: items.asMap().entries.map((entry) {
+        final item = entry.value;
+        final amount = _asDouble(item['value']);
+        final progress = total <= 0 ? 0.0 : (amount / total).clamp(0.0, 1.0);
+        return _ProgressRow(
+          title: item['name'].toString(),
+          trailing: _money(amount),
+          progress: progress,
+          color: _chartColors[entry.key % _chartColors.length],
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _BudgetTile extends StatelessWidget {
+  final String category;
+  final double spent;
+  final double limit;
+  final Color color;
+  final VoidCallback onDelete;
+
+  const _BudgetTile({
+    required this.category,
+    required this.spent,
+    required this.limit,
+    required this.color,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = limit <= 0 ? 0.0 : (spent / limit).clamp(0.0, 1.0);
+    return Dismissible(
+      key: ValueKey('budget-$category-$limit'),
+      direction: DismissDirection.endToStart,
+      background: const _DismissBackground(),
+      onDismissed: (_) => onDelete(),
+      child: _ProgressRow(
+        title: category,
+        trailing: '${_money(spent)} / ${_money(limit)}',
+        progress: progress,
+        color: progress > 0.9 ? const Color(0xFFEF4444) : color,
+      ),
+    );
+  }
+}
+
+class _PlannerTile extends StatelessWidget {
+  final String title;
+  final String label;
+  final double amount;
+  final int due;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onDelete;
+
+  const _PlannerTile({
+    required this.title,
+    required this.label,
+    required this.amount,
+    required this.due,
+    required this.icon,
+    required this.color,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: ValueKey('planner-$title-$amount-$due'),
+      direction: DismissDirection.endToStart,
+      background: const _DismissBackground(),
+      onDismissed: (_) => onDelete(),
+      child: _Panel(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            _TileIcon(icon: icon, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$label - due day $due',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _money(amount),
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalTile extends StatelessWidget {
+  final Map goal;
+  final Color color;
+  final VoidCallback onUpdate;
+  final VoidCallback onDelete;
+
+  const _GoalTile({
+    required this.goal,
+    required this.color,
+    required this.onUpdate,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = goal['name']?.toString() ?? 'Goal';
+    final target = _asDouble(goal['target']);
+    final saved = _asDouble(goal['saved']);
+    final progress = target <= 0 ? 0.0 : (saved / target).clamp(0.0, 1.0);
+    final deadline = goal['deadline']?.toString() ?? '';
+
+    return Dismissible(
+      key: ValueKey('goal-$name-$target'),
+      direction: DismissDirection.endToStart,
+      background: const _DismissBackground(),
+      onDismissed: (_) => onDelete(),
+      child: _Panel(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _TileIcon(icon: LucideIcons.flag, color: color),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (deadline.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          deadline,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                _SmallActionButton(
+                    label: 'Add', icon: LucideIcons.plus, onTap: onUpdate),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _ProgressLine(progress: progress, color: color),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _money(saved),
+                    style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  _money(target),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VaultTile extends StatelessWidget {
+  final AssetVault vault;
+  final VoidCallback onDelete;
+
+  const _VaultTile({required this.vault, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: ValueKey('vault-${vault.key}-${vault.name}'),
+      direction: DismissDirection.endToStart,
+      background: const _DismissBackground(),
+      onDismissed: (_) => onDelete(),
+      child: _Panel(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            _TileIcon(icon: LucideIcons.wallet, color: Color(vault.colorValue)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    vault.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    vault.type,
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              _money(vault.balance),
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TransactionTile extends StatelessWidget {
+  final Transaction tx;
+  final VoidCallback onTap;
+
+  const _TransactionTile({required this.tx, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final expense = _isExpense(tx);
+    final color = expense ? const Color(0xFFEF4444) : const Color(0xFF22C55E);
+    return GestureDetector(
+      onTap: onTap,
+      child: _Panel(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            _TileIcon(
+              icon: expense ? LucideIcons.trendingDown : LucideIcons.trendingUp,
+              color: color,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tx.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${DateFormat('MMM d').format(tx.date)} - ${tx.category}',
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${expense ? '-' : '+'}${_money(tx.amount.abs())}',
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressRow extends StatelessWidget {
+  final String title;
+  final String trailing;
+  final double progress;
+  final Color color;
+
+  const _ProgressRow({
+    required this.title,
+    required this.trailing,
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                trailing,
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _ProgressLine(progress: progress, color: color),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressLine extends StatelessWidget {
+  final double progress;
+  final Color color;
+  const _ProgressLine({required this.progress, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: LinearProgressIndicator(
+        minHeight: 7,
+        value: progress,
+        color: color,
+        backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
+      ),
+    );
+  }
+}
+
+class _ChartPanel extends StatelessWidget {
+  final Widget child;
+  final double height;
+  const _ChartPanel({required this.child, this.height = 210});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(14),
+      child: SizedBox(height: height, child: child),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _SectionHeader({required this.title, this.actionLabel, this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          if (onAction != null && actionLabel != null)
+            _SmallActionButton(
+                label: actionLabel!, icon: LucideIcons.plus, onTap: onAction!),
+        ],
+      ),
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? margin;
+
+  const _Panel({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.margin,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: BentoTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: BentoTheme.textSecondary.withValues(alpha: 0.10)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _FinanceTextTabBar extends StatelessWidget {
+  final List<_FinanceTab> tabs;
+  final String activeTab;
+  final ValueChanged<String> onTabChanged;
+
+  const _FinanceTextTabBar({
+    required this.tabs,
+    required this.activeTab,
+    required this.onTabChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: tabs.map((tab) {
+          final isSelected = tab.id == activeTab;
+          return GestureDetector(
+            onTap: () => onTabChanged(tab.id),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? BentoTheme.accent : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+              child: Text(
+                tab.label.toUpperCase(),
+                style: TextStyle(
+                  color: isSelected
+                      ? BentoTheme.accent
+                      : BentoTheme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _SmallActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SmallActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: BentoTheme.accent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: BentoTheme.background),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: BentoTheme.background,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: BentoTheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: BentoTheme.textSecondary.withValues(alpha: 0.12)),
+        ),
+        child: Icon(icon, color: BentoTheme.textPrimary, size: 18),
+      ),
+    );
+  }
+}
+
+class _TileIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _TileIcon({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, color: color, size: 19),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String text;
+  const _EmptyState({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Icon(LucideIcons.info, color: BentoTheme.textSecondary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DismissBackground extends StatelessWidget {
+  const _DismissBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 18),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Icon(LucideIcons.trash, color: Colors.white, size: 20),
+    );
+  }
+}
+
+class _SegmentedControl extends StatelessWidget {
+  final Map<String, String> values;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _SegmentedControl({
+    required this.values,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: BentoTheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border:
+            Border.all(color: BentoTheme.textSecondary.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        children: values.entries.map((entry) {
+          final active = selected == entry.key;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(entry.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? BentoTheme.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  entry.value,
+                  style: TextStyle(
+                    color: active
+                        ? BentoTheme.background
+                        : BentoTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
 
 class _AddEditTransactionModal extends StatefulWidget {
   final Box<Transaction> txBox;
-  final Box<AssetVault> vaultBox;
   final Transaction? existingTx;
-  const _AddEditTransactionModal({required this.txBox, required this.vaultBox, this.existingTx});
+
+  const _AddEditTransactionModal({required this.txBox, this.existingTx});
+
   @override
-  State<_AddEditTransactionModal> createState() => _AddEditTransactionModalState();
+  State<_AddEditTransactionModal> createState() =>
+      _AddEditTransactionModalState();
 }
+
 class _AddEditTransactionModalState extends State<_AddEditTransactionModal> {
-  String type = "expense", title = "", amount = "", category = "Food", upi = "";
+  String type = 'expense';
+  String title = '';
+  String amount = '';
+  String category = 'Food';
+  String mode = 'UPI';
 
   @override
   void initState() {
     super.initState();
-    if (widget.existingTx != null) {
-      final tx = widget.existingTx!;
+    final tx = widget.existingTx;
+    if (tx != null) {
+      type = _isExpense(tx) ? 'expense' : 'income';
       title = tx.title;
       amount = tx.amount.abs().toString();
-      type = tx.amount > 0 ? "income" : "expense";
       category = tx.category;
-      upi = tx.mode;
+      mode = tx.mode;
     }
   }
+
   void _save() {
-    if (title.isEmpty || amount.isEmpty) return;
-    double amt = safeParse(amount);
-    if (amt == 0) return;
-    
-    String finalCat = type == "income" ? "Income" : category;
-    
-    if (widget.existingTx != null) {
-      final tx = widget.existingTx!;
-      tx.title = title;
-      tx.amount = type == "expense" ? -amt.abs() : amt.abs();
-      tx.category = finalCat;
-      tx.mode = upi.isEmpty ? "UPI" : upi;
-      tx.icon = type == "income" ? "💰" : "💸";
+    final parsed = safeParse(amount);
+    if (title.trim().isEmpty || parsed <= 0) return;
+
+    final tx = widget.existingTx;
+    final finalCategory = type == 'income' ? 'Income' : category;
+    if (tx != null) {
+      tx.title = title.trim();
+      tx.amount = type == 'expense' ? -parsed.abs() : parsed.abs();
+      tx.category = finalCategory;
+      tx.mode = type;
+      tx.icon = type;
       tx.save();
     } else {
-      widget.txBox.add(Transaction(title: title, amount: type == "expense" ? -amt.abs() : amt.abs(), category: finalCat, date: DateTime.now(), mode: upi.isEmpty ? "UPI" : upi, icon: type == "income" ? "💰" : "💸"));
+      widget.txBox.add(Transaction(
+        title: title.trim(),
+        amount: type == 'expense' ? -parsed.abs() : parsed.abs(),
+        category: finalCategory,
+        date: DateTime.now(),
+        mode: type,
+        icon: type,
+      ));
     }
     Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) {
-    return _BaseModal(title: widget.existingTx != null ? "EDIT TRANSACTION" : "LOG TRANSACTION", onSave: _save, child: Column(children: [
-      Row(children: ["expense", "income"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
-      _ModalInput(hint: "Title (e.g., Swiggy, Salary)", initialValue: title, onChanged: (v) => title = v),
-      _ModalInput(hint: "Amount (₹)", initialValue: amount, keyboardType: TextInputType.number, onChanged: (v) => amount = v),
-      if (type == "expense") _ModalDropdown(value: category, items: kExpenseCategories, onChanged: (v) => setState(() => category = v!)),
-      _ModalInput(hint: "Mode (e.g., UPI)", initialValue: upi, onChanged: (v) => upi = v),
-    ]));
+    return _BaseModal(
+      title: widget.existingTx == null ? 'Log transaction' : 'Edit transaction',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SegmentedControl(
+            values: const {'expense': 'Expense', 'income': 'Income'},
+            selected: type,
+            onChanged: (value) => setState(() => type = value),
+          ),
+          const SizedBox(height: 12),
+          _ModalInput(
+              label: 'Title',
+              initialValue: title,
+              onChanged: (value) => title = value),
+          _ModalInput(
+            label: 'Amount',
+            initialValue: amount,
+            keyboardType: TextInputType.number,
+            onChanged: (value) => amount = value,
+          ),
+          if (type == 'expense')
+            _ModalDropdown(
+              label: 'Category',
+              value: kExpenseCategories.contains(category) ? category : 'Other',
+              items: kExpenseCategories,
+              onChanged: (value) => setState(() => category = value ?? 'Other'),
+            ),
+          _ModalInput(
+              label: 'Mode',
+              initialValue: mode,
+              onChanged: (value) => mode = value),
+        ],
+      ),
+    );
   }
 }
 
 class _AddVaultModal extends StatefulWidget {
   final Box<AssetVault> vaultBox;
   const _AddVaultModal({required this.vaultBox});
+
   @override
   State<_AddVaultModal> createState() => _AddVaultModalState();
 }
+
 class _AddVaultModalState extends State<_AddVaultModal> {
-  String name = "", balance = "", type = "Savings";
+  String name = '';
+  String balance = '';
+  String type = 'Savings';
+
   void _save() {
-    if (name.isEmpty || balance.isEmpty) return;
-    widget.vaultBox.add(AssetVault(name: name.toUpperCase(), balance: safeParse(balance), bank: type, type: type, colorValue: NeuTheme.accent.value));
+    final parsed = safeParse(balance);
+    if (name.trim().isEmpty || parsed <= 0) return;
+    widget.vaultBox.add(AssetVault(
+      name: name.trim(),
+      balance: parsed,
+      bank: type,
+      type: type,
+      colorValue:
+          _chartColors[widget.vaultBox.length % _chartColors.length].toARGB32(),
+    ));
     GlobalXPService.addXP(15);
     Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) {
-    return _BaseModal(title: "NEW VAULT", onSave: _save, child: Column(children: [
-      _ModalInput(hint: "Vault Name", onChanged: (v) => name = v),
-      _ModalInput(hint: "Balance (₹)", keyboardType: TextInputType.number, onChanged: (v) => balance = v),
-      _ModalDropdown(value: type, items: const ["Savings", "Current", "UPI Wallet", "Investment", "Crypto"], onChanged: (v) => setState(() => type = v!)),
-    ]));
+    return _BaseModal(
+      title: 'New vault',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ModalInput(label: 'Vault name', onChanged: (value) => name = value),
+          _ModalInput(
+            label: 'Balance',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => balance = value,
+          ),
+          _ModalDropdown(
+            label: 'Type',
+            value: type,
+            items: const [
+              'Savings',
+              'Current',
+              'UPI Wallet',
+              'Investment',
+              'Cash'
+            ],
+            onChanged: (value) => setState(() => type = value ?? 'Savings'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddBudgetModal extends StatefulWidget {
+  final Box settingsBox;
+  const _AddBudgetModal({required this.settingsBox});
+
+  @override
+  State<_AddBudgetModal> createState() => _AddBudgetModalState();
+}
+
+class _AddBudgetModalState extends State<_AddBudgetModal> {
+  String category = 'Food';
+  String limit = '';
+
+  void _save() {
+    final parsed = safeParse(limit);
+    if (parsed <= 0) return;
+    final budgets =
+        List.from(widget.settingsBox.get('budgets', defaultValue: []));
+    final index = budgets.indexWhere((item) {
+      final map = Map.from(item as Map);
+      return map['category']?.toString() == category;
+    });
+    final entry = {
+      'category': category,
+      'total': parsed,
+      'color': _chartColors[
+              (index >= 0 ? index : budgets.length) % _chartColors.length]
+          .toARGB32(),
+    };
+    if (index >= 0) {
+      budgets[index] = entry;
+    } else {
+      budgets.add(entry);
+    }
+    widget.settingsBox.put('budgets', budgets);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseModal(
+      title: 'Budget category',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ModalDropdown(
+            label: 'Category',
+            value: category,
+            items: kExpenseCategories,
+            onChanged: (value) => setState(() => category = value ?? 'Other'),
+          ),
+          _ModalInput(
+            label: 'Monthly limit',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => limit = value,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddPlannerModal extends StatefulWidget {
+  final Box settingsBox;
+  const _AddPlannerModal({required this.settingsBox});
+
+  @override
+  State<_AddPlannerModal> createState() => _AddPlannerModalState();
+}
+
+class _AddPlannerModalState extends State<_AddPlannerModal> {
+  String type = 'fixed';
+  String name = '';
+  String amount = '';
+  String due = '1';
+  String label = 'EMI';
+
+  void _save() {
+    final parsed = safeParse(amount);
+    if (name.trim().isEmpty || parsed <= 0) return;
+
+    final planner = Map.from(widget.settingsBox.get(
+      'planner',
+      defaultValue: {'fixedExpenses': [], 'sips': []},
+    ));
+    if (type == 'fixed') {
+      final fixed = List.from(planner['fixedExpenses'] ?? []);
+      fixed.add({
+        'name': name.trim(),
+        'amount': parsed,
+        'due': int.tryParse(due.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1,
+        'category': label.trim().isEmpty ? 'Fixed' : label.trim(),
+      });
+      planner['fixedExpenses'] = fixed;
+    } else {
+      final sips = List.from(planner['sips'] ?? []);
+      sips.add({
+        'name': name.trim(),
+        'amount': parsed,
+        'due': int.tryParse(due.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5,
+        'folio': label.trim().isEmpty ? 'Investment' : label.trim(),
+      });
+      planner['sips'] = sips;
+    }
+    widget.settingsBox.put('planner', planner);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _BaseModal(
+      title: 'Monthly planner item',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SegmentedControl(
+            values: const {'fixed': 'Fixed', 'sip': 'SIP'},
+            selected: type,
+            onChanged: (value) => setState(() {
+              type = value;
+              label = value == 'fixed' ? 'EMI' : 'Investment';
+            }),
+          ),
+          const SizedBox(height: 12),
+          _ModalInput(label: 'Name', onChanged: (value) => name = value),
+          _ModalInput(
+            label: 'Amount',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => amount = value,
+          ),
+          _ModalInput(
+            label: 'Due day',
+            initialValue: due,
+            keyboardType: TextInputType.number,
+            onChanged: (value) => due = value,
+          ),
+          _ModalInput(
+            label: type == 'fixed' ? 'Category' : 'Platform',
+            initialValue: label,
+            onChanged: (value) => label = value,
+          ),
+        ],
+      ),
+    );
   }
 }
 
 class _AddGoalModal extends StatefulWidget {
   final Box settingsBox;
   const _AddGoalModal({required this.settingsBox});
+
   @override
   State<_AddGoalModal> createState() => _AddGoalModalState();
 }
+
 class _AddGoalModalState extends State<_AddGoalModal> {
-  String name = "", target = "", saved = "", deadline = "", icon = "🎯";
-  final List<String> icons = ["🎯", "🏠", "📱", "✈️", "🎓", "💒", "🚗", "💻", "🏖️", "🛡️"];
+  String name = '';
+  String target = '';
+  String saved = '';
+  String deadline = '';
+
   void _save() {
-    if (name.isEmpty || target.isEmpty) return;
-    List goals = widget.settingsBox.get('goals', defaultValue: []);
-    goals.add({"name": name, "target": safeParse(target), "saved": safeParse(saved), "deadline": deadline, "icon": icon, "color": pieColors[goals.length % pieColors.length].value});
+    final targetAmount = safeParse(target);
+    if (name.trim().isEmpty || targetAmount <= 0) return;
+    final goals = List.from(widget.settingsBox.get('goals', defaultValue: []));
+    goals.add({
+      'name': name.trim(),
+      'target': targetAmount,
+      'saved': safeParse(saved),
+      'deadline': deadline.trim(),
+      'color': _chartColors[goals.length % _chartColors.length].toARGB32(),
+    });
     widget.settingsBox.put('goals', goals);
     Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) {
-    return _BaseModal(title: "NEW GOAL", onSave: _save, child: Column(children: [
-      Wrap(spacing: 8, runSpacing: 8, children: icons.map((e) => GestureDetector(onTap: () => setState(() => icon = e), child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 36, height: 36, decoration: BoxDecoration(color: icon == e ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: icon == e ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(e, style: const TextStyle(fontSize: 18))))).toList()),
-      SizedBox(height: 12),
-      _ModalInput(hint: "Goal Name", onChanged: (v) => name = v),
-      _ModalInput(hint: "Target Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => target = v),
-      _ModalInput(hint: "Already Saved (₹)", keyboardType: TextInputType.number, onChanged: (v) => saved = v),
-      _ModalInput(hint: "Deadline (e.g., Dec 2025)", onChanged: (v) => deadline = v),
-    ]));
+    return _BaseModal(
+      title: 'Finance goal',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ModalInput(label: 'Goal name', onChanged: (value) => name = value),
+          _ModalInput(
+            label: 'Target amount',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => target = value,
+          ),
+          _ModalInput(
+            label: 'Already saved',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => saved = value,
+          ),
+          _ModalInput(
+              label: 'Deadline', onChanged: (value) => deadline = value),
+        ],
+      ),
+    );
   }
 }
 
@@ -1101,91 +2669,63 @@ class _UpdateGoalModal extends StatefulWidget {
   final Box settingsBox;
   final int goalIndex;
   final Map goal;
-  const _UpdateGoalModal({required this.settingsBox, required this.goalIndex, required this.goal});
+
+  const _UpdateGoalModal({
+    required this.settingsBox,
+    required this.goalIndex,
+    required this.goal,
+  });
+
   @override
   State<_UpdateGoalModal> createState() => _UpdateGoalModalState();
 }
+
 class _UpdateGoalModalState extends State<_UpdateGoalModal> {
-  String amount = "";
+  String amount = '';
+
   void _save() {
-    double amt = safeParse(amount);
-    if (amt <= 0) return;
-    List goals = List.from(widget.settingsBox.get('goals', defaultValue: []));
-    Map g = Map.from(goals[widget.goalIndex]);
-    g['saved'] = (g['saved'] as double) + amt;
-    goals[widget.goalIndex] = g;
+    final parsed = safeParse(amount);
+    if (parsed <= 0) return;
+    final goals = List.from(widget.settingsBox.get('goals', defaultValue: []));
+    final goal = Map.from(goals[widget.goalIndex] as Map);
+    goal['saved'] = _asDouble(goal['saved']) + parsed;
+    goals[widget.goalIndex] = goal;
     widget.settingsBox.put('goals', goals);
     GlobalXPService.addXP(20);
     Navigator.pop(context);
   }
-  @override
-  Widget build(BuildContext context) {
-    return _BaseModal(title: "ADD FUNDS TO ${widget.goal['name'].toUpperCase()}", onSave: _save, child: Column(children: [
-      Text("Target: ${FormatUtils.formatCurrency(widget.goal['target'])} · Currently Saved: ${FormatUtils.formatCurrency(widget.goal['saved'])}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      SizedBox(height: 16),
-      _ModalInput(hint: "Amount to Add (₹)", keyboardType: TextInputType.number, onChanged: (v) => amount = v),
-    ]));
-  }
-}
 
-class _AddBudgetModal extends StatefulWidget {
-  final Box settingsBox;
-  const _AddBudgetModal({required this.settingsBox});
-  @override
-  State<_AddBudgetModal> createState() => _AddBudgetModalState();
-}
-class _AddBudgetModalState extends State<_AddBudgetModal> {
-  String category = "Food", limit = "";
-  void _save() {
-    if (limit.isEmpty) return;
-    List b = widget.settingsBox.get('budgets', defaultValue: []);
-    String icon = "🛍️";
-    if(category == "Food") icon = "🍔"; else if(category == "Transport") icon = "🚆"; else if(category == "Utilities") icon = "⚡";
-    b.add({"category": category, "total": safeParse(limit), "icon": icon, "color": pieColors[b.length % pieColors.length].value});
-    widget.settingsBox.put('budgets', b);
-    Navigator.pop(context);
-  }
   @override
   Widget build(BuildContext context) {
-    return _BaseModal(title: "NEW BUDGET", onSave: _save, child: Column(children: [
-      _ModalDropdown(value: category, items: kExpenseCategories, onChanged: (v) => setState(() => category = v!)),
-      _ModalInput(hint: "Monthly Limit (₹)", keyboardType: TextInputType.number, onChanged: (v) => limit = v),
-    ]));
-  }
-}
-
-class _AddPlannerModal extends StatefulWidget {
-  final Box settingsBox;
-  const _AddPlannerModal({required this.settingsBox});
-  @override
-  State<_AddPlannerModal> createState() => _AddPlannerModalState();
-}
-class _AddPlannerModalState extends State<_AddPlannerModal> {
-  String type = "Fixed", name = "", amount = "", due = "1", extra = "EMI";
-  void _save() {
-    if (name.isEmpty || amount.isEmpty) return;
-    Map p = widget.settingsBox.get('planner', defaultValue: {"fixedExpenses": [], "sips": []});
-    if (type == "Fixed") {
-      List f = List.from(p['fixedExpenses']);
-      f.add({"name": name, "amount": safeParse(amount), "due": int.tryParse(due.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1, "category": extra});
-      p['fixedExpenses'] = f;
-    } else {
-      List s = List.from(p['sips']);
-      s.add({"name": name, "amount": safeParse(amount), "due": int.tryParse(due.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1, "folio": extra});
-      p['sips'] = s;
-    }
-    widget.settingsBox.put('planner', p);
-    Navigator.pop(context);
-  }
-  @override
-  Widget build(BuildContext context) {
-    return _BaseModal(title: "NEW COMMITMENT", onSave: _save, child: Column(children: [
-      Row(children: ["Fixed", "SIP"].map((t) => Expanded(child: GestureDetector(onTap: () => setState(() => type = t), child: AnimatedContainer(duration: const Duration(milliseconds: 200), margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8), padding: EdgeInsets.all(10), decoration: BoxDecoration(color: type == t ? NeuTheme.accent.withValues(alpha: 0.15) : Colors.transparent, border: Border.all(color: type == t ? NeuTheme.accent : NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(t.toUpperCase(), style: TextStyle(color: type == t ? NeuTheme.accent : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)))))).toList()),
-      _ModalInput(hint: "Name (e.g., Rent, Groww)", onChanged: (v) => name = v),
-      _ModalInput(hint: "Amount (₹)", keyboardType: TextInputType.number, onChanged: (v) => amount = v),
-      _ModalInput(hint: "Due Date (e.g., 5)", keyboardType: TextInputType.number, onChanged: (v) => due = v),
-      _ModalInput(hint: type == "Fixed" ? "Category (e.g., EMI, Rent)" : "Folio/Platform (e.g., Zerodha)", onChanged: (v) => extra = v),
-    ]));
+    return _BaseModal(
+      title: 'Add funds',
+      onSave: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.goal['name']?.toString() ?? 'Goal',
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${_money(_asDouble(widget.goal['saved']))} saved of ${_money(_asDouble(widget.goal['target']))}',
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          _ModalInput(
+            label: 'Amount to add',
+            keyboardType: TextInputType.number,
+            onChanged: (value) => amount = value,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1193,26 +2733,69 @@ class _BaseModal extends StatelessWidget {
   final String title;
   final Widget child;
   final VoidCallback onSave;
-  const _BaseModal({required this.title, required this.child, required this.onSave});
+
+  const _BaseModal({
+    required this.title,
+    required this.child,
+    required this.onSave,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: BoxDecoration(color: const Color(0xFF0F1923), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: const BorderRadius.vertical(top: Radius.circular(28)), boxShadow: [BoxShadow(color: NeuTheme.accent.withValues(alpha: 0.15), blurRadius: 40, offset: Offset(0, -8))]),
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(title, style: TextStyle(color: NeuTheme.accent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)), GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 32, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)), child: Icon(LucideIcons.x, color: Colors.white, size: 16)))]),
-            SizedBox(height: 20), child, SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("CANCEL", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))))),
-              SizedBox(width: 10),
-              Expanded(flex: 2, child: GestureDetector(onTap: onSave, child: Container(padding: EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: LinearGradient(colors: [NeuTheme.accent, NeuTheme.accent]), borderRadius: BorderRadius.circular(14)), alignment: Alignment.center, child: Text("SAVE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1))))),
-            ])
-          ],
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      decoration: BoxDecoration(
+        color: BentoTheme.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border:
+            Border.all(color: BentoTheme.textSecondary.withValues(alpha: 0.12)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    _IconButton(
+                        icon: LucideIcons.x,
+                        onTap: () => Navigator.pop(context)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                child,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _OutlineButton(
+                          label: 'Cancel', onTap: () => Navigator.pop(context)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: _PrimaryButton(label: 'Save', onTap: onSave),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1220,52 +2803,153 @@ class _BaseModal extends StatelessWidget {
 }
 
 class _ModalInput extends StatelessWidget {
-  final String hint; final ValueChanged<String> onChanged; final TextInputType keyboardType; final String? initialValue;
-  const _ModalInput({required this.hint, required this.onChanged, this.keyboardType = TextInputType.text, this.initialValue});
+  final String label;
+  final ValueChanged<String> onChanged;
+  final TextInputType keyboardType;
+  final String? initialValue;
+
+  const _ModalInput({
+    required this.label,
+    required this.onChanged,
+    this.keyboardType = TextInputType.text,
+    this.initialValue,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: EdgeInsets.only(bottom: 10), child: TextFormField(initialValue: initialValue, onChanged: onChanged, keyboardType: keyboardType, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), filled: true, fillColor: Colors.white.withValues(alpha: 0.05), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: NeuTheme.accent, width: 1.5)), contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        initialValue: initialValue,
+        onChanged: onChanged,
+        keyboardType: keyboardType,
+        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: BentoTheme.textSecondary),
+          filled: true,
+          fillColor: BentoTheme.surface,
+          border: _inputBorder(),
+          enabledBorder: _inputBorder(),
+          focusedBorder: _inputBorder(color: BentoTheme.accent),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+      ),
+    );
   }
 }
 
 class _ModalDropdown extends StatelessWidget {
-  final String value; final List<String> items; final ValueChanged<String?> onChanged;
-  const _ModalDropdown({required this.value, required this.items, required this.onChanged});
+  final String label;
+  final String value;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  const _ModalDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: EdgeInsets.only(bottom: 10), child: Container(padding: EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.15), width: 1.5), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: value, isExpanded: true, dropdownColor: NeuTheme.background, style: const TextStyle(color: Colors.white, fontSize: 14), icon: Icon(LucideIcons.chevronDown, color: Colors.white54), items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged))));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        dropdownColor: BentoTheme.surface,
+        icon: Icon(LucideIcons.chevronDown,
+            color: BentoTheme.textSecondary, size: 18),
+        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: BentoTheme.textSecondary),
+          filled: true,
+          fillColor: BentoTheme.surface,
+          border: _inputBorder(),
+          enabledBorder: _inputBorder(),
+          focusedBorder: _inputBorder(color: BentoTheme.accent),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+        items: items
+            .map((item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                ))
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
   }
 }
 
-// --- Custom Painters ---
-
-class RingProgressPainter extends CustomPainter {
-  final double progress; final Color color; final double strokeWidth;
-  RingProgressPainter({required this.progress, required this.color, required this.strokeWidth});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - strokeWidth) / 2;
-    canvas.drawCircle(center, radius, Paint()..color = Colors.white.withValues(alpha: 0.05)..style = PaintingStyle.stroke..strokeWidth = strokeWidth);
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), -math.pi / 2, 2 * math.pi * progress, false, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = strokeWidth..strokeCap = StrokeCap.round..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3));
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+OutlineInputBorder _inputBorder({Color? color}) {
+  return OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: BorderSide(
+      color: color ?? BentoTheme.textSecondary.withValues(alpha: 0.12),
+    ),
+  );
 }
 
-class DashedBorderPainter extends CustomPainter {
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _PrimaryButton({required this.label, required this.onTap});
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.15)..style = PaintingStyle.stroke..strokeWidth = 1.5;
-    Path path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(24)));
-    for (PathMetric pathMetric in path.computeMetrics()) {
-      double distance = 0.0;
-      while (distance < pathMetric.length) {
-        canvas.drawPath(pathMetric.extractPath(distance, distance + 5.0), paint);
-        distance += 5.0 + 5.0;
-      }
-    }
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: BentoTheme.accent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: BentoTheme.background,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
   }
+}
+
+class _OutlineButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _OutlineButton({required this.label, required this.onTap});
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: BentoTheme.textSecondary.withValues(alpha: 0.16)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: BentoTheme.textSecondary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
 }

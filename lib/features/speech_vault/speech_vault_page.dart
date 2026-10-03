@@ -10,6 +10,7 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SpeechVaultPage extends StatefulWidget {
   const SpeechVaultPage({super.key});
@@ -40,7 +41,7 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("K N O W L E D G E   V A U L T", style: TextStyle(letterSpacing: 2, fontSize: 16)),
         backgroundColor: Colors.transparent,
@@ -54,8 +55,23 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
       body: ValueListenableBuilder(
         valueListenable: vaultBox.listenable(),
         builder: (context, Box<SpeechModel> box, _) {
+          if (box.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.ghost, size: 48, color: Colors.white24)
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .moveY(begin: -8, end: 8, duration: 2.seconds, curve: Curves.easeInOut),
+                  const SizedBox(height: 16),
+                  const Text("Vault is empty. Add a video link.", style: TextStyle(color: Colors.white54)),
+                ],
+              ),
+            );
+          }
           return GridView.builder(
             padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2, 
               childAspectRatio: 0.8, 
@@ -63,7 +79,10 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
               mainAxisSpacing: 16,
             ),
             itemCount: box.length,
-            itemBuilder: (context, index) => _buildIntelligenceCard(context, box.getAt(index)!),
+            itemBuilder: (context, index) => _buildIntelligenceCard(context, box.getAt(index)!)
+                .animate()
+                .fade(duration: 400.ms, delay: (50 * index).ms)
+                .slideY(begin: 0.1, duration: 400.ms, delay: (50 * index).ms, curve: Curves.easeOutBack),
           );
         },
       ),

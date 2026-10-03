@@ -13,8 +13,9 @@ import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
 import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
+import 'package:habit_tracker/widgets/star_background.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -57,9 +58,9 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: const Color(0xFF1C1C1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24), 
-            side: const BorderSide(color: Colors.tealAccent)
+            side: const BorderSide(color: Colors.white)
           ),
-          title: const Text("Welcome", style: TextStyle(color: Colors.tealAccent, letterSpacing: 2)),
+          title: const Text("Welcome", style: TextStyle(color: Colors.white, letterSpacing: 2)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -72,7 +73,7 @@ class _HomePageState extends State<HomePage> {
                   hintText: "Enter Name...",
                   hintStyle: TextStyle(color: Colors.white24),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
                 ),
               ),
             ],
@@ -86,7 +87,7 @@ class _HomePageState extends State<HomePage> {
                   setState(() {}); 
                 }
               },
-              child: const Text("ENGAGE", style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
+              child: const Text("ENGAGE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -107,10 +108,34 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true, 
-      backgroundColor: NeuTheme.background,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          AnimatedSwitcher(duration: const Duration(milliseconds: 300), transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(animation), child: child)), child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex])),
+          StarBackground(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (child, animation) {
+                final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
+                );
+                final scaleAnim = Tween<double>(begin: 0.97, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
+                );
+                final fadeAnim = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+                return FadeTransition(
+                  opacity: fadeAnim,
+                  child: SlideTransition(
+                    position: slideAnim,
+                    child: ScaleTransition(
+                      scale: scaleAnim,
+                      child: child,
+                    ),
+                  ),
+                );
+              },
+              child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavBar(selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),

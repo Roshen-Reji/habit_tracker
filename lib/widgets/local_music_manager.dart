@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:on_audio_query/on_audio_query.dart' as on_audio_query;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:habit_tracker/models/song_model.dart';
@@ -42,6 +43,15 @@ class _LocalMusicManagerState extends State<LocalMusicManager> {
       uriType: on_audio_query.UriType.EXTERNAL,
       ignoreCase: true,
     );
+
+    List<dynamic> rawFolders = Hive.box('settings').get('music_folders', defaultValue: []);
+    List<String> folders = rawFolders.cast<String>();
+
+    if (folders.isNotEmpty) {
+      songModels = songModels.where((s) {
+        return folders.any((folder) => s.data.startsWith(folder));
+      }).toList();
+    }
 
     for (var song in songModels) {
       localSongs.add(SongModel(

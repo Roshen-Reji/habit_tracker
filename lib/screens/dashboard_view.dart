@@ -5,13 +5,11 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/widgets/mysterious_quote_card.dart';
 import 'package:habit_tracker/widgets/mysterious_momentum_graph.dart';
-import 'package:habit_tracker/widgets/star_background.dart';
+
 import 'package:habit_tracker/screens/settings_page.dart';
-import 'package:habit_tracker/core/theme/neu_theme.dart';
-import 'package:habit_tracker/data/services/rank_service.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 
 class DashboardView extends StatelessWidget {
@@ -24,9 +22,8 @@ class DashboardView extends StatelessWidget {
       builder: (context, Box settings, _) {
         final String name = settings.get('username', defaultValue: 'USER');
 
-        return StarBackground(
-          child: SafeArea(
-            child: SingleChildScrollView(
+    return SafeArea(
+      child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 180),
               child: Column(
@@ -38,38 +35,23 @@ class DashboardView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ValueListenableBuilder(
-                          valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-                          builder: (context, Box<Goal> missionBox, _) {
-                            final record = RankService.calculateServiceRecord(missionBox.values.toList());
+                        Builder(
+                          builder: (context) {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("WELCOME,", style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
-                                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.5, color: NeuTheme.textPrimary)),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: NeuTheme.accent.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: NeuTheme.accent.withValues(alpha: 0.3)),
-                                  ),
-                                  child: Text(
-                                    "${record.title} • LVL ${record.level}",
-                                    style: TextStyle(color: NeuTheme.accent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                                  ),
-                                ),
+                                Text("Welcome back,", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 14, letterSpacing: 1.2)),
+                                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, letterSpacing: 1.0, color: BentoTheme.textPrimary)),
                               ],
                             ).animate().slideX(begin: -0.1, duration: 400.ms, curve: Curves.easeOutQuad).fade();
                           }
                         ),
                         GestureDetector(
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage())),
-                          child: NeuContainer(
-                            borderRadius: 20,
+                          child: BentoContainer(
+                            borderRadius: 12,
                             padding: const EdgeInsets.all(10),
-                            child: Icon(LucideIcons.settings, color: NeuTheme.accent, size: 20),
+                            child: Icon(LucideIcons.settings, color: BentoTheme.textPrimary, size: 20),
                           ),
                         ).animate().scale(delay: 200.ms, duration: 300.ms, curve: Curves.easeOutBack),
                       ],
@@ -79,7 +61,6 @@ class DashboardView extends StatelessWidget {
                   const SizedBox(height: 10),
                   const MysteriousMomentumGraph(),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("Diet Today"),
                   _buildDietSummaryCard(),
                   const SizedBox(height: 20),
                   _buildSectionHeader("Tasks"),
@@ -87,8 +68,7 @@ class DashboardView extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }
@@ -98,9 +78,9 @@ class DashboardView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
       child: Row(
         children: [
-          Icon(LucideIcons.radar, color: NeuTheme.accent, size: 16),
+          Icon(LucideIcons.radar, color: BentoTheme.accent, size: 16),
           const SizedBox(width: 8),
-          Text(title, style: TextStyle(color: NeuTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(title, style: TextStyle(color: BentoTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
     );
@@ -111,7 +91,7 @@ class DashboardView extends StatelessWidget {
       valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
       builder: (context, Box<Goal> box, _) {
         final dailyGoals = box.values.where((g) => g.type == GoalType.daily).toList();
-        if (dailyGoals.isEmpty) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text("NO ACTIVE MISSIONS", style: TextStyle(color: NeuTheme.textSecondary))));
+        if (dailyGoals.isEmpty) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text("NO ACTIVE MISSIONS", style: TextStyle(color: BentoTheme.textSecondary))));
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -126,9 +106,8 @@ class DashboardView extends StatelessWidget {
   Widget _buildGoalTile(Goal goal) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: NeuContainer(
+      child: BentoContainer(
         borderRadius: 16,
-        isPressed: goal.isCompleted,
         padding: EdgeInsets.zero,
         child: ListTile(
           onTap: () { 
@@ -146,13 +125,13 @@ class DashboardView extends StatelessWidget {
             child: Icon(
               goal.isCompleted ? LucideIcons.checkCircle2 : LucideIcons.circle, 
               key: ValueKey<bool>(goal.isCompleted),
-              color: goal.isCompleted ? NeuTheme.accent : NeuTheme.textSecondary,
+              color: goal.isCompleted ? BentoTheme.accent : BentoTheme.textSecondary,
             ),
           ),
           title: AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 300),
             style: TextStyle(
-              color: goal.isCompleted ? NeuTheme.textSecondary : NeuTheme.textPrimary, 
+              color: goal.isCompleted ? BentoTheme.textSecondary : BentoTheme.textPrimary, 
               decoration: goal.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
               fontSize: 16,
             ),
@@ -174,15 +153,27 @@ class DashboardView extends StatelessWidget {
     final net = intake - burned;
     final isOver = net > target;
     final progress = target > 0 ? (net / target).clamp(0.0, 1.0) : 0.0;
+    
+    final protein = log?.totalProtein ?? 0;
+    final carbs = log?.totalCarbs ?? 0;
+    final fat = log?.totalFat ?? 0;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: NeuContainer(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: BentoContainer(
         borderRadius: 20,
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Icon(LucideIcons.radar, color: BentoTheme.accent, size: 16),
+                const SizedBox(width: 8),
+                Text("DIET TODAY", style: TextStyle(color: BentoTheme.accent.withValues(alpha: 0.8), letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -192,14 +183,14 @@ class DashboardView extends StatelessWidget {
                     Text(
                       "${net.toStringAsFixed(0)} kcal",
                       style: TextStyle(
-                        color: NeuTheme.textPrimary,
+                        color: BentoTheme.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       "of ${target.toStringAsFixed(0)} kcal target",
-                      style: TextStyle(color: NeuTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -222,23 +213,30 @@ class DashboardView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ClipRRect(
+            const SizedBox(height: 16),
+            LinearProgressIndicator(
+              value: progress.toDouble(),
+              minHeight: 6,
               borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progress.toDouble(),
-                minHeight: 6,
-                backgroundColor: NeuTheme.isDark ? Colors.black26 : Colors.black12,
-                valueColor: AlwaysStoppedAnimation(
-                  isOver ? Colors.redAccent : NeuTheme.accent,
-                ),
+              backgroundColor: Colors.white12,
+              valueColor: AlwaysStoppedAnimation(
+                isOver ? Colors.redAccent : BentoTheme.accent,
               ),
             ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildMacroText("Protein", "${protein.toStringAsFixed(0)}g"),
+                _buildMacroText("Carbs", "${carbs.toStringAsFixed(0)}g"),
+                _buildMacroText("Fat", "${fat.toStringAsFixed(0)}g"),
+              ],
+            ),
             if (log != null && log.entries.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 log.entries.take(3).map((e) => e.name).join(", ") + (log.entries.length > 3 ? "..." : ""),
-                style: TextStyle(color: NeuTheme.textSecondary, fontSize: 11),
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -246,5 +244,15 @@ class DashboardView extends StatelessWidget {
         ),
       ),
     ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildMacroText(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+      ],
+    );
   }
 }
