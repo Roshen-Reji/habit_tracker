@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
+import 'package:habit_tracker/data/services/gemini_client.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -301,6 +302,8 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (context, Box settings, _) {
           int calorieTarget =
               settings.get('daily_calorie_target', defaultValue: 2000);
+          String modelOverride =
+              settings.get('gemini_model', defaultValue: '')?.toString() ?? '';
 
           return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
             _buildActionTile(
@@ -308,6 +311,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 "Gemini API Key",
                 AiService.instance.configurationSummary,
                 () => _editAiKey(settings)),
+            _buildActionTile(
+                LucideIcons.cpu,
+                "Gemini Model Override",
+                modelOverride.isEmpty
+                    ? "Auto (Flash fallback chain)"
+                    : modelOverride,
+                () => _editAiModel(settings)),
+            _buildActionTile(
+                LucideIcons.activity,
+                "Test Connection",
+                "Verify API key and model connectivity",
+                () => _testGeminiConnection(settings)),
             _buildActionTile(LucideIcons.flame, "Daily Calorie Target",
                 "$calorieTarget kcal", () => _editCalorieTarget(settings)),
           ]);
@@ -375,6 +390,68 @@ class _SettingsPageState extends State<SettingsPage> {
     _showInputDialog("Update Gemini API Key", controller, (val) {
       box.put('gemini_api_key', val.trim());
     });
+  }
+
+  void _editAiModel(Box box) {
+    final current = box.get('gemini_model', defaultValue: '')?.toString() ?? '';
+    final controller = TextEditingController(text: current);
+    _showInputDialog("Gemini Model Override", controller, (val) {
+      box.put('gemini_model', val.trim());
+    });
+  }
+
+  void _testGeminiConnection(Box box) async {
+    final apiKey =
+        box.get('gemini_api_key', defaultValue: '')?.toString().trim() ?? '';
+    if (apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              "No Gemini API key configured. Enter one in Settings first."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Testing Gemini connection..."),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    final client = GeminiClient();
+    final result =
+        await client.testConnection(apiKey: apiKey, settingsBox: box);
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: BentoTheme.background,
+        title: Text(
+          result.isSuccess ? "Connection Successful" : "Connection Failed",
+          style: TextStyle(
+            color: result.isSuccess ? Colors.greenAccent : Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          result.isSuccess
+              ? "Successfully connected to Gemini API!\n\nModel used: ${result.modelUsed}\nStatus code: ${result.statusCode}"
+              : "Connection test failed.\n\nStatus code: ${result.statusCode}\nDetails: ${result.errorMessage}",
+          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK", style: TextStyle(color: BentoTheme.accent)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _editCalorieTarget(Box box) {

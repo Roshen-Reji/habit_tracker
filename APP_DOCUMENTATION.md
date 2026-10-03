@@ -405,7 +405,7 @@ Runs directly on the user's phone with zero network access. It parses command st
 - **Music**: *"play starboy"*, *"gana bajao believer"*, *"pause music"* $\rightarrow$ Directly calls `MusicManager`.
 - **Vault**: *"play motivational video"* $\rightarrow$ Dispatches `play_vault_video`.
 
-#### 2. Tier 2: Cloud Gemini REST Client
+#### 2. Tier 2: Cloud Gemini REST Client (`GeminiClient`)
 When complex contextual reasoning, natural conversation, or image analysis is required:
 - Compresses application state into token-efficient context lines via `AiContext`:
   ```
@@ -416,7 +416,17 @@ When complex contextual reasoning, natural conversation, or image analysis is re
   [USER MESSAGE]
   What should I eat tonight to hit my protein goal without exceeding calories?
   ```
-- **Candidate Fallback Chain**: Attempts requests using `gemini-2.5-flash`, then falls back to `gemini-2.0-flash` and `gemini-1.5-flash` in the event of upstream version changes.
+- **Dynamic Model Resolution Order**:
+  1. **User Override**: `settings['gemini_model']` if specified by the user in Settings.
+  2. **Upstream Discovery**: Queries the Gemini `ListModels` API endpoint for active models supporting `generateContent` in the flash family, sorted newest first, cached in Hive `settings` with a 24-hour expiration window.
+  3. **Verified Fallback Chain**: Built-in fallback list prioritizing currently active Flash models: `gemini-3.8-flash` $\rightarrow$ `gemini-3.7-flash` $\rightarrow$ `gemini-3.6-flash` $\rightarrow$ `gemini-3.5-flash` $\rightarrow$ `gemini-2.5-flash`.
+- **Status & Error Handling**:
+  - `404 Not Found`: Silently advances to the next candidate model in the chain.
+  - `429 Rate Limit`: Backs off once (honoring the `Retry-After` response header), retries the request, then advances to the next model if still constrained.
+  - `400 Bad Request`: Stops immediately and surfaces the error body.
+  - `401 / 403 Forbidden`: Stops immediately with guidance instructing the user to verify their API key in Settings.
+  - Returns the first non-404 error encountered to the user with actionable diagnostics.
+- **Secure Transport**: Transmits API keys exclusively via the `x-goog-api-key` HTTP header rather than query parameters, preventing credentials from leaking into URLs or proxy access logs.
 - **Guaranteed Structured Output**: Enforces `responseMimeType: 'application/json'` to reliably extract action payloads (`AiAction`).
 - **Interactive Confirmation Bubbles**: The AI never silently alters database records. It renders interactive confirmation cards in the chat where the user must tap **"Engage" (Confirm)** or **"Cancel" (Reject)**.
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:habit_tracker/data/services/ai_context.dart';
+import 'package:habit_tracker/data/services/gemini_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
@@ -2147,29 +2148,15 @@ class AiService {
         },
       };
 
-      http.Response? response;
-      var usedModel = 'gemini-2.5-flash';
-      const modelCandidates = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
-      ];
-      for (final model in modelCandidates) {
-        usedModel = model;
-        response = await http.post(
-          Uri.parse(
-              'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(requestBody),
-        );
-        if (response.statusCode == 200) break;
-        if (response.statusCode == 401 || response.statusCode == 403) break;
-      }
+      final client = GeminiClient();
+      final result = await client.generateContent(
+        requestBody: requestBody,
+        apiKey: apiKey,
+        activeApiKeySource: activeApiKeySource,
+      );
 
-      if (response != null && response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final responseText =
-            json['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
+      if (result.isSuccess && result.text != null) {
+        final responseText = result.text!;
 
         // Append assistant response to history
         _messagesHistory.add({
@@ -2181,15 +2168,8 @@ class AiService {
 
         return _parseResponse(responseText);
       } else {
-        final status = response?.statusCode ?? 0;
-        final body = response?.body ?? 'No response';
-        debugPrint(
-            'Gemini API Error ($usedModel, $activeApiKeySource): $status - $body');
-        final shortBody =
-            body.length > 180 ? '${body.substring(0, 180)}...' : body;
         return AiResponse(
-          message:
-              'Gemini fallback failed using the $activeApiKeySource key ($status). Recheck the key in Settings. Details: $shortBody',
+          message: result.errorMessage ?? 'Gemini request failed.',
           intent: 'error',
         );
       }
