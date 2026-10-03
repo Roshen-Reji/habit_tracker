@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-import 'package:flutter/material.dart';
 
 part 'finance_model.g.dart';
 
@@ -46,4 +45,48 @@ class AssetVault extends HiveObject {
       required this.bank,
       required this.type,
       required this.colorValue});
+}
+
+class FinanceSnapshot {
+  final double totalBalance;
+  final double monthIncome;
+  final double monthExpense;
+  final double monthNet;
+  final double savingsRate;
+  final double vaultTotal;
+  final double goalsSaved;
+  final double goalsTarget;
+  final double fixedTotal;
+  final double sipTotal;
+  final double budgetLimit;
+  final double budgetSpent;
+  final Map<String, double> categorySpent;
+  final List<Map<String, dynamic>> categoryBreakdown;
+  final List<Transaction> monthTransactions;
+  final List budgets;
+  final List goals;
+  final Map planner;
+  final List<Map<String, dynamic>> cashFlowTrend;
+
+  const FinanceSnapshot({
+    required this.totalBalance,
+    required this.monthIncome,
+    required this.monthExpense,
+    required this.monthNet,
+    required this.savingsRate,
+    required this.vaultTotal,
+    required this.goalsSaved,
+    required this.goalsTarget,
+    required this.fixedTotal,
+    required this.sipTotal,
+    required this.budgetLimit,
+    required this.budgetSpent,
+    required this.categorySpent,
+    required this.categoryBreakdown,
+    required this.monthTransactions,
+    required this.budgets,
+    required this.goals,
+    required this.planner,
+    required this.cashFlowTrend,
+  });
 }

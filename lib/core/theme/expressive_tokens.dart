@@ -13,6 +13,9 @@ class ExpressiveTokens {
   static const double radiusXXL = 36.0;
   static const double radiusFull = 9999.0;
 
+  static const double radiusCard = radiusL;
+  static const double radiusDialog = radiusXL;
+
   static const BorderRadius borderXS =
       BorderRadius.all(Radius.circular(radiusXS));
   static const BorderRadius borderS =

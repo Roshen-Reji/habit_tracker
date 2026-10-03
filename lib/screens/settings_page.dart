@@ -8,6 +8,7 @@ import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/screens/home_layout_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -288,6 +289,16 @@ class _SettingsPageState extends State<SettingsPage> {
             }),
             _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
                 () => _editCurrency(settings)),
+            _buildActionTile(
+                LucideIcons.layoutGrid, "Home Layout", "Reorder & toggle cards",
+                () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HomeLayoutSettingsPage(),
+                ),
+              );
+            }),
             _buildActionTile(
                 LucideIcons.folder,
                 "Music Folders",

@@ -8,6 +8,7 @@ import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/app.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
@@ -63,6 +64,9 @@ void main() async {
 
   // Initialize notifications
   await NotificationService().init();
+
+  // Register default home cards
+  HomeCardRegistry.registerDefaults();
 
   // runApp MUST be the last call after all async initializations
   runApp(const HabitTrackerApp());

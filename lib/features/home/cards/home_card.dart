@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:habit_tracker/features/home/cards/calories_card.dart';
+import 'package:habit_tracker/features/home/cards/finance_card.dart';
+import 'package:habit_tracker/features/home/cards/missions_card.dart';
+import 'package:habit_tracker/features/home/cards/momentum_card.dart';
+import 'package:habit_tracker/features/home/cards/quote_card.dart';
+import 'package:habit_tracker/features/home/cards/score_card.dart';
+import 'package:habit_tracker/features/home/cards/score_delta_card.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Specification for a card in the wallet-stack home screen.
 class HomeCardSpec {
@@ -57,6 +65,66 @@ class HomeCardRegistry {
 
   static void clear() {
     _specs.clear();
+  }
+
+  /// Registers default cards for the home screen if not already registered.
+  static void registerDefaults() {
+    register(HomeCardSpec(
+      id: 'quote',
+      title: 'Daily Wisdom',
+      icon: LucideIcons.quote,
+      compactBuilder: (context) => const QuoteCard(),
+      defaultOrder: 0,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'momentum',
+      title: 'Momentum Signal',
+      icon: LucideIcons.activity,
+      compactBuilder: (context) => const MomentumCard(),
+      defaultOrder: 1,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'missions',
+      title: 'Daily Missions',
+      icon: LucideIcons.checkSquare,
+      compactBuilder: (context) => const MissionsCard(),
+      defaultOrder: 2,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'finance',
+      title: 'Finance Summary',
+      icon: LucideIcons.wallet,
+      compactBuilder: (context) => const FinanceCard(),
+      defaultOrder: 3,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'calories',
+      title: 'Diet & Calories',
+      icon: LucideIcons.utensils,
+      compactBuilder: (context) => const CaloriesCard(),
+      defaultOrder: 4,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'score',
+      title: 'XP Totals',
+      icon: LucideIcons.trophy,
+      compactBuilder: (context) => const ScoreCard(),
+      defaultOrder: 5,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'score_delta',
+      title: 'XP Velocity',
+      icon: LucideIcons.trendingUp,
+      compactBuilder: (context) => const ScoreDeltaCard(),
+      defaultOrder: 6,
+      defaultVisible: true,
+    ));
   }
 
   static HomeCardSpec? get(String id) => _specs[id];

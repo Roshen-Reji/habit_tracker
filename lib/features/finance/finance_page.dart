@@ -8,6 +8,7 @@ import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
+import 'package:habit_tracker/data/services/finance_calculator.dart';
 
 const List<String> kExpenseCategories = [
   'Food',
@@ -52,14 +53,11 @@ int _asInt(dynamic value, {int fallback = 1}) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
-bool _sameMonth(DateTime a, DateTime b) {
-  return a.year == b.year && a.month == b.month;
-}
-
 bool _isExpense(Transaction tx) {
   final mode = tx.mode.toLowerCase();
   return mode == 'expense' || tx.amount < 0;
 }
+
 
 String _money(double amount) => FormatUtils.formatCurrency(amount);
 String _compactMoney(double amount) =>
@@ -281,117 +279,12 @@ class _FinanceDashboardState extends State<FinanceDashboard>
     Iterable<AssetVault> vaults,
     Box settings,
   ) {
-    double allTimeNet = 0;
-    double monthIncome = 0;
-    double monthExpense = 0;
-    final categorySpent = <String, double>{};
-    final monthTransactions = <Transaction>[];
-
-    for (final tx in transactions) {
-      final expense = _isExpense(tx);
-      final signedAmount = expense ? -tx.amount.abs() : tx.amount.abs();
-      allTimeNet += signedAmount;
-
-      if (_sameMonth(tx.date, _selectedMonth)) {
-        monthTransactions.add(tx);
-        if (expense) {
-          final amount = tx.amount.abs();
-          monthExpense += amount;
-          categorySpent[tx.category] =
-              (categorySpent[tx.category] ?? 0) + amount;
-        } else {
-          monthIncome += tx.amount.abs();
-        }
-      }
-    }
-
-    monthTransactions.sort((a, b) => b.date.compareTo(a.date));
-
-    final budgets = List.from(settings.get('budgets', defaultValue: []));
-    final goals = List.from(settings.get('goals', defaultValue: []));
-    final planner = Map.from(settings.get(
-      'planner',
-      defaultValue: {'fixedExpenses': [], 'sips': []},
-    ));
-    final fixed = List.from(planner['fixedExpenses'] ?? []);
-    final sips = List.from(planner['sips'] ?? []);
-
-    final vaultTotal =
-        vaults.fold<double>(0, (sum, vault) => sum + vault.balance);
-    final goalsSaved = goals.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['saved']));
-    final goalsTarget = goals.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['target']));
-    final fixedTotal = fixed.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['amount']));
-    final sipTotal = sips.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['amount']));
-    final budgetLimit = budgets.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['total']));
-    final budgetSpent = budgets.fold<double>(0, (sum, item) {
-      final category = (item as Map)['category']?.toString() ?? 'Other';
-      return sum + (categorySpent[category] ?? 0);
-    });
-
-    final categoryBreakdown = categorySpent.entries
-        .map((entry) => {'name': entry.key, 'value': entry.value})
-        .toList()
-      ..sort((a, b) => _asDouble(b['value']).compareTo(_asDouble(a['value'])));
-
-    final savingsRate = monthIncome <= 0
-        ? 0.0
-        : ((monthIncome - monthExpense) / monthIncome).clamp(0.0, 1.0);
-
-    return FinanceSnapshot(
-      totalBalance: vaultTotal + allTimeNet + goalsSaved,
-      monthIncome: monthIncome,
-      monthExpense: monthExpense,
-      monthNet: monthIncome - monthExpense,
-      savingsRate: savingsRate,
-      vaultTotal: vaultTotal,
-      goalsSaved: goalsSaved,
-      goalsTarget: goalsTarget,
-      fixedTotal: fixedTotal,
-      sipTotal: sipTotal,
-      budgetLimit: budgetLimit,
-      budgetSpent: budgetSpent,
-      categorySpent: categorySpent,
-      categoryBreakdown: categoryBreakdown,
-      monthTransactions: monthTransactions,
-      budgets: budgets,
-      goals: goals,
-      planner: planner,
-      cashFlowTrend: _cashFlowTrend(transactions),
+    return FinanceCalculator.calculate(
+      transactions: transactions,
+      vaults: vaults,
+      settings: settings,
+      selectedMonth: _selectedMonth,
     );
-  }
-
-  List<Map<String, dynamic>> _cashFlowTrend(
-      Iterable<Transaction> transactions) {
-    final buckets = <String, Map<String, double>>{};
-    for (var i = 5; i >= 0; i--) {
-      final date = DateTime(_selectedMonth.year, _selectedMonth.month - i, 1);
-      buckets[DateFormat('MMM').format(date)] = {'income': 0, 'expense': 0};
-    }
-
-    for (final tx in transactions) {
-      final key =
-          DateFormat('MMM').format(DateTime(tx.date.year, tx.date.month, 1));
-      final bucket = buckets[key];
-      if (bucket == null) continue;
-      if (_isExpense(tx)) {
-        bucket['expense'] = bucket['expense']! + tx.amount.abs();
-      } else {
-        bucket['income'] = bucket['income']! + tx.amount.abs();
-      }
-    }
-
-    return buckets.entries
-        .map((entry) => {
-              'month': entry.key,
-              'income': entry.value['income'] ?? 0.0,
-              'expense': entry.value['expense'] ?? 0.0,
-            })
-        .toList();
   }
 
   @override
@@ -547,50 +440,6 @@ class _FinanceTab {
   final String label;
   final IconData icon;
   const _FinanceTab(this.id, this.label, this.icon);
-}
-
-class FinanceSnapshot {
-  final double totalBalance;
-  final double monthIncome;
-  final double monthExpense;
-  final double monthNet;
-  final double savingsRate;
-  final double vaultTotal;
-  final double goalsSaved;
-  final double goalsTarget;
-  final double fixedTotal;
-  final double sipTotal;
-  final double budgetLimit;
-  final double budgetSpent;
-  final Map<String, double> categorySpent;
-  final List<Map<String, dynamic>> categoryBreakdown;
-  final List<Transaction> monthTransactions;
-  final List budgets;
-  final List goals;
-  final Map planner;
-  final List<Map<String, dynamic>> cashFlowTrend;
-
-  const FinanceSnapshot({
-    required this.totalBalance,
-    required this.monthIncome,
-    required this.monthExpense,
-    required this.monthNet,
-    required this.savingsRate,
-    required this.vaultTotal,
-    required this.goalsSaved,
-    required this.goalsTarget,
-    required this.fixedTotal,
-    required this.sipTotal,
-    required this.budgetLimit,
-    required this.budgetSpent,
-    required this.categorySpent,
-    required this.categoryBreakdown,
-    required this.monthTransactions,
-    required this.budgets,
-    required this.goals,
-    required this.planner,
-    required this.cashFlowTrend,
-  });
 }
 
 class _FinanceHeader extends StatelessWidget {

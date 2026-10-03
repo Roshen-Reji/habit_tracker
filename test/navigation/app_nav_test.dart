@@ -9,7 +9,6 @@ import 'package:habit_tracker/screens/home_page.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart';
 
 import 'package:habit_tracker/data/models/diet_models.dart';
-import 'package:habit_tracker/services/music_manager.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
