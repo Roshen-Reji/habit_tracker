@@ -1,15 +1,13 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
-import 'dart:io';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:habit_tracker/models/speech_model.dart';
-import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SpeechVaultPage extends StatefulWidget {

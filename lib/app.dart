@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/music_manager.dart';
@@ -58,6 +59,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
                     parent: AlwaysScrollableScrollPhysics()),
               ),
               theme: ThemeData(
+                useMaterial3: true,
                 brightness: Brightness.light,
                 scaffoldBackgroundColor: BentoTheme.background,
                 fontFamily: 'Roboto',
@@ -65,14 +67,27 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
                   primary: BentoTheme.accent,
                   surface: BentoTheme.background,
                 ),
+                cardTheme: const CardThemeData(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: ExpressiveTokens.borderL,
+                  ),
+                ),
               ),
               darkTheme: ThemeData(
+                useMaterial3: true,
                 brightness: Brightness.dark,
                 scaffoldBackgroundColor: BentoTheme.background,
                 fontFamily: 'Roboto',
                 colorScheme: ColorScheme.dark(
                   primary: BentoTheme.accent,
                   surface: BentoTheme.background,
+                ),
+                cardTheme: const CardThemeData(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: ExpressiveTokens.borderL,
+                  ),
                 ),
               ),
               home: const HomePage(),

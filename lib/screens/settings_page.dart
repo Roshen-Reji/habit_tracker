@@ -7,6 +7,7 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -148,6 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
         final String name = settings.get('username', defaultValue: 'USER');
 
         return BentoContainer(
+          borderRadius: ExpressiveTokens.radiusXL,
           child: Column(
             children: [
               Row(
@@ -216,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           return LinearProgressIndicator(
                             value: value,
                             backgroundColor:
-                                true ? Colors.white10 : Colors.black12,
+                                BentoTheme.textPrimary.withValues(alpha: 0.1),
                             color: BentoTheme.accent,
                             minHeight: 6,
                           );
@@ -245,6 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   letterSpacing: 1.2)),
         ),
         BentoContainer(
+          borderRadius: ExpressiveTokens.radiusL,
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Material(
             type: MaterialType.transparency,

@@ -11,7 +11,7 @@ import 'package:on_audio_query/on_audio_query.dart' as audio_query;
 import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/services/lyrics_service.dart';
-import 'package:habit_tracker/theme/app_theme.dart';
+import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/features/music/widgets/procedural_artwork.dart';
