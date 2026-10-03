@@ -1,5 +1,6 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -47,6 +48,13 @@ class _MusicLibraryPageState extends State<MusicLibraryPage>
   }
 
   Future<void> _requestPermissionsAndScan() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      setState(() {
+        _isLoading = false;
+        _hasPermission = false;
+      });
+      return;
+    }
     var sStatus = await Permission.storage.request();
     var aStatus = await Permission.audio.request();
     if (sStatus.isGranted || aStatus.isGranted) {

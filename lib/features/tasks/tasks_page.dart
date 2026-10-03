@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -11,6 +12,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'task_analytics_page.dart';
 
+import 'package:habit_tracker/core/navigation/app_nav.dart';
+
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
 
@@ -22,18 +25,28 @@ class _TasksPageState extends State<TasksPage>
     with SingleTickerProviderStateMixin {
   final Box<Goal> missionBox = Hive.box<Goal>('mission_box_v4');
   late TabController _tabController;
-  String _currentView = 'missions'; // 'missions', 'finance', 'vault'
+  String _currentView = AppNav.instance.tasksSubview;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    AppNav.instance.addListener(_onNavChanged);
   }
 
   @override
   void dispose() {
+    AppNav.instance.removeListener(_onNavChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onNavChanged() {
+    if (mounted && _currentView != AppNav.instance.tasksSubview) {
+      setState(() {
+        _currentView = AppNav.instance.tasksSubview;
+      });
+    }
   }
 
   @override
@@ -191,9 +204,10 @@ class _TasksPageState extends State<TasksPage>
   Widget _buildToggleTab(IconData icon, String viewKey) {
     final isSelected = _currentView == viewKey;
     return GestureDetector(
-      onTap: () => setState(() {
-        _currentView = viewKey;
-      }),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        AppNav.instance.setTasksSubview(viewKey);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutCubic,

@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 
 class PermissionService {
   static Future<bool> requestAllPermissions() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return true;
+    }
+
     // Request all potential permissions
     List<Permission> permissions = [
       Permission.notification,

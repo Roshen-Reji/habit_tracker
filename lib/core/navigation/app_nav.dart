@@ -1,0 +1,84 @@
+import 'package:flutter/foundation.dart';
+
+enum AppTab {
+  home,
+  tasks,
+  diet,
+  music,
+}
+
+enum TasksSubview {
+  missions,
+  finance,
+  vault,
+}
+
+/// Central application navigation coordinator.
+/// Exposes current tab and tasks subview as a ChangeNotifier,
+/// allowing deep navigation from cards, notifications, and AI handlers.
+class AppNav extends ChangeNotifier {
+  static final AppNav instance = AppNav._();
+  factory AppNav() => instance;
+  AppNav._();
+
+  int _currentTab = 0;
+  String _tasksSubview = 'missions';
+
+  int get currentTab => _currentTab;
+  int get tab => _currentTab;
+  String get tasksSubview => _tasksSubview;
+
+  void setTab(int index) {
+    if (_currentTab != index) {
+      _currentTab = index;
+      notifyListeners();
+    }
+  }
+
+  void setTasksSubview(String subview) {
+    if (_tasksSubview != subview) {
+      _tasksSubview = subview;
+      notifyListeners();
+    }
+  }
+
+  /// Navigates to a specific tab and optional sub-view.
+  /// Accepts [AppTab], [int], or [String] for tab.
+  /// Accepts [TasksSubview] or [String] for sub.
+  static void goTo(dynamic targetTab, {dynamic sub}) {
+    int index;
+    if (targetTab is int) {
+      index = targetTab;
+    } else if (targetTab is AppTab) {
+      index = targetTab.index;
+    } else {
+      final name = targetTab.toString().toLowerCase();
+      if (name.contains('task')) {
+        index = 1;
+      } else if (name.contains('diet')) {
+        index = 2;
+      } else if (name.contains('music')) {
+        index = 3;
+      } else {
+        index = 0;
+      }
+    }
+
+    instance._currentTab = index;
+
+    if (sub != null) {
+      String subStr;
+      if (sub is TasksSubview) {
+        subStr = sub.name;
+      } else {
+        subStr = sub.toString().toLowerCase();
+        if (subStr.contains('.')) {
+          subStr = subStr.split('.').last;
+        }
+      }
+      instance._tasksSubview = subStr;
+    }
+
+    instance.notifyListeners();
+  }
+}

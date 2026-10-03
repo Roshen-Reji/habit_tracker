@@ -13,6 +13,8 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
 import 'package:habit_tracker/widgets/star_background.dart';
 
+import 'package:habit_tracker/core/navigation/app_nav.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -21,7 +23,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = AppNav.instance.currentTab;
   final Box _settingsBox = Hive.box('settings'); //
 
   final List<Widget> _pages = [
@@ -34,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    AppNav.instance.addListener(_onNavChanged);
     // Logic to identify user on first run
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await PermissionService.checkAndRequestPermissions(context);
@@ -41,6 +44,20 @@ class _HomePageState extends State<HomePage> {
         _showOnboardingDialog();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    AppNav.instance.removeListener(_onNavChanged);
+    super.dispose();
+  }
+
+  void _onNavChanged() {
+    if (mounted && _selectedIndex != AppNav.instance.currentTab) {
+      setState(() {
+        _selectedIndex = AppNav.instance.currentTab;
+      });
+    }
   }
 
   void _showOnboardingDialog() {
@@ -99,10 +116,8 @@ class _HomePageState extends State<HomePage> {
 
   void _onItemTapped(int index) {
     if (_selectedIndex != index) {
-      HapticFeedback.mediumImpact(); //
-      setState(() {
-        _selectedIndex = index;
-      });
+      HapticFeedback.mediumImpact();
+      AppNav.instance.setTab(index);
     }
   }
 
