@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/screens/home_page.dart'; 
+import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 
-final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> globalNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 class HabitTrackerApp extends StatelessWidget {
   const HabitTrackerApp({super.key});
@@ -16,7 +17,7 @@ class HabitTrackerApp extends StatelessWidget {
       builder: (context, Box settings, _) {
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
         final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
-        
+
         return ValueListenableBuilder<Color?>(
           valueListenable: MusicManager().currentDominantColor,
           builder: (context, color, snapshot) {
@@ -25,7 +26,8 @@ class HabitTrackerApp extends StatelessWidget {
               title: 'Habit Tracker',
               themeMode: mode,
               scrollBehavior: const MaterialScrollBehavior().copyWith(
-                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics()),
               ),
               theme: ThemeData(
                 brightness: Brightness.light,

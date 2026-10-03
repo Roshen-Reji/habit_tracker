@@ -40,8 +40,10 @@ class ProceduralArtwork extends StatelessWidget {
     final Color color2 = baseColors[random.nextInt(baseColors.length)];
     final Color color3 = baseColors[random.nextInt(baseColors.length)];
 
-    final Alignment begin = Alignment(random.nextDouble() * 2 - 1, random.nextDouble() * 2 - 1);
-    final Alignment end = Alignment(random.nextDouble() * 2 - 1, random.nextDouble() * 2 - 1);
+    final Alignment begin =
+        Alignment(random.nextDouble() * 2 - 1, random.nextDouble() * 2 - 1);
+    final Alignment end =
+        Alignment(random.nextDouble() * 2 - 1, random.nextDouble() * 2 - 1);
 
     String initials = "?";
     if (title.isNotEmpty) {
@@ -76,19 +78,21 @@ class ProceduralArtwork extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: fallbackIcon != null 
+        child: fallbackIcon != null
             ? Icon(fallbackIcon, color: Colors.white, size: size * 0.5)
             : Text(
                 initials,
                 style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: size * 0.35,
-                  letterSpacing: 2,
-                  shadows: [
-                    Shadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(1, 1))
-                  ]
-                ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: size * 0.35,
+                    letterSpacing: 2,
+                    shadows: [
+                      Shadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(1, 1))
+                    ]),
               ),
       ),
     );

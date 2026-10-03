@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/features/finance/finance_page.dart'; 
+import 'package:habit_tracker/features/finance/finance_page.dart';
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'widgets/task_card.dart';
@@ -18,7 +18,8 @@ class TasksPage extends StatefulWidget {
   State<TasksPage> createState() => _TasksPageState();
 }
 
-class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMixin {
+class _TasksPageState extends State<TasksPage>
+    with SingleTickerProviderStateMixin {
   final Box<Goal> missionBox = Hive.box<Goal>('mission_box_v4');
   late TabController _tabController;
   String _currentView = 'missions'; // 'missions', 'finance', 'vault'
@@ -47,7 +48,8 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 0.5),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.05), width: 0.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -65,34 +67,38 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             children: [
               Positioned.fill(
                 child: AnimatedAlign(
-                  alignment: _currentView == 'missions' 
-                      ? Alignment.centerLeft 
-                      : _currentView == 'finance' 
-                          ? Alignment.center 
+                  alignment: _currentView == 'missions'
+                      ? Alignment.centerLeft
+                      : _currentView == 'finance'
+                          ? Alignment.center
                           : Alignment.centerRight,
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
                   child: Container(
                     width: 70,
                     height: 40,
-                  decoration: BoxDecoration(
-                    color: Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light' ? Colors.white : const Color(0xFF2C2C2E),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        blurRadius: 1,
-                        offset: const Offset(0, -1),
-                      ),
-                    ],
+                    decoration: BoxDecoration(
+                      color: Hive.box('settings')
+                                  .get('theme_mode', defaultValue: 'dark') ==
+                              'light'
+                          ? Colors.white
+                          : const Color(0xFF2C2C2E),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          blurRadius: 1,
+                          offset: const Offset(0, -1),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -108,22 +114,27 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (_currentView == 'missions') 
+          if (_currentView == 'missions')
             IconButton(
               icon: Icon(LucideIcons.barChart2, color: BentoTheme.accent),
               onPressed: () {
                 Navigator.push(
                   context,
                   PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) => const TaskAnalyticsPage(),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                      final fadeAnim = CurvedAnimation(parent: animation, curve: Curves.easeOut);
-                      final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-                        CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)
-                      );
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const TaskAnalyticsPage(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      final fadeAnim = CurvedAnimation(
+                          parent: animation, curve: Curves.easeOut);
+                      final slideAnim = Tween<Offset>(
+                              begin: const Offset(0, 0.05), end: Offset.zero)
+                          .animate(CurvedAnimation(
+                              parent: animation, curve: Curves.easeOutCubic));
                       return FadeTransition(
                         opacity: fadeAnim,
-                        child: SlideTransition(position: slideAnim, child: child),
+                        child:
+                            SlideTransition(position: slideAnim, child: child),
                       );
                     },
                     transitionDuration: const Duration(milliseconds: 300),
@@ -132,8 +143,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
               },
             ),
         ],
-        
-        bottom: _currentView == 'missions' 
+        bottom: _currentView == 'missions'
             ? TabBar(
                 controller: _tabController,
                 indicatorColor: BentoTheme.accent,
@@ -141,13 +151,14 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                 unselectedLabelColor: BentoTheme.textSecondary,
                 indicatorWeight: 3,
                 tabs: const [
-                  Tab(text: "TODAY"), 
-                  Tab(text: "DAILY"), 
-                  Tab(text: "WEEKLY"), 
+                  Tab(text: "TODAY"),
+                  Tab(text: "DAILY"),
+                  Tab(text: "WEEKLY"),
                   Tab(text: "MONTHLY")
                 ],
               )
-            : const PreferredSize(preferredSize: Size.zero, child: SizedBox.shrink()),
+            : const PreferredSize(
+                preferredSize: Size.zero, child: SizedBox.shrink()),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -160,12 +171,15 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
           transitionBuilder: (child, animation) => FadeTransition(
             opacity: animation,
             child: SlideTransition(
-              position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(animation),
+              position:
+                  Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+                      .animate(animation),
               child: child,
             ),
           ),
-          child: _currentView == 'missions' 
-              ? SizedBox(key: const ValueKey('missions'), child: _buildTaskEngine())
+          child: _currentView == 'missions'
+              ? SizedBox(
+                  key: const ValueKey('missions'), child: _buildTaskEngine())
               : _currentView == 'finance'
                   ? const FinanceDashboard(key: ValueKey('finance'))
                   : const SpeechVaultPage(key: ValueKey('vault')),
@@ -189,7 +203,12 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         child: Icon(
           icon,
           size: 20,
-          color: isSelected ? (Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light' ? Colors.black : Colors.white) : BentoTheme.textSecondary,
+          color: isSelected
+              ? (Hive.box('settings').get('theme_mode', defaultValue: 'dark') ==
+                      'light'
+                  ? Colors.black
+                  : Colors.white)
+              : BentoTheme.textSecondary,
         ),
       ),
     );
@@ -214,11 +233,14 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildGoalList(List<Goal> allGoals, GoalType type) {
-    final allTypeGoals = allGoals.where((g) => g.type == type && !g.isArchived).toList();
+    final allTypeGoals =
+        allGoals.where((g) => g.type == type && !g.isArchived).toList();
     final activeGoals = allTypeGoals.where((g) => !g.isCompleted).toList()
-      ..sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
+      ..sort((a, b) => (b.createdDate ?? DateTime.now())
+          .compareTo(a.createdDate ?? DateTime.now()));
     final completedGoals = allTypeGoals.where((g) => g.isCompleted).toList()
-      ..sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
+      ..sort((a, b) => (b.createdDate ?? DateTime.now())
+          .compareTo(a.createdDate ?? DateTime.now()));
 
     return CustomScrollView(
       slivers: [
@@ -229,42 +251,67 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
               child: RepaintBoundary(
                 child: Column(
                   children: [
-                    Icon(LucideIcons.wind, size: 60, color: BentoTheme.textSecondary.withValues(alpha: 0.5))
-                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                      .slideY(begin: -0.1, end: 0.1, duration: 2.seconds, curve: Curves.easeInOut),
+                    Icon(LucideIcons.wind,
+                            size: 60,
+                            color:
+                                BentoTheme.textSecondary.withValues(alpha: 0.5))
+                        .animate(
+                            onPlay: (controller) =>
+                                controller.repeat(reverse: true))
+                        .slideY(
+                            begin: -0.1,
+                            end: 0.1,
+                            duration: 2.seconds,
+                            curve: Curves.easeInOut),
                     const SizedBox(height: 16),
-                    Text("No missions here yet.", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("No missions here yet.",
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text("Time to assign yourself a new objective.", style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                    Text("Time to assign yourself a new objective.",
+                        style: TextStyle(
+                            color:
+                                BentoTheme.textSecondary.withValues(alpha: 0.7),
+                            fontSize: 12)),
                   ],
                 ).animate().fade().scale(curve: Curves.easeOutBack),
               ),
             ),
           ),
-        
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final goal = activeGoals[index];
-                return TaskCard(
-                  goal: goal, 
-                  onTap: () => _showGoalDetails(goal)
-                ).animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * index).ms, curve: Curves.easeOutCubic).fade(duration: 200.ms);
+                return TaskCard(goal: goal, onTap: () => _showGoalDetails(goal))
+                    .animate()
+                    .slideY(
+                        begin: 0.1,
+                        duration: 200.ms,
+                        delay: (20 * index).ms,
+                        curve: Curves.easeOutCubic)
+                    .fade(duration: 200.ms);
               },
               childCount: activeGoals.length,
             ),
           ),
         ),
-        
         SliverPadding(
           padding: const EdgeInsets.all(16).copyWith(bottom: 80),
           sliver: SliverToBoxAdapter(
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                _buildAddGoalButton(type).animate().slideY(begin: 0.1, duration: 200.ms, delay: (20 * activeGoals.length).ms).fade(),
+                _buildAddGoalButton(type)
+                    .animate()
+                    .slideY(
+                        begin: 0.1,
+                        duration: 200.ms,
+                        delay: (20 * activeGoals.length).ms)
+                    .fade(),
                 if (completedGoals.isNotEmpty) ...[
                   const SizedBox(height: 30),
                   _buildCompletedSection(completedGoals),
@@ -280,15 +327,14 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   Widget _buildAddGoalButton(GoalType type) {
     return GestureDetector(
       onTap: () => showDialog(
-        context: context, 
-        builder: (_) => AddTaskDialog(defaultType: type)
-      ),
+          context: context, builder: (_) => AddTaskDialog(defaultType: type)),
       child: Container(
         height: 60,
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.5), width: 2),
+          border: Border.all(
+              color: BentoTheme.accent.withValues(alpha: 0.5), width: 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -322,7 +368,8 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         ),
       ),
       children: completedGoals
-          .map((goal) => TaskCard(goal: goal, onTap: () => _showGoalDetails(goal)))
+          .map((goal) =>
+              TaskCard(goal: goal, onTap: () => _showGoalDetails(goal)))
           .toList(),
     );
   }
@@ -360,8 +407,10 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                 ],
               ),
               SizedBox(height: 16),
-              _buildDetailRow('Progress', '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}'),
-              _buildDetailRow('Completion', '${goal.completionPercentage.toInt()}%'),
+              _buildDetailRow('Progress',
+                  '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}'),
+              _buildDetailRow(
+                  'Completion', '${goal.completionPercentage.toInt()}%'),
               _buildDetailRow('Streak', '${goal.streakCount} days'),
               SizedBox(height: 24),
               Row(
@@ -396,7 +445,8 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.redAccent),
                       ),
-                      child: Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                      child: Text('Delete',
+                          style: TextStyle(color: Colors.redAccent)),
                     ),
                   ),
                 ],
@@ -415,7 +465,9 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: BentoTheme.textSecondary)),
-          Text(value, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
+          Text(value,
+              style: TextStyle(
+                  color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
         ],
       ),
     );

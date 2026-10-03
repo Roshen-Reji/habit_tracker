@@ -30,7 +30,8 @@ class _LocalMusicManagerState extends State<LocalMusicManager> {
       if (!mounted) return;
       // Handle permission denied
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Storage permission is required to scan for music.')),
+        const SnackBar(
+            content: Text('Storage permission is required to scan for music.')),
       );
     }
   }
@@ -44,7 +45,8 @@ class _LocalMusicManagerState extends State<LocalMusicManager> {
       ignoreCase: true,
     );
 
-    List<dynamic> rawFolders = Hive.box('settings').get('music_folders', defaultValue: []);
+    List<dynamic> rawFolders =
+        Hive.box('settings').get('music_folders', defaultValue: []);
     List<String> folders = rawFolders.cast<String>();
 
     if (folders.isNotEmpty) {

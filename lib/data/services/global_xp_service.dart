@@ -23,7 +23,7 @@ class GlobalXPService {
     if (!Hive.isBoxOpen('xp_history')) return;
     final box = Hive.box('xp_history');
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    
+
     int currentDaily = box.get(today, defaultValue: 0);
     int newDaily = (currentDaily + amount).clamp(0, 999999);
     box.put(today, newDaily);

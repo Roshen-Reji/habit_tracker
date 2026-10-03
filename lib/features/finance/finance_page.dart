@@ -636,8 +636,7 @@ class _FinanceHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              _IconButton(
-                  icon: LucideIcons.chevronRight, onTap: onNextMonth),
+              _IconButton(icon: LucideIcons.chevronRight, onTap: onNextMonth),
             ],
           ),
         ],
@@ -2104,9 +2103,8 @@ class _FinanceTextTabBar extends StatelessWidget {
               child: Text(
                 tab.label.toUpperCase(),
                 style: TextStyle(
-                  color: isSelected
-                      ? BentoTheme.accent
-                      : BentoTheme.textSecondary,
+                  color:
+                      isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                   letterSpacing: 1.2,

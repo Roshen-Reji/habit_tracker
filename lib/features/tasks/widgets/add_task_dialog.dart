@@ -377,8 +377,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 style: TextStyle(color: BentoTheme.textSecondary)),
             TextButton.icon(
               onPressed: _pickEndDate,
-              icon:
-                  Icon(LucideIcons.calendar, color: BentoTheme.accent, size: 20),
+              icon: Icon(LucideIcons.calendar,
+                  color: BentoTheme.accent, size: 20),
               label: Text(
                 selectedEndDate != null
                     ? "${selectedEndDate!.day}/${selectedEndDate!.month}/${selectedEndDate!.year}"
@@ -437,7 +437,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: BentoTheme.accent))
                 else
-                  Icon(LucideIcons.sparkles, size: 18, color: BentoTheme.accent),
+                  Icon(LucideIcons.sparkles,
+                      size: 18, color: BentoTheme.accent),
                 const SizedBox(width: 8),
                 Text(
                   _isAiLoading ? "ANALYZING..." : "CREATE MISSION",
@@ -475,8 +476,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15)),
         ),
-        child:
-            Text(text, style: TextStyle(color: BentoTheme.accent, fontSize: 11)),
+        child: Text(text,
+            style: TextStyle(color: BentoTheme.accent, fontSize: 11)),
       ),
     );
   }

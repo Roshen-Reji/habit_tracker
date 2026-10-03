@@ -17,7 +17,8 @@ class DietPage extends StatefulWidget {
   State<DietPage> createState() => _DietPageState();
 }
 
-class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin {
+class _DietPageState extends State<DietPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _aiOpinion = '';
   bool _isLoadingOpinion = false;
@@ -98,10 +99,11 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
       valueListenable: Hive.box<DietDayLog>('diet_logs').listenable(),
       builder: (context, Box<DietDayLog> box, _) {
         final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        final log = box.get(today) ?? DietDayLog(
-          dateKey: today,
-          targetCalories: AiService.instance.getTodayLog().targetCalories,
-        );
+        final log = box.get(today) ??
+            DietDayLog(
+              dateKey: today,
+              targetCalories: AiService.instance.getTodayLog().targetCalories,
+            );
         final accent = BentoTheme.accent;
 
         return SingleChildScrollView(
@@ -136,18 +138,19 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 24),
 
               // Burn Section
-              _buildSectionHeader("CALORIES BURNED", LucideIcons.flame, Colors.redAccent),
+              _buildSectionHeader(
+                  "CALORIES BURNED", LucideIcons.flame, Colors.redAccent),
               const SizedBox(height: 8),
               BurnInputWidget(onBurnAdded: () => setState(() {})),
               const SizedBox(height: 8),
               if (log.burnEntries.isNotEmpty)
                 ...log.burnEntries.map((b) => BurnEntryTile(
-                  burn: b,
-                  onDelete: () {
-                    log.removeBurn(b.id);
-                    setState(() {});
-                  },
-                )),
+                      burn: b,
+                      onDelete: () {
+                        log.removeBurn(b.id);
+                        setState(() {});
+                      },
+                    )),
               if (log.burnEntries.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 8),
@@ -171,7 +174,7 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               // Food Log Section
               _buildSectionHeader("FOOD LOG", LucideIcons.utensils, accent),
               const SizedBox(height: 8),
-              
+
               // Quick Add (Task 11)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -180,10 +183,54 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _buildQuickAddChip("💧 Water", 0, "water", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Water", calories: 0, protein: 0, carbs: 0, fat: 0, timestamp: DateTime.now(), mealType: MealType.snack)); setState((){}); }),
-                    _buildQuickAddChip("☕ Coffee", 50, "coffee", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Black Coffee", calories: 50, protein: 0, carbs: 0, fat: 0, timestamp: DateTime.now(), mealType: MealType.breakfast)); setState((){}); }),
-                    _buildQuickAddChip("🍎 Apple", 95, "apple", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Apple", calories: 95, protein: 0, carbs: 25, fat: 0, timestamp: DateTime.now(), mealType: MealType.snack)); setState((){}); }),
-                    _buildQuickAddChip("🥚 Egg", 78, "egg", () { log.addFood(FoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), name: "Boiled Egg", calories: 78, protein: 6, carbs: 0, fat: 5, timestamp: DateTime.now(), mealType: MealType.breakfast)); setState((){}); }),
+                    _buildQuickAddChip("💧 Water", 0, "water", () {
+                      log.addFood(FoodEntry(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: "Water",
+                          calories: 0,
+                          protein: 0,
+                          carbs: 0,
+                          fat: 0,
+                          timestamp: DateTime.now(),
+                          mealType: MealType.snack));
+                      setState(() {});
+                    }),
+                    _buildQuickAddChip("☕ Coffee", 50, "coffee", () {
+                      log.addFood(FoodEntry(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: "Black Coffee",
+                          calories: 50,
+                          protein: 0,
+                          carbs: 0,
+                          fat: 0,
+                          timestamp: DateTime.now(),
+                          mealType: MealType.breakfast));
+                      setState(() {});
+                    }),
+                    _buildQuickAddChip("🍎 Apple", 95, "apple", () {
+                      log.addFood(FoodEntry(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: "Apple",
+                          calories: 95,
+                          protein: 0,
+                          carbs: 25,
+                          fat: 0,
+                          timestamp: DateTime.now(),
+                          mealType: MealType.snack));
+                      setState(() {});
+                    }),
+                    _buildQuickAddChip("🥚 Egg", 78, "egg", () {
+                      log.addFood(FoodEntry(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: "Boiled Egg",
+                          calories: 78,
+                          protein: 6,
+                          carbs: 0,
+                          fat: 5,
+                          timestamp: DateTime.now(),
+                          mealType: MealType.breakfast));
+                      setState(() {});
+                    }),
                   ],
                 ),
               ),
@@ -197,11 +244,15 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(LucideIcons.frown, color: BentoTheme.textSecondary.withValues(alpha: 0.3), size: 40),
+                        Icon(LucideIcons.frown,
+                            color:
+                                BentoTheme.textSecondary.withValues(alpha: 0.3),
+                            size: 40),
                         const SizedBox(height: 12),
                         Text(
                           "No food logged yet",
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
@@ -210,7 +261,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                           },
                           child: Text(
                             "Use the chat to log food →",
-                            style: TextStyle(color: accent, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: accent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -225,7 +279,8 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
               // Daily Report Card
               if (log.entries.isNotEmpty) ...[
-                _buildSectionHeader("DAILY REPORT", LucideIcons.barChart2, accent),
+                _buildSectionHeader(
+                    "DAILY REPORT", LucideIcons.barChart2, accent),
                 const SizedBox(height: 8),
                 DailyReportCard(log: log)
                     .animate()
@@ -288,12 +343,20 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
 
         // Weekly averages
         final weekCalories = weekLogs.map((l) => l.totalCalories).toList();
-        final weekAvg = weekCalories.isEmpty ? 0.0 : weekCalories.reduce((a, b) => a + b) / weekCalories.length;
-        final weekTarget = weekLogs.isNotEmpty ? weekLogs.first.targetCalories : 2000;
+        final weekAvg = weekCalories.isEmpty
+            ? 0.0
+            : weekCalories.reduce((a, b) => a + b) / weekCalories.length;
+        final weekTarget =
+            weekLogs.isNotEmpty ? weekLogs.first.targetCalories : 2000;
 
         // Monthly averages
-        final monthCalories = monthLogs.where((l) => l.entries.isNotEmpty).map((l) => l.totalCalories).toList();
-        final monthAvg = monthCalories.isEmpty ? 0.0 : monthCalories.reduce((a, b) => a + b) / monthCalories.length;
+        final monthCalories = monthLogs
+            .where((l) => l.entries.isNotEmpty)
+            .map((l) => l.totalCalories)
+            .toList();
+        final monthAvg = monthCalories.isEmpty
+            ? 0.0
+            : monthCalories.reduce((a, b) => a + b) / monthCalories.length;
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -302,7 +365,8 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Weekly Overview
-              _buildSectionHeader("WEEKLY OVERVIEW", LucideIcons.calendarDays, accent),
+              _buildSectionHeader(
+                  "WEEKLY OVERVIEW", LucideIcons.calendarDays, accent),
               const SizedBox(height: 8),
               BentoContainer(
                 borderRadius: 20,
@@ -316,10 +380,16 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Avg. Daily", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                            Text("Avg. Daily",
+                                style: TextStyle(
+                                    color: BentoTheme.textSecondary,
+                                    fontSize: 11)),
                             Text(
                               "${weekAvg.toStringAsFixed(0)} kcal",
-                              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -335,7 +405,8 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
               const SizedBox(height: 24),
 
               // Monthly Trend
-              _buildSectionHeader("MONTHLY TREND", LucideIcons.lineChart, accent),
+              _buildSectionHeader(
+                  "MONTHLY TREND", LucideIcons.lineChart, accent),
               const SizedBox(height: 8),
               BentoContainer(
                 borderRadius: 20,
@@ -349,10 +420,16 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Avg. Daily (logged days)", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                            Text("Avg. Daily (logged days)",
+                                style: TextStyle(
+                                    color: BentoTheme.textSecondary,
+                                    fontSize: 11)),
                             Text(
                               "${monthAvg.toStringAsFixed(0)} kcal",
-                              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -366,7 +443,10 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
                     MonthlyTrendChart(logs: monthLogs),
                   ],
                 ),
-              ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1),
+              )
+                  .animate()
+                  .fade(duration: 400.ms, delay: 100.ms)
+                  .slideY(begin: 0.1),
 
               const SizedBox(height: 24),
 
@@ -425,7 +505,8 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildQuickAddChip(String label, int calories, String type, VoidCallback onTap) {
+  Widget _buildQuickAddChip(
+      String label, int calories, String type, VoidCallback onTap) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -437,10 +518,16 @@ class _DietPageState extends State<DietPage> with SingleTickerProviderStateMixin
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(label,
+                style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13)),
             if (calories > 0) ...[
               const SizedBox(height: 4),
-              Text("$calories kcal", style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+              Text("$calories kcal",
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
             ]
           ],
         ),

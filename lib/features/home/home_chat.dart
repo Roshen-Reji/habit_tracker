@@ -66,7 +66,7 @@ class _HomeChatFABState extends State<HomeChatFAB>
     final accent = BentoTheme.accent;
 
     return Positioned(
-      bottom: 100,
+      bottom: 84,
       right: 16,
       child: GestureDetector(
         onTap: _toggleChat,

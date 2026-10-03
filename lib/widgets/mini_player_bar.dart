@@ -7,11 +7,11 @@ import 'package:habit_tracker/models/song_model.dart';
 import 'package:habit_tracker/services/music_manager.dart';
 import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/app.dart';
-import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:palette_generator/palette_generator.dart';
+
 class GlobalFloatingPlayer extends StatefulWidget {
   const GlobalFloatingPlayer({super.key});
 
@@ -24,7 +24,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
   double yOffset = 100;
   bool isInitialized = false;
   bool isMinimized = false; // Added state for minimized mode
-  
+
   final musicManager = MusicManager();
 
   Color? dominantColor;
@@ -36,7 +36,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
     if (!isInitialized) {
       final size = MediaQuery.of(context).size;
       xOffset = (size.width - 150) / 2;
-      yOffset = size.height - 250;
+      yOffset = size.height - 270;
       isInitialized = true;
     }
   }
@@ -47,9 +47,11 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
     if (song.source == SongSource.local) {
       try {
         final audioQuery = audio_query.OnAudioQuery();
-        final bytes = await audioQuery.queryArtwork(int.parse(song.id), audio_query.ArtworkType.AUDIO);
+        final bytes = await audioQuery.queryArtwork(
+            int.parse(song.id), audio_query.ArtworkType.AUDIO);
         if (bytes != null && mounted) {
-          final palette = await PaletteGenerator.fromImageProvider(MemoryImage(bytes));
+          final palette =
+              await PaletteGenerator.fromImageProvider(MemoryImage(bytes));
           setState(() {
             dominantColor = palette.dominantColor?.color;
           });
@@ -68,26 +70,26 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
       stream: musicManager.audioPlayer.sequenceStateStream,
       builder: (context, snapshot) {
         final state = snapshot.data;
-        
+
         // Hide completely if nothing is playing
         if (state == null || musicManager.currentPlaylist == null) {
-          return const SizedBox.shrink(); 
+          return const SizedBox.shrink();
         }
 
         final currentIndex = state.currentIndex ?? 0;
         final currentSong = musicManager.currentPlaylist![currentIndex];
-        
+
         // Asynchronously update palette
         _updatePalette(currentSong);
 
         final size = MediaQuery.of(context).size;
-        
+
         // Dynamic sizing based on minimized state
         final playerWidth = isMinimized ? 60.0 : 140.0;
         final playerHeight = isMinimized ? 60.0 : 180.0;
 
         xOffset = xOffset.clamp(0.0, size.width - playerWidth);
-        yOffset = yOffset.clamp(0.0, size.height - playerHeight);
+        yOffset = yOffset.clamp(0.0, size.height - playerHeight - 80);
 
         return Positioned(
           left: xOffset,
@@ -122,9 +124,10 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                 curve: Curves.easeOutBack,
                 width: playerWidth,
                 height: playerHeight,
-                child: isMinimized 
-                    ? _buildMinimizedUI() 
-                    : _buildExactReferenceUI(currentSong, playerWidth, playerHeight),
+                child: isMinimized
+                    ? _buildMinimizedUI()
+                    : _buildExactReferenceUI(
+                        currentSong, playerWidth, playerHeight),
               ),
             ),
           ),
@@ -153,10 +156,12 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.1),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2), width: 1.5),
             ),
             child: const Center(
-              child: Icon(LucideIcons.music, color: AppColors.primary, size: 28),
+              child:
+                  Icon(LucideIcons.music, color: AppColors.primary, size: 28),
             ),
           ),
         ),
@@ -182,7 +187,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), 
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
@@ -190,13 +195,16 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  dominantColor?.withValues(alpha: 0.6) ?? Colors.white.withValues(alpha: 0.3),  
-                  dominantColor?.withValues(alpha: 0.2) ?? Colors.white.withValues(alpha: 0.05), 
-                  Colors.black.withValues(alpha: 0.6),  
+                  dominantColor?.withValues(alpha: 0.6) ??
+                      Colors.white.withValues(alpha: 0.3),
+                  dominantColor?.withValues(alpha: 0.2) ??
+                      Colors.white.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.6),
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.2),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.25), width: 1.2),
             ),
             child: Stack(
               alignment: Alignment.topCenter,
@@ -204,59 +212,72 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                 Positioned(
                   top: -25,
                   child: StreamBuilder<PlayerState>(
-                    stream: musicManager.audioPlayer.playerStateStream,
-                    builder: (context, snap) {
-                      final playing = snap.data?.playing ?? false;
-                      Widget record = Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const SweepGradient(
-                        colors: [
-                          Color(0xFFD1D1D1), Color(0xFFF3F3F3), Color(0xFFAFAFAF),
-                          Color(0xFFD1D1D1), Color(0xFFF3F3F3), Color(0xFFAFAFAF), Color(0xFFD1D1D1),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 15, offset: const Offset(0, 8))
-                      ]
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(25.0), 
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black12, width: 2),
-                        ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            ClipOval(child: _buildArtwork(song)),
-                            Center(
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF9FA1A3), 
-                                  border: Border.all(color: Colors.black26, width: 1.0),
-                                ),
+                      stream: musicManager.audioPlayer.playerStateStream,
+                      builder: (context, snap) {
+                        final playing = snap.data?.playing ?? false;
+                        Widget record = Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const SweepGradient(
+                                colors: [
+                                  Color(0xFFD1D1D1),
+                                  Color(0xFFF3F3F3),
+                                  Color(0xFFAFAFAF),
+                                  Color(0xFFD1D1D1),
+                                  Color(0xFFF3F3F3),
+                                  Color(0xFFAFAFAF),
+                                  Color(0xFFD1D1D1),
+                                ],
                               ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                  
-                      if (playing) {
-                        return record.animate(onPlay: (c) => c.repeat(reverse: true))
-                          .scaleXY(begin: 0.98, end: 1.02, duration: 1.seconds, curve: Curves.easeInOut);
-                      }
-                      return record;
-                    }
-                  ),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8))
+                              ]),
+                          child: Padding(
+                            padding: const EdgeInsets.all(25.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.black12, width: 2),
+                              ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  ClipOval(child: _buildArtwork(song)),
+                                  Center(
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF9FA1A3),
+                                        border: Border.all(
+                                            color: Colors.black26, width: 1.0),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+
+                        if (playing) {
+                          return record
+                              .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .scaleXY(
+                                  begin: 0.98,
+                                  end: 1.02,
+                                  duration: 1.seconds,
+                                  curve: Curves.easeInOut);
+                        }
+                        return record;
+                      }),
                 ),
 
                 // NEW: Minimize Button
@@ -276,7 +297,8 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white24, width: 0.5),
                       ),
-                      child: const Icon(LucideIcons.minimize, color: Colors.white70, size: 14),
+                      child: const Icon(LucideIcons.minimize,
+                          color: Colors.white70, size: 14),
                     ),
                   ),
                 ),
@@ -288,7 +310,8 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                   right: 0,
                   child: Column(
                     children: [
-                      Icon(LucideIcons.activity, color: Colors.white.withValues(alpha: 0.8), size: 12),
+                      Icon(LucideIcons.activity,
+                          color: Colors.white.withValues(alpha: 0.8), size: 12),
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -296,7 +319,8 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                           song.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70, fontSize: 9),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 9),
                         ),
                       ),
                       Padding(
@@ -305,38 +329,49 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                           song.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           GestureDetector(
-                            onTap: () => musicManager.audioPlayer.seekToPrevious(),
-                            child: const Icon(LucideIcons.skipBack, color: Colors.white, size: 20),
+                            onTap: () =>
+                                musicManager.audioPlayer.seekToPrevious(),
+                            child: const Icon(LucideIcons.skipBack,
+                                color: Colors.white, size: 20),
                           ),
                           const SizedBox(width: 16),
                           StreamBuilder<PlayerState>(
-                            stream: musicManager.audioPlayer.playerStateStream,
-                            builder: (context, snap) {
-                              final playing = snap.data?.playing ?? false;
-                              return GestureDetector(
-                                onTap: () => playing ? musicManager.audioPlayer.pause() : musicManager.audioPlayer.play(),
-                                child: Icon(playing ? LucideIcons.pause : LucideIcons.play, color: Colors.white, size: 24),
-                              );
-                            }
-                          ),
+                              stream:
+                                  musicManager.audioPlayer.playerStateStream,
+                              builder: (context, snap) {
+                                final playing = snap.data?.playing ?? false;
+                                return GestureDetector(
+                                  onTap: () => playing
+                                      ? musicManager.audioPlayer.pause()
+                                      : musicManager.audioPlayer.play(),
+                                  child: Icon(
+                                      playing
+                                          ? LucideIcons.pause
+                                          : LucideIcons.play,
+                                      color: Colors.white,
+                                      size: 24),
+                                );
+                              }),
                           const SizedBox(width: 16),
                           GestureDetector(
                             onTap: () => musicManager.audioPlayer.seekToNext(),
-                            child: const Icon(LucideIcons.skipForward, color: Colors.white, size: 20),
+                            child: const Icon(LucideIcons.skipForward,
+                                color: Colors.white, size: 20),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-
                       _buildProgressLine(),
                     ],
                   ),
@@ -362,33 +397,38 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
         ),
       );
     }
-    return Image.network("https://placehold.co/100x100/2C2C2E/FFFFFF?text=ART", fit: BoxFit.cover);
+    return Image.network("https://placehold.co/100x100/2C2C2E/FFFFFF?text=ART",
+        fit: BoxFit.cover);
   }
 
   Widget _buildProgressLine() {
     return StreamBuilder<Duration>(
-      stream: musicManager.audioPlayer.positionStream,
-      builder: (context, snapshot) {
-        final pos = snapshot.data ?? Duration.zero;
-        final total = musicManager.audioPlayer.duration ?? Duration.zero;
-        final progress = total.inMilliseconds > 0 ? pos.inMilliseconds / total.inMilliseconds : 0.0;
+        stream: musicManager.audioPlayer.positionStream,
+        builder: (context, snapshot) {
+          final pos = snapshot.data ?? Duration.zero;
+          final total = musicManager.audioPlayer.duration ?? Duration.zero;
+          final progress = total.inMilliseconds > 0
+              ? pos.inMilliseconds / total.inMilliseconds
+              : 0.0;
 
-        return Column(
-          children: [
-            SizedBox(
-              width: 90,
-              height: 12,
-              child: WaveProgressBar(progress: progress),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              "${_format(pos)} - ${_format(total)}",
-              style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.w500),
-            )
-          ],
-        );
-      }
-    );
+          return Column(
+            children: [
+              SizedBox(
+                width: 90,
+                height: 12,
+                child: WaveProgressBar(progress: progress),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                "${_format(pos)} - ${_format(total)}",
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w500),
+              )
+            ],
+          );
+        });
   }
 
   String _format(Duration d) {
@@ -406,13 +446,16 @@ class WaveProgressBar extends StatefulWidget {
   State<WaveProgressBar> createState() => _WaveProgressBarState();
 }
 
-class _WaveProgressBarState extends State<WaveProgressBar> with SingleTickerProviderStateMixin {
+class _WaveProgressBarState extends State<WaveProgressBar>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat();
   }
 
   @override
@@ -427,7 +470,8 @@ class _WaveProgressBarState extends State<WaveProgressBar> with SingleTickerProv
       animation: _controller,
       builder: (context, child) {
         return CustomPaint(
-          painter: WavePainter(progress: widget.progress, animationValue: _controller.value),
+          painter: WavePainter(
+              progress: widget.progress, animationValue: _controller.value),
           size: const Size(double.infinity, double.infinity),
         );
       },
@@ -456,7 +500,8 @@ class WavePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     // Draw background line
-    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+    canvas.drawLine(
+        Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
 
     if (progress <= 0) return;
 
@@ -469,19 +514,21 @@ class WavePainter extends CustomPainter {
       final normalizedX = i / waveWidth;
       // create a sine wave that gets smaller towards the edges of the progress
       final envelope = math.sin(normalizedX * math.pi);
-      final y = size.height / 2 + math.sin((i / 15) - (animationValue * 2 * math.pi)) * 3 * envelope;
+      final y = size.height / 2 +
+          math.sin((i / 15) - (animationValue * 2 * math.pi)) * 3 * envelope;
       path.lineTo(i, y);
     }
-    
+
     canvas.drawPath(path, activePaint);
-    
+
     // Draw playhead dot
-    canvas.drawCircle(Offset(waveWidth, size.height / 2), 3, activePaint..style = PaintingStyle.fill);
+    canvas.drawCircle(Offset(waveWidth, size.height / 2), 3,
+        activePaint..style = PaintingStyle.fill);
   }
 
   @override
   bool shouldRepaint(covariant WavePainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.animationValue != animationValue;
+    return oldDelegate.progress != progress ||
+        oldDelegate.animationValue != animationValue;
   }
 }
-

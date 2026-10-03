@@ -19,7 +19,8 @@ class WobblySlider extends StatefulWidget {
   State<WobblySlider> createState() => _WobblySliderState();
 }
 
-class _WobblySliderState extends State<WobblySlider> with SingleTickerProviderStateMixin {
+class _WobblySliderState extends State<WobblySlider>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isDragging = false;
   double _dragValue = 0;
@@ -29,7 +30,8 @@ class _WobblySliderState extends State<WobblySlider> with SingleTickerProviderSt
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000), // Slightly slower, more fluid
+      duration:
+          const Duration(milliseconds: 2000), // Slightly slower, more fluid
     )..repeat();
   }
 
@@ -51,7 +53,8 @@ class _WobblySliderState extends State<WobblySlider> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     double currentValue = _isDragging ? _dragValue : widget.value;
-    double percent = widget.max > 0 ? (currentValue / widget.max).clamp(0.0, 1.0) : 0.0;
+    double percent =
+        widget.max > 0 ? (currentValue / widget.max).clamp(0.0, 1.0) : 0.0;
 
     return GestureDetector(
       onPanStart: (details) {
@@ -135,15 +138,16 @@ class _WobblySliderPainter extends CustomPainter {
 
       Path secondaryPath = Path();
       secondaryPath.moveTo(0, midY);
-      
+
       for (double x = 0; x <= activeWidth; x++) {
         // Different phase and wavelength to create organic overlap
-        double phase = (x / (wavelength * 1.5)) - (animationValue * 2 * math.pi * 2);
-        
+        double phase =
+            (x / (wavelength * 1.5)) - (animationValue * 2 * math.pi * 2);
+
         // Sine envelope creates a rounded pill/blob shape, tapering perfectly at ends
         double normalizedX = x / activeWidth;
         double envelope = math.sin(normalizedX * math.pi);
-        
+
         double y = midY + math.sin(phase) * (amplitude * 0.8) * envelope;
         secondaryPath.lineTo(x, y);
       }
@@ -154,15 +158,15 @@ class _WobblySliderPainter extends CustomPainter {
     if (activeWidth > 0) {
       Path activePath = Path();
       activePath.moveTo(0, midY);
-      
+
       for (double x = 0; x <= activeWidth; x++) {
         // Shift wave backwards to simulate forward movement
         double phase = (x / wavelength) - (animationValue * 2 * math.pi * 3);
-        
+
         // Sine envelope creates a rounded pill/blob shape, tapering perfectly at ends
         double normalizedX = x / activeWidth;
         double envelope = math.sin(normalizedX * math.pi);
-        
+
         double y = midY + math.sin(phase) * amplitude * envelope;
         activePath.lineTo(x, y);
       }
@@ -182,23 +186,24 @@ class _WobblySliderPainter extends CustomPainter {
     final knobPaint = Paint()
       ..color = knobColor
       ..style = PaintingStyle.fill;
-    
+
     // Add subtle shadow to the knob to make it pop, especially in light mode
     canvas.drawShadow(
-      Path()..addOval(Rect.fromCircle(center: Offset(activeWidth, midY), radius: 6.5)), 
-      Colors.black, 
-      4, 
-      true
-    );
+        Path()
+          ..addOval(
+              Rect.fromCircle(center: Offset(activeWidth, midY), radius: 6.5)),
+        Colors.black,
+        4,
+        true);
     canvas.drawCircle(Offset(activeWidth, midY), 6.5, knobPaint);
   }
 
   @override
   bool shouldRepaint(covariant _WobblySliderPainter oldDelegate) {
     return oldDelegate.progress != progress ||
-           oldDelegate.animationValue != animationValue ||
-           oldDelegate.activeColor != activeColor ||
-           oldDelegate.inactiveColor != inactiveColor ||
-           oldDelegate.knobColor != knobColor;
+        oldDelegate.animationValue != animationValue ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor ||
+        oldDelegate.knobColor != knobColor;
   }
 }

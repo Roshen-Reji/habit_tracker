@@ -15,7 +15,8 @@ class FormatUtils {
 
   static String formatCompactCurrency(double amount) {
     final symbol = getCurrencySymbol();
-    final format = NumberFormat.compactCurrency(symbol: symbol, decimalDigits: 1);
+    final format =
+        NumberFormat.compactCurrency(symbol: symbol, decimalDigits: 1);
     return format.format(amount);
   }
 }

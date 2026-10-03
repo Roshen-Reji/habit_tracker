@@ -35,16 +35,20 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.background,
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.5),
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -66,7 +70,7 @@ class AppTheme {
       Color(0x0AFFFFFF), // White 4%
     ],
   );
-  
+
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

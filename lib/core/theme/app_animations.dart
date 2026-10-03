@@ -13,16 +13,18 @@ class AppAnimations {
 
   // Staggered list delays
   static Duration listDelay(int index) => Duration(milliseconds: 50 * index);
-  
+
   // Page Transitions
-  static Widget fadeThrough(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  static Widget fadeThrough(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation, Widget child) {
     return FadeTransition(
       opacity: animation.drive(CurveTween(curve: defaultCurve)),
       child: child,
     );
   }
 
-  static Widget slideUp(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  static Widget slideUp(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation, Widget child) {
     return SlideTransition(
       position: Tween<Offset>(
         begin: const Offset(0, 0.1),

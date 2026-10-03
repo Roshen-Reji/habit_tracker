@@ -214,9 +214,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         builder: (context, value, _) {
                           return LinearProgressIndicator(
                             value: value,
-                            backgroundColor: true
-                                ? Colors.white10
-                                : Colors.black12,
+                            backgroundColor:
+                                true ? Colors.white10 : Colors.black12,
                             color: BentoTheme.accent,
                             minHeight: 6,
                           );
@@ -265,7 +264,8 @@ class _SettingsPageState extends State<SettingsPage> {
           bool isDarkMode =
               settings.get('theme_mode', defaultValue: 'dark') == 'dark';
 
-          List<dynamic> rawFolders = settings.get('music_folders', defaultValue: []);
+          List<dynamic> rawFolders =
+              settings.get('music_folders', defaultValue: []);
           List<String> musicFolders = rawFolders.cast<String>();
 
           return _buildSettingGroup("SYSTEM CONFIGURATION", [
@@ -284,7 +284,12 @@ class _SettingsPageState extends State<SettingsPage> {
             }),
             _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
                 () => _editCurrency(settings)),
-            _buildActionTile(LucideIcons.folder, "Music Folders", musicFolders.isEmpty ? "All Audio Files" : "${musicFolders.length} Folders Selected",
+            _buildActionTile(
+                LucideIcons.folder,
+                "Music Folders",
+                musicFolders.isEmpty
+                    ? "All Audio Files"
+                    : "${musicFolders.length} Folders Selected",
                 () => _manageMusicFolders(settings)),
           ]);
         });
@@ -514,7 +519,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                     color: BentoTheme.textSecondary,
                                     fontStyle: FontStyle.italic)))
                         : ListView.builder(
-                            prototypeItem: const ListTile(title: Text(''), subtitle: Text('')),
+                            prototypeItem: const ListTile(
+                                title: Text(''), subtitle: Text('')),
                             itemCount: folders.length,
                             itemBuilder: (context, i) {
                               return ListTile(
@@ -553,7 +559,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     height: 50,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: BentoTheme.accent.withValues(alpha: 0.2),
+                        backgroundColor:
+                            BentoTheme.accent.withValues(alpha: 0.2),
                         foregroundColor: BentoTheme.accent,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),

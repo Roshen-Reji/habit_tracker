@@ -12,14 +12,16 @@ class MusicManager {
   factory MusicManager() => _instance;
   MusicManager._internal() {
     audioPlayer.currentIndexStream.listen((index) {
-      if (index != null && currentPlaylist != null && index < currentPlaylist!.length) {
+      if (index != null &&
+          currentPlaylist != null &&
+          index < currentPlaylist!.length) {
         _extractColor(currentPlaylist![index]);
       }
     });
   }
 
   final AudioPlayer audioPlayer = AudioPlayer();
-  
+
   List<SongModel>? currentPlaylist;
   int? currentIndex;
   // Track the playlist identity to avoid redundant reloads
@@ -56,23 +58,25 @@ class MusicManager {
 
   Uri _buildSongUri(SongModel song) {
     if (song.audioUrl.isNotEmpty) {
-      if (song.audioUrl.startsWith('http') || song.audioUrl.startsWith('content://')) {
+      if (song.audioUrl.startsWith('http') ||
+          song.audioUrl.startsWith('content://')) {
         return Uri.parse(song.audioUrl);
       }
     }
-    
+
     if (song.source == SongSource.local) {
       return Uri.parse('content://media/external/audio/media/${song.id}');
     }
-    
+
     return Uri.file(song.audioUrl);
   }
 
   Future<void> setPlaylist(List<SongModel> playlist, int index) async {
     // Use hash-based identity check to avoid redundant reloads
-    final newHash = Object.hashAll([playlist.length, index, ...playlist.take(3).map((s) => s.id)]);
+    final newHash = Object.hashAll(
+        [playlist.length, index, ...playlist.take(3).map((s) => s.id)]);
     if (_currentPlaylistHash == newHash && audioPlayer.playing) {
-      return; 
+      return;
     }
 
     currentPlaylist = playlist;
@@ -85,7 +89,7 @@ class MusicManager {
         try {
           final uri = _buildSongUri(song);
           audioSources.add(AudioSource.uri(
-            uri, 
+            uri,
             tag: MediaItem(
               id: song.id,
               title: song.title,
@@ -102,7 +106,7 @@ class MusicManager {
         children: audioSources,
         useLazyPreparation: true,
       );
-      
+
       await audioPlayer.setAudioSource(playlistSource, initialIndex: index);
       audioPlayer.play();
     } catch (e) {
@@ -111,7 +115,7 @@ class MusicManager {
       try {
         final uri = _buildSongUri(playlist[index]);
         final fallbackSource = AudioSource.uri(
-          uri, 
+          uri,
           tag: MediaItem(
             id: playlist[index].id,
             title: playlist[index].title,

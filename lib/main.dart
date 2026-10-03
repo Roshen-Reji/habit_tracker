@@ -11,7 +11,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
     androidNotificationChannelName: 'Audio playback',
@@ -27,7 +27,7 @@ void main() async {
   Hive.registerAdapter(GoalTypeAdapter());
   Hive.registerAdapter(GoalCategoryAdapter());
   Hive.registerAdapter(SpeechModelAdapter());
-  
+
   // Register Finance Type Adapters
   Hive.registerAdapter(TransactionAdapter());
   Hive.registerAdapter(AssetVaultAdapter());
@@ -41,8 +41,8 @@ void main() async {
   // Open necessary boxes for data persistence
   await Hive.openBox<Goal>('mission_box_v4');
   await Hive.openBox('settings');
-  await Hive.openBox<SpeechModel>('speech_vault'); 
-  
+  await Hive.openBox<SpeechModel>('speech_vault');
+
   // Open Finance boxes
   await Hive.openBox<Transaction>('finance_transactions');
   await Hive.openBox<AssetVault>('finance_vaults');

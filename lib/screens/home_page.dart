@@ -6,13 +6,9 @@ import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/music/music_library_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
-import 'package:habit_tracker/screens/settings_page.dart';
-import 'package:habit_tracker/features/music/music_player_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
-import 'package:habit_tracker/core/theme/app_theme.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
 import 'package:habit_tracker/widgets/star_background.dart';
@@ -57,14 +53,15 @@ class _HomePageState extends State<HomePage> {
         child: AlertDialog(
           backgroundColor: const Color(0xFF1C1C1E),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24), 
-            side: const BorderSide(color: Colors.white)
-          ),
-          title: const Text("Welcome", style: TextStyle(color: Colors.white, letterSpacing: 2)),
+              borderRadius: BorderRadius.circular(24),
+              side: const BorderSide(color: Colors.white)),
+          title: const Text("Welcome",
+              style: TextStyle(color: Colors.white, letterSpacing: 2)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("enter your name", style: TextStyle(color: Colors.white70)),
+              const Text("enter your name",
+                  style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 20),
               TextField(
                 controller: _nameController,
@@ -72,8 +69,10 @@ class _HomePageState extends State<HomePage> {
                 decoration: const InputDecoration(
                   hintText: "Enter Name...",
                   hintStyle: TextStyle(color: Colors.white24),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white)),
                 ),
               ),
             ],
@@ -82,12 +81,15 @@ class _HomePageState extends State<HomePage> {
             TextButton(
               onPressed: () {
                 if (_nameController.text.isNotEmpty) {
-                  _settingsBox.put('username', _nameController.text.toUpperCase());
+                  _settingsBox.put(
+                      'username', _nameController.text.toUpperCase());
                   Navigator.pop(context);
-                  setState(() {}); 
+                  setState(() {});
                 }
               },
-              child: const Text("ENGAGE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text("ENGAGE",
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -104,10 +106,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, 
+      extendBody: true,
       backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
@@ -115,13 +117,15 @@ class _HomePageState extends State<HomePage> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
               transitionBuilder: (child, animation) {
-                final slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
-                );
+                final slideAnim = Tween<Offset>(
+                        begin: const Offset(0, 0.05), end: Offset.zero)
+                    .animate(CurvedAnimation(
+                        parent: animation, curve: Curves.easeOutExpo));
                 final scaleAnim = Tween<double>(begin: 0.97, end: 1.0).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeOutExpo)
-                );
-                final fadeAnim = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+                    CurvedAnimation(
+                        parent: animation, curve: Curves.easeOutExpo));
+                final fadeAnim =
+                    CurvedAnimation(parent: animation, curve: Curves.easeOut);
                 return FadeTransition(
                   opacity: fadeAnim,
                   child: SlideTransition(
@@ -133,12 +137,14 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
-              child: SizedBox(key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
+              child: SizedBox(
+                  key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: BottomNavBar(selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),
+            child: BottomNavBar(
+                selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),
           ),
           const GlobalFloatingPlayer(),
           const HomeChatFAB(),
@@ -147,4 +153,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-

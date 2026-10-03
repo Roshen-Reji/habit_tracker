@@ -16,11 +16,12 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      padding: const EdgeInsets.all(16),
+      height: 62,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: BentoTheme.surface, // #1C1C1E
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -39,38 +40,45 @@ class BottomNavBar extends StatelessWidget {
 
   Widget _buildBentoTab(IconData icon, int index) {
     final bool isSelected = selectedIndex == index;
-    
+
     return GestureDetector(
       onTap: () => onItemTapped(index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
-        height: 60,
+        height: 46,
         decoration: BoxDecoration(
           color: isSelected ? BentoTheme.accent : BentoTheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           // Inner glow effect simulated with a bright, subtle top/left border
-          border: isSelected ? Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0) : null,
-          boxShadow: isSelected ? [
-             BoxShadow(
-              color: Colors.white.withValues(alpha: 0.15),
-              blurRadius: 10,
-              spreadRadius: -2,
-            )
-          ] : [],
+          border: isSelected
+              ? Border.all(
+                  color: Colors.white.withValues(alpha: 0.3), width: 1.0)
+              : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    spreadRadius: -2,
+                  )
+                ]
+              : [],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              color: isSelected ? BentoTheme.background : const Color(0xFFE1E1E6),
-              size: 26,
+              color:
+                  isSelected ? BentoTheme.background : const Color(0xFFE1E1E6),
+              size: 22,
             ),
           ],
-        ).animate(target: isSelected ? 1 : 0)
-         .scaleXY(end: 1.1, duration: 400.ms, curve: Curves.easeOutBack),
+        )
+            .animate(target: isSelected ? 1 : 0)
+            .scaleXY(end: 1.1, duration: 400.ms, curve: Curves.easeOutBack),
       ),
     );
   }

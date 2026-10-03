@@ -61,171 +61,172 @@ class TaskCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       borderRadius: 16,
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(goal.category)
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getCategoryIcon(goal.category),
-                    color: _getCategoryColor(goal.category),
-                    size: 20,
-                  ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color:
+                      _getCategoryColor(goal.category).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        goal.title,
-                        style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: goal.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
+                child: Icon(
+                  _getCategoryIcon(goal.category),
+                  color: _getCategoryColor(goal.category),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        decoration: goal.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
-                      if (goal.description.isNotEmpty)
-                        Text(
-                          goal.description,
-                          style: TextStyle(
-                              color: BentoTheme.textSecondary, fontSize: 12),
-                        ),
-                      if (goal.endDate != null)
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _isExpired(goal)
-                                ? Colors.redAccent.withValues(alpha: 0.2)
-                                : BentoTheme.textSecondary.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            _isExpired(goal)
-                                ? 'Expired: ${DateFormat('MMM dd').format(goal.endDate!)}'
-                                : 'Ends: ${DateFormat('MMM dd').format(goal.endDate!)}',
-                            style: TextStyle(
-                                color: _isExpired(goal)
-                                    ? Colors.redAccent
-                                    : BentoTheme.textSecondary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (goal.streakCount > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: BentoTheme.accent.withValues(alpha: 0.2)),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(LucideIcons.flame,
-                            color: BentoTheme.accent, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${goal.streakCount}',
+                    if (goal.description.isNotEmpty)
+                      Text(
+                        goal.description,
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
+                      ),
+                    if (goal.endDate != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _isExpired(goal)
+                              ? Colors.redAccent.withValues(alpha: 0.2)
+                              : BentoTheme.textSecondary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _isExpired(goal)
+                              ? 'Expired: ${DateFormat('MMM dd').format(goal.endDate!)}'
+                              : 'Ends: ${DateFormat('MMM dd').format(goal.endDate!)}',
                           style: TextStyle(
-                              color: BentoTheme.accent,
-                              fontSize: 12,
+                              color: _isExpired(goal)
+                                  ? Colors.redAccent
+                                  : BentoTheme.textSecondary,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold),
                         ),
-                      ],
-                    ),
-                  ),
-                IconButton(
-                  icon: Icon(
-                    goal.isCompleted
-                        ? LucideIcons.checkCircle2
-                        : LucideIcons.circle,
-                    color: goal.isCompleted
-                        ? BentoTheme.accent
-                        : BentoTheme.textSecondary,
-                  ),
-                  onPressed: () {
-                    final box = Hive.box<Goal>('mission_box_v4');
-                    if (!box.containsKey(goal.id)) return;
-
-                    if (goal.isCompleted) {
-                      HapticFeedback.mediumImpact();
-                      goal.reset();
-                    } else {
-                      HapticFeedback.heavyImpact();
-                      goal.complete();
-                    }
-                    box.put(goal.id, goal);
-                  },
-                ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(
-                    end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RepaintBoundary(
-                        child: LinearProgressIndicator(
-                          value: goal.progress,
-                          borderRadius: BorderRadius.circular(4),
-                          backgroundColor: Colors.black12,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _getCategoryColor(goal.category),
-                          ),
-                          minHeight: 6,
-                        ),
                       ),
-                      const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+              if (goal.streakCount > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: BentoTheme.accent.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.flame,
+                          color: BentoTheme.accent, size: 14),
+                      const SizedBox(width: 4),
                       Text(
-                        '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}',
+                        '${goal.streakCount}',
                         style: TextStyle(
-                            color: BentoTheme.textSecondary, fontSize: 10),
+                            color: BentoTheme.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  '${goal.completionPercentage.toInt()}%',
-                  style: TextStyle(
-                    color: BentoTheme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+              IconButton(
+                icon: Icon(
+                  goal.isCompleted
+                      ? LucideIcons.checkCircle2
+                      : LucideIcons.circle,
+                  color: goal.isCompleted
+                      ? BentoTheme.accent
+                      : BentoTheme.textSecondary,
                 ),
-              ],
-            ),
-          ],
-        ),
-      )
+                onPressed: () {
+                  final box = Hive.box<Goal>('mission_box_v4');
+                  if (!box.containsKey(goal.id)) return;
+
+                  if (goal.isCompleted) {
+                    HapticFeedback.mediumImpact();
+                    goal.reset();
+                  } else {
+                    HapticFeedback.heavyImpact();
+                    goal.complete();
+                  }
+                  box.put(goal.id, goal);
+                },
+              ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(
+                  end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RepaintBoundary(
+                      child: LinearProgressIndicator(
+                        value: goal.progress,
+                        borderRadius: BorderRadius.circular(4),
+                        backgroundColor: Colors.black12,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getCategoryColor(goal.category),
+                        ),
+                        minHeight: 6,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${goal.currentValue.toInt()}/${goal.targetValue.toInt()} ${goal.unit}',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${goal.completionPercentage.toInt()}%',
+                style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    )
         .animate(target: goal.isCompleted ? 1 : 0)
         .scaleXY(
             begin: 1.0, end: 1.05, curve: Curves.easeOutBack, duration: 150.ms)
         .then()
         .scaleXY(
             begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
-        .tint(color: BentoTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
+        .tint(
+            color: BentoTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
   }
 }

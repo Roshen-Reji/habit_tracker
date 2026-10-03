@@ -17,7 +17,8 @@ class TaskAnalyticsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           "MISSION ANALYTICS",
-          style: TextStyle(color: AppColors.textPrimary, letterSpacing: 2, fontSize: 16),
+          style: TextStyle(
+              color: AppColors.textPrimary, letterSpacing: 2, fontSize: 16),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -28,7 +29,7 @@ class TaskAnalyticsPage extends StatelessWidget {
         valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
         builder: (context, Box<Goal> box, _) {
           final goals = box.values.toList();
-          
+
           if (goals.isEmpty) {
             return const Center(
               child: Text(
@@ -39,25 +40,33 @@ class TaskAnalyticsPage extends StatelessWidget {
           }
 
           int completedCount = goals.where((g) => g.isCompleted).length;
-          double completionRate = goals.isEmpty ? 0 : completedCount / goals.length;
+          double completionRate =
+              goals.isEmpty ? 0 : completedCount / goals.length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildOverallProgressCard(completionRate, completedCount, goals.length),
+                _buildOverallProgressCard(
+                    completionRate, completedCount, goals.length),
                 const SizedBox(height: 24),
                 Text(
                   "CATEGORY FOCUS",
-                  style: TextStyle(color: BentoTheme.accent, letterSpacing: 1.5, fontWeight: bold),
+                  style: TextStyle(
+                      color: BentoTheme.accent,
+                      letterSpacing: 1.5,
+                      fontWeight: bold),
                 ),
                 const SizedBox(height: 16),
                 _buildCategoryBreakdown(goals),
                 const SizedBox(height: 24),
                 Text(
                   "STREAK MASTERS",
-                  style: TextStyle(color: BentoTheme.accent, letterSpacing: 1.5, fontWeight: bold),
+                  style: TextStyle(
+                      color: BentoTheme.accent,
+                      letterSpacing: 1.5,
+                      fontWeight: bold),
                 ),
                 const SizedBox(height: 16),
                 _buildTopStreaks(goals),
@@ -111,7 +120,8 @@ class TaskAnalyticsPage extends StatelessWidget {
               children: [
                 const Text(
                   "Total Completion",
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -124,8 +134,11 @@ class TaskAnalyticsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  rate == 1.0 ? "Perfect execution. Standby for next cycle." : "Keep pushing forward.",
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                  rate == 1.0
+                      ? "Perfect execution. Standby for next cycle."
+                      : "Keep pushing forward.",
+                  style: const TextStyle(
+                      color: AppColors.textTertiary, fontSize: 12),
                 ),
               ],
             ),
@@ -143,7 +156,7 @@ class TaskAnalyticsPage extends StatelessWidget {
     for (var g in goals) {
       categoryCounts[g.category] = (categoryCounts[g.category] ?? 0) + 1;
     }
-    
+
     int maxCount = categoryCounts.values.reduce(math.max);
     if (maxCount == 0) maxCount = 1;
 
@@ -156,7 +169,8 @@ class TaskAnalyticsPage extends StatelessWidget {
               radarShape: RadarShape.polygon,
               radarBorderData: const BorderSide(color: AppColors.glassBorder),
               tickBorderData: const BorderSide(color: Colors.transparent),
-              gridBorderData: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.2), width: 1),
+              gridBorderData: BorderSide(
+                  color: BentoTheme.accent.withValues(alpha: 0.2), width: 1),
               titlePositionPercentageOffset: 0.1,
               getTitle: (index, angle) {
                 final cat = GoalCategory.values[index];
@@ -166,14 +180,18 @@ class TaskAnalyticsPage extends StatelessWidget {
                   positionPercentageOffset: 0.2,
                 );
               },
-              titleTextStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+              titleTextStyle: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
               dataSets: [
                 RadarDataSet(
                   fillColor: BentoTheme.accent.withValues(alpha: 0.3),
                   borderColor: BentoTheme.accent,
                   entryRadius: 3,
                   dataEntries: GoalCategory.values.map((cat) {
-                    return RadarEntry(value: (categoryCounts[cat] ?? 0).toDouble());
+                    return RadarEntry(
+                        value: (categoryCounts[cat] ?? 0).toDouble());
                   }).toList(),
                   borderWidth: 2,
                 ),
@@ -188,7 +206,7 @@ class TaskAnalyticsPage extends StatelessWidget {
           if (count == 0) return const SizedBox.shrink();
 
           double percent = count / goals.length;
-          
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -199,7 +217,8 @@ class TaskAnalyticsPage extends StatelessWidget {
                     color: _getCategoryColor(cat).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(_getCategoryIcon(cat), color: _getCategoryColor(cat), size: 20),
+                  child: Icon(_getCategoryIcon(cat),
+                      color: _getCategoryColor(cat), size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -211,11 +230,15 @@ class TaskAnalyticsPage extends StatelessWidget {
                         children: [
                           Text(
                             cat.name.toUpperCase(),
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
                           ),
                           Text(
                             "$count (${(percent * 100).toInt()}%)",
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -225,7 +248,8 @@ class TaskAnalyticsPage extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: percent,
                           backgroundColor: AppColors.surfaceLight,
-                          valueColor: AlwaysStoppedAnimation<Color>(_getCategoryColor(cat)),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              _getCategoryColor(cat)),
                           minHeight: 4,
                         ),
                       ),
@@ -241,11 +265,13 @@ class TaskAnalyticsPage extends StatelessWidget {
   }
 
   Widget _buildTopStreaks(List<Goal> goals) {
-    final sortedGoals = List<Goal>.from(goals)..sort((a, b) => b.streakCount.compareTo(a.streakCount));
+    final sortedGoals = List<Goal>.from(goals)
+      ..sort((a, b) => b.streakCount.compareTo(a.streakCount));
     final topGoals = sortedGoals.take(3).toList();
 
     if (topGoals.isEmpty || topGoals.first.streakCount == 0) {
-      return const Text("No streaks established yet.", style: TextStyle(color: AppColors.textTertiary));
+      return const Text("No streaks established yet.",
+          style: TextStyle(color: AppColors.textTertiary));
     }
 
     return Column(
@@ -264,17 +290,22 @@ class TaskAnalyticsPage extends StatelessWidget {
               Expanded(
                 child: Text(
                   g.title,
-                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Row(
                 children: [
-                  const Icon(LucideIcons.flame, color: Colors.orangeAccent, size: 18),
+                  const Icon(LucideIcons.flame,
+                      color: Colors.orangeAccent, size: 18),
                   const SizedBox(width: 4),
                   Text(
                     "${g.streakCount} days",
-                    style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.orangeAccent,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -287,21 +318,31 @@ class TaskAnalyticsPage extends StatelessWidget {
 
   Color _getCategoryColor(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return AppColors.health;
-      case GoalCategory.productivity: return AppColors.productivity;
-      case GoalCategory.learning: return AppColors.learning;
-      case GoalCategory.fitness: return AppColors.fitness;
-      case GoalCategory.hobby: return AppColors.hobby;
+      case GoalCategory.health:
+        return AppColors.health;
+      case GoalCategory.productivity:
+        return AppColors.productivity;
+      case GoalCategory.learning:
+        return AppColors.learning;
+      case GoalCategory.fitness:
+        return AppColors.fitness;
+      case GoalCategory.hobby:
+        return AppColors.hobby;
     }
   }
 
   IconData _getCategoryIcon(GoalCategory category) {
     switch (category) {
-      case GoalCategory.health: return LucideIcons.heart;
-      case GoalCategory.productivity: return LucideIcons.zap;
-      case GoalCategory.learning: return LucideIcons.bookOpen;
-      case GoalCategory.fitness: return LucideIcons.dumbbell;
-      case GoalCategory.hobby: return LucideIcons.puzzle;
+      case GoalCategory.health:
+        return LucideIcons.heart;
+      case GoalCategory.productivity:
+        return LucideIcons.zap;
+      case GoalCategory.learning:
+        return LucideIcons.bookOpen;
+      case GoalCategory.fitness:
+        return LucideIcons.dumbbell;
+      case GoalCategory.hobby:
+        return LucideIcons.puzzle;
     }
   }
 }

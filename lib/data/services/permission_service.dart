@@ -26,29 +26,29 @@ class PermissionService {
     bool granted = await requestAllPermissions();
     if (!granted && context.mounted) {
       showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
-          title: const Text("Permissions Required", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          content: const Text(
-            "Some permissions were denied. App functionality like notifications and music might be limited. Please enable them in Settings.", 
-            style: TextStyle(color: Colors.white70)
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text("Cancel", style: TextStyle(color: Colors.white54))
-            ),
-            TextButton(
-              onPressed: () {
-                openAppSettings();
-                Navigator.pop(context);
-              }, 
-              child: const Text("Open Settings", style: TextStyle(color: Colors.tealAccent))
-            ),
-          ],
-        )
-      );
+          context: context,
+          builder: (context) => AlertDialog(
+                backgroundColor: const Color(0xFF1C1C1E),
+                title: const Text("Permissions Required",
+                    style: TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                content: const Text(
+                    "Some permissions were denied. App functionality like notifications and music might be limited. Please enable them in Settings.",
+                    style: TextStyle(color: Colors.white70)),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancel",
+                          style: TextStyle(color: Colors.white54))),
+                  TextButton(
+                      onPressed: () {
+                        openAppSettings();
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Open Settings",
+                          style: TextStyle(color: Colors.tealAccent))),
+                ],
+              ));
     }
   }
 }

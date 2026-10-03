@@ -64,8 +64,6 @@ class Goal extends HiveObject {
   @HiveField(11)
   bool isArchived;
 
-
-
   Goal({
     required this.id,
     required this.title,
@@ -81,7 +79,8 @@ class Goal extends HiveObject {
     this.isArchived = false,
   });
 
-  double get completionPercentage => (currentValue / targetValue * 100).clamp(0, 100);
+  double get completionPercentage =>
+      (currentValue / targetValue * 100).clamp(0, 100);
 
   void updateProgress(double value) {
     currentValue = value;

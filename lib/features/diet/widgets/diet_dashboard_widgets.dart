@@ -44,7 +44,8 @@ class CalorieRingChart extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: (isOver ? Colors.redAccent : accent).withValues(alpha: 0.2),
+                  color: (isOver ? Colors.redAccent : accent)
+                      .withValues(alpha: 0.2),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
@@ -108,7 +109,8 @@ class CalorieRingChart extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (isOver ? Colors.redAccent : Colors.greenAccent).withValues(alpha: 0.15),
+                  color: (isOver ? Colors.redAccent : Colors.greenAccent)
+                      .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -162,7 +164,8 @@ class MacroBreakdownBar extends StatelessWidget {
     );
   }
 
-  Widget _buildMacroRing(String label, double amount, double total, Color color) {
+  Widget _buildMacroRing(
+      String label, double amount, double total, Color color) {
     double progress = (amount / total).clamp(0.0, 1.0);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -177,7 +180,8 @@ class MacroBreakdownBar extends StatelessWidget {
                 value: 1.0,
                 strokeWidth: 6,
                 backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(true ? Colors.white10 : Colors.black12),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    true ? Colors.white10 : Colors.black12),
               ),
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: progress),
@@ -199,11 +203,17 @@ class MacroBreakdownBar extends StatelessWidget {
         const SizedBox(height: 10),
         Text(
           label,
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.bold),
         ),
         Text(
           "${amount.toStringAsFixed(0)}g",
-          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w900),
+          style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w900),
         ),
       ],
     );
@@ -226,7 +236,8 @@ class WeeklyCalorieChart extends StatelessWidget {
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
-          maxY: (logs.map((l) => l.totalCalories).fold(0.0, math.max) * 1.3).clamp(target * 1.2, double.infinity),
+          maxY: (logs.map((l) => l.totalCalories).fold(0.0, math.max) * 1.3)
+              .clamp(target * 1.2, double.infinity),
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
@@ -235,7 +246,10 @@ class WeeklyCalorieChart extends StatelessWidget {
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${rod.toY.toStringAsFixed(0)} kcal',
-                  TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
                 );
               },
             ),
@@ -246,14 +260,21 @@ class WeeklyCalorieChart extends StatelessWidget {
             horizontalInterval: target / 2,
             getDrawingHorizontalLine: (value) {
               if (value == target) {
-                return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
+                return FlLine(
+                    color: accent.withValues(alpha: 0.5),
+                    strokeWidth: 1.5,
+                    dashArray: [8, 4]);
               }
-              return FlLine(color: BentoTheme.background.withValues(alpha: 0.3), strokeWidth: 0.5);
+              return FlLine(
+                  color: BentoTheme.background.withValues(alpha: 0.3),
+                  strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -261,7 +282,8 @@ class WeeklyCalorieChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -276,8 +298,11 @@ class WeeklyCalorieChart extends StatelessWidget {
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        date != null ? DateFormat('E').format(date).substring(0, 2) : '',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+                        date != null
+                            ? DateFormat('E').format(date).substring(0, 2)
+                            : '',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -298,12 +323,16 @@ class WeeklyCalorieChart extends StatelessWidget {
                 BarChartRodData(
                   toY: cal,
                   width: 22,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(6)),
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: isOver
-                        ? [Colors.redAccent.withValues(alpha: 0.6), Colors.redAccent]
+                        ? [
+                            Colors.redAccent.withValues(alpha: 0.6),
+                            Colors.redAccent
+                          ]
                         : [accent.withValues(alpha: 0.4), accent],
                   ),
                 ),
@@ -343,14 +372,21 @@ class MonthlyTrendChart extends StatelessWidget {
             horizontalInterval: target / 2,
             getDrawingHorizontalLine: (value) {
               if (value == target) {
-                return FlLine(color: accent.withValues(alpha: 0.5), strokeWidth: 1.5, dashArray: [8, 4]);
+                return FlLine(
+                    color: accent.withValues(alpha: 0.5),
+                    strokeWidth: 1.5,
+                    dashArray: [8, 4]);
               }
-              return FlLine(color: BentoTheme.background.withValues(alpha: 0.2), strokeWidth: 0.5);
+              return FlLine(
+                  color: BentoTheme.background.withValues(alpha: 0.2),
+                  strokeWidth: 0.5);
             },
           ),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -358,7 +394,8 @@ class MonthlyTrendChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 10),
                   );
                 },
               ),
@@ -375,7 +412,8 @@ class MonthlyTrendChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         date != null ? DateFormat('d/M').format(date) : '',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
                       ),
                     );
                   }
@@ -415,7 +453,10 @@ class MonthlyTrendChart extends StatelessWidget {
                 return spots.map((s) {
                   return LineTooltipItem(
                     '${s.y.toStringAsFixed(0)} kcal',
-                    TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                    TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
                   );
                 }).toList();
               },
@@ -440,10 +481,12 @@ class DeficitBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (isDeficit ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.15),
+        color: (isDeficit ? Colors.greenAccent : Colors.redAccent)
+            .withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isDeficit ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.3),
+          color: (isDeficit ? Colors.greenAccent : Colors.redAccent)
+              .withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -600,7 +643,8 @@ class BurnEntryTile extends StatelessWidget {
           ),
           if (onDelete != null)
             IconButton(
-              icon: Icon(LucideIcons.x, color: BentoTheme.textSecondary, size: 16),
+              icon: Icon(LucideIcons.x,
+                  color: BentoTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -637,7 +681,8 @@ class FoodEntryTile extends StatelessWidget {
               color: _mealColor(entry.mealType).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(_mealIcon(entry.mealType), color: _mealColor(entry.mealType), size: 18),
+            child: Icon(_mealIcon(entry.mealType),
+                color: _mealColor(entry.mealType), size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -672,7 +717,8 @@ class FoodEntryTile extends StatelessWidget {
           ),
           if (onDelete != null)
             IconButton(
-              icon: Icon(LucideIcons.x, color: BentoTheme.textSecondary, size: 16),
+              icon: Icon(LucideIcons.x,
+                  color: BentoTheme.textSecondary, size: 16),
               onPressed: onDelete,
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
@@ -767,12 +813,25 @@ class DailyReportCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildSummaryRow("Total Calories", "${log.totalCalories.toStringAsFixed(0)} kcal", accent),
-                _buildSummaryRow("Total Protein", "${log.totalProtein.toStringAsFixed(1)} g", MacroBreakdownBar.proteinColor),
-                _buildSummaryRow("Total Carbs", "${log.totalCarbs.toStringAsFixed(1)} g", MacroBreakdownBar.carbsColor),
-                _buildSummaryRow("Total Fat", "${log.totalFat.toStringAsFixed(1)} g", MacroBreakdownBar.fatColor),
+                _buildSummaryRow("Total Calories",
+                    "${log.totalCalories.toStringAsFixed(0)} kcal", accent),
+                _buildSummaryRow(
+                    "Total Protein",
+                    "${log.totalProtein.toStringAsFixed(1)} g",
+                    MacroBreakdownBar.proteinColor),
+                _buildSummaryRow(
+                    "Total Carbs",
+                    "${log.totalCarbs.toStringAsFixed(1)} g",
+                    MacroBreakdownBar.carbsColor),
+                _buildSummaryRow(
+                    "Total Fat",
+                    "${log.totalFat.toStringAsFixed(1)} g",
+                    MacroBreakdownBar.fatColor),
                 const Divider(color: Colors.transparent),
-                _buildSummaryRow("Calories Burned", "${log.totalBurned.toStringAsFixed(0)} kcal", Colors.redAccent),
+                _buildSummaryRow(
+                    "Calories Burned",
+                    "${log.totalBurned.toStringAsFixed(0)} kcal",
+                    Colors.redAccent),
                 _buildSummaryRow(
                   log.isDeficit ? "Caloric Deficit" : "Caloric Surplus",
                   "${log.deficit.abs().toStringAsFixed(0)} kcal",
@@ -792,11 +851,38 @@ class DailyReportCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text("Food", style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1))),
-          Expanded(flex: 2, child: Text("kcal", style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text("P (g)", style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text("C (g)", style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text("F (g)", style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+          Expanded(
+              flex: 3,
+              child: Text("Food",
+                  style: TextStyle(
+                      color: accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1))),
+          Expanded(
+              flex: 2,
+              child: Text("kcal",
+                  style: TextStyle(
+                      color: accent, fontSize: 11, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text("P (g)",
+                  style: TextStyle(
+                      color: accent, fontSize: 11, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text("C (g)",
+                  style: TextStyle(
+                      color: accent, fontSize: 11, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text("F (g)",
+                  style: TextStyle(
+                      color: accent, fontSize: 11, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -807,24 +893,55 @@ class DailyReportCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(e.name, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12), overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 2, child: Text(e.calories.toStringAsFixed(0), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.protein.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.carbs.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
-          Expanded(flex: 2, child: Text(e.fat.toStringAsFixed(1), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12), textAlign: TextAlign.right)),
+          Expanded(
+              flex: 3,
+              child: Text(e.name,
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12),
+                  overflow: TextOverflow.ellipsis)),
+          Expanded(
+              flex: 2,
+              child: Text(e.calories.toStringAsFixed(0),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text(e.protein.toStringAsFixed(1),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text(e.carbs.toStringAsFixed(1),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 2,
+              child: Text(e.fat.toStringAsFixed(1),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  textAlign: TextAlign.right)),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, Color color, {bool isBold = false}) {
+  Widget _buildSummaryRow(String label, String value, Color color,
+      {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+          Text(label,
+              style: TextStyle(
+                  color: BentoTheme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -900,11 +1017,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Activity (e.g., Running)",
-                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),
@@ -917,11 +1037,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "kcal",
-                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),
@@ -934,11 +1057,14 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "min",
-                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.background)),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: BentoTheme.accent)),
+                    enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.background)),
+                    focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: BentoTheme.accent)),
                   ),
                 ),
               ),
@@ -951,7 +1077,8 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
                     color: Colors.redAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(LucideIcons.flame, color: Colors.redAccent, size: 20),
+                  child: Icon(LucideIcons.flame,
+                      color: Colors.redAccent, size: 20),
                 ),
               ),
             ],
@@ -961,5 +1088,3 @@ class _BurnInputWidgetState extends State<BurnInputWidget> {
     );
   }
 }
-
-

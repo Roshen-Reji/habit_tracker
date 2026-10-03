@@ -35,17 +35,20 @@ class MysteriousMomentumGraph extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(Icons.grain, color: BentoTheme.textSecondary, size: 16),
+                    Icon(Icons.grain,
+                        color: BentoTheme.textSecondary, size: 16),
                   ],
                 ),
                 const SizedBox(height: 30),
                 SizedBox(
-                  height: 150, // Increased fixed height for the dot matrix to fix overflow
+                  height:
+                      150, // Increased fixed height for the dot matrix to fix overflow
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: List.generate(7, (index) {
-                      return _buildDotMatrixColumn(xpHistory[index], index == 6);
+                      return _buildDotMatrixColumn(
+                          xpHistory[index], index == 6);
                     }),
                   ),
                 ),
@@ -53,12 +56,17 @@ class MysteriousMomentumGraph extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(7, (index) {
-                    DateTime date = DateTime.now().subtract(Duration(days: 6 - index));
-                    String label = index == 6 ? "NOW" : DateFormat('EE').format(date).toUpperCase();
+                    DateTime date =
+                        DateTime.now().subtract(Duration(days: 6 - index));
+                    String label = index == 6
+                        ? "NOW"
+                        : DateFormat('EE').format(date).toUpperCase();
                     return Text(
                       label,
                       style: TextStyle(
-                        color: index == 6 ? BentoTheme.textPrimary : BentoTheme.textSecondary,
+                        color: index == 6
+                            ? BentoTheme.textPrimary
+                            : BentoTheme.textSecondary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -77,21 +85,21 @@ class MysteriousMomentumGraph extends StatelessWidget {
     // Let's say 1 dot = 10 XP, max 10 dots (100 XP)
     int filledDots = (xp / 10).round().clamp(0, 10);
     int totalDots = 10;
-    
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: List.generate(totalDots, (index) {
         // Build from bottom up
         int invertedIndex = totalDots - 1 - index;
         bool isFilled = invertedIndex < filledDots;
-        
+
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 3),
           width: 8,
           height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled 
+            color: isFilled
                 ? (isToday ? BentoTheme.textPrimary : BentoTheme.textSecondary)
                 : BentoTheme.textPrimary.withValues(alpha: 0.1),
           ),

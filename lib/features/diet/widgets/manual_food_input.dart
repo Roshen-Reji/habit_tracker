@@ -35,7 +35,7 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
   void _addFood() {
     final name = _nameController.text.trim();
     final calories = double.tryParse(_caloriesController.text) ?? 0;
-    
+
     if (name.isNotEmpty && calories > 0) {
       final entry = FoodEntry(
         id: DateTime.now().toString(),
@@ -47,7 +47,7 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
         mealType: _selectedMeal,
         timestamp: DateTime.now(),
       );
-      
+
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final box = Hive.box<DietDayLog>('diet_logs');
       var log = box.get(today);
@@ -55,16 +55,16 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
         log = DietDayLog(dateKey: today, targetCalories: 2000);
         box.put(today, log);
       }
-      
+
       log.addFood(entry);
       log.save();
-      
+
       _nameController.clear();
       _caloriesController.clear();
       _proteinController.clear();
       _carbsController.clear();
       _fatController.clear();
-      
+
       widget.onFoodAdded?.call();
     }
   }
@@ -97,7 +97,8 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Food Name",
-                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -112,7 +113,8 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "kcal",
-                    hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    hintStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),

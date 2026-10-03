@@ -110,7 +110,8 @@ class DietDayLog extends HiveObject {
   double get totalProtein => entries.fold(0.0, (sum, e) => sum + e.protein);
   double get totalCarbs => entries.fold(0.0, (sum, e) => sum + e.carbs);
   double get totalFat => entries.fold(0.0, (sum, e) => sum + e.fat);
-  double get totalBurned => burnEntries.fold(0.0, (sum, e) => sum + e.caloriesBurned);
+  double get totalBurned =>
+      burnEntries.fold(0.0, (sum, e) => sum + e.caloriesBurned);
   double get netCalories => totalCalories - totalBurned;
   double get deficit => targetCalories - netCalories;
   bool get isDeficit => deficit > 0;
@@ -123,7 +124,7 @@ class DietDayLog extends HiveObject {
     bool wasDeficit = isDeficit;
     entries.add(entry);
     save();
-    
+
     // If they were in deficit but adding food pushed them over, subtract XP
     if (wasDeficit && !isDeficit) {
       GlobalXPService.subtractXP(20);
@@ -134,7 +135,7 @@ class DietDayLog extends HiveObject {
     bool wasDeficit = isDeficit;
     burnEntries.add(burn);
     save();
-    
+
     // If they weren't in deficit but burning pushed them under, add XP
     if (!wasDeficit && isDeficit) {
       GlobalXPService.addXP(20);
@@ -145,7 +146,7 @@ class DietDayLog extends HiveObject {
     bool wasDeficit = isDeficit;
     entries.removeWhere((e) => e.id == entryId);
     save();
-    
+
     if (!wasDeficit && isDeficit) {
       GlobalXPService.addXP(20);
     }

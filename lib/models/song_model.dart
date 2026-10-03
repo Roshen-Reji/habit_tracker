@@ -122,7 +122,7 @@ class SongModel {
       artworkUrl: json['artworkUrl'],
       audioUrl: json['audioUrl'],
       source: SongSource.values.firstWhere(
-            (e) => e.toString() == json['source'],
+        (e) => e.toString() == json['source'],
         orElse: () => SongSource.api,
       ),
       dominantColor: Color(json['dominantColor'] ?? 0xFFFC3C44),
@@ -159,7 +159,7 @@ class SongModel {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is SongModel && runtimeType == other.runtimeType && id == other.id;
+      other is SongModel && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
@@ -189,6 +189,7 @@ class LyricLine {
     );
   }
 }
+
 // Playlist Model
 class PlaylistModel {
   final String id;
@@ -219,7 +220,7 @@ class PlaylistModel {
   Duration get totalDuration {
     return songs.fold(
       Duration.zero,
-          (total, song) => total + song.duration,
+      (total, song) => total + song.duration,
     );
   }
 
@@ -305,7 +306,7 @@ class AlbumModel {
   Duration get totalDuration {
     return tracks.fold(
       Duration.zero,
-          (total, track) => total + track.duration,
+      (total, track) => total + track.duration,
     );
   }
 
@@ -380,7 +381,9 @@ class ArtistModel {
           ? (json['albums'] as List).map((a) => AlbumModel.fromJson(a)).toList()
           : [],
       topTracks: json['topTracks'] != null
-          ? (json['topTracks'] as List).map((t) => SongModel.fromJson(t)).toList()
+          ? (json['topTracks'] as List)
+              .map((t) => SongModel.fromJson(t))
+              .toList()
           : [],
       followers: json['followers'] ?? 0,
     );

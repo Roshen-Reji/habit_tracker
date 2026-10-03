@@ -84,9 +84,12 @@ class Goal extends HiveObject {
 
   int get xpValue {
     switch (type) {
-      case GoalType.monthly: return 50;
-      case GoalType.weekly: return 20;
-      default: return 5;
+      case GoalType.monthly:
+        return 50;
+      case GoalType.weekly:
+        return 20;
+      default:
+        return 5;
     }
   }
 
@@ -110,7 +113,8 @@ class Goal extends HiveObject {
     this.lastReset,
   });
 
-  double get completionPercentage => (targetValue > 0) ? (currentValue / targetValue * 100).clamp(0, 100) : 0;
+  double get completionPercentage =>
+      (targetValue > 0) ? (currentValue / targetValue * 100).clamp(0, 100) : 0;
 
   void updateProgress(double value) {
     currentValue = value;
@@ -136,13 +140,13 @@ class Goal extends HiveObject {
     isCompleted = true;
     currentValue = targetValue;
     progress = 1.0;
-    
+
     // Only increment streak if it hasn't been completed today
     final now = DateTime.now();
     if (lastCompletedDate == null || !_isSameDay(now, lastCompletedDate!)) {
       streakCount++;
     }
-    
+
     lastCompletedDate = now;
     save();
   }

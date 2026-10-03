@@ -10,14 +10,17 @@ class StarBackground extends StatefulWidget {
   State<StarBackground> createState() => _StarBackgroundState();
 }
 
-class _StarBackgroundState extends State<StarBackground> with SingleTickerProviderStateMixin {
+class _StarBackgroundState extends State<StarBackground>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<Star> _stars = List.generate(50, (index) => Star());
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 4))
+          ..repeat(reverse: true);
   }
 
   @override
@@ -34,7 +37,6 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
         Container(
           decoration: BoxDecoration(
             color: BentoTheme.background,
-            
           ),
         ),
         // 2. The Star Layer
@@ -43,7 +45,8 @@ class _StarBackgroundState extends State<StarBackground> with SingleTickerProvid
           builder: (context, child) {
             return RepaintBoundary(
               child: CustomPaint(
-                painter: StarPainter(_stars, _controller.value, BentoTheme.accent),
+                painter:
+                    StarPainter(_stars, _controller.value, BentoTheme.accent),
                 size: Size.infinite,
               ),
             );
@@ -68,8 +71,12 @@ class StarPainter extends CustomPainter {
     final paint = Paint()..color = Colors.white;
     for (var star in stars) {
       // Twinkle effect: Opacity changes based on animation value
-      final double opacity = (star.baseOpacity + (sin(animationValue * star.speed) * 0.3)).clamp(0.0, 1.0);
-      paint.color = Color.alphaBlend(starColor.withValues(alpha: 0.15), Colors.white).withValues(alpha: opacity);
+      final double opacity =
+          (star.baseOpacity + (sin(animationValue * star.speed) * 0.3))
+              .clamp(0.0, 1.0);
+      paint.color =
+          Color.alphaBlend(starColor.withValues(alpha: 0.15), Colors.white)
+              .withValues(alpha: opacity);
 
       // Draw star at random position scaled to screen size
       final dx = star.x * size.width;
