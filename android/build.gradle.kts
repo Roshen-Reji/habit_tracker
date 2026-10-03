@@ -20,8 +20,8 @@ subprojects {
             project.extensions.configure<com.android.build.gradle.LibraryExtension> {
                 compileSdk = 36
                 compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_11
-                    targetCompatibility = JavaVersion.VERSION_11
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
                 }
             }
         }
