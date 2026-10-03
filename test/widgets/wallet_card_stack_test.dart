@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/finance_model.dart';
+import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/momentum_card.dart';
 import 'package:habit_tracker/features/home/widgets/wallet_card_stack.dart';
@@ -39,6 +40,15 @@ void main() {
     if (!Hive.isAdapterRegistered(23)) {
       Hive.registerAdapter(DietDayLogAdapter());
     }
+    if (!Hive.isAdapterRegistered(30)) {
+      Hive.registerAdapter(MedicineAdapter());
+    }
+    if (!Hive.isAdapterRegistered(31)) {
+      Hive.registerAdapter(MedicineLogAdapter());
+    }
+    if (!Hive.isAdapterRegistered(32)) {
+      Hive.registerAdapter(WeightEntryAdapter());
+    }
 
     settingsBox = await Hive.openBox('settings');
     xpBox = await Hive.openBox('xp_history');
@@ -47,6 +57,9 @@ void main() {
     await Hive.openBox<AssetVault>('finance_vaults');
     await Hive.openBox('finance_settings');
     await Hive.openBox<DietDayLog>('diet_logs');
+    await Hive.openBox<Medicine>('medicines');
+    await Hive.openBox<MedicineLog>('medicine_logs');
+    await Hive.openBox<WeightEntry>('weight_entries');
   });
 
   tearDownAll(() async {

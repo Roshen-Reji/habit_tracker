@@ -7,6 +7,9 @@ import 'package:habit_tracker/features/home/cards/momentum_card.dart';
 import 'package:habit_tracker/features/home/cards/quote_card.dart';
 import 'package:habit_tracker/features/home/cards/score_card.dart';
 import 'package:habit_tracker/features/home/cards/score_delta_card.dart';
+import 'package:habit_tracker/features/home/cards/medicine_card.dart';
+import 'package:habit_tracker/features/home/cards/weight_card.dart';
+import 'package:habit_tracker/features/home/cards/health_summary_card.dart';
 import 'package:habit_tracker/features/home/cards/music_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -132,6 +135,30 @@ class HomeCardRegistry {
       icon: LucideIcons.music,
       compactBuilder: (context) => const MusicCard(),
       defaultOrder: 7,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'medicine',
+      title: 'Medicine Reminder',
+      icon: LucideIcons.pill,
+      compactBuilder: (context) => const MedicineCard(),
+      defaultOrder: 8,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'weight',
+      title: 'Weight Journey',
+      icon: LucideIcons.scale,
+      compactBuilder: (context) => const WeightCard(),
+      defaultOrder: 9,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'health',
+      title: 'Health Summary',
+      icon: LucideIcons.heartPulse,
+      compactBuilder: (context) => const HealthSummaryCard(),
+      defaultOrder: 10,
       defaultVisible: true,
     ));
   }

@@ -7,6 +7,7 @@ class ExpressiveTokens {
   static const double radiusNone = 0.0;
   static const double radiusXS = 4.0;
   static const double radiusS = 8.0;
+  static const double radiusSm = radiusS;
   static const double radiusM = 16.0;
   static const double radiusL = 24.0;
   static const double radiusXL = 28.0;
