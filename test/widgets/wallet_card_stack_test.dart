@@ -6,6 +6,7 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
+import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/momentum_card.dart';
 import 'package:habit_tracker/features/home/widgets/wallet_card_stack.dart';
@@ -49,6 +50,15 @@ void main() {
     if (!Hive.isAdapterRegistered(32)) {
       Hive.registerAdapter(WeightEntryAdapter());
     }
+    if (!Hive.isAdapterRegistered(33)) {
+      Hive.registerAdapter(JournalEntryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(34)) {
+      Hive.registerAdapter(IdeaAdapter());
+    }
+    if (!Hive.isAdapterRegistered(35)) {
+      Hive.registerAdapter(BookProgressAdapter());
+    }
 
     settingsBox = await Hive.openBox('settings');
     xpBox = await Hive.openBox('xp_history');
@@ -60,6 +70,9 @@ void main() {
     await Hive.openBox<Medicine>('medicines');
     await Hive.openBox<MedicineLog>('medicine_logs');
     await Hive.openBox<WeightEntry>('weight_entries');
+    await Hive.openBox<Idea>('ideas');
+    await Hive.openBox<BookProgress>('reader_progress');
+    await Hive.openBox<JournalEntry>('journals');
   });
 
   tearDownAll(() async {

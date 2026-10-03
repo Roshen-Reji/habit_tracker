@@ -11,6 +11,9 @@ import 'package:habit_tracker/features/home/cards/medicine_card.dart';
 import 'package:habit_tracker/features/home/cards/weight_card.dart';
 import 'package:habit_tracker/features/home/cards/health_summary_card.dart';
 import 'package:habit_tracker/features/home/cards/music_card.dart';
+import 'package:habit_tracker/features/home/cards/journal_card.dart';
+import 'package:habit_tracker/features/home/cards/brainstorm_card.dart';
+import 'package:habit_tracker/features/home/cards/reader_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Specification for a card in the wallet-stack home screen.
@@ -159,6 +162,30 @@ class HomeCardRegistry {
       icon: LucideIcons.heartPulse,
       compactBuilder: (context) => const HealthSummaryCard(),
       defaultOrder: 10,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'journal',
+      title: 'Private Journal',
+      icon: LucideIcons.bookLock,
+      compactBuilder: (context) => const JournalCard(),
+      defaultOrder: 11,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'brainstorm',
+      title: 'Brainstorm',
+      icon: LucideIcons.lightbulb,
+      compactBuilder: (context) => const BrainstormCard(),
+      defaultOrder: 12,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'reader',
+      title: 'Document Reader',
+      icon: LucideIcons.bookOpen,
+      compactBuilder: (context) => const ReaderCard(),
+      defaultOrder: 13,
       defaultVisible: true,
     ));
   }

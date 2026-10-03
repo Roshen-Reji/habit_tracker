@@ -8,7 +8,9 @@ import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
+import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/medicine_service.dart';
+import 'package:habit_tracker/data/services/journal_service.dart';
 import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 
@@ -39,6 +41,11 @@ void main() async {
   Hive.registerAdapter(MedicineLogAdapter());
   Hive.registerAdapter(WeightEntryAdapter());
 
+  // Register Productivity Type Adapters (typeIds 33+)
+  Hive.registerAdapter(JournalEntryAdapter());
+  Hive.registerAdapter(IdeaAdapter());
+  Hive.registerAdapter(BookProgressAdapter());
+
   // Open necessary boxes for data persistence
   await Hive.openBox<Goal>('mission_box_v4');
   await Hive.openBox('settings');
@@ -56,6 +63,15 @@ void main() async {
   await Hive.openBox<Medicine>('medicines');
   await Hive.openBox<MedicineLog>('medicine_logs');
   await Hive.openBox<WeightEntry>('weight_entries');
+
+  // Open Productivity & Reader boxes
+  await Hive.openBox<Idea>('ideas');
+  await Hive.openBox<BookProgress>('reader_progress');
+  try {
+    await JournalService.instance.openEncryptedBox();
+  } catch (_) {
+    // Graceful fallback if secure storage is unavailable at boot
+  }
 
   // Open XP box
   await Hive.openBox('xp_history');

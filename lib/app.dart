@@ -5,6 +5,9 @@ import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:habit_tracker/data/services/journal_service.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
@@ -36,6 +39,10 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
     if (state == AppLifecycleState.resumed) {
       TaskResetService.checkAndResetTasks();
       SipService.runDue();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      JournalService.instance.onAppLifecycleChanged(true);
     }
   }
 
@@ -54,6 +61,13 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
               navigatorKey: globalNavigatorKey,
               title: 'Habit Tracker',
               themeMode: mode,
+              localizationsDelegates: const [
+                FlutterQuillLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: FlutterQuillLocalizations.supportedLocales,
               scrollBehavior: const MaterialScrollBehavior().copyWith(
                 physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics()),
