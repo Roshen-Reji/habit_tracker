@@ -20,13 +20,18 @@ void main() {
     Hive.init(tempDir.path);
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(GoalAdapter());
     if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(GoalTypeAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(GoalCategoryAdapter());
-    if (!Hive.isAdapterRegistered(10)) Hive.registerAdapter(TransactionAdapter());
-    if (!Hive.isAdapterRegistered(11)) Hive.registerAdapter(AssetVaultAdapter());
+    if (!Hive.isAdapterRegistered(2))
+      Hive.registerAdapter(GoalCategoryAdapter());
+    if (!Hive.isAdapterRegistered(10))
+      Hive.registerAdapter(TransactionAdapter());
+    if (!Hive.isAdapterRegistered(11))
+      Hive.registerAdapter(AssetVaultAdapter());
     if (!Hive.isAdapterRegistered(20)) Hive.registerAdapter(MealTypeAdapter());
     if (!Hive.isAdapterRegistered(21)) Hive.registerAdapter(FoodEntryAdapter());
-    if (!Hive.isAdapterRegistered(22)) Hive.registerAdapter(CalorieBurnEntryAdapter());
-    if (!Hive.isAdapterRegistered(23)) Hive.registerAdapter(DietDayLogAdapter());
+    if (!Hive.isAdapterRegistered(22))
+      Hive.registerAdapter(CalorieBurnEntryAdapter());
+    if (!Hive.isAdapterRegistered(23))
+      Hive.registerAdapter(DietDayLogAdapter());
 
     final settingsBox = await Hive.openBox('settings');
     await settingsBox.put('username', 'COMMANDER');
