@@ -1,57 +1,63 @@
-# COMMANDER HABIT TRACKER — SYSTEM ARCHITECTURE & COMPLETE MANUAL
+# COMMANDER HABIT TRACKER — SYSTEM ARCHITECTURE & COMPLETE MANUAL (MVP 2)
 
-> **Version:** 1.0.0+1  
-> **Platform Support:** Android, iOS, macOS, Web, Linux, Windows  
+> **Version:** 2.0.0 (MVP 2)  
+> **Platform Support:** Android (primary), iOS, macOS, Web, Linux, Windows  
 > **Primary Framework:** Flutter 3.x / Dart 3.x  
-> **Core Architecture:** Clean Layered Architecture (Feature-Driven)  
-> **Data Persistence:** Hive NoSQL Local Key-Value & Object Store (Offline-First)  
-> **AI Engine:** Google Gemini Flash (Multimodal Vision + Text) + On-Device NLP Rule Engine  
+> **Design Language:** Google Material 3 Expressive + Dark Bento Cyberpunk  
+> **Core Architecture:** Clean Layered Architecture (Feature-Driven, Offline-First)  
+> **Data Persistence:** Hive NoSQL Binary Store with AES-256 Hardware Encryption  
+> **AI Engine:** Google Gemini Flash (`GeminiClient` with dynamic fallback chain) + On-Device NLP Rule Engine  
+> **Media Architecture:** Android System MediaSession Bridge (`NotificationListenerService` + `NowPlayingService`)
 
 ---
 
 ## 1. Executive Summary & App Identity
 
-**Commander Habit Tracker** is an all-in-one personal command center designed around a sleek **Bento-style Cyberpunk / Tactical Aesthetic**. Unlike conventional single-purpose apps, Commander combines six vital lifestyle pillars into a unified, privacy-focused, offline-first ecosystem:
+**Commander Habit Tracker (MVP 2)** is an all-in-one personal command center designed around a sleek **Material 3 Expressive & Dark Bento Aesthetic**. The home screen features a tactile **Wallet Card Stack** that gracefully compresses and stacks cards on scroll.
 
-1. **Mission & Habit Engine**: Structured habit and goal tracking with military-style ranks, XP gamification, and automated lifecycle resets.
-2. **Personal Finance Management**: Comprehensive offline double-entry ledger with multi-category budgeting, asset vaults, cashflow planning, and savings goals.
-3. **Diet & Caloric Intelligence**: Macro/calorie tracking with daily targets, deficit/surplus XP incentives, and AI-powered food photo analysis.
-4. **Offline Music Player**: Complete audio player supporting local storage indexing, background service controls, dynamic album art color themes, and synchronized LRC lyrics.
-5. **Speech & Knowledge Vault**: Integrated video library for motivational and instructional content with embedded YouTube playback.
-6. **Commander AI Copilot**: A hybrid multimodal assistant that uses on-device natural language heuristics for offline task execution and Google Gemini Flash models for complex queries and photo recognition.
+Commander integrates eight vital personal development pillars:
+
+1. **Wallet-Stack Command Deck**: Interactive overlapping cards with real-time peeking, spring physics, and full layout reordering/hiding from Settings.
+2. **Mission & Habit Engine**: Daily, weekly, and monthly goal tracking with military ranks, streaks, XP gamification, and automated resets.
+3. **Personal Finance & Automated SIPs**: Multi-category ledger, asset vaults, savings goals, and automated SIP debits posted on their designated monthly due dates.
+4. **Diet & Caloric Intelligence**: Macro/calorie logs, daily targets, deficit/surplus XP incentives, and AI nutritional breakdown.
+5. **Universal Music Controller**: Android MediaSession controller detecting whatever media app is currently playing (Spotify, YouTube Music, etc.) with remote controls and dynamic album art theming.
+6. **Health & Wellness Vault**: Scheduled medication reminders with Taken/Snooze notification actions, weight journey with sparkline curves, and composite health scoring.
+7. **Private Journal**: Hardware-encrypted (AES-256) notes with rich text formatting (`flutter_quill`), biometric / device credential authentication, and automatic background lock.
+8. **Brainstorm & Document Reader**: Rapid idea capture board and a distraction-free PDF document reader with continuous scrolling, bookmarks, and night mode.
 
 ---
 
 ## 2. High-Level System Architecture
 
-The application adopts a **Feature-Driven Layered Clean Architecture**. The codebase decouples the presentation UI from the business logic, runtime services, and underlying storage adapters.
-
 ```
                           ┌──────────────────────────────────────┐
                           │          Presentation Layer          │
-                          │   (Screens, Pages, Bento Widgets)    │
+                          │ • Wallet Card Stack (CustomScroll)   │
+                          │ • 3-Tab Nav (Home, Tasks, Diet)      │
+                          │ • Global Floating Mini Player & FAB  │
                           └──────────────────┬───────────────────┘
                                              │
                                              ▼
                           ┌──────────────────────────────────────┐
                           │            Domain / Logic            │
-                          │   (GlobalXP, RankService, Resets)    │
+                          │ • AppNav (Global Nav Coordinator)    │
+                          │ • SipService & FinanceCalculator     │
+                          │ • MedicineService & HealthCalculator │
+                          │ • JournalService & ReaderService     │
+                          │ • NowPlayingService (Media Bridge)   │
+                          │ • GlobalXPService & TaskResetService │
                           └──────┬────────────────────────┬──────┘
                                  │                        │
                                  ▼                        ▼
         ┌────────────────────────────────┐        ┌────────────────────────────────┐
-        │      Local Data Layer          │        │     External Services & AI     │
-        │   Hive NoSQL Binary Store      │        │  • Google Gemini REST API      │
-        │   (Tasks, Finance, Diet, XP)   │        │  • LRCLIB (Synced Lyrics)      │
-        │   On-Device SQLite/MediaStore  │        │  • YouTube Player Service      │
-        └────────────────────────────────┘        │  • Local Notifications (OS)    │
-                                                  └────────────────────────────────┘
+        │      Local Storage Layer       │        │     External Services & OS     │
+        │ • Hive NoSQL Binary Store      │        │ • Android MediaSession Bridge  │
+        │ • AES-256 Encrypted Journals   │        │ • Google Gemini Flash REST API │
+        │ • SecureStorage (Key Vault)    │        │ • Local Notifications & Alarms │
+        │ • Recursive File System Reader │        │ • Device Biometrics (local_auth│
+        └────────────────────────────────┘        └────────────────────────────────┘
 ```
-
-### Architectural Principles:
-- **Offline-First & Sovereign Data**: All habit, finance, diet, and XP records reside strictly on the user's physical device in encrypted/binary format. No cloud account or external database server is mandated.
-- **Dynamic Theming**: The app dynamically adapts its color palette (`BentoTheme`) based on the dominant and vibrant hues extracted from the currently playing music track's album art using `palette_generator`.
-- **Hybrid AI Fallback**: Commands are first evaluated by an on-device regex/NLP parser (supporting English and Hinglish) to execute actions instantly without network latency or API token consumption. The remote Gemini API is invoked for unstructured reasoning or visual food recognition.
 
 ---
 
@@ -59,33 +65,44 @@ The application adopts a **Feature-Driven Layered Clean Architecture**. The code
 
 ```
 lib/
-├── app.dart                                # MaterialApp configuration, dynamic theme listener, scroll physics
-├── main.dart                               # Application entry point, Hive initialization, adapter registrations
+├── app.dart                                # MaterialApp configuration, theme listener, lifecycle & localizations
+├── main.dart                               # Boot entry point, Hive adapter registrations, box init, background hooks
 ├── core/
+│   ├── navigation/
+│   │   └── app_nav.dart                    # AppNav global navigation coordinator (tab & subview switching)
 │   ├── theme/
 │   │   ├── app_animations.dart             # Micro-animation curves, durations, and transitions
 │   │   ├── app_colors.dart                 # Color constants (surface, glass, accents, borders)
-│   │   ├── app_theme.dart                  # Material theme specifications
-│   │   └── bento_theme.dart                # Bento UI design system, containers, toggles, buttons
+│   │   ├── bento_theme.dart                # Dark Bento theme tokens, elevated surfaces, dynamic accents
+│   │   └── expressive_tokens.dart          # Material 3 Expressive corner radii, spring curves, and elevations
 │   └── utils/
 │       ├── format_utils.dart               # Date, currency, and numerical formatters
-│       └── page_transitions.dart          # Custom route transitions (fade, slide-up, scale)
+│       └── page_transitions.dart          # Custom expressive route transitions
 ├── data/
 │   ├── models/
-│   │   ├── diet_models.dart                # FoodEntry, CalorieBurnEntry, DietDayLog, MealType
-│   │   ├── diet_models.g.dart              # Hive generated adapter for diet models
-│   │   ├── goal.dart                       # Goal model, GoalType, GoalCategory, streak tracking
-│   │   ├── goal.g.dart                     # Hive generated adapter for Goal
-│   │   └── user_rank.dart                  # UserRank metadata (title, level, position, progress)
+│   │   ├── diet_models.dart                # FoodEntry, CalorieBurnEntry, DietDayLog, MealType (typeIds 20-23)
+│   │   ├── finance_model.dart              # Transaction, AssetVault (typeIds 10-11)
+│   │   ├── goal.dart                       # Goal, GoalType, GoalCategory (typeIds 0-2)
+│   │   ├── health_models.dart              # Medicine, MedicineLog, WeightEntry (typeIds 30-32)
+│   │   ├── productivity_models.dart        # JournalEntry, Idea, BookProgress (typeIds 33-35)
+│   │   └── speech_model.dart               # SpeechModel (typeId 4)
 │   └── services/
 │       ├── ai_context.dart                 # Compact context generator for Gemini prompt efficiency
-│       ├── ai_service.dart                 # Hybrid AI engine (Local Regex NLP + Gemini REST client)
+│       ├── ai_service.dart                 # Hybrid AI engine (Local Regex NLP + GeminiClient)
+│       ├── finance_calculator.dart         # Pure finance snapshot and balance calculator
+│       ├── gemini_client.dart              # Resilient Gemini REST client with dynamic model discovery & backoff
 │       ├── global_xp_service.dart          # Global XP ledger and 7-day historical tracker
-│       ├── notification_service.dart       # Local scheduled task alerts via timezone
-│       ├── permission_service.dart         # Storage, audio, camera, and notification permission requests
-│       ├── rank_service.dart               # Rank calculation and position determination algorithms
+│       ├── health_calculator.dart          # Pure composite health score and summary generator
+│       ├── journal_service.dart            # AES-256 encrypted Hive storage and biometric authentication
+│       ├── medicine_service.dart           # Medication recurrence calculator and notification scheduler
+│       ├── notification_service.dart       # Local scheduled task alerts, action buttons, background entry point
+│       ├── reader_service.dart             # Recursive PDF file scanner, cover caching, and progress tracker
+│       ├── score_service.dart              # XP totals (week/month/year) and velocity score deltas
+│       ├── sip_service.dart                # Idempotent SIP posting on monthly due dates
 │       └── task_reset_service.dart         # Daily/Weekly/Monthly midnight reset scheduler
 ├── features/
+│   ├── brainstorm/
+│   │   └── brainstorm_page.dart            # Full-page idea management, search, and editing
 │   ├── diet/
 │   │   ├── diet_page.dart                  # Today and Dashboard tabs for nutritional tracking
 │   │   └── widgets/
@@ -93,430 +110,122 @@ lib/
 │   │       └── manual_food_input.dart      # Dialog for manual meal/food entry
 │   ├── finance/
 │   │   └── finance_page.dart               # Complete finance engine (Overview, Txns, Budget, Plan, Goals)
+│   ├── health/
+│   │   └── health_page.dart                # Unified Health Page with Medicine | Weight tab switcher
 │   ├── home/
-│   │   ├── home_chat.dart                  # Floating Action Button and bottom-sheet AI chat interface
-│   │   └── widgets/
-│   │       └── chat_message_bubble.dart    # Interactive action confirmation bubbles
-│   ├── music/
-│   │   ├── music_library_page.dart         # Local song browser, playlists, and favorites
-│   │   ├── music_player_page.dart          # Full-screen player with synced lyrics and vinyl visuals
-│   │   └── widgets/
-│   │       └── procedural_artwork.dart     # Algorithmic procedural art for songs without artwork
-│   ├── speech_vault/
-│   │   └── speech_vault_page.dart          # Motivational video library and YouTube player
+│   │   ├── cards/
+│   │   │   ├── brainstorm_card.dart        # Brainstorm ideas preview & quick capture
+│   │   │   ├── calories_card.dart          # Daily calorie & macro summary
+│   │   │   ├── finance_card.dart           # Month net, balance, and next SIP debit
+│   │   │   ├── health_summary_card.dart    # Composite health score (0-100) and metric tiles
+│   │   │   ├── home_card.dart              # HomeCardSpec, HomeCardRegistry, and layout merger
+│   │   │   ├── home_card_frame.dart        # Unified M3 Expressive card frame
+│   │   │   ├── journal_card.dart           # Private journal Create / View Vault card
+│   │   │   ├── medicine_card.dart          # Medication next dose & adherence tracker
+│   │   │   ├── missions_card.dart          # Daily missions list
+│   │   │   ├── momentum_card.dart          # Active-days strip expanding to dot-matrix XP graph
+│   │   │   ├── music_card.dart             # Universal music controller card
+│   │   │   ├── quote_card.dart             # Daily wisdom quote card
+│   │   │   ├── reader_card.dart            # PDF book covers preview & library shortcut
+│   │   │   ├── score_card.dart             # XP totals (week / month / year)
+│   │   │   ├── score_delta_card.dart       # XP velocity deltas (day / week / month)
+│   │   │   └── weight_card.dart            # Weight journey with fl_chart sparkline
+│   │   ├── widgets/
+│   │   │   ├── expanded_player_sheet.dart  # Modal music controller with seek slider & artwork
+│   │   │   └── wallet_card_stack.dart      # Wallet-stack scrolling card engine
+│   │   └── home_chat.dart                  # Floating Action Button and bottom-sheet AI chat interface
+│   ├── journal/
+│   │   ├── journal_editor_page.dart        # Rich text note editor with flutter_quill & tags
+│   │   └── journal_list_page.dart          # Biometric lock screen & searchable journal list
+│   ├── reader/
+│   │   ├── pdf_reader_page.dart            # Continuous scroll PDF reader with bookmarks & night mode
+│   │   └── reader_library_page.dart        # Grid document library and directory settings
 │   └── tasks/
-│       ├── task_analytics_page.dart        # Completion rate circular gauges, streaks, category radar
-│       ├── tasks_page.dart                 # Horizon-based task manager (Today, Daily, Weekly, Monthly)
-│       └── widgets/
-│           ├── add_task_dialog.dart        # Dialog for creating and scheduling missions
-│           └── task_card.dart              # Interactive mission card with progress slider
-├── models/
-│   ├── finance_model.dart                  # Transaction and AssetVault models
-│   ├── finance_model.g.dart                # Hive generated adapter for finance models
-│   ├── goals.dart                          # Legacy goal representations
-│   ├── quote.dart                          # Motivational quote data model
-│   ├── song_model.dart                     # SongModel, LyricLine, SongSource, RepeatMode
-│   ├── speech_model.dart                   # SpeechModel data class
-│   └── speech_model.g.dart                 # Hive generated adapter for SpeechModel
+│       ├── tasks_page.dart                 # Missions, Finance subview, Speech Vault switcher
+│       └── task_analytics_page.dart        # Mission analytics and category performance charts
 ├── screens/
-│   ├── dashboard_view.dart                 # Primary landing view (Greetings, Quote, Momentum Graph, Missions)
-│   ├── home_page.dart                      # Root navigation shell with BottomNavBar and Global Mini Player
-│   └── settings_page.dart                  # Configuration, API keys, ranks, music folder picker, data purge
+│   ├── dashboard_view.dart                 # Home dashboard root containing greeting and WalletCardStack
+│   ├── home_layout_settings_page.dart      # Reorderable card layout and visibility manager
+│   ├── home_page.dart                      # 3-tab bottom navigation shell
+│   └── settings_page.dart                  # App settings (theme, Gemini model, folders, resets)
 ├── services/
-│   ├── lyrics_service.dart                 # LRCLIB REST API client for synchronized lyrics (.lrc)
-│   └── music_manager.dart                  # Singleton audio playback manager (just_audio + palette extraction)
+│   └── now_playing_service.dart            # Dart service wrapping Android MediaSessionBridge
 └── widgets/
-    ├── bottom_nav_bar.dart                 # Custom floating Bento navigation bar
-    ├── local_music_manager.dart            # Helper for local music scanning
-    ├── mini_player_bar.dart                # Global floating mini-player accessible across all screens
-    ├── mysterious_momentum_graph.dart      # 7-day interactive XP velocity chart
-    ├── mysterious_quote_card.dart          # Bento card displaying daily motivational wisdom
-    ├── star_background.dart                # Cyberpunk animated background canvas
-    └── wobbly_slider.dart                  # Elastic, physics-based seeking slider for audio
+    ├── bottom_nav_bar.dart                 # Slender (62px) floating navigation bar
+    ├── mini_player_bar.dart                # Global floating mini player hooked to NowPlayingService
+    ├── mysterious_momentum_graph.dart      # Full 70-dot XP matrix graph
+    └── wobbly_slider.dart                  # Tactile physics-based slider for media seeking
 ```
 
 ---
 
-## 4. Database Architecture & Storage Models (Hive NoSQL)
+## 4. Hive NoSQL Persistence Matrix
 
-All persistent application data is managed locally using **Hive**, a fast, lightweight, pure-Dart key-value database that serializes binary data through custom `TypeAdapter` implementations.
-
-### 4.1 Hive Boxes Summary
-
-| Box Name | Storage Type | Content / Purpose |
-| :--- | :--- | :--- |
-| `mission_box_v4` | `Box<Goal>` | All user habits, daily tasks, weekly milestones, and monthly objectives. |
-| `settings` | `Box<dynamic>` | App config (`username`, `theme_mode`, `currency_symbol`, `gemini_api_key`, `music_folders`, `global_xp`). |
-| `xp_history` | `Box<int>` | Daily XP archive keyed by date (`yyyy-MM-dd`) for velocity analytics. |
-| `diet_logs` | `Box<DietDayLog>` | Daily nutrition logs keyed by date (`yyyy-MM-dd`), storing meals, macros, and burns. |
-| `finance_transactions` | `Box<Transaction>` | Financial ledger recording income, expense, category, date, and payment mode. |
-| `finance_vaults` | `Box<AssetVault>` | Account balances (e.g., Checking, Cash, Savings, Crypto, Brokerage). |
-| `finance_settings` | `Box<dynamic>` | Monthly category budgets, long-term savings goals, and recurring commitments/SIPs. |
-| `speech_vault` | `Box<SpeechModel>` | Bookmarked motivational and educational videos with YouTube identifiers. |
-
----
-
-### 4.2 Detailed Data Schemas
-
-#### 1. Mission / Goal Model (`lib/data/models/goal.dart`)
-* **Hive Type ID:** `Goal` (1), `GoalType` (0), `GoalCategory` (2)
-* **Fields:**
-  - `id` (`String`): Unique identifier.
-  - `title` (`String`): Name of the mission.
-  - `type` (`GoalType`): Enum (`today`, `daily`, `weekly`, `monthly`).
-  - `category` (`GoalCategory`): Enum (`health`, `productivity`, `learning`, `fitness`, `hobby`).
-  - `targetValue` (`double`): Numerical completion threshold (e.g., 8 glasses of water, 10 km).
-  - `currentValue` (`double`): Current progress value.
-  - `unit` (`String`): Unit of measurement (`km`, `pages`, `minutes`, `count`).
-  - `isCompleted` (`bool`): Completion state.
-  - `streakCount` (`int`): Consecutive completion streak count.
-  - `createdDate`, `lastCompletedDate`, `lastReset` (`DateTime?`): Timestamps for streak calculation.
-  - `reminderTime` (`DateTime?`): Time scheduled for device push notification.
-  - `endDate` (`DateTime?`): Optional expiration date for the mission.
-* **XP Valuation Rules:**
-  - Monthly Goal: **50 XP**
-  - Weekly Goal: **20 XP**
-  - Daily / Today Goal: **5 XP**
-
-#### 2. Diet & Nutrition Models (`lib/data/models/diet_models.dart`)
-* **Hive Type ID:** `MealType` (20), `FoodEntry` (21), `CalorieBurnEntry` (22), `DietDayLog` (23)
-* **`FoodEntry` Fields:** `id`, `name`, `calories`, `protein`, `carbs`, `fat`, `timestamp`, `mealType` (breakfast/lunch/dinner/snack).
-* **`CalorieBurnEntry` Fields:** `id`, `activity`, `caloriesBurned`, `durationMinutes`, `timestamp`.
-* **`DietDayLog` Fields:** `dateKey` (`yyyy-MM-dd`), `entries` (`List<FoodEntry>`), `burnEntries` (`List<CalorieBurnEntry>`), `targetCalories`, `notes`.
-* **Calculated Metrics:**
-  - `totalCalories` = $\sum \text{FoodEntry.calories}$
-  - `totalBurned` = $\sum \text{CalorieBurnEntry.caloriesBurned}$
-  - `netCalories` = $\text{totalCalories} - \text{totalBurned}$
-  - `deficit` = $\text{targetCalories} - \text{netCalories}$
-
-#### 3. Finance Models (`lib/models/finance_model.dart`)
-* **Hive Type ID:** `Transaction` (10), `AssetVault` (11)
-* **`Transaction` Fields:**
-  - `title` (`String`): Description of expense or income.
-  - `amount` (`double`): Monetary value.
-  - `category` (`String`): Expense classification (e.g., Food, Housing, Transport, Entertainment).
-  - `date` (`DateTime`): Transaction timestamp.
-  - `mode` (`String`): Payment method / mode (`expense` vs `income`).
-  - `icon` (`String`): Visual identifier.
-* **`AssetVault` Fields:**
-  - `name` (`String`): Vault name (e.g., "Primary Checking", "Emergency Fund", "Crypto Wallet").
-  - `balance` (`double`): Current liquidity.
-  - `bank` (`String`): Financial institution or custodian.
-  - `type` (`String`): Vault categorization (`Savings`, `Current`, `Investment`, `Cash`).
-  - `colorValue` (`int`): UI tint hex code.
-
-#### 4. Speech Vault Model (`lib/models/speech_model.dart`)
-* **Hive Type ID:** `SpeechModel` (4)
-* **Fields:** `id`, `title`, `speaker`, `youtubeVideoId`, `thumbnailUrl`, `durationLabel`.
+| TypeId | Model Class | Hive Box Name | Storage Type | Description |
+|---|---|---|---|---|
+| `0` | `Goal` | `mission_box_v4` | Typed | Habit and mission tracking records |
+| `1` | `GoalType` | `mission_box_v4` | Enum | Daily, Weekly, or Monthly cadence |
+| `2` | `GoalCategory` | `mission_box_v4` | Enum | Health, Productivity, Learning, Fitness, Hobby |
+| `4` | `SpeechModel` | `speech_vault` | Typed | Saved motivational & instructional videos |
+| `10` | `Transaction` | `finance_transactions` | Typed | Double-entry income and expense transactions |
+| `11` | `AssetVault` | `finance_vaults` | Typed | Bank accounts, cash reserves, and investment vaults |
+| `20` | `MealType` | `diet_logs` | Enum | Breakfast, Lunch, Dinner, Snack |
+| `21` | `FoodEntry` | `diet_logs` | Typed | Itemized meal items with macronutrients |
+| `22` | `CalorieBurnEntry` | `diet_logs` | Typed | Logged physical activities and calories burned |
+| `23` | `DietDayLog` | `diet_logs` | Typed | Daily aggregated nutritional logs keyed `yyyy-MM-dd` |
+| `30` | `Medicine` | `medicines` | Typed | Medication schedule, dose labels, slots, and weekdays |
+| `31` | `MedicineLog` | `medicine_logs` | Typed | Historical logs of taken, skipped, and snoozed doses |
+| `32` | `WeightEntry` | `weight_entries` | Typed | Weight logs keyed `yyyy-MM-dd` with notes |
+| `33` | `JournalEntry` | `journals` | **AES-256** | Hardware-encrypted private journal notes |
+| `34` | `Idea` | `ideas` | Typed | Brainstorming insights, concepts, and notes |
+| `35` | `BookProgress` | `reader_progress` | Typed | Reading bookmarks, last read page, and total pages |
+| — | Untyped | `settings` | Key-Value | General preferences, `home_layout`, `reader_folders` |
+| — | Untyped | `finance_settings` | Key-Value | `planner` (fixed expenses, SIPs), `sip_ledger` |
+| — | Untyped | `xp_history` | Key-Value | Daily XP history keyed `yyyy-MM-dd` |
 
 ---
 
-## 5. In-Depth Feature Breakdown & Workflows
+## 5. Universal Music Architecture (Android MediaSession)
 
-### 5.1 Mission & Habit Tracking Engine
+In MVP 2, the legacy in-app audio player, local file indexer, and lyrics service were completely replaced with a native **System MediaSession Controller**:
 
-```
-[User Creates Mission] ───► [Assign Horizon & Category] ───► [Set Target & Unit]
-           │
-           ├───► [Daily Execution: Check-off / Slider Progress]
-           │          │
-           │          ├──► [Target Reached] ──► [Award XP] ──► [Increment Streak]
-           │
-           └───► [TaskResetService: Midnight / Monday / Month-End Boundary]
-                      │
-                      └──► [Reset isCompleted to false, Retain Streaks]
-```
-
-#### Horizon Segregation:
-1. **Today**: One-off tasks that expire at midnight.
-2. **Daily**: Recurring daily habits (e.g., workout, meditation, coding).
-3. **Weekly**: Larger objectives evaluated across a 7-day sprint (Monday to Sunday).
-4. **Monthly**: Strategic projects and macro targets evaluated per calendar month.
-
-#### Lifecycle & Automated Reset Engine (`TaskResetService`):
-Every time the application boots or resumes from the background, `TaskResetService.checkAndResetTasks()` runs synchronously:
-- **Daily Tasks**: Compares `lastCompletedDate` with `DateTime.now()`. If the day has rolled over, resets `isCompleted` to `false` and `currentValue` to `0.0`.
-- **Weekly Tasks**: Determines if a Monday boundary has been crossed or if $>7$ days have elapsed.
-- **Monthly Tasks**: Resets if the calendar month or year has incremented.
-
-#### Gamification & Military Rank Progression:
-XP is accumulated into a persistent global pool and tracked daily in `xp_history`:
-- **Formula:**
-  $$\text{Total XP} = \sum (\text{Base Weight} \times \text{Completed}) + \sum (\text{Streak Count} \times \text{Base Weight} \times 0.1)$$
-- **Ranks:**
-  1. `RECRUIT` (Level 1)
-  2. `OPERATIVE` (Level 2)
-  3. `SPECIALIST` (Level 3)
-  4. `VETERAN` (Level 4)
-  5. `LEADER` (Level 5)
-  6. `LEGEND` (Level 6+)
-- **Tactical Positions / Specializations:**
-  The user is assigned a specific tactical position based on where the majority of their completed XP points originate:
-  - *Learning* focus $\rightarrow$ **LEAD RESEARCHER**
-  - *Fitness* focus $\rightarrow$ **TACTICAL ATHLETE**
-  - *Productivity* focus $\rightarrow$ **OPERATIONS CHIEF**
-  - *Health* focus $\rightarrow$ **BIO-SECURITY OFFICER**
-  - *Hobby* focus $\rightarrow$ **CREATIVE DIRECTOR**
+1. **Native Kotlin Layer**:
+   - `MediaNotificationListenerService.kt`: Listens to Android system media sessions using `MediaSessionManager.getActiveSessions`.
+   - `MediaSessionBridge.kt`: Exposes a bidirectional `MethodChannel` (`habit/media_control`) and `EventChannel` (`habit/now_playing`).
+2. **Dart NowPlayingService**:
+   - Maintains a reactive `ValueNotifier<NowPlaying?>`.
+   - Performs **local time-delta progress interpolation** (`position + (now - updatedAt) * speed`) without costly periodic polling.
+   - Provides playback commands: `play`, `pause`, `next`, `previous`, `seekTo`, `openApp`, `playFromSearch`.
+3. **UI Integration**:
+   - **MusicCard**: Displays currently playing track, artwork, and primary playback controls on the Home wallet stack.
+   - **Global Mini Player**: Floats above the bottom navigation bar whenever active media is detected.
+   - **Expanded Player Sheet**: Features full artwork, `WobblySlider` seek bar, and transport controls.
+   - **Dynamic Theming**: Extracts dominant colors via `palette_generator` to style borders and accents.
+4. **AI Media Intents**:
+   - Supports natural language controls in English and Hinglish (e.g., "pause music", "next song", "gaana badlo", "play Taylor Swift").
 
 ---
 
-### 5.2 Personal Finance Command Center (`FinanceDashboard`)
+## 6. AI Engine & Dynamic Gemini Fallback Chain
 
-The finance system is organized into five dedicated sub-views:
+`GeminiClient` provides high-availability access to Google Gemini:
 
-1. **Overview**:
-   - Aggregate net worth computed across all `AssetVault` records.
-   - Monthly cashflow indicator displaying total Income vs Expenses.
-   - **Monthly Burn Rate**: Real-time spending velocity.
-   - Horizontal carousel of Asset Vaults displaying balances and bank providers.
-   - Recent transaction ledger with one-tap entry details.
-
-2. **Transactions (`TXNS`)**:
-   - Filterable chronological ledger.
-   - Filter by month, transaction type (All, Incomes, Expenses), or search query.
-   - Add transaction modal supporting dynamic category selection, custom dates, and payment methods.
-
-3. **Budget Planner (`BUDGET`)**:
-   - Category-wise monthly limits (e.g., Dining: \$400, Utilities: \$250, Fuel: \$150).
-   - Visual progress indicators showing percentage consumed:
-     - Green ($<75\%$) $\rightarrow$ Amber ($75\% - 99\%$) $\rightarrow$ Red Flashing ($>100\%$ Overbudget).
-
-4. **Cashflow Planner (`PLAN`)**:
-   - Proactive planning for recurring monthly obligations:
-     - **Fixed Commitments**: Rent, utilities, loan EMIs, insurance premiums.
-     - **SIPs (Systematic Investment Plans)**: Monthly mutual funds, index funds, recurring crypto deposits.
-   - Calculates **Projected Disposable Income** after all fixed commitments and investments are deducted.
-
-5. **Financial Goals (`GOALS`)**:
-   - Long-term purchasing and savings targets (e.g., "Emergency Fund", "New Laptop", "Europe Trip").
-   - Tracks target amount, currently allocated savings, and projected completion dates with progress bars.
+1. **Resolution Priority**:
+   - **User Override**: Custom model ID specified in Settings.
+   - **Dynamic ListModels Discovery**: Queries the Gemini `models` endpoint to discover newest flash models supporting `generateContent`, cached for 24 hours.
+   - **Built-in Fallback Chain**: `['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']`.
+2. **Error Handling & Resilience**:
+   - `404 Not Found`: Automatically rolls over to next candidate model.
+   - `429 Rate Limit`: Executes exponential backoff (honoring `Retry-After`), retries once, then rolls over.
+   - `401 / 403 Forbidden`: Halts chain immediately with clear guidance on API key configuration.
+   - `400 Bad Request`: Halts chain and surfaces specific syntax errors.
+3. **Settings Test Connection**: Dedicated verification button testing connection and surfacing active model in real time.
 
 ---
 
-### 5.3 Diet & Caloric Intelligence (`DietPage`)
+## 7. Automated SIP Deductions
 
-```
-                 ┌─────────────────────────────────┐
-                 │       Meal Intake / Photo       │
-                 └───────────────┬─────────────────┘
-                                 │
-                                 ▼
-                     [DietDayLog: Today's Date]
-                                 │
-         ┌───────────────────────┴───────────────────────┐
-         │                                               │
-         ▼                                               ▼
-[+ Total Calories & Macros]                   [- Calorie Burn Entries]
-(Protein, Carbs, Fat)                         (Workouts, Running, Steps)
-         │                                               │
-         └───────────────────────┬───────────────────────┘
-                                 │
-                                 ▼
-           [Net Calories = Total Calories - Burned]
-                                 │
-                     [Compare to Calorie Target]
-                                 │
-            ┌────────────────────┴────────────────────┐
-            ▼                                         ▼
-   [In Deficit: +20 XP]                     [Over Target: -20 XP]
-```
-
-- **Daily Calorie Target**: Configurable in Settings (default: 2,000 kcal).
-- **Macro Distribution**: Automatic summation of protein, carbohydrates, and fats in both grams and macro-nutrient percentages.
-- **Calorie Burn Log**: Track exercise sessions with duration and burned kcal.
-- **Gamified Caloric Deficit**:
-  - Pushing daily net calories into a healthy deficit awards **+20 Global XP**.
-  - Exceeding the caloric target deducts **-20 Global XP**.
-- **AI Multimodal Vision**:
-  - The user can snap a photograph of their food using `image_picker`.
-  - The image is converted to Base64 and transmitted to Gemini Vision.
-  - The model calculates the food name, estimates weight, and extracts calories, protein, carbs, and fat, outputting a pre-structured `food_entry` card for one-tap verification.
-
----
-
-### 5.4 Music Library & Player Engine
-
-- **Local Storage Indexing**: Utilizes `on_audio_query` to query the device's MediaStore on Android / iOS filesystem.
-- **Directory Isolation**: Supports folder-based filtering in Settings so non-music audio (e.g., WhatsApp audio, call recordings) is excluded.
-- **Background Playback**: Powered by `just_audio` and `just_audio_background` with an Android foreground service, lock screen controls, and notification tray artwork.
-- **Dynamic Theming via Album Art**:
-  When a song starts playing, `MusicManager` extracts its embedded album artwork, feeds it into `PaletteGenerator`, and updates `MusicManager().currentDominantColor`. The entire application's background, accents, and button glows smoothly interpolate to match the album's artwork.
-- **Real-Time Synced Lyrics Engine**:
-  Queries the open-source **LRCLIB API** (`https://lrclib.net/api/get?artist_name=...&track_name=...`). The parsed `.lrc` timestamps synchronize with the player's millisecond playback position, highlighting active lyrics line-by-line with autoscrolling.
-- **Procedural Album Artwork**:
-  If a song lacks embedded album art, `procedural_artwork.dart` deterministically generates an abstract geometric canvas using the song title and artist string as random seeds.
-- **Global Mini Player**:
-  A floating mini player bar remains anchored above the navigation bar across all views, allowing quick play/pause, scrubbing, and navigation to the expanded player.
-
----
-
-### 5.5 Knowledge & Speech Vault (`SpeechVaultPage`)
-
-- Built for motivational speeches, educational seminars, and mental conditioning.
-- Direct embedded playback of YouTube videos via `youtube_player_flutter`.
-- Pre-seeded with Scott Geller's *"The Psychology of Self-Motivation"*.
-- Users can add any YouTube URL or video identifier with custom title and speaker attribution.
-- Can be triggered directly by the AI Copilot (e.g., *"Play motivation video"*).
-
----
-
-### 5.6 Multimodal AI Copilot ("Commander AI")
-
-The AI engine in `lib/data/services/ai_service.dart` is architected as a **two-tier hybrid system**:
-
-```
-[User Chat Message / Image Input]
-               │
-               ▼
-[Smart Intent Detection: detectIntent()]
-               │
-               ├───► [Has Image?] ──► Transmit to Gemini Flash Vision API
-               │
-               ├───► [Matches Local Regex / NLP Rule?]
-               │          │
-               │          ▼
-               │   [Execute Locally via On-Device Engine]
-               │   (No Internet, No API Key, 0ms Latency)
-               │
-               └───► [Complex Query / Reasoning Required]
-                          │
-                          ▼
-                   [Gemini REST API Call]
-                   (Model fallback chain: 2.5-flash -> 2.0-flash -> 1.5-flash)
-                          │
-                          ▼
-            [Structured JSON Response Parsing]
-                          │
-                          ▼
-            [Render Interactive Action Bubble]
-                          │
-            ┌─────────────┴─────────────┐
-            ▼                           ▼
-       [CONFIRM]                     [REJECT]
-            │                           │
-  [Write to Hive DB]            [Discard Action]
-```
-
-#### 1. Tier 1: Local Regex & Multilingual NLP Parser
-Runs directly on the user's phone with zero network access. It parses command structures in both English and Hinglish:
-- **Finance**: *"spent 450 on fuel"*, *"kharcha 200 food"*, *"salary credited 85000"* $\rightarrow$ Creates `finance_transaction`.
-- **Diet**: *"ate 3 eggs and toast for breakfast"*, *"burned 300 kcal running 30 mins"* $\rightarrow$ Creates `food_entry` / `burn_entry`.
-- **Missions**: *"add daily goal read 20 pages"*, *"new task gym 60 mins"* $\rightarrow$ Creates `task_create`.
-- **Music**: *"play starboy"*, *"gana bajao believer"*, *"pause music"* $\rightarrow$ Directly calls `MusicManager`.
-- **Vault**: *"play motivational video"* $\rightarrow$ Dispatches `play_vault_video`.
-
-#### 2. Tier 2: Cloud Gemini REST Client (`GeminiClient`)
-When complex contextual reasoning, natural conversation, or image analysis is required:
-- Compresses application state into token-efficient context lines via `AiContext`:
-  ```
-  [CONTEXT]
-  [DIET] In:1450 Net:1150 Tgt:2000
-  [FIN] Inc:85000 Exp:24300
-  [TASK] Act:4 Dn:2
-  [USER MESSAGE]
-  What should I eat tonight to hit my protein goal without exceeding calories?
-  ```
-- **Dynamic Model Resolution Order**:
-  1. **User Override**: `settings['gemini_model']` if specified by the user in Settings.
-  2. **Upstream Discovery**: Queries the Gemini `ListModels` API endpoint for active models supporting `generateContent` in the flash family, sorted newest first, cached in Hive `settings` with a 24-hour expiration window.
-  3. **Verified Fallback Chain**: Built-in fallback list prioritizing currently active Flash models: `gemini-3.8-flash` $\rightarrow$ `gemini-3.7-flash` $\rightarrow$ `gemini-3.6-flash` $\rightarrow$ `gemini-3.5-flash` $\rightarrow$ `gemini-2.5-flash`.
-- **Status & Error Handling**:
-  - `404 Not Found`: Silently advances to the next candidate model in the chain.
-  - `429 Rate Limit`: Backs off once (honoring the `Retry-After` response header), retries the request, then advances to the next model if still constrained.
-  - `400 Bad Request`: Stops immediately and surfaces the error body.
-  - `401 / 403 Forbidden`: Stops immediately with guidance instructing the user to verify their API key in Settings.
-  - Returns the first non-404 error encountered to the user with actionable diagnostics.
-- **Secure Transport**: Transmits API keys exclusively via the `x-goog-api-key` HTTP header rather than query parameters, preventing credentials from leaking into URLs or proxy access logs.
-- **Guaranteed Structured Output**: Enforces `responseMimeType: 'application/json'` to reliably extract action payloads (`AiAction`).
-- **Interactive Confirmation Bubbles**: The AI never silently alters database records. It renders interactive confirmation cards in the chat where the user must tap **"Engage" (Confirm)** or **"Cancel" (Reject)**.
-
----
-
-## 6. Technology Stack & Key Dependencies
-
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-    
-  # Database & Offline Storage
-  hive: ^2.2.3                    # High-performance NoSQL key-value database
-  hive_flutter: ^1.1.0            # Flutter bindings and ValueListenable helpers for Hive
-
-  # Audio & Media Playback
-  just_audio: ^0.10.6             # Robust audio player engine
-  just_audio_background: ^0.0.1   # Lock-screen controls & background audio playback service
-  on_audio_query: ^2.9.0          # Queries device MediaStore for local music files
-  youtube_player_flutter: ^9.1.3  # Inline YouTube video player
-  palette_generator: ^0.3.3+3     # Extracts dominant color palettes from album art in real time
-
-  # Visuals, Icons & Animations
-  fl_chart: ^1.2.0                # Smooth line charts, momentum graphs, and pie charts
-  lucide_icons_flutter: ^3.1.14+2 # Clean, modern feather/lucide iconography
-  flutter_animate: ^4.5.2         # Declarative micro-animations and physics spring curves
-  rive: 0.14.9                    # Vector runtime animations
-
-  # System & Device APIs
-  permission_handler: ^12.0.3     # Runtime permission manager (Storage, Audio, Camera)
-  flutter_local_notifications: ^22.0.1 # Scheduled alarms and habit reminders
-  timezone: ^0.11.1               # Timezone database for precise notification scheduling
-  image_picker: ^1.0.7            # Camera and gallery image selector for food recognition
-  file_picker: ^8.1.4             # Directory and file selector for custom music folders
-  path_provider: ^2.1.2           # Filesystem paths for app storage and caches
-  http: ^1.1.0                    # HTTP client for Gemini API and LRCLIB lyrics service
-  intl: ^0.20.3                   # Date formatting and currency utilities
-```
-
----
-
-## 7. How to Run, Build, and Maintain
-
-### 7.1 Prerequisites
-- **Flutter SDK:** Version `>=3.0.0 <4.0.0`
-- **Dart SDK:** Version `>=3.0.0 <4.0.0`
-- **Android Studio / Xcode:** Configured with platform toolchains.
-- **Java:** JDK 17 (recommended for modern Android Gradle Plugin builds).
-
-### 7.2 Installation & Build Steps
-
-1. **Clone the Repository:**
-   ```bash
-   cd "d:/Roshen/Habit Tracker/habit_tracker"
-   ```
-
-2. **Install Dependencies:**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Run Code Generation (Hive Type Adapters):**
-   Whenever models with `@HiveType` or `@HiveField` are modified, regenerate the serialization adapters:
-   ```bash
-   flutter pub run build_runner build --delete-conflicting-outputs
-   ```
-
-4. **Launch the Application:**
-   ```bash
-   # Run on connected Android / iOS device or emulator
-   flutter run
-   ```
-
-5. **Release APK / AppBundle Build:**
-   ```bash
-   flutter build apk --release
-   ```
-
----
-
-## 8. Troubleshooting & Common Pitfalls
-
-| Issue | Root Cause | Solution |
-| :--- | :--- | :--- |
-| **Hive TypeAdapter Exception on Boot** | Model schema changed without running code generation or mismatched Type ID. | Run `flutter pub run build_runner build --delete-conflicting-outputs`. If fields were modified destructively, clear app storage or delete the old Hive box. |
-| **No Local Songs Found** | Missing runtime audio or storage permissions, or audio files are in unselected folders. | Verify storage/audio permissions in device settings. Navigate to **Settings $\rightarrow$ Music Folders** and ensure the music directory is selected. |
-| **Gemini AI Returns Error (401/403/Fallback)** | Missing, invalid, or expired Gemini API key. | Enter a valid Gemini API key in **Settings $\rightarrow$ Gemini API Key**. Note: Common commands (music, tasks, expenses) continue to function offline via the local NLP engine. |
-| **Scheduled Notifications Not Triggering** | Battery optimization killing background alerts or exact alarm permission denied on Android 12+. | Ensure notification permission is granted, and exempt the app from battery optimization in Android settings. |
-| **Background Music Stops When App Minimized** | Android killing process without foreground service declaration. | Verify `just_audio_background` configuration in `main.dart` and ensure `FOREGROUND_SERVICE` permission exists in `AndroidManifest.xml`. |
-
----
-*Documentation compiled and verified for Commander Habit Tracker.*
+1. **Execution**: Evaluated on app boot and on app resume from background.
+2. **Idempotency**: Ledger stored in `finance_settings['sip_ledger'] = {id: 'yyyy-MM'}` ensures no month is ever double-debited.
+3. **Calendar Rollover**: Correctly resolves leap years and shorter months (e.g. Due 31 in Feb -> posts on Feb 28 or Feb 29).
+4. **Disposable Income Invariant**: PLAN view dynamically deducts only SIPs not yet posted in the current calendar month.
