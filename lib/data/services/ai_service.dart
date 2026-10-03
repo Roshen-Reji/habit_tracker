@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:habit_tracker/data/services/ai_context.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';

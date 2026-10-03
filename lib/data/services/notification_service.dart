@@ -11,6 +11,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -34,6 +36,7 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
+    _isInitialized = true;
   }
 
   Future<void> scheduleTaskReminder(Goal task) async {
@@ -67,6 +70,35 @@ class NotificationService {
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
+  }
+
+  Future<void> showInstantNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    if (!_isInitialized) return;
+    try {
+      await flutterLocalNotificationsPlugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'finance_channel',
+            'Finance Notifications',
+            channelDescription:
+                'Notifications for SIP debits and finance alerts',
+            importance: Importance.max,
+            priority: Priority.high,
+            color: Color(0xFF18FFFF),
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Failed to show notification: $e');
+    }
   }
 
   Future<void> cancelReminder(int id) async {

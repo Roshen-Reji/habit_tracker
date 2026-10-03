@@ -5,6 +5,7 @@ import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
+import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/app.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -56,6 +57,9 @@ void main() async {
 
   // Check and reset tasks daily/weekly/monthly based on date
   TaskResetService.checkAndResetTasks();
+
+  // Process due SIP debits
+  await SipService.runDue();
 
   // Initialize notifications
   await NotificationService().init();

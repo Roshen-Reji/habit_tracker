@@ -7,6 +7,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/models/finance_model.dart';
+import 'package:habit_tracker/data/services/sip_service.dart';
 
 const List<String> kExpenseCategories = [
   'Food',
@@ -18,6 +19,7 @@ const List<String> kExpenseCategories = [
   'OTT',
   'Groceries',
   'EMI',
+  'Investment',
   'Other',
 ];
 
@@ -499,9 +501,18 @@ class _FinanceDashboardState extends State<FinanceDashboard>
           onDeleteSip: (index) => _confirmDelete('Delete SIP?', () {
             final planner = Map.from(snapshot.planner);
             final sips = List.from(planner['sips'] ?? []);
-            sips.removeAt(index);
-            planner['sips'] = sips;
-            settingsBox.put('planner', planner);
+            if (index < sips.length) {
+              final removed = Map.from(sips.removeAt(index) as Map);
+              planner['sips'] = sips;
+              settingsBox.put('planner', planner);
+              final id = removed['id']?.toString();
+              if (id != null) {
+                final ledger = Map<String, dynamic>.from(
+                    settingsBox.get('sip_ledger', defaultValue: {}));
+                ledger.remove(id);
+                settingsBox.put('sip_ledger', ledger);
+              }
+            }
           }),
         );
       case 'goals':
@@ -890,8 +901,31 @@ class _PlannerTab extends StatelessWidget {
     final fixed = List.from(snapshot.planner['fixedExpenses'] ?? []);
     final sips = List.from(snapshot.planner['sips'] ?? []);
     final plannedTotal = snapshot.fixedTotal + snapshot.sipTotal;
-    final afterPlan =
-        snapshot.monthIncome - snapshot.monthExpense - plannedTotal;
+
+    // Fix double-count: only subtract SIPs not yet posted this month
+    final settingsBox = Hive.box('finance_settings');
+    final ledger = Map<String, dynamic>.from(
+        settingsBox.get('sip_ledger', defaultValue: {}));
+    final now = DateTime.now();
+    final currentMonthKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+    double unpostedSipTotal = 0;
+    for (final s in sips) {
+      final item = Map.from(s as Map);
+      final id = item['id']?.toString() ?? '';
+      final lastPosted = ledger[id]?.toString();
+      final isPosted =
+          lastPosted != null && lastPosted.compareTo(currentMonthKey) >= 0;
+      if (!isPosted) {
+        unpostedSipTotal += _asDouble(item['amount']);
+      }
+    }
+
+    final afterPlan = snapshot.monthIncome -
+        snapshot.monthExpense -
+        snapshot.fixedTotal -
+        unpostedSipTotal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -938,11 +972,15 @@ class _PlannerTab extends StatelessWidget {
             : Column(
                 children: sips.asMap().entries.map((entry) {
                   final item = Map.from(entry.value as Map);
+                  final nextDebitDate = SipService.getNextDebitDate(item);
+                  final nextDebitStr =
+                      DateFormat('MMM d').format(nextDebitDate);
                   return _PlannerTile(
                     title: item['name']?.toString() ?? 'SIP',
                     label: item['folio']?.toString() ?? 'Investment',
                     amount: _asDouble(item['amount']),
                     due: _asInt(item['due'], fallback: 5),
+                    nextDebit: nextDebitStr,
                     icon: LucideIcons.lineChart,
                     color: const Color(0xFF60A5FA),
                     onDelete: () => onDeleteSip(entry.key),
@@ -1658,6 +1696,7 @@ class _PlannerTile extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onDelete;
+  final String? nextDebit;
 
   const _PlannerTile({
     required this.title,
@@ -1667,6 +1706,7 @@ class _PlannerTile extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onDelete,
+    this.nextDebit,
   });
 
   @override
@@ -1698,7 +1738,9 @@ class _PlannerTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '$label - due day $due',
+                    nextDebit != null
+                        ? '$label · Next debit: $nextDebit'
+                        : '$label - due day $due',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2555,7 +2597,10 @@ class _AddPlannerModalState extends State<_AddPlannerModal> {
       planner['fixedExpenses'] = fixed;
     } else {
       final sips = List.from(planner['sips'] ?? []);
+      final now = DateTime.now();
       sips.add({
+        'id': 'sip_${now.millisecondsSinceEpoch}',
+        'createdAt': now.toIso8601String(),
         'name': name.trim(),
         'amount': parsed,
         'due': int.tryParse(due.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5,
@@ -2564,6 +2609,7 @@ class _AddPlannerModalState extends State<_AddPlannerModal> {
       planner['sips'] = sips;
     }
     widget.settingsBox.put('planner', planner);
+    SipService.runDue();
     Navigator.pop(context);
   }
 

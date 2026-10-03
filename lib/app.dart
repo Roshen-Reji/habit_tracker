@@ -3,12 +3,40 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/services/music_manager.dart';
+import 'package:habit_tracker/data/services/task_reset_service.dart';
+import 'package:habit_tracker/data/services/sip_service.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
 
-class HabitTrackerApp extends StatelessWidget {
+class HabitTrackerApp extends StatefulWidget {
   const HabitTrackerApp({super.key});
+
+  @override
+  State<HabitTrackerApp> createState() => _HabitTrackerAppState();
+}
+
+class _HabitTrackerAppState extends State<HabitTrackerApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      TaskResetService.checkAndResetTasks();
+      SipService.runDue();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
