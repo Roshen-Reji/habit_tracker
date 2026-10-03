@@ -7,8 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/models/finance_model.dart';
-import 'package:habit_tracker/models/song_model.dart';
-import 'package:habit_tracker/services/music_manager.dart';
+import 'package:habit_tracker/services/now_playing_service.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -2051,6 +2050,25 @@ class AiService {
 
       // Attempt to handle locally using Regex NLP engine first (saves time and tokens)
       if (imageBytes == null) {
+        if (detectedIntent == 'music') {
+          final mediaResponse = await handleMediaIntent(userMessage);
+          if (mediaResponse != null) {
+            _messagesHistory.add({
+              'role': 'user',
+              'parts': [
+                {'text': userMessage}
+              ]
+            });
+            _messagesHistory.add({
+              'role': 'model',
+              'parts': [
+                {'text': mediaResponse.message}
+              ]
+            });
+            return mediaResponse;
+          }
+        }
+
         final localResponse = _handleLocally(userMessage, detectedIntent);
         if (localResponse != null) {
           // Add to history so future Gemini calls know what happened
@@ -2475,103 +2493,73 @@ class AiService {
     settingsBox.put('planner', p);
   }
 
-  /// On-device fuzzy search for music - no AI needed
-  SongModel? searchAndPlayMusic(String query, List<SongModel> availableSongs) {
-    if (query.isEmpty || availableSongs.isEmpty) return null;
-
-    final queryLower = query.toLowerCase().trim();
-
-    // Phase 1: Search by title (exact, contains, word match)
-    SongModel? bestMatch;
-    double bestScore = 0; // Initialize at 0 instead of -1
-
-    for (var song in availableSongs) {
-      final title = song.title.toLowerCase();
-      final artist = song.artist.toLowerCase();
-      double score = 0;
-
-      // Exact title match
-      if (title == queryLower) {
-        score = 100;
-      }
-      // Title contains query
-      else if (title.contains(queryLower)) {
-        score = 60 + (queryLower.length / title.length) * 30;
-      }
-      // Query contains title
-      else if (queryLower.contains(title) && title.length > 2) {
-        score = 40;
-      }
-      // Word-by-word matching
-      else {
-        final queryWords = queryLower.split(RegExp(r'\s+'));
-        int matchedWords = 0;
-        for (var word in queryWords) {
-          if (word.length > 2 &&
-              (title.contains(word) || artist.contains(word))) {
-            matchedWords++;
-          }
-        }
-        if (queryWords.isNotEmpty && matchedWords > 0) {
-          score = (matchedWords / queryWords.length) * 50;
-        }
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = song;
-      }
-    }
-
-    // Phase 1 success - title match found
-    if (bestMatch != null && bestScore > 15) {
-      final index = availableSongs.indexOf(bestMatch);
-      MusicManager().setPlaylist(availableSongs, index);
-      return bestMatch;
-    }
-
-    // Phase 2: Search by artist name
-    bestScore = 0;
-    bestMatch = null;
-    for (var song in availableSongs) {
-      final artist = song.artist.toLowerCase();
-      double score = 0;
-
-      if (artist == queryLower) {
-        score = 80;
-      } else if (artist.contains(queryLower)) {
-        score = 30 + (queryLower.length / artist.length) * 20;
-      } else {
-        final queryWords = queryLower.split(RegExp(r'\s+'));
-        for (var word in queryWords) {
-          if (word.length > 3 && artist.contains(word)) {
-            // Increased to > 3 to avoid matching "the", "and", etc.
-            score += 10;
-          }
-        }
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = song;
-      }
-    }
-
-    if (bestMatch != null && bestScore >= 10) {
-      // Increased threshold to 10
-      final index = availableSongs.indexOf(bestMatch);
-      MusicManager().setPlaylist(availableSongs, index);
-      return bestMatch;
-    }
-
-    return null; // No match found
-  }
-
-  /// Extract song query from natural language message
-  String extractSongQuery(String message) {
+  /// Handles media playback and transport commands on active media sessions
+  Future<AiResponse?> handleMediaIntent(String message) async {
     final lower = message.toLowerCase().trim();
 
-    // Remove common prefixes
+    // 1. Pause
+    if (_containsAny(
+        lower, ['pause', 'stop', 'rok do', 'roko', 'ruk jao', 'thahar'])) {
+      await NowPlayingService.instance.send(MediaCommand.pause);
+      return AiResponse(
+        message: '⏸️ Paused media playback.',
+        intent: 'music',
+      );
+    }
+
+    // 2. Next / Skip
+    if (_containsAny(lower,
+        ['next', 'skip', 'agla', 'aage badho', 'change song', 'next track'])) {
+      await NowPlayingService.instance.send(MediaCommand.next);
+      return AiResponse(
+        message: '⏭️ Skipped to next track.',
+        intent: 'music',
+      );
+    }
+
+    // 3. Previous / Back
+    if (_containsAny(lower,
+        ['previous', 'prev', 'pichla', 'peeche', 'last song', 'back song'])) {
+      await NowPlayingService.instance.send(MediaCommand.previous);
+      return AiResponse(
+        message: '⏮️ Returning to previous track.',
+        intent: 'music',
+      );
+    }
+
+    // 4. Resume / Play
+    if (lower == 'play' ||
+        lower == 'resume' ||
+        lower == 'chalao' ||
+        lower == 'chalu karo' ||
+        lower == 'play music' ||
+        lower == 'shuru karo') {
+      await NowPlayingService.instance.send(MediaCommand.play);
+      return AiResponse(
+        message: '▶️ Resumed media playback.',
+        intent: 'music',
+      );
+    }
+
+    // 5. Seek / Forward / Rewind
+    final seekMatch = RegExp(
+            r'(?:seek|forward|rewind|aage|peeche)\s+(?:to\s+)?(\d+)\s*(?:sec|seconds|s|min|minutes|m)?')
+        .firstMatch(lower);
+    if (seekMatch != null) {
+      final numStr = seekMatch.group(1);
+      if (numStr != null) {
+        int seconds = int.tryParse(numStr) ?? 0;
+        if (lower.contains('min')) seconds *= 60;
+        await NowPlayingService.instance
+            .send(MediaCommand.seekTo, argument: seconds * 1000);
+        return AiResponse(
+          message: '⏩ Seeked playback to $seconds seconds.',
+          intent: 'music',
+        );
+      }
+    }
+
+    // 6. Play specific query
     final prefixes = [
       'play ',
       'play me ',
@@ -2588,37 +2576,39 @@ class AiService {
       'sunao ',
       'suno ',
       'play the track ',
-      'queue ',
-      'add to queue ',
     ];
 
-    String cleaned = lower;
-    for (final prefix in prefixes) {
-      if (cleaned.startsWith(prefix)) {
-        cleaned = cleaned.substring(prefix.length).trim();
+    String query = '';
+    for (final p in prefixes) {
+      if (lower.startsWith(p)) {
+        query = lower.substring(p.length).trim();
         break;
       }
     }
 
-    // Remove trailing common words
-    final suffixes = [' please', ' now', ' for me', ' bro', ' dude', ' yaar'];
-    for (final suffix in suffixes) {
-      if (cleaned.endsWith(suffix)) {
-        cleaned = cleaned.substring(0, cleaned.length - suffix.length).trim();
+    if (query.isNotEmpty) {
+      final active = NowPlayingService.instance.nowPlaying.value;
+      if (active == null) {
+        return AiResponse(
+          message:
+              "No active music session detected. Start playing in your preferred music app (Spotify, YouTube Music, etc.) and I'll control it.",
+          intent: 'music',
+        );
       }
+      await NowPlayingService.instance
+          .send(MediaCommand.playFromSearch, argument: query);
+      return AiResponse(
+        message:
+            '🎵 Searching and playing "$query" via ${active.packageName.split('.').last}...',
+        intent: 'music',
+      );
     }
 
-    // Remove "by [artist]" to get just the song name for primary search
-    final byMatch = RegExp(r'\s+by\s+.+$').firstMatch(cleaned);
-    if (byMatch != null) {
-      cleaned = cleaned.substring(0, byMatch.start).trim();
-    }
-
-    return cleaned;
+    return null;
   }
 
   /// Confirm and execute an action
-  void executeAction(AiAction action, {List<SongModel>? availableSongs}) {
+  void executeAction(AiAction action) {
     switch (action.type) {
       case 'food_entry':
         executeFoodAction(action);

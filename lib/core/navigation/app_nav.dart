@@ -4,7 +4,6 @@ enum AppTab {
   home,
   tasks,
   diet,
-  music,
 }
 
 enum TasksSubview {
@@ -57,8 +56,6 @@ class AppNav extends ChangeNotifier {
         index = 1;
       } else if (name.contains('diet')) {
         index = 2;
-      } else if (name.contains('music')) {
-        index = 3;
       } else {
         index = 0;
       }

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
-import 'package:habit_tracker/features/music/music_library_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
@@ -30,7 +29,6 @@ class _HomePageState extends State<HomePage> {
     const DashboardView(),
     const TasksPage(),
     const DietPage(),
-    const MusicLibraryPage(),
   ];
 
   @override

@@ -9,17 +9,9 @@ import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
-    androidNotificationChannelName: 'Audio playback',
-    androidNotificationOngoing: true,
-    androidNotificationIcon: 'mipmap/launcher_icon',
-  );
 
   // Initialize Hive for Flutter
   await Hive.initFlutter();

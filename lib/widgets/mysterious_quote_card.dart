@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:habit_tracker/models/quote.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'dart:ui';
 
 class MysteriousQuoteCard extends StatefulWidget {
   const MysteriousQuoteCard({super.key});

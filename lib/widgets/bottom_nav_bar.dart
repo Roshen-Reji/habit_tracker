@@ -31,8 +31,6 @@ class BottomNavBar extends StatelessWidget {
           Expanded(child: _buildBentoTab(LucideIcons.target, 1)),
           const SizedBox(width: 8),
           Expanded(child: _buildBentoTab(LucideIcons.utensils, 2)),
-          const SizedBox(width: 8),
-          Expanded(child: _buildBentoTab(LucideIcons.music, 3)),
         ],
       ),
     );

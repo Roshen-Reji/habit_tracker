@@ -11,7 +11,6 @@ class PermissionService {
     // Request all potential permissions
     List<Permission> permissions = [
       Permission.notification,
-      Permission.audio,
       Permission.storage,
       Permission.scheduleExactAlarm,
     ];

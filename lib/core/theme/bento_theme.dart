@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/services/music_manager.dart';
+import 'package:habit_tracker/services/now_playing_service.dart';
 
 class BentoTheme {
   // Base Background Color
@@ -14,11 +14,10 @@ class BentoTheme {
     bool dynamicBg =
         Hive.box('settings').get('dynamic_background', defaultValue: true);
 
-    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
+    if (dynamicBg &&
+        NowPlayingService.instance.currentDominantColor.value != null) {
       return Color.alphaBlend(
-          MusicManager()
-              .currentDominantColor
-              .value!
+          NowPlayingService.instance.currentDominantColor.value!
               .withValues(alpha: isLight ? 0.05 : 0.1),
           base);
     }
@@ -33,23 +32,29 @@ class BentoTheme {
     bool dynamicBg =
         Hive.box('settings').get('dynamic_background', defaultValue: true);
 
-    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
+    if (dynamicBg &&
+        NowPlayingService.instance.currentDominantColor.value != null) {
       return Color.alphaBlend(
-          MusicManager()
-              .currentDominantColor
-              .value!
+          NowPlayingService.instance.currentDominantColor.value!
               .withValues(alpha: isLight ? 0.03 : 0.08),
           base);
     }
     return base;
   }
 
+  static Color get surfaceElevated {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? const Color(0xFFF9FAFB) : const Color(0xFF1C1C1E);
+  }
+
   // Accent Color - Dynamic or Strict Black/White default
   static Color get accent {
     bool dynamicBg =
         Hive.box('settings').get('dynamic_background', defaultValue: true);
-    if (dynamicBg && MusicManager().currentDominantColor.value != null) {
-      return MusicManager().currentDominantColor.value!;
+    if (dynamicBg &&
+        NowPlayingService.instance.currentDominantColor.value != null) {
+      return NowPlayingService.instance.currentDominantColor.value!;
     }
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';

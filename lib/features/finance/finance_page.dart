@@ -58,7 +58,6 @@ bool _isExpense(Transaction tx) {
   return mode == 'expense' || tx.amount < 0;
 }
 
-
 String _money(double amount) => FormatUtils.formatCurrency(amount);
 String _compactMoney(double amount) =>
     FormatUtils.formatCompactCurrency(amount);

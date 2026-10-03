@@ -57,7 +57,7 @@ void main() {
       final tabs = tester
           .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
           .toList();
-      expect(tabs.length, equals(4));
+      expect(tabs.length, equals(3));
       for (final tab in tabs) {
         expect(tab.constraints?.maxHeight ?? 46.0, equals(46.0));
       }

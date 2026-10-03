@@ -1,7 +1,6 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
@@ -269,10 +268,6 @@ class _SettingsPageState extends State<SettingsPage> {
           bool isDarkMode =
               settings.get('theme_mode', defaultValue: 'dark') == 'dark';
 
-          List<dynamic> rawFolders =
-              settings.get('music_folders', defaultValue: []);
-          List<String> musicFolders = rawFolders.cast<String>();
-
           return _buildSettingGroup("SYSTEM CONFIGURATION", [
             _buildToggleTile(LucideIcons.moon, "Dark Mode", isDarkMode, (v) {
               settings.put('theme_mode', v ? 'dark' : 'light');
@@ -299,13 +294,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               );
             }),
-            _buildActionTile(
-                LucideIcons.folder,
-                "Music Folders",
-                musicFolders.isEmpty
-                    ? "All Audio Files"
-                    : "${musicFolders.length} Folders Selected",
-                () => _manageMusicFolders(settings)),
           ]);
         });
   }
@@ -571,115 +559,5 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text("Daily missions reset.")));
-  }
-
-  void _manageMusicFolders(Box settings) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: BentoTheme.background,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            List<dynamic> raw = settings.get('music_folders', defaultValue: []);
-            List<String> folders = raw.cast<String>().toList();
-
-            return Container(
-              padding: const EdgeInsets.all(24),
-              height: 400,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Music Folders",
-                      style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                      "Select which folders the app should scan for music. If empty, the entire device will be scanned.",
-                      style: TextStyle(
-                          color: BentoTheme.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: folders.isEmpty
-                        ? Center(
-                            child: Text("Scanning all files",
-                                style: TextStyle(
-                                    color: BentoTheme.textSecondary,
-                                    fontStyle: FontStyle.italic)))
-                        : ListView.builder(
-                            prototypeItem: const ListTile(
-                                title: Text(''), subtitle: Text('')),
-                            itemCount: folders.length,
-                            itemBuilder: (context, i) {
-                              return ListTile(
-                                leading: Icon(LucideIcons.folder,
-                                    color: BentoTheme.accent),
-                                title: Text(
-                                  folders[i].split('/').last,
-                                  style:
-                                      TextStyle(color: BentoTheme.textPrimary),
-                                ),
-                                subtitle: Text(
-                                  folders[i],
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: BentoTheme.textSecondary,
-                                      fontSize: 10),
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(LucideIcons.x,
-                                      color: Colors.redAccent),
-                                  onPressed: () {
-                                    setModalState(() {
-                                      folders.removeAt(i);
-                                      settings.put('music_folders', folders);
-                                    });
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            BentoTheme.accent.withValues(alpha: 0.2),
-                        foregroundColor: BentoTheme.accent,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () async {
-                        String? selectedDirectory =
-                            await FilePicker.platform.getDirectoryPath();
-                        if (selectedDirectory != null) {
-                          if (!folders.contains(selectedDirectory)) {
-                            setModalState(() {
-                              folders.add(selectedDirectory);
-                              settings.put('music_folders', folders);
-                            });
-                          }
-                        }
-                      },
-                      icon: const Icon(LucideIcons.plus),
-                      label: const Text("Add Folder",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, letterSpacing: 1)),
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }

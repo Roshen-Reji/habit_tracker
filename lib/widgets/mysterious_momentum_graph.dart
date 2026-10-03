@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/data/models/goal.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';

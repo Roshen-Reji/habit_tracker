@@ -3,7 +3,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/services/music_manager.dart';
+import 'package:habit_tracker/services/now_playing_service.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
 
@@ -48,7 +48,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
         final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
 
         return ValueListenableBuilder<Color?>(
-          valueListenable: MusicManager().currentDominantColor,
+          valueListenable: NowPlayingService.instance.currentDominantColor,
           builder: (context, color, snapshot) {
             return MaterialApp(
               navigatorKey: globalNavigatorKey,

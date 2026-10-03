@@ -7,6 +7,7 @@ import 'package:habit_tracker/features/home/cards/momentum_card.dart';
 import 'package:habit_tracker/features/home/cards/quote_card.dart';
 import 'package:habit_tracker/features/home/cards/score_card.dart';
 import 'package:habit_tracker/features/home/cards/score_delta_card.dart';
+import 'package:habit_tracker/features/home/cards/music_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Specification for a card in the wallet-stack home screen.
@@ -123,6 +124,14 @@ class HomeCardRegistry {
       icon: LucideIcons.trendingUp,
       compactBuilder: (context) => const ScoreDeltaCard(),
       defaultOrder: 6,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'music',
+      title: 'Music Controller',
+      icon: LucideIcons.music,
+      compactBuilder: (context) => const MusicCard(),
+      defaultOrder: 7,
       defaultVisible: true,
     ));
   }
