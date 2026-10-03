@@ -1958,56 +1958,6 @@ class _Panel extends StatelessWidget {
   }
 }
 
-class _FinanceTextTabBar extends StatelessWidget {
-  final List<_FinanceTab> tabs;
-  final String activeTab;
-  final ValueChanged<String> onTabChanged;
-
-  const _FinanceTextTabBar({
-    required this.tabs,
-    required this.activeTab,
-    required this.onTabChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: tabs.map((tab) {
-          final isSelected = tab.id == activeTab;
-          return GestureDetector(
-            onTap: () => onTabChanged(tab.id),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isSelected ? BentoTheme.accent : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-              ),
-              child: Text(
-                tab.label.toUpperCase(),
-                style: TextStyle(
-                  color:
-                      isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
 class _SmallActionButton extends StatelessWidget {
   final String label;
   final IconData icon;

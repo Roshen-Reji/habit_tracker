@@ -15,15 +15,12 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
     try {
       final log = Hive.box<DietDayLog>('diet_logs')
           .get(DateFormat('yyyy-MM-dd').format(DateTime.now()));
-      if (log == null) return '[DIET] Tgt:\$t None';
-      return '[DIET] In:\${log.totalCalories} Net:\${log.netCalories} Tgt:\$t';
+      if (log == null) return '[DIET] Tgt:$t None';
+      return '[DIET] In:${log.totalCalories} Net:${log.netCalories} Tgt:$t';
     } catch (_) {
       return '';
     }
   }
-
-  static double _asD(dynamic v) =>
-      v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
 
   static String buildFinanceContext() {
     try {
@@ -31,13 +28,14 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
       double inc = 0, exp = 0;
       for (var tx in Hive.box<Transaction>('finance_transactions').values) {
         if (tx.date.month == now.month && tx.date.year == now.year) {
-          if (tx.mode.toLowerCase() == 'expense' || tx.amount < 0)
+          if (tx.mode.toLowerCase() == 'expense' || tx.amount < 0) {
             exp += tx.amount.abs();
-          else
+          } else {
             inc += tx.amount.abs();
+          }
         }
       }
-      return '[FIN] Inc:\${inc.toStringAsFixed(0)} Exp:\${exp.toStringAsFixed(0)}';
+      return '[FIN] Inc:${inc.toStringAsFixed(0)} Exp:${exp.toStringAsFixed(0)}';
     } catch (_) {
       return '';
     }
@@ -46,11 +44,11 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
   static String buildTaskContext() {
     try {
       final goals = Hive.box<Goal>('mission_box_v4').values.toList();
-      int c = goals.where((g) => g?.isCompleted == true).length,
+      int c = goals.where((g) => g.isCompleted == true).length,
           a = goals
-              .where((g) => g?.isCompleted != true && g?.isArchived != true)
+              .where((g) => g.isCompleted != true && g.isArchived != true)
               .length;
-      return '[TASK] Act:\$a Dn:\$c';
+      return '[TASK] Act:$a Dn:$c';
     } catch (_) {
       return '';
     }

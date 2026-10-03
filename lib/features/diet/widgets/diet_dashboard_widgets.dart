@@ -180,8 +180,7 @@ class MacroBreakdownBar extends StatelessWidget {
                 value: 1.0,
                 strokeWidth: 6,
                 backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    true ? Colors.white10 : Colors.black12),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white10),
               ),
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: progress),
@@ -340,7 +339,7 @@ class WeeklyCalorieChart extends StatelessWidget {
             );
           }).toList(),
         ),
-        swapAnimationDuration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 400),
       ),
     );
   }

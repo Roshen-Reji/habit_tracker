@@ -100,6 +100,7 @@ class Idea extends HiveObject {
 
 @HiveType(typeId: 35)
 class BookProgress extends HiveObject {
+  @override
   @HiveField(0)
   final String key; // Hash or normalized path
 

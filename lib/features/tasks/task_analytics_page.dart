@@ -197,7 +197,7 @@ class TaskAnalyticsPage extends StatelessWidget {
                 ),
               ],
             ),
-            swapAnimationDuration: const Duration(milliseconds: 400),
+            duration: const Duration(milliseconds: 400),
           ),
         ),
         const SizedBox(height: 16),
