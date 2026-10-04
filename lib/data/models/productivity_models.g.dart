@@ -118,15 +118,15 @@ class BookProgressAdapter extends TypeAdapter<BookProgress> {
       key: fields[0] as String,
       lastPage: fields[1] as int,
       totalPages: fields[2] as int,
-      bookmarks: (fields[3] as List?)?.cast<int>() ?? const [],
+      bookmarks: (fields[3] as List).cast<int>(),
       lastOpened: fields[4] as DateTime,
-      isFavorite: fields[5] as bool? ?? false,
-      isFinished: fields[6] as bool? ?? false,
-      bookmarkNames: (fields[7] as Map?)?.cast<int, String>() ?? const {},
-      totalReadingSeconds: fields[8] as int? ?? 0,
-      viewMode: fields[9] as String? ?? 'continuous',
-      themeMode: fields[10] as String? ?? 'dark',
-      readingHistory: (fields[11] as List?)?.cast<int>() ?? const [],
+      isFavorite: fields[5] as bool,
+      isFinished: fields[6] as bool,
+      bookmarkNames: (fields[7] as Map).cast<int, String>(),
+      totalReadingSeconds: fields[8] as int,
+      viewMode: fields[9] as String,
+      themeMode: fields[10] as String,
+      readingHistory: (fields[11] as List).cast<int>(),
     );
   }
 

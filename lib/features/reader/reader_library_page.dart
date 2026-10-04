@@ -374,9 +374,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                   color: const Color(0xFF10B981),
                 ),
                 title: Text(
-                  book.isFinished
-                      ? 'Mark as Unfinished'
-                      : 'Mark as Finished',
+                  book.isFinished ? 'Mark as Unfinished' : 'Mark as Finished',
                   style: TextStyle(color: BentoTheme.textPrimary),
                 ),
                 onTap: () async {
@@ -388,7 +386,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
 
               // File info
               ListTile(
-                leading: const Icon(LucideIcons.info, color: Colors.amberAccent),
+                leading:
+                    const Icon(LucideIcons.info, color: Colors.amberAccent),
                 title: Text(
                   'Document Details',
                   style: TextStyle(color: BentoTheme.textPrimary),
@@ -493,8 +492,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
               ),
             ),
             const SizedBox(height: 12),
-            _buildSortOption(
-                'Recently Opened', ReaderSort.lastOpenedDesc, LucideIcons.clock),
+            _buildSortOption('Recently Opened', ReaderSort.lastOpenedDesc,
+                LucideIcons.clock),
             _buildSortOption(
                 'Name (A to Z)', ReaderSort.nameAsc, LucideIcons.arrowDownAZ),
             _buildSortOption(
@@ -517,7 +516,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: isSelected ? accent : BentoTheme.textSecondary),
+      leading:
+          Icon(icon, color: isSelected ? accent : BentoTheme.textSecondary),
       title: Text(
         label,
         style: TextStyle(
@@ -564,7 +564,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
               color: BentoTheme.textSecondary,
               size: 20,
             ),
-            tooltip: _isGridView ? 'Switch to List View' : 'Switch to Grid View',
+            tooltip:
+                _isGridView ? 'Switch to List View' : 'Switch to Grid View',
             onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
           IconButton(
@@ -592,10 +593,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
           );
 
           final countAll = _books.length;
-          final countRecent =
-              _books.where((b) => b.progress != null).length;
-          final countReading =
-              _books.where((b) => b.isCurrentlyReading).length;
+          final countRecent = _books.where((b) => b.progress != null).length;
+          final countReading = _books.where((b) => b.isCurrentlyReading).length;
           final countFinished = _books.where((b) => b.isFinished).length;
           final countFavorites = _books.where((b) => b.isFavorite).length;
 
@@ -658,7 +657,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                     _buildTabChip('All', ReaderTab.all, countAll),
                     _buildTabChip('Recent', ReaderTab.recent, countRecent),
                     _buildTabChip('Reading', ReaderTab.reading, countReading),
-                    _buildTabChip('Finished', ReaderTab.finished, countFinished),
+                    _buildTabChip(
+                        'Finished', ReaderTab.finished, countFinished),
                     _buildTabChip(
                         'Favorites', ReaderTab.favorites, countFavorites),
                   ],
@@ -790,9 +790,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(
-            color: isSelected
-                ? accent
-                : Colors.white.withValues(alpha: 0.08),
+            color: isSelected ? accent : Colors.white.withValues(alpha: 0.08),
           ),
         ),
         onSelected: (_) {

@@ -194,7 +194,8 @@ class _ReaderCardState extends State<ReaderCard> {
                                   Text(
                                     'Page ${mostRecentBook.lastPage} of ${mostRecentBook.totalPages} (${(mostRecentBook.progressFraction * 100).toInt()}%)',
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.7),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.7),
                                       fontSize: 10,
                                     ),
                                   ),

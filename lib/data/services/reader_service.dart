@@ -337,7 +337,8 @@ class ReaderService {
       bookmarks: existing?.bookmarks ?? [],
       lastOpened: DateTime.now(),
       isFavorite: existing?.isFavorite ?? false,
-      isFinished: existing?.isFinished ?? (totalPages > 0 && page >= totalPages),
+      isFinished:
+          existing?.isFinished ?? (totalPages > 0 && page >= totalPages),
       bookmarkNames: existing?.bookmarkNames ?? {},
       totalReadingSeconds: existing?.totalReadingSeconds ?? 0,
       viewMode: existing?.viewMode ?? 'continuous',

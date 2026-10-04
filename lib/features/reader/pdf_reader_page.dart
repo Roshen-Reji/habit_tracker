@@ -289,8 +289,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                       itemCount: bookmarks.length,
                       itemBuilder: (context, index) {
                         final pageNum = bookmarks[index];
-                        final bookmarkTitle =
-                            names[pageNum] ?? 'Page $pageNum';
+                        final bookmarkTitle = names[pageNum] ?? 'Page $pageNum';
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -335,7 +334,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                                 icon: const Icon(LucideIcons.pencil,
                                     size: 16, color: Colors.white54),
                                 onPressed: () {
-                                  _editBookmarkNoteDialog(pageNum, names[pageNum] ?? '');
+                                  _editBookmarkNoteDialog(
+                                      pageNum, names[pageNum] ?? '');
                                 },
                               ),
                               IconButton(
@@ -880,7 +880,9 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? accent : BentoTheme.textSecondary, size: 18),
+              Icon(icon,
+                  color: isSelected ? accent : BentoTheme.textSecondary,
+                  size: 18),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -935,16 +937,22 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             _buildStatCard('Current Session',
                 '${sessionMins}m ${sessionRemSec}s', LucideIcons.hourglass),
             const SizedBox(height: 8),
-            _buildStatCard('Total Reading Time',
-                totalMins >= 60 ? '${totalMins ~/ 60}h ${totalMins % 60}m' : '${totalMins}m', LucideIcons.clock),
+            _buildStatCard(
+                'Total Reading Time',
+                totalMins >= 60
+                    ? '${totalMins ~/ 60}h ${totalMins % 60}m'
+                    : '${totalMins}m',
+                LucideIcons.clock),
             const SizedBox(height: 8),
             _buildStatCard(
                 'Reading Progress',
                 'Page $_currentPage of $_totalPages (${((_currentPage / _totalPages) * 100).toInt()}%)',
                 LucideIcons.barChart2),
             const SizedBox(height: 8),
-            _buildStatCard('Pages Remaining',
-                '${math.max(0, _totalPages - _currentPage)} pages to finish', LucideIcons.bookOpen),
+            _buildStatCard(
+                'Pages Remaining',
+                '${math.max(0, _totalPages - _currentPage)} pages to finish',
+                LucideIcons.bookOpen),
             const SizedBox(height: 12),
           ],
         ),
@@ -988,17 +996,49 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     switch (_themeMode) {
       case ReaderThemeMode.dark:
         return const ColorFilter.matrix([
-          -0.85, 0, 0, 0, 230,
-          0, -0.85, 0, 0, 230,
-          0, 0, -0.85, 0, 230,
-          0, 0, 0, 1, 0,
+          -0.85,
+          0,
+          0,
+          0,
+          230,
+          0,
+          -0.85,
+          0,
+          0,
+          230,
+          0,
+          0,
+          -0.85,
+          0,
+          230,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]);
       case ReaderThemeMode.sepia:
         return const ColorFilter.matrix([
-          0.393 * 1.15, 0.769 * 0.90, 0.189 * 0.85, 0, 35,
-          0.349 * 1.15, 0.686 * 0.90, 0.168 * 0.85, 0, 25,
-          0.272 * 1.05, 0.534 * 0.85, 0.131 * 0.75, 0, 15,
-          0, 0, 0, 1, 0,
+          0.393 * 1.15,
+          0.769 * 0.90,
+          0.189 * 0.85,
+          0,
+          35,
+          0.349 * 1.15,
+          0.686 * 0.90,
+          0.168 * 0.85,
+          0,
+          25,
+          0.272 * 1.05,
+          0.534 * 0.85,
+          0.131 * 0.75,
+          0,
+          15,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]);
       case ReaderThemeMode.light:
         return null;
@@ -1019,13 +1059,14 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   PdfPageLayoutFunction? get _currentLayoutPages {
     if (_viewMode == ReaderViewMode.horizontal) {
       return (pages, params) {
-        final height = pages.fold(
-                0.0, (prev, page) => math.max(prev, page.height)) +
-            params.margin * 2;
+        final height =
+            pages.fold(0.0, (prev, page) => math.max(prev, page.height)) +
+                params.margin * 2;
         final pageLayouts = <Rect>[];
         double x = params.margin;
         for (final page in pages) {
-          pageLayouts.add(Rect.fromLTWH(x, params.margin, page.width, page.height));
+          pageLayouts
+              .add(Rect.fromLTWH(x, params.margin, page.width, page.height));
           x += page.width + params.margin;
         }
         return PdfPageLayout(
@@ -1033,13 +1074,14 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
       };
     } else if (_viewMode == ReaderViewMode.single) {
       return (pages, params) {
-        final height = pages.fold(
-                0.0, (prev, page) => math.max(prev, page.height)) +
-            params.margin * 2;
+        final height =
+            pages.fold(0.0, (prev, page) => math.max(prev, page.height)) +
+                params.margin * 2;
         final pageLayouts = <Rect>[];
         double x = params.margin;
         for (final page in pages) {
-          pageLayouts.add(Rect.fromLTWH(x, params.margin, page.width, page.height));
+          pageLayouts
+              .add(Rect.fromLTWH(x, params.margin, page.width, page.height));
           x += page.width + params.margin * 6;
         }
         return PdfPageLayout(
@@ -1170,7 +1212,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: BentoTheme.surfaceElevated.withValues(alpha: 0.95),
+                        color:
+                            BentoTheme.surfaceElevated.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: accent.withValues(alpha: 0.4),
@@ -1289,7 +1332,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         _isBookmarked
                             ? LucideIcons.bookmarkCheck
                             : LucideIcons.bookmark,
-                        color: _isBookmarked ? accent : BentoTheme.textSecondary,
+                        color:
+                            _isBookmarked ? accent : BentoTheme.textSecondary,
                         size: 19,
                       ),
                       tooltip: 'Toggle Bookmark',
@@ -1342,11 +1386,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                       child: TextField(
                         controller: _searchController,
                         autofocus: true,
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'Search text in PDF...',
                           hintStyle: TextStyle(
-                            color: BentoTheme.textSecondary.withValues(alpha: 0.6),
+                            color:
+                                BentoTheme.textSecondary.withValues(alpha: 0.6),
                           ),
                           prefixIcon: const Icon(LucideIcons.search,
                               color: accent, size: 17),
@@ -1489,11 +1535,14 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                                   .toDouble()
                                   .clamp(1.0, _totalPages.toDouble()),
                               min: 1.0,
-                              max: _totalPages > 1 ? _totalPages.toDouble() : 1.0,
+                              max: _totalPages > 1
+                                  ? _totalPages.toDouble()
+                                  : 1.0,
                               onChanged: (val) {
                                 final targetPage = val.round();
                                 if (targetPage != _currentPage) {
-                                  _pdfController.goToPage(pageNumber: targetPage);
+                                  _pdfController.goToPage(
+                                      pageNumber: targetPage);
                                 }
                               },
                             ),
@@ -1508,9 +1557,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             size: 16,
                             color: BentoTheme.textSecondary,
                           ),
-                          tooltip: _isFullscreen
-                              ? 'Exit Fullscreen'
-                              : 'Fullscreen',
+                          tooltip:
+                              _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
                           onPressed: _toggleFullscreen,
                         ),
                       ],

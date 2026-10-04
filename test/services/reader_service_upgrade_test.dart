@@ -67,7 +67,8 @@ void main() {
       expect(book3.formattedReadingTime, '1h 15m');
     });
 
-    test('Reading state & back-to-previous-position history stack works', () async {
+    test('Reading state & back-to-previous-position history stack works',
+        () async {
       const path = '/docs/textbook.pdf';
 
       // Record jumps: Page 142 -> Page 87
@@ -132,7 +133,9 @@ void main() {
       expect(progress?.bookmarkNames.containsKey(143), false);
     });
 
-    test('filterAndSortBooks filters across All, Recent, Reading, Finished, Favorites', () {
+    test(
+        'filterAndSortBooks filters across All, Recent, Reading, Finished, Favorites',
+        () {
       final b1 = PdfBook(
         path: '/docs/alpha.pdf',
         name: 'Alpha Guide',
@@ -172,24 +175,29 @@ void main() {
       final all = [b1, b2, b3];
 
       // Tab All
-      expect(ReaderService.filterAndSortBooks(all, tab: ReaderTab.all).length, 3);
+      expect(
+          ReaderService.filterAndSortBooks(all, tab: ReaderTab.all).length, 3);
 
       // Tab Recent (opened)
-      final recent = ReaderService.filterAndSortBooks(all, tab: ReaderTab.recent);
+      final recent =
+          ReaderService.filterAndSortBooks(all, tab: ReaderTab.recent);
       expect(recent.length, 2);
 
       // Tab Reading (in progress)
-      final reading = ReaderService.filterAndSortBooks(all, tab: ReaderTab.reading);
+      final reading =
+          ReaderService.filterAndSortBooks(all, tab: ReaderTab.reading);
       expect(reading.length, 1);
       expect(reading.first.name, 'Alpha Guide');
 
       // Tab Finished
-      final finished = ReaderService.filterAndSortBooks(all, tab: ReaderTab.finished);
+      final finished =
+          ReaderService.filterAndSortBooks(all, tab: ReaderTab.finished);
       expect(finished.length, 1);
       expect(finished.first.name, 'Beta Manual');
 
       // Tab Favorites
-      final favs = ReaderService.filterAndSortBooks(all, tab: ReaderTab.favorites);
+      final favs =
+          ReaderService.filterAndSortBooks(all, tab: ReaderTab.favorites);
       expect(favs.length, 1);
       expect(favs.first.name, 'Alpha Guide');
 
@@ -199,12 +207,14 @@ void main() {
       expect(search.first.name, 'Beta Manual');
 
       // Sort by Name Asc
-      final sortedByName = ReaderService.filterAndSortBooks(all, sort: ReaderSort.nameAsc);
+      final sortedByName =
+          ReaderService.filterAndSortBooks(all, sort: ReaderSort.nameAsc);
       expect(sortedByName.first.name, 'Alpha Guide');
       expect(sortedByName.last.name, 'Gamma Book');
 
       // Sort by File Size Desc
-      final sortedBySize = ReaderService.filterAndSortBooks(all, sort: ReaderSort.fileSizeDesc);
+      final sortedBySize =
+          ReaderService.filterAndSortBooks(all, sort: ReaderSort.fileSizeDesc);
       expect(sortedBySize.first.name, 'Beta Manual');
       expect(sortedBySize.last.name, 'Alpha Guide');
     });

@@ -8,6 +8,7 @@ import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
+import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -421,14 +422,14 @@ class AiService {
               lower.contains('earned') ||
               lower.contains('received'))) {
         final amount = double.tryParse(incomeMatch.group(1) ?? '0') ?? 0;
-        final txBox = Hive.box<Transaction>('finance_transactions');
-        txBox.add(Transaction(
+        FinanceRepository().addTransaction(TxDraft(
           title: 'Income',
           amount: amount,
           date: DateTime.now(),
           mode: 'income',
           category: 'Salary',
           icon: 'wallet',
+          kind: 'income',
         ));
         return AiResponse(
             message: 'Added $amount to your income.', intent: 'general_chat');
@@ -456,14 +457,14 @@ class AiService {
           title = expenseMatch.group(8)!.trim();
         }
 
-        final txBox = Hive.box<Transaction>('finance_transactions');
-        txBox.add(Transaction(
+        FinanceRepository().addTransaction(TxDraft(
           title: title,
           amount: amount,
           date: DateTime.now(),
           mode: 'expense',
           category: 'Shopping',
           icon: 'shopping-cart',
+          kind: 'expense',
         ));
         return AiResponse(
             message: 'Logged an expense of $amount for $title. Wallet updated.',
@@ -1158,8 +1159,7 @@ class AiService {
     required bool isExpense,
     required String category,
   }) {
-    final txBox = Hive.box<Transaction>('finance_transactions');
-    txBox.add(Transaction(
+    FinanceRepository().addTransaction(TxDraft(
       title: _titleCase(
           title.isEmpty ? (isExpense ? 'Expense' : 'Income') : title),
       amount: isExpense ? -amount.abs() : amount.abs(),
@@ -1167,6 +1167,7 @@ class AiService {
       mode: isExpense ? 'expense' : 'income',
       category: category,
       icon: isExpense ? 'expense' : 'income',
+      kind: isExpense ? 'expense' : 'income',
     ));
   }
 

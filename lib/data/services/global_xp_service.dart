@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 class GlobalXPService {
   static void addXP(int amount) {
+    if (!Hive.isBoxOpen('settings')) return;
     final settings = Hive.box('settings');
     int currentXp = settings.get('global_xp', defaultValue: 0);
     settings.put('global_xp', currentXp + amount);
@@ -11,6 +12,7 @@ class GlobalXPService {
   }
 
   static void subtractXP(int amount) {
+    if (!Hive.isBoxOpen('settings')) return;
     final settings = Hive.box('settings');
     int currentXp = settings.get('global_xp', defaultValue: 0);
     int newXp = (currentXp - amount).clamp(0, 999999);

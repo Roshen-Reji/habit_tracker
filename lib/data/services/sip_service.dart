@@ -134,6 +134,9 @@ class SipService {
               date: dueDate,
               mode: 'expense',
               icon: 'expense',
+              id: txKey,
+              kind: 'expense',
+              sourceRef: 'rec:$id:$monthKey',
             );
 
             await transactionsBox.put(txKey, tx);
