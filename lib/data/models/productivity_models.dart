@@ -116,12 +116,40 @@ class BookProgress extends HiveObject {
   @HiveField(4)
   DateTime lastOpened;
 
+  @HiveField(5)
+  bool isFavorite;
+
+  @HiveField(6)
+  bool isFinished;
+
+  @HiveField(7)
+  Map<int, String> bookmarkNames;
+
+  @HiveField(8)
+  int totalReadingSeconds;
+
+  @HiveField(9)
+  String viewMode; // 'continuous', 'horizontal', 'single'
+
+  @HiveField(10)
+  String themeMode; // 'light', 'dark', 'sepia'
+
+  @HiveField(11)
+  List<int> readingHistory; // Last visited pages stack
+
   BookProgress({
     required this.key,
     this.lastPage = 1,
     this.totalPages = 1,
     this.bookmarks = const [],
     required this.lastOpened,
+    this.isFavorite = false,
+    this.isFinished = false,
+    this.bookmarkNames = const {},
+    this.totalReadingSeconds = 0,
+    this.viewMode = 'continuous',
+    this.themeMode = 'dark',
+    this.readingHistory = const [],
   });
 
   BookProgress copyWith({
@@ -130,6 +158,13 @@ class BookProgress extends HiveObject {
     int? totalPages,
     List<int>? bookmarks,
     DateTime? lastOpened,
+    bool? isFavorite,
+    bool? isFinished,
+    Map<int, String>? bookmarkNames,
+    int? totalReadingSeconds,
+    String? viewMode,
+    String? themeMode,
+    List<int>? readingHistory,
   }) {
     return BookProgress(
       key: key ?? this.key,
@@ -137,6 +172,13 @@ class BookProgress extends HiveObject {
       totalPages: totalPages ?? this.totalPages,
       bookmarks: bookmarks ?? this.bookmarks,
       lastOpened: lastOpened ?? this.lastOpened,
+      isFavorite: isFavorite ?? this.isFavorite,
+      isFinished: isFinished ?? this.isFinished,
+      bookmarkNames: bookmarkNames ?? this.bookmarkNames,
+      totalReadingSeconds: totalReadingSeconds ?? this.totalReadingSeconds,
+      viewMode: viewMode ?? this.viewMode,
+      themeMode: themeMode ?? this.themeMode,
+      readingHistory: readingHistory ?? this.readingHistory,
     );
   }
 }

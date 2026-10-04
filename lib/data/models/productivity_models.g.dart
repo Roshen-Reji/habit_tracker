@@ -118,15 +118,22 @@ class BookProgressAdapter extends TypeAdapter<BookProgress> {
       key: fields[0] as String,
       lastPage: fields[1] as int,
       totalPages: fields[2] as int,
-      bookmarks: (fields[3] as List).cast<int>(),
+      bookmarks: (fields[3] as List?)?.cast<int>() ?? const [],
       lastOpened: fields[4] as DateTime,
+      isFavorite: fields[5] as bool? ?? false,
+      isFinished: fields[6] as bool? ?? false,
+      bookmarkNames: (fields[7] as Map?)?.cast<int, String>() ?? const {},
+      totalReadingSeconds: fields[8] as int? ?? 0,
+      viewMode: fields[9] as String? ?? 'continuous',
+      themeMode: fields[10] as String? ?? 'dark',
+      readingHistory: (fields[11] as List?)?.cast<int>() ?? const [],
     );
   }
 
   @override
   void write(BinaryWriter writer, BookProgress obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.key)
       ..writeByte(1)
@@ -136,7 +143,21 @@ class BookProgressAdapter extends TypeAdapter<BookProgress> {
       ..writeByte(3)
       ..write(obj.bookmarks)
       ..writeByte(4)
-      ..write(obj.lastOpened);
+      ..write(obj.lastOpened)
+      ..writeByte(5)
+      ..write(obj.isFavorite)
+      ..writeByte(6)
+      ..write(obj.isFinished)
+      ..writeByte(7)
+      ..write(obj.bookmarkNames)
+      ..writeByte(8)
+      ..write(obj.totalReadingSeconds)
+      ..writeByte(9)
+      ..write(obj.viewMode)
+      ..writeByte(10)
+      ..write(obj.themeMode)
+      ..writeByte(11)
+      ..write(obj.readingHistory);
   }
 
   @override

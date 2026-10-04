@@ -6,6 +6,7 @@ import 'package:habit_tracker/data/services/reader_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
 import 'package:habit_tracker/features/reader/reader_library_page.dart';
+import 'package:habit_tracker/features/reader/widgets/book_cover_thumbnail.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -48,7 +49,10 @@ class _ReaderCardState extends State<ReaderCard> {
       valueListenable:
           Hive.box<BookProgress>(ReaderService.progressBoxName).listenable(),
       builder: (context, _, __) {
+        // Books are already sorted by recently opened then modified
         final displayBooks = _books.take(3).toList();
+        final mostRecentBook =
+            displayBooks.isNotEmpty ? displayBooks.first : null;
 
         return HomeCardFrame(
           icon: LucideIcons.bookOpen,
@@ -82,7 +86,7 @@ class _ReaderCardState extends State<ReaderCard> {
             children: [
               if (_isLoading) ...[
                 const SizedBox(
-                  height: 100,
+                  height: 140,
                   child: Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
@@ -91,15 +95,15 @@ class _ReaderCardState extends State<ReaderCard> {
                   ),
                 ),
               ] else if (displayBooks.isNotEmpty) ...[
-                // Up to 3 book covers row
+                // Last 3 book covers row
                 SizedBox(
-                  height: 112,
+                  height: 144,
                   child: Row(
                     children: [
                       for (int i = 0; i < displayBooks.length; i++) ...[
                         if (i > 0) const SizedBox(width: 10),
                         Expanded(
-                          child: _buildBookCoverItem(
+                          child: _buildBookCoverCard(
                             context,
                             displayBooks[i],
                             accent,
@@ -114,10 +118,18 @@ class _ReaderCardState extends State<ReaderCard> {
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(
-                                    ExpressiveTokens.radiusSm),
+                                  ExpressiveTokens.radiusSm,
+                                ),
                                 border: Border.all(
                                   color: Colors.white.withValues(alpha: 0.04),
                                   style: BorderStyle.solid,
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  LucideIcons.filePlus,
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  size: 24,
                                 ),
                               ),
                             ),
@@ -125,9 +137,85 @@ class _ReaderCardState extends State<ReaderCard> {
                     ],
                   ),
                 ),
+
+                // Quick Continue Reading bar for the top book
+                if (mostRecentBook != null) ...[
+                  const SizedBox(height: 12),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius:
+                          BorderRadius.circular(ExpressiveTokens.radiusSm),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PdfReaderPage(book: mostRecentBook),
+                          ),
+                        ).then((_) => _loadBooks());
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius:
+                              BorderRadius.circular(ExpressiveTokens.radiusSm),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.25),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              LucideIcons.playCircle,
+                              color: accent,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Continue: ${mostRecentBook.name}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    'Page ${mostRecentBook.lastPage} of ${mostRecentBook.totalPages} (${(mostRecentBook.progressFraction * 100).toInt()}%)',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              LucideIcons.chevronRight,
+                              color: accent,
+                              size: 14,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ] else ...[
                 Text(
-                  'Read PDFs, books & manuals with continuous scrolling, bookmarks, and night mode.',
+                  'Read PDFs, books & documents with continuous scroll, bookmarking, search, and reading themes.',
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 12,
@@ -136,6 +224,7 @@ class _ReaderCardState extends State<ReaderCard> {
                 ),
                 const SizedBox(height: 10),
               ],
+
               const SizedBox(height: 12),
               // View all button
               SizedBox(
@@ -157,10 +246,12 @@ class _ReaderCardState extends State<ReaderCard> {
                   icon: const Icon(LucideIcons.library, size: 15),
                   label: Text(
                     displayBooks.isNotEmpty
-                        ? 'View All in Library'
+                        ? 'View Library (${_books.length})'
                         : 'Configure PDF Folders',
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onPressed: () {
                     Navigator.push(
@@ -179,7 +270,7 @@ class _ReaderCardState extends State<ReaderCard> {
     );
   }
 
-  Widget _buildBookCoverItem(
+  Widget _buildBookCoverCard(
     BuildContext context,
     PdfBook book,
     Color accent,
@@ -197,43 +288,58 @@ class _ReaderCardState extends State<ReaderCard> {
           ).then((_) => _loadBooks());
         },
         child: Container(
-          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: BentoTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: Colors.white.withValues(alpha: 0.08),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Cover area with real rendered PDF thumbnail
               Expanded(
-                child: Center(
-                  child: Icon(
-                    LucideIcons.fileText,
-                    color: accent.withValues(alpha: 0.6),
-                    size: 30,
-                  ),
+                child: BookCoverThumbnail(
+                  book: book,
+                  showProgressBadge: true,
+                  showSpine: true,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                book.name,
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'p. ${book.lastPage}',
-                style: TextStyle(
-                  color: BentoTheme.textSecondary,
-                  fontSize: 10,
+              // Bottom progress & name strip
+              Padding(
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book.name,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: book.progressFraction,
+                        minHeight: 2.5,
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

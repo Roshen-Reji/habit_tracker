@@ -24,12 +24,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = AppNav.instance.currentTab;
   final Box _settingsBox = Hive.box('settings'); //
-
-  final List<Widget> _pages = [
-    const DashboardView(),
-    const TasksPage(),
-    const DietPage(),
-  ];
+  final ScrollController _dashboardScrollController = ScrollController();
 
   @override
   void initState() {
@@ -47,6 +42,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     AppNav.instance.removeListener(_onNavChanged);
+    _dashboardScrollController.dispose();
     super.dispose();
   }
 
@@ -121,12 +117,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      DashboardView(scrollController: _dashboardScrollController),
+      const TasksPage(),
+      const DietPage(),
+    ];
+
     return Scaffold(
       extendBody: true,
       backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
           StarBackground(
+            parallaxController: _dashboardScrollController,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
               transitionBuilder: (child, animation) {
@@ -151,7 +154,9 @@ class _HomePageState extends State<HomePage> {
                 );
               },
               child: SizedBox(
-                  key: ValueKey(_selectedIndex), child: _pages[_selectedIndex]),
+                key: ValueKey(_selectedIndex),
+                child: pages[_selectedIndex],
+              ),
             ),
           ),
           Align(

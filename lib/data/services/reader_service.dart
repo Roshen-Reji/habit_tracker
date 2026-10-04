@@ -4,9 +4,28 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+enum ReaderTab {
+  all,
+  recent,
+  reading,
+  finished,
+  favorites,
+}
+
+enum ReaderSort {
+  lastOpenedDesc,
+  nameAsc,
+  nameDesc,
+  dateModifiedDesc,
+  fileSizeDesc,
+  progressDesc,
+}
 
 class PdfBook {
   final String path;
@@ -26,8 +45,55 @@ class PdfBook {
   String get bookKey => ReaderService.getBookKey(path);
   int get lastPage => progress?.lastPage ?? 1;
   int get totalPages => progress?.totalPages ?? 1;
-  double get progressFraction =>
-      totalPages > 0 ? (lastPage / totalPages).clamp(0.0, 1.0) : 0.0;
+  bool get isFavorite => progress?.isFavorite ?? false;
+  bool get isFinished => progress?.isFinished ?? false;
+  int get totalReadingSeconds => progress?.totalReadingSeconds ?? 0;
+  String get viewMode => progress?.viewMode ?? 'continuous';
+  String get themeMode => progress?.themeMode ?? 'dark';
+  List<int> get bookmarks => progress?.bookmarks ?? const [];
+  Map<int, String> get bookmarkNames => progress?.bookmarkNames ?? const {};
+  List<int> get readingHistory => progress?.readingHistory ?? const [];
+
+  double get progressFraction {
+    if (isFinished) return 1.0;
+    return totalPages > 0 ? (lastPage / totalPages).clamp(0.0, 1.0) : 0.0;
+  }
+
+  bool get isCurrentlyReading =>
+      (progressFraction > 0.0 && progressFraction < 1.0) && !isFinished;
+
+  String get formattedFileSize {
+    if (sizeBytes < 1024) return '$sizeBytes B';
+    if (sizeBytes < 1024 * 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  String get formattedReadingTime {
+    if (totalReadingSeconds < 60) return '${totalReadingSeconds}s';
+    final minutes = totalReadingSeconds ~/ 60;
+    if (minutes < 60) return '${minutes}m';
+    final hours = minutes ~/ 60;
+    final remM = minutes % 60;
+    return '${hours}h ${remM}m';
+  }
+
+  PdfBook copyWith({
+    String? path,
+    String? name,
+    int? sizeBytes,
+    DateTime? modified,
+    BookProgress? progress,
+  }) {
+    return PdfBook(
+      path: path ?? this.path,
+      name: name ?? this.name,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      modified: modified ?? this.modified,
+      progress: progress ?? this.progress,
+    );
+  }
 }
 
 class ReaderService {
@@ -45,7 +111,7 @@ class ReaderService {
     return sha256.convert(utf8.encode(input)).toString();
   }
 
-  /// Requests all-files storage permission on Android (Default §5.9).
+  /// Requests all-files storage permission on Android.
   static Future<bool> requestStorageAccess() async {
     if (!kIsWeb && Platform.isAndroid) {
       try {
@@ -89,7 +155,7 @@ class ReaderService {
       );
     }
 
-    // Sort: recently opened first, then by modified desc
+    // Sort default: recently opened first, then by modified desc
     books.sort((a, b) {
       final aOpened = a.progress?.lastOpened;
       final bOpened = b.progress?.lastOpened;
@@ -160,7 +226,7 @@ class ReaderService {
     }
   }
 
-  /// Asynchronous folder scanner that can be run on compute isolate.
+  /// Asynchronous folder scanner.
   static Future<List<PdfBook>> scanConfiguredFolders() async {
     final settingsBox = Hive.box('settings');
     final rawFolders = settingsBox.get(foldersSettingsKey);
@@ -196,7 +262,57 @@ class ReaderService {
     return File(p.join(coversDir.path, '$key.png'));
   }
 
-  // --- Reading Progress & Bookmarks ---
+  /// Generates and caches page 1 of the PDF as a cover thumbnail.
+  static Future<File?> getOrCreateCoverThumbnail(
+    String pdfPath,
+    DateTime mtime,
+  ) async {
+    try {
+      final cacheFile = await getCoverCacheFile(pdfPath, mtime);
+      if (cacheFile.existsSync() && cacheFile.lengthSync() > 0) {
+        return cacheFile;
+      }
+
+      final doc = await PdfDocument.openFile(pdfPath);
+      if (doc.pages.isEmpty) {
+        await doc.dispose();
+        return null;
+      }
+
+      final page = doc.pages[0];
+      const double targetWidth = 280;
+      final double targetHeight = (page.height / page.width) * targetWidth;
+
+      final pdfImage = await page.render(
+        fullWidth: targetWidth,
+        fullHeight: targetHeight,
+      );
+
+      if (pdfImage == null) {
+        await doc.dispose();
+        return null;
+      }
+
+      final image = img.Image.fromBytes(
+        width: pdfImage.width,
+        height: pdfImage.height,
+        bytes: pdfImage.pixels.buffer,
+        order: img.ChannelOrder.bgra,
+      );
+
+      final pngBytes = img.encodePng(image);
+      await cacheFile.writeAsBytes(pngBytes, flush: true);
+
+      pdfImage.dispose();
+      await doc.dispose();
+      return cacheFile;
+    } catch (e) {
+      debugPrint('Error generating PDF thumbnail: $e');
+      return null;
+    }
+  }
+
+  // --- Reading Progress, State & Bookmarks ---
 
   static BookProgress? getProgress(String path) {
     if (!Hive.isBoxOpen(progressBoxName)) return null;
@@ -220,12 +336,142 @@ class ReaderService {
       totalPages: totalPages > 0 ? totalPages : (existing?.totalPages ?? 1),
       bookmarks: existing?.bookmarks ?? [],
       lastOpened: DateTime.now(),
+      isFavorite: existing?.isFavorite ?? false,
+      isFinished: existing?.isFinished ?? (totalPages > 0 && page >= totalPages),
+      bookmarkNames: existing?.bookmarkNames ?? {},
+      totalReadingSeconds: existing?.totalReadingSeconds ?? 0,
+      viewMode: existing?.viewMode ?? 'continuous',
+      themeMode: existing?.themeMode ?? 'dark',
+      readingHistory: existing?.readingHistory ?? [],
     );
 
     await box.put(key, progress);
   }
 
-  static Future<void> toggleBookmark(String path, int page) async {
+  static Future<void> toggleFavorite(String path) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key) ??
+        BookProgress(
+          key: key,
+          lastPage: 1,
+          totalPages: 1,
+          bookmarks: [],
+          lastOpened: DateTime.now(),
+        );
+
+    existing.isFavorite = !existing.isFavorite;
+    await box.put(key, existing);
+  }
+
+  static Future<void> toggleFinished(String path) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key) ??
+        BookProgress(
+          key: key,
+          lastPage: 1,
+          totalPages: 1,
+          bookmarks: [],
+          lastOpened: DateTime.now(),
+        );
+
+    existing.isFinished = !existing.isFinished;
+    if (existing.isFinished && existing.totalPages > 0) {
+      existing.lastPage = existing.totalPages;
+    }
+    await box.put(key, existing);
+  }
+
+  static Future<void> resetProgress(String path) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      existing.lastPage = 1;
+      existing.isFinished = false;
+      await existing.save();
+    }
+  }
+
+  static Future<void> addReadingTime(String path, int seconds) async {
+    if (!Hive.isBoxOpen(progressBoxName) || seconds <= 0) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      existing.totalReadingSeconds += seconds;
+      await existing.save();
+    }
+  }
+
+  static Future<void> setViewMode(String path, String mode) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      existing.viewMode = mode;
+      await existing.save();
+    }
+  }
+
+  static Future<void> setThemeMode(String path, String theme) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      existing.themeMode = theme;
+      await existing.save();
+    }
+  }
+
+  static Future<void> pushHistoryPage(String path, int page) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      final history = List<int>.from(existing.readingHistory);
+      if (history.isNotEmpty && history.last == page) return;
+      history.add(page);
+      if (history.length > 25) {
+        history.removeRange(0, history.length - 25);
+      }
+      existing.readingHistory = history;
+      await existing.save();
+    }
+  }
+
+  static int? popHistoryPage(String path, int currentPage) {
+    if (!Hive.isBoxOpen(progressBoxName)) return null;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing == null) return null;
+
+    final history = List<int>.from(existing.readingHistory);
+    // Find the last page in history that is not currentPage
+    while (history.isNotEmpty) {
+      final candidate = history.removeLast();
+      if (candidate != currentPage) {
+        existing.readingHistory = history;
+        existing.save();
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  static Future<void> toggleBookmark(
+    String path,
+    int page, {
+    String? name,
+  }) async {
     if (!Hive.isBoxOpen(progressBoxName)) return;
     final box = Hive.box<BookProgress>(progressBoxName);
     final key = getBookKey(path);
@@ -239,16 +485,61 @@ class ReaderService {
         );
 
     final bookmarks = List<int>.from(existing.bookmarks);
+    final bookmarkNames = Map<int, String>.from(existing.bookmarkNames);
+
     if (bookmarks.contains(page)) {
       bookmarks.remove(page);
+      bookmarkNames.remove(page);
     } else {
       bookmarks.add(page);
       bookmarks.sort();
+      if (name != null && name.trim().isNotEmpty) {
+        bookmarkNames[page] = name.trim();
+      }
     }
 
     existing.bookmarks = bookmarks;
+    existing.bookmarkNames = bookmarkNames;
     existing.lastOpened = DateTime.now();
-    await existing.save();
+    await box.put(key, existing);
+  }
+
+  static Future<void> updateBookmarkName(
+    String path,
+    int page,
+    String name,
+  ) async {
+    if (!Hive.isBoxOpen(progressBoxName)) return;
+    final box = Hive.box<BookProgress>(progressBoxName);
+    final key = getBookKey(path);
+    final existing = box.get(key);
+    if (existing != null) {
+      final names = Map<int, String>.from(existing.bookmarkNames);
+      if (name.trim().isEmpty) {
+        names.remove(page);
+      } else {
+        names[page] = name.trim();
+      }
+      existing.bookmarkNames = names;
+      await existing.save();
+    }
+  }
+
+  static Future<bool> deletePdfFile(String path) async {
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+      if (Hive.isBoxOpen(progressBoxName)) {
+        final key = getBookKey(path);
+        await Hive.box<BookProgress>(progressBoxName).delete(key);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting PDF: $e');
+      return false;
+    }
   }
 
   // --- Folder Management ---
@@ -278,5 +569,62 @@ class ReaderService {
     final normalized = p.normalize(path);
     folders.remove(normalized);
     await box.put(foldersSettingsKey, folders);
+  }
+
+  // --- Filtering & Sorting ---
+
+  static List<PdfBook> filterAndSortBooks(
+    List<PdfBook> books, {
+    String query = '',
+    ReaderTab tab = ReaderTab.all,
+    ReaderSort sort = ReaderSort.lastOpenedDesc,
+  }) {
+    // 1. Filter by Query
+    final filtered = books.where((book) {
+      if (query.isNotEmpty &&
+          !book.name.toLowerCase().contains(query.toLowerCase())) {
+        return false;
+      }
+
+      switch (tab) {
+        case ReaderTab.all:
+          return true;
+        case ReaderTab.recent:
+          return book.progress != null;
+        case ReaderTab.reading:
+          return book.isCurrentlyReading;
+        case ReaderTab.finished:
+          return book.isFinished;
+        case ReaderTab.favorites:
+          return book.isFavorite;
+      }
+    }).toList();
+
+    // 2. Sort
+    filtered.sort((a, b) {
+      switch (sort) {
+        case ReaderSort.lastOpenedDesc:
+          final aOpened = a.progress?.lastOpened;
+          final bOpened = b.progress?.lastOpened;
+          if (aOpened != null && bOpened != null) {
+            return bOpened.compareTo(aOpened);
+          }
+          if (aOpened != null) return -1;
+          if (bOpened != null) return 1;
+          return b.modified.compareTo(a.modified);
+        case ReaderSort.nameAsc:
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case ReaderSort.nameDesc:
+          return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+        case ReaderSort.dateModifiedDesc:
+          return b.modified.compareTo(a.modified);
+        case ReaderSort.fileSizeDesc:
+          return b.sizeBytes.compareTo(a.sizeBytes);
+        case ReaderSort.progressDesc:
+          return b.progressFraction.compareTo(a.progressFraction);
+      }
+    });
+
+    return filtered;
   }
 }

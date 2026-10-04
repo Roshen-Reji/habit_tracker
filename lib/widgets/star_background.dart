@@ -4,7 +4,13 @@ import 'dart:math';
 
 class StarBackground extends StatefulWidget {
   final Widget child;
-  const StarBackground({super.key, required this.child});
+  final ScrollController? parallaxController;
+
+  const StarBackground({
+    super.key,
+    required this.child,
+    this.parallaxController,
+  });
 
   @override
   State<StarBackground> createState() => _StarBackgroundState();
@@ -31,6 +37,8 @@ class _StarBackgroundState extends State<StarBackground>
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+
     return Stack(
       children: [
         // 1. The Background Layer
@@ -40,17 +48,30 @@ class _StarBackgroundState extends State<StarBackground>
           ),
         ),
         // 2. The Star Layer
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return RepaintBoundary(
-              child: CustomPaint(
-                painter:
-                    StarPainter(_stars, _controller.value, BentoTheme.accent),
-                size: Size.infinite,
-              ),
-            );
-          },
+        TickerMode(
+          enabled: !reduceMotion,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([
+              _controller,
+              if (widget.parallaxController != null) widget.parallaxController!,
+            ]),
+            builder: (context, child) {
+              final scrollOffset = widget.parallaxController?.hasClients == true
+                  ? widget.parallaxController!.offset
+                  : 0.0;
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: StarPainter(
+                    _stars,
+                    reduceMotion ? 0.5 : _controller.value,
+                    BentoTheme.accent,
+                    parallaxOffset: reduceMotion ? 0.0 : scrollOffset,
+                  ),
+                  size: Size.infinite,
+                ),
+              );
+            },
+          ),
         ),
         // 3. The Content Layer
         widget.child,
@@ -63,8 +84,14 @@ class StarPainter extends CustomPainter {
   final List<Star> stars;
   final double animationValue;
   final Color starColor;
+  final double parallaxOffset;
 
-  StarPainter(this.stars, this.animationValue, this.starColor);
+  StarPainter(
+    this.stars,
+    this.animationValue,
+    this.starColor, {
+    this.parallaxOffset = 0.0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -80,7 +107,9 @@ class StarPainter extends CustomPainter {
 
       // Draw star at random position scaled to screen size
       final dx = star.x * size.width;
-      final dy = star.y * size.height;
+      // The field is the most distant layer: it travels only 2.5% as fast as
+      // the card deck and provides a quiet ambient parallax cue.
+      final dy = star.y * size.height - (parallaxOffset * 0.025);
       canvas.drawCircle(Offset(dx, dy), star.size, paint);
     }
   }

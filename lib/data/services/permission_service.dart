@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 
 class PermissionService {
   static Future<bool> requestAllPermissions() async {
-    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+    // Browser builds cannot read `Platform.environment`, and browser
+    // permission requests are not part of the native permission flow.
+    if (kIsWeb || Platform.environment.containsKey('FLUTTER_TEST')) {
       return true;
     }
 
