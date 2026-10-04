@@ -574,4 +574,62 @@ class FinanceRepository {
     await storage.budgetLineBox.delete(id);
     _notify();
   }
+
+  // ---------------------------------------------------------------------------
+  // BUDGET OVERRIDES & SETTINGS
+  // ---------------------------------------------------------------------------
+
+  Map<String, double> getAllBudgetOverrides() {
+    final map = <String, double>{};
+    for (final ov in storage.budgetOverrideBox.values) {
+      map['${ov.lineId}_${ov.monthKey}'] = ov.amount;
+    }
+    return map;
+  }
+
+  Future<void> setBudgetOverride(String lineId, String monthKey, double amount) async {
+    final key = '${lineId}_$monthKey';
+    final override = BudgetOverride(
+      lineId: lineId,
+      monthKey: monthKey,
+      amount: Money.r2(amount),
+    );
+    await storage.budgetOverrideBox.put(key, override);
+    _notify();
+  }
+
+  Future<void> removeBudgetOverride(String lineId, String monthKey) async {
+    final key = '${lineId}_$monthKey';
+    await storage.budgetOverrideBox.delete(key);
+    _notify();
+  }
+
+  String getBudgetMode() {
+    return storage.settingsBox.get('budget_mode', defaultValue: 'simple');
+  }
+
+  Future<void> setBudgetMode(String mode) async {
+    await storage.settingsBox.put('budget_mode', mode);
+    _notify();
+  }
+
+  double? getExpectedIncome() {
+    final val = storage.settingsBox.get('expected_income');
+    if (val is num) return val.toDouble();
+    return null;
+  }
+
+  Future<void> setExpectedIncome(double income) async {
+    await storage.settingsBox.put('expected_income', Money.r2(income));
+    _notify();
+  }
+
+  bool getRolloverCarryNegative() {
+    return storage.settingsBox.get('rollover_carry_negative', defaultValue: false);
+  }
+
+  Future<void> setRolloverCarryNegative(bool value) async {
+    await storage.settingsBox.put('rollover_carry_negative', value);
+    _notify();
+  }
 }

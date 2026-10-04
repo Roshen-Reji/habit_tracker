@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:intl/intl.dart';
+import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
+import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -288,6 +291,193 @@ class FinanceController extends ChangeNotifier {
     if (inv <= 0) return 0.0;
     final gl = getGainLoss(account, asOf: asOf);
     return Money.r2((gl / inv) * 100);
+  }
+
+  // ---------------------------------------------------------------------------
+  // BUDGETING (P4)
+  // ---------------------------------------------------------------------------
+
+  List<BudgetLine> get allBudgetLines => repository.getAllBudgetLines();
+
+  BudgetLine? getBudgetLineForCategory(String categoryId) {
+    for (final line in allBudgetLines) {
+      if (line.categoryId == categoryId) return line;
+    }
+    return null;
+  }
+
+  double getEffectiveBudget(BudgetLine line, String monthKey) {
+    return BudgetEngine.effectiveBudget(
+      line: line,
+      monthKey: monthKey,
+      transactions: storage.transactionBox.values,
+      overrides: repository.getAllBudgetOverrides(),
+      rolloverCarryNegative: repository.getRolloverCarryNegative(),
+    );
+  }
+
+  double getCategoryMonthSpent(String categoryId, DateTime month) {
+    final from = DateTime(month.year, month.month, 1);
+    final to = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+    return LedgerEngine.spending(
+      storage.transactionBox.values,
+      from: from,
+      to: to,
+      categoryId: categoryId,
+    );
+  }
+
+  double getCategoryProjectedSpend(String categoryId, DateTime currentDate) {
+    return BudgetEngine.projectedCategorySpend(
+      categoryId: categoryId,
+      currentDate: currentDate,
+      transactions: storage.transactionBox.values,
+    );
+  }
+
+  double getRecommendedWeeklyCut(double projectedSpend, double budgetLimit, DateTime currentDate) {
+    return BudgetEngine.recommendedWeeklyCut(
+      projectedSpend: projectedSpend,
+      budgetLimit: budgetLimit,
+      currentDate: currentDate,
+    );
+  }
+
+  BudgetStatus getBudgetStatus(BudgetLine line, DateTime currentDate) {
+    final monthKey = DateFormat('yyyy-MM').format(currentDate);
+    final eff = getEffectiveBudget(line, monthKey);
+    final spent = getCategoryMonthSpent(line.categoryId ?? '', currentDate);
+    final proj = getCategoryProjectedSpend(line.categoryId ?? '', currentDate);
+    return BudgetEngine.evaluateStatus(
+      effectiveBudget: eff,
+      spent: spent,
+      projectedSpend: proj,
+      currentDate: currentDate,
+    );
+  }
+
+  String get budgetMode => repository.getBudgetMode();
+  Future<void> setBudgetMode(String mode) => repository.setBudgetMode(mode);
+
+  double? get expectedIncome => repository.getExpectedIncome();
+  Future<void> setExpectedIncome(double income) => repository.setExpectedIncome(income);
+
+  bool get rolloverCarryNegative => repository.getRolloverCarryNegative();
+  Future<void> setRolloverCarryNegative(bool val) => repository.setRolloverCarryNegative(val);
+
+  Map<String, double> get budgetOverrides => repository.getAllBudgetOverrides();
+  Future<void> setBudgetOverride(String lineId, String monthKey, double amount) =>
+      repository.setBudgetOverride(lineId, monthKey, amount);
+  Future<void> removeBudgetOverride(String lineId, String monthKey) =>
+      repository.removeBudgetOverride(lineId, monthKey);
+
+  Future<BudgetLine> setBudgetLine(BudgetLine line) => repository.setBudgetLine(line);
+  Future<void> deleteBudgetLine(String id) => repository.deleteBudgetLine(id);
+
+  Map<String, BudgetGroupProgress> get50_30_20Breakdown(DateTime month, {double? expectedIncome}) {
+    final income = expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
+    final txs = getTransactionsForMonth(month);
+    final categories = {for (var c in storage.categoryBox.values) c.id: c};
+
+    double goalSavings = 0.0;
+    for (final ge in storage.goalEntryBox.values) {
+      if (ge.date.year == month.year && ge.date.month == month.month) {
+        goalSavings += ge.amount;
+      }
+    }
+
+    return BudgetEngine.compute50_30_20(
+      expectedIncome: income,
+      monthTransactions: txs,
+      categories: categories,
+      goalSavingsActual: goalSavings > 0 ? goalSavings : 0.0,
+    );
+  }
+
+  double _estimateIncome(DateTime month) {
+    // 3-month average income
+    double sum = 0.0;
+    for (int i = 1; i <= 3; i++) {
+      final m = DateTime(month.year, month.month - i, 1);
+      final from = DateTime(m.year, m.month, 1);
+      final to = DateTime(m.year, m.month + 1, 0, 23, 59, 59);
+      sum += LedgerEngine.income(storage.transactionBox.values, from: from, to: to);
+    }
+    final avg = sum / 3.0;
+    return avg > 0 ? avg : 50000.0; // Sensible default if no data
+  }
+
+  double getZeroBasedLeftToAssign(DateTime month, {double? expectedIncome}) {
+    final income = expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
+    final lines = allBudgetLines;
+    final extraBuckets = <double>[];
+    for (final goal in storage.goalBox.values) {
+      if (!goal.archived && goal.plannedMonthly != null && goal.plannedMonthly! > 0) {
+        extraBuckets.add(goal.plannedMonthly!);
+      }
+    }
+    return BudgetEngine.zeroBasedLeftToAssign(
+      expectedIncome: income,
+      lines: lines,
+      extraBuckets: extraBuckets,
+    );
+  }
+
+  Future<void> checkAndTriggerBudgetAlerts({DateTime? currentDate}) async {
+    final now = currentDate ?? DateTime.now();
+    final todayKey = DateFormat('yyyy-MM-dd').format(now);
+    final monthKey = DateFormat('yyyy-MM').format(now);
+    final alertsEnabled = storage.settingsBox.get('budget_alerts_enabled', defaultValue: true);
+    if (!alertsEnabled) return;
+
+    for (final line in allBudgetLines) {
+      if (line.categoryId == null) continue;
+      final category = storage.categoryBox.get(line.categoryId);
+      final catName = category?.name ?? 'Category';
+      final eff = getEffectiveBudget(line, monthKey);
+      if (eff <= 0) continue;
+
+      final spent = getCategoryMonthSpent(line.categoryId!, now);
+      final proj = getCategoryProjectedSpend(line.categoryId!, now);
+
+      // Check 100% overspend
+      if (spent >= eff) {
+        final alertKey = 'alert_100_${line.id}_$monthKey';
+        if (storage.settingsBox.get(alertKey) == null) {
+          await storage.settingsBox.put(alertKey, todayKey);
+          await NotificationService().showInstantNotification(
+            id: line.id.hashCode & 0x7FFFFFFF,
+            title: 'Budget Exceeded: $catName',
+            body: 'You have spent ${FormatUtils.formatMoney(spent)} of your ${FormatUtils.formatMoney(eff)} budget.',
+          );
+        }
+      } else if (spent >= eff * 0.8) {
+        // Check 80% threshold
+        final alertKey = 'alert_80_${line.id}_$monthKey';
+        if (storage.settingsBox.get(alertKey) == null) {
+          await storage.settingsBox.put(alertKey, todayKey);
+          await NotificationService().showInstantNotification(
+            id: (line.id.hashCode + 80) & 0x7FFFFFFF,
+            title: 'Budget Alert: $catName',
+            body: 'You have used 80% of your ${FormatUtils.formatMoney(eff)} budget (${FormatUtils.formatMoney(spent)} spent).',
+          );
+        }
+      }
+
+      // Check Pace alert (at most once per day globally)
+      if (proj > eff && spent < eff) {
+        final lastPaceAlert = storage.settingsBox.get('last_pace_alert_date');
+        if (lastPaceAlert != todayKey) {
+          await storage.settingsBox.put('last_pace_alert_date', todayKey);
+          final over = proj - eff;
+          await NotificationService().showInstantNotification(
+            id: (line.id.hashCode + 999) & 0x7FFFFFFF,
+            title: 'Pace Warning: $catName',
+            body: 'At your current pace, you are projected to exceed your budget by ${FormatUtils.formatMoney(over)}.',
+          );
+        }
+      }
+    }
   }
 }
 

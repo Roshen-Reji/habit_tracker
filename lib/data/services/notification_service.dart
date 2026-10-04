@@ -194,6 +194,41 @@ class NotificationService {
     }
   }
 
+  Future<void> schedule({
+    required int id,
+    required DateTime when,
+    required String title,
+    required String body,
+    String? payload,
+    String channelId = 'finance_channel',
+    String channelName = 'Finance Notifications',
+  }) async {
+    if (!_isInitialized) return;
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(when, tz.local),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            channelId,
+            channelName,
+            channelDescription: 'Finance alerts, budget warnings and reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+            color: const Color(0xFF18FFFF),
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        payload: payload,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('Failed to schedule notification: $e');
+    }
+  }
+
   Future<void> cancelReminder(int id) async {
     await flutterLocalNotificationsPlugin.cancel(id: id);
   }
