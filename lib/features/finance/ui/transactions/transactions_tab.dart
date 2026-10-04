@@ -10,6 +10,8 @@ import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/search_parser.dart';
 import 'package:habit_tracker/features/finance/models/category.dart';
+import 'package:habit_tracker/features/finance/ui/import/csv_import_page.dart';
+import 'package:habit_tracker/features/finance/ui/import/sms_import_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet.dart';
 
 class TransactionsTab extends StatefulWidget {
@@ -521,6 +523,43 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   ),
               ],
             ),
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(LucideIcons.moreVertical, size: 20, color: BentoTheme.textSecondary),
+            color: BentoTheme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (val) {
+              if (val == 'csv') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CsvImportPage()),
+                );
+              } else if (val == 'sms') {
+                SmsImportSheet.show(context);
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'csv',
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.fileSpreadsheet, size: 16, color: BentoTheme.accent),
+                    const SizedBox(width: 10),
+                    Text('Import Bank CSV', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'sms',
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.messageSquare, size: 16, color: BentoTheme.accent),
+                    const SizedBox(width: 10),
+                    Text('Paste SMS Alert', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

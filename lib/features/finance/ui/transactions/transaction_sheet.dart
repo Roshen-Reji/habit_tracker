@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
+import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/split_editor_sheet.dart';
 
@@ -66,6 +69,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
   String _selectedPaymentMethod = 'UPI';
   String? _splitsJson;
   String? _refundOfId;
+  List<String> _receiptPaths = [];
 
   bool _isSaving = false;
 
@@ -118,6 +122,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
       _selectedPaymentMethod = tx.paymentMethod ?? 'UPI';
       _splitsJson = tx.splits;
       _refundOfId = tx.refundOfId;
+      _receiptPaths = List<String>.from(tx.receiptPaths ?? []);
     } else {
       _selectedAccountId = widget.initialAccountId;
       _selectedDate = DateTime.now();
@@ -307,6 +312,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
         splits: _splitsJson,
         interestAmount: interestAmount,
         refundOfId: _refundOfId,
+        receiptPaths: _receiptPaths.isNotEmpty ? _receiptPaths : null,
       );
 
       if (widget.existingTransaction != null) {
@@ -986,40 +992,186 @@ class _TransactionSheetState extends State<TransactionSheet> {
     );
   }
 
-  Widget _buildSpecialActions() {
-    final hasSplits = _splitsJson != null && _splitsJson!.isNotEmpty;
-
-    return Row(
-      children: [
-        // Split Button
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _openSplitEditor,
-            icon: Icon(
-              hasSplits ? LucideIcons.checkCheck : LucideIcons.split,
-              size: 16,
-              color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
-            ),
-            label: Text(
-              hasSplits ? 'Splits Added' : 'Split Expense',
-              style: TextStyle(
-                color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+  Future<void> _pickReceipt() async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: BentoTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(LucideIcons.camera, color: BentoTheme.accent),
+                title: Text('Take Photo', style: TextStyle(color: BentoTheme.textPrimary)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
               ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: (hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent)
-                    .withValues(alpha: 0.5),
+              ListTile(
+                leading: Icon(LucideIcons.image, color: BentoTheme.accent),
+                title: Text('Choose from Gallery', style: TextStyle(color: BentoTheme.textPrimary)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+            ],
           ),
         ),
+      ),
+    );
+
+    if (source == null) return;
+    try {
+      final picked = await picker.pickImage(source: source);
+      if (picked != null) {
+        final txId = widget.existingTransaction?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
+        final savedPath = await ReceiptManager.saveReceipt(txId, File(picked.path));
+        setState(() {
+          _receiptPaths.add(savedPath);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to attach receipt: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildSpecialActions() {
+    final hasSplits = _splitsJson != null && _splitsJson!.isNotEmpty;
+    final hasReceipts = _receiptPaths.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            // Split Button
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openSplitEditor,
+                icon: Icon(
+                  hasSplits ? LucideIcons.checkCheck : LucideIcons.split,
+                  size: 16,
+                  color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
+                ),
+                label: Text(
+                  hasSplits ? 'Splits Added' : 'Split Expense',
+                  style: TextStyle(
+                    color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: (hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent)
+                        .withValues(alpha: 0.5),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Receipt Button
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickReceipt,
+                icon: Icon(
+                  hasReceipts ? LucideIcons.paperclip : LucideIcons.camera,
+                  size: 16,
+                  color: hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.textSecondary,
+                ),
+                label: Text(
+                  hasReceipts ? 'Receipts (${_receiptPaths.length})' : 'Add Receipt',
+                  style: TextStyle(
+                    color: hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: (hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.surfaceOutline)
+                        .withValues(alpha: 0.5),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (hasReceipts) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _receiptPaths.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, idx) {
+                final path = _receiptPaths[idx];
+                final file = File(path);
+                return Stack(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: BentoTheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: file.existsSync()
+                          ? Image.file(file, fit: BoxFit.cover)
+                          : Center(
+                              child: Icon(
+                                LucideIcons.fileText,
+                                size: 24,
+                                color: BentoTheme.textSecondary,
+                              ),
+                            ),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _receiptPaths.removeAt(idx);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.black87,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            LucideIcons.x,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
