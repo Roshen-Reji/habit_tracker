@@ -11,6 +11,7 @@ import 'package:habit_tracker/features/finance/ui/more/more_tab.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 import 'package:habit_tracker/features/finance/ui/calendar/finance_calendar_page.dart';
+import 'package:habit_tracker/features/finance/ui/debt/debt_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 
@@ -74,6 +75,10 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
       } else if (lower == 'calendar') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const FinanceCalendarPage()),
+        );
+      } else if (lower == 'debt' || lower == 'loans' || lower == 'cards') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const DebtPage()),
         );
       } else {
         // More sub-destinations

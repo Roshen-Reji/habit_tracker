@@ -7,6 +7,7 @@ import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
 import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
+import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -657,6 +658,115 @@ class FinanceController extends ChangeNotifier {
       }
     }
     return Money.r2(total);
+  }
+
+  // ---------------------------------------------------------------------------
+  // DEBT & CREDIT CARDS (P7)
+  // ---------------------------------------------------------------------------
+
+  List<Account> get loanAccounts => allAccounts
+      .where((a) =>
+          !a.archived &&
+          (a.kind == 'loan' || a.kind == 'bnpl' || a.kind == 'other_debt'))
+      .toList();
+
+  List<Account> get creditCardAccounts => allAccounts
+      .where((a) => !a.archived && a.kind == 'credit_card')
+      .toList();
+
+  double getTotalDebt({DateTime? asOf}) => totalLiabilities.abs();
+
+  double getWeightedAverageInterestRate() {
+    double totalBal = 0.0;
+    double weightedRateSum = 0.0;
+
+    for (final l in loanAccounts) {
+      final bal = getAccountBalance(l).abs();
+      final rate = l.annualRate ?? 10.0;
+      if (bal > 0) {
+        totalBal += bal;
+        weightedRateSum += bal * rate;
+      }
+    }
+
+    if (totalBal <= 0) return 0.0;
+    return Money.r2(weightedRateSum / totalBal);
+  }
+
+  double getTotalMonthlyEmiObligation() {
+    double total = 0.0;
+    for (final l in loanAccounts) {
+      if (l.emi != null && l.emi! > 0) {
+        total += l.emi!;
+      } else {
+        final bal = getAccountBalance(l).abs();
+        if (bal > 0) {
+          total += LoanEngine.calculateEmi(
+            principal: bal,
+            annualRatePct: l.annualRate ?? 10.0,
+            tenureMonths: l.tenureMonths ?? 60,
+          );
+        }
+      }
+    }
+    return Money.r2(total);
+  }
+
+  ({PayoffComparison avalanche, PayoffComparison snowball}) comparePayoffStrategies({
+    double? totalMonthlyBudget,
+    DateTime? startDate,
+  }) {
+    final balances = <String, double>{
+      for (final l in loanAccounts) l.id: getAccountBalance(l).abs(),
+    };
+
+    final budget = totalMonthlyBudget ?? (getTotalMonthlyEmiObligation() * 1.2);
+
+    return LoanEngine.comparePayoffStrategies(
+      loans: loanAccounts,
+      currentBalances: balances,
+      totalMonthlyBudget: budget > 0 ? budget : 10000.0,
+      startDate: startDate ?? DateTime.now(),
+    );
+  }
+
+  ExtraPaymentSimulation simulateExtraPayment(
+    Account loan,
+    double extraPayment,
+  ) {
+    final bal = getAccountBalance(loan).abs();
+    final rate = loan.annualRate ?? 10.0;
+    final emi = loan.emi ??
+        LoanEngine.calculateEmi(
+          principal: bal,
+          annualRatePct: rate,
+          tenureMonths: loan.tenureMonths ?? 60,
+        );
+
+    return LoanEngine.simulateExtraPayment(
+      principal: bal,
+      annualRatePct: rate,
+      emi: emi,
+      extraPaymentPerMonth: extraPayment,
+    );
+  }
+
+  LoanSchedule getAmortizationSchedule(Account loan, {double extraPayment = 0.0}) {
+    final bal = getAccountBalance(loan).abs();
+    final rate = loan.annualRate ?? 10.0;
+    final emi = loan.emi ??
+        LoanEngine.calculateEmi(
+          principal: bal,
+          annualRatePct: rate,
+          tenureMonths: loan.tenureMonths ?? 60,
+        );
+
+    return LoanEngine.generateSchedule(
+      principal: bal,
+      annualRatePct: rate,
+      emi: emi,
+      extraPayment: extraPayment,
+    );
   }
 }
 
