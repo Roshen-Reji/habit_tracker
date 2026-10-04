@@ -8,6 +8,7 @@ import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
+import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 
 enum AppTab {
@@ -185,6 +186,15 @@ class AppNav extends ChangeNotifier {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const ReportsPage(),
+      ),
+    );
+  }
+
+  /// Opens the Split & Settle dashboard.
+  static Future<void> openSplitGroups(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SplitGroupsPage(),
       ),
     );
   }

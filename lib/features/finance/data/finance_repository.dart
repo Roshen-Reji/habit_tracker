@@ -857,4 +857,93 @@ class FinanceRepository {
     await storage.settingsBox.put('rollover_carry_negative', value);
     _notify();
   }
+
+  // --- Split Groups and Entries (Phase 12) ---
+
+  Map<dynamic, SplitGroup> get splitGroups => storage.splitGroupBox.toMap();
+  Map<dynamic, SplitEntry> get splitEntries => storage.splitEntryBox.toMap();
+
+  Future<SplitGroup> addSplitGroup(SplitGroup group) async {
+    await storage.splitGroupBox.put(group.id, group);
+    _notify();
+    return group;
+  }
+
+  Future<void> updateSplitGroup(SplitGroup group) async {
+    await storage.splitGroupBox.put(group.id, group);
+    _notify();
+  }
+
+  Future<void> deleteSplitGroup(String groupId) async {
+    await storage.splitGroupBox.delete(groupId);
+    final entriesToDelete = storage.splitEntryBox.values.where((e) => e.groupId == groupId).map((e) => e.id).toList();
+    for (final id in entriesToDelete) {
+      await storage.splitEntryBox.delete(id);
+    }
+    _notify();
+  }
+
+  Future<SplitEntry> addSplitEntry(SplitEntry entry) async {
+    await storage.splitEntryBox.put(entry.id, entry);
+    _notify();
+    return entry;
+  }
+
+  Future<void> updateSplitEntry(SplitEntry entry) async {
+    await storage.splitEntryBox.put(entry.id, entry);
+    _notify();
+  }
+
+  Future<void> deleteSplitEntry(String entryId) async {
+    await storage.splitEntryBox.delete(entryId);
+    _notify();
+  }
+
+  /// Settle a split entry.
+  /// If targetAccountId is available:
+  /// - Receiving money creates a `reimbursement` transaction (not income) per P12-2.
+  /// - Paying money creates an `expense` transaction.
+  Future<void> settleSplitEntry({
+    required String entryId,
+    required bool isReimbursement,
+    double? settlementAmount,
+    String? accountId,
+    String? note,
+  }) async {
+    final entry = storage.splitEntryBox.get(entryId);
+    if (entry == null) throw ArgumentError('SplitEntry not found: $entryId');
+
+    final amt = settlementAmount ?? entry.amount;
+    final targetAccountId = accountId ?? accounts.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+
+    if (targetAccountId != null && amt > 0) {
+      if (isReimbursement) {
+        await addTransaction(TxDraft(
+          title: 'Settlement: ${entry.title}',
+          amount: amt,
+          kind: 'reimbursement',
+          mode: 'income',
+          category: 'Reimbursement',
+          accountId: targetAccountId,
+          date: DateTime.now(),
+          notes: note ?? 'Split settlement reimbursement',
+        ));
+      } else {
+        await addTransaction(TxDraft(
+          title: 'Settlement: ${entry.title}',
+          amount: amt,
+          kind: 'expense',
+          mode: 'expense',
+          category: 'Other',
+          accountId: targetAccountId,
+          date: DateTime.now(),
+          notes: note ?? 'Split settlement payment',
+        ));
+      }
+    }
+
+    entry.settled = true;
+    await entry.save();
+    _notify();
+  }
 }
