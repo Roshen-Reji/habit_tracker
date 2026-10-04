@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/account_detail_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 import 'package:habit_tracker/features/finance/ui/calendar/finance_calendar_page.dart';
+import 'package:habit_tracker/features/finance/ui/cashflow/cash_flow_page.dart';
 import 'package:habit_tracker/features/finance/ui/debt/debt_page.dart';
+import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
@@ -158,5 +160,24 @@ class AppNav extends ChangeNotifier {
       ),
     );
   }
+
+  /// Opens the Financial Insights page.
+  static Future<void> openInsights(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const InsightsPage(),
+      ),
+    );
+  }
+
+  /// Opens the Cash Flow Analysis page.
+  static Future<void> openCashFlow(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CashFlowPage(),
+      ),
+    );
+  }
 }
+
 

@@ -10,6 +10,11 @@ import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
+import 'package:habit_tracker/features/finance/engine/constants.dart';
+import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
+import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
+import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
+import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
 /// Reactive controller that exposes memoised financial data, month indexes,
@@ -768,5 +773,514 @@ class FinanceController extends ChangeNotifier {
       extraPayment: extraPayment,
     );
   }
+
+  // ==========================================
+  // PHASE 8: INTELLIGENCE & FORECAST
+  // ==========================================
+
+  /// P8-3: Safe to spend calculation
+  /// S = liquid - O - G - P - C
+  SafeToSpendResult getSafeToSpend({DateTime? asOf, DateTime? horizon}) {
+    final today = asOf ?? DateTime.now();
+    final effectiveHorizon = horizon ?? DateTime(today.year, today.month + 1, 0);
+    final liquid = getLiquidBalance(asOf: today);
+
+    // O: obligations in (today, horizon]
+    // Unposted active non-income recurring rules, excluding card payment transfers
+    double obligations = 0.0;
+    final cardAccountIds = creditCardAccounts.map((a) => a.id).toSet();
+    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
+
+    for (final rule in activeRules) {
+      if (rule.kind == 'income') continue;
+      if (rule.kind == 'transfer' && rule.toAccountId != null && cardAccountIds.contains(rule.toAccountId)) {
+        continue;
+      }
+      final occurrences = RecurringEngine.occurrences(
+        rule: rule,
+        from: today.add(const Duration(days: 1)),
+        to: effectiveHorizon,
+      );
+      for (final occ in occurrences) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(occ);
+        final sourceRef = 'rec:${rule.id}:$dateKey';
+        final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+        if (!isPosted) {
+          obligations += rule.amount;
+        }
+      }
+    }
+
+    // G: goals/fund contributions not yet contributed this month
+    double goalsEarmark = 0.0;
+    final monthStart = DateTime(today.year, today.month, 1);
+    final monthEnd = DateTime(today.year, today.month + 1, 0, 23, 59, 59);
+
+    for (final goal in activeGoals) {
+      final planned = goal.plannedMonthly ??
+          GoalPlannerEngine.calculateRequiredMonthly(
+            target: goal.targetAmount,
+            saved: getGoalSavedAmount(goal),
+            deadline: goal.deadlineDate,
+            asOf: today,
+          );
+
+      final thisMonthContributions = storage.goalEntryBox.values
+          .where((e) =>
+              e.goalId == goal.id &&
+              e.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) &&
+              e.date.isBefore(monthEnd.add(const Duration(seconds: 1))))
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      final remainingGoalNeed = (planned - thisMonthContributions).clamp(0.0, double.infinity);
+      goalsEarmark += remainingGoalNeed;
+    }
+
+    // P: planned essential budget lines
+    // max(0, effective - spent - unpostedRecurringInThatCategory)
+    double plannedEssential = 0.0;
+    final budgetLines = storage.budgetLineBox.values.where((b) => b.essential);
+    for (final line in budgetLines) {
+      if (line.categoryId == null) continue;
+      final effective = BudgetEngine.effectiveBudget(
+        line: line,
+        month: today,
+        overrides: storage.budgetOverrideBox.values.toList(),
+        spentProvider: (l, m) => getCategorySpendingForMonth(l.categoryId, m),
+      );
+      final spent = getCategorySpendingForMonth(line.categoryId, today);
+
+      double unpostedCatRecurring = 0.0;
+      for (final rule in activeRules) {
+        if (rule.categoryId == line.categoryId && rule.kind != 'income') {
+          final occs = RecurringEngine.occurrences(
+            rule: rule,
+            from: today.add(const Duration(days: 1)),
+            to: effectiveHorizon,
+          );
+          for (final occ in occs) {
+            final dateKey = DateFormat('yyyy-MM-dd').format(occ);
+            final sourceRef = 'rec:${rule.id}:$dateKey';
+            final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+            if (!isPosted) {
+              unpostedCatRecurring += rule.amount;
+            }
+          }
+        }
+      }
+
+      final remaining = (effective - spent - unpostedCatRecurring).clamp(0.0, double.infinity);
+      plannedEssential += remaining;
+    }
+
+    // C: card statement balances falling due by horizon
+    double cardDues = 0.0;
+    for (final card in creditCardAccounts) {
+      final bal = getAccountBalance(card, asOf: today);
+      if (bal < 0) {
+        cardDues += bal.abs();
+      }
+    }
+
+    return ForecastEngine.calculateSafeToSpend(
+      liquid: liquid,
+      obligations: obligations,
+      goalsEarmark: goalsEarmark,
+      plannedEssential: plannedEssential,
+      cardDues: cardDues,
+      today: today,
+      horizon: effectiveHorizon,
+    );
+  }
+
+  /// P8-2: Month-end forecast of liquid balance
+  ForecastResult getMonthEndForecast({DateTime? asOf}) {
+    final today = asOf ?? DateTime.now();
+    final monthEnd = DateTime(today.year, today.month + 1, 0);
+    final liquid = getLiquidBalance(asOf: today);
+
+    // Expected income remaining
+    double expectedIncomeRemaining = 0.0;
+    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
+    for (final rule in activeRules) {
+      if (rule.kind == 'income') {
+        final occurrences = RecurringEngine.occurrences(
+          rule: rule,
+          from: today.add(const Duration(days: 1)),
+          to: monthEnd,
+        );
+        for (final occ in occurrences) {
+          final dateKey = DateFormat('yyyy-MM-dd').format(occ);
+          final sourceRef = 'rec:${rule.id}:$dateKey';
+          final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+          if (!isPosted) {
+            expectedIncomeRemaining += rule.amount;
+          }
+        }
+      }
+    }
+
+    final manualIncome = storage.settingsBox.get('expected_income');
+    if (manualIncome is num && manualIncome > 0) {
+      final currentInc = getMonthIncome(today);
+      if (manualIncome > currentInc) {
+        final manualRemaining = manualIncome - currentInc;
+        if (manualRemaining > expectedIncomeRemaining) {
+          expectedIncomeRemaining = manualRemaining.toDouble();
+        }
+      }
+    }
+
+    final safeToSpend = getSafeToSpend(asOf: today, horizon: monthEnd);
+    final obligations = safeToSpend.obligations;
+    final cardDues = safeToSpend.cardDues;
+
+    final daysElapsed = today.day;
+    final daysInMonth = monthEnd.day;
+    final currentCatBreakdown = getCategoryBreakdown(today);
+
+    final cat3mTotals = <String, double>{};
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final mBreakdown = getCategoryBreakdown(m);
+      for (final e in mBreakdown.entries) {
+        cat3mTotals[e.key] = (cat3mTotals[e.key] ?? 0.0) + e.value;
+      }
+    }
+    final cat3mAvg = {for (final e in cat3mTotals.entries) e.key: e.value / 3.0};
+
+    final recurringCovered = activeRules
+        .where((r) => r.categoryId != null && r.kind != 'income')
+        .map((r) => r.categoryId!)
+        .toSet();
+
+    final remainingVariable = ForecastEngine.calculateTotalRemainingVariable(
+      currentCategorySpend: currentCatBreakdown,
+      category3MonthAvg: cat3mAvg,
+      daysElapsed: daysElapsed,
+      daysInMonth: daysInMonth,
+      recurringCoveredCategories: recurringCovered,
+    );
+
+    final pastSpendList = <double>[];
+    for (var i = 1; i <= 6; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final txs = getTransactionsForMonth(m);
+      if (txs.isNotEmpty) {
+        pastSpendList.add(getMonthSpending(m));
+      }
+    }
+
+    return ForecastEngine.calculateMonthEndForecast(
+      liquid: liquid,
+      expectedIncomeRemaining: expectedIncomeRemaining,
+      obligations: obligations,
+      cardDues: cardDues,
+      remainingVariable: remainingVariable,
+      pastMonthlyVariableSpend: pastSpendList,
+    );
+  }
+
+  /// P8-1: Cash flow analysis and next-30-days projection
+  CashFlowResult getCashFlowAnalysis({DateTime? month}) {
+    final m = month ?? DateTime.now();
+    final today = DateTime.now();
+    final income = getMonthIncome(m);
+    final spending = getMonthSpending(m);
+    final net = income - spending;
+    final savingsRate = income > 0 ? (net / income).clamp(0.0, 1.0) : 0.0;
+
+    final catBreakdown = getCategoryBreakdown(m);
+    final txs = getTransactionsForMonth(m);
+    final merchantBreakdown = <String, double>{};
+    for (final tx in txs) {
+      if (tx.effectiveKind == 'expense' && tx.merchant != null && tx.merchant!.isNotEmpty) {
+        merchantBreakdown[tx.merchant!] = (merchantBreakdown[tx.merchant!] ?? 0.0) + tx.amount.abs();
+      }
+    }
+
+    final horizon30 = today.add(const Duration(days: 30));
+    double expectedIncomeNext30 = 0.0;
+    double billsDueNext30 = 0.0;
+    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
+
+    for (final rule in activeRules) {
+      final occurrences = RecurringEngine.occurrences(rule: rule, from: today, to: horizon30);
+      for (final occ in occurrences) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(occ);
+        final sourceRef = 'rec:${rule.id}:$dateKey';
+        final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+        if (!isPosted) {
+          if (rule.kind == 'income') {
+            expectedIncomeNext30 += rule.amount;
+          } else {
+            billsDueNext30 += rule.amount;
+          }
+        }
+      }
+    }
+
+    double past3mSpending = 0.0;
+    int monthsCounted = 0;
+    for (var i = 1; i <= 3; i++) {
+      final pastM = DateTime(today.year, today.month - i);
+      final s = getMonthSpending(pastM);
+      if (s > 0) {
+        past3mSpending += s;
+        monthsCounted++;
+      }
+    }
+    final expectedVariableNext30 = monthsCounted > 0 ? (past3mSpending / monthsCounted) : spending;
+    final liquid = getLiquidBalance(asOf: today);
+    final remainingNext30 = liquid + expectedIncomeNext30 - billsDueNext30 - expectedVariableNext30;
+
+    return CashFlowResult(
+      income: income,
+      spending: spending,
+      net: net,
+      savingsRate: savingsRate,
+      categoryBreakdown: catBreakdown,
+      merchantBreakdown: merchantBreakdown,
+      expectedIncomeNext30: Money.r2(expectedIncomeNext30),
+      billsDueNext30: Money.r2(billsDueNext30),
+      expectedVariableNext30: Money.r2(expectedVariableNext30),
+      remainingNext30: Money.r2(remainingNext30),
+    );
+  }
+
+  /// P8-4: Financial Health Score (0 - 100)
+  HealthScoreResult getHealthScore({DateTime? asOf}) {
+    final today = asOf ?? DateTime.now();
+    final lastMonth = DateTime(today.year, today.month - 1);
+
+    double lastMonthBudgetLimit = 0.0;
+    double lastMonthBudgetOverspend = 0.0;
+    for (final line in storage.budgetLineBox.values) {
+      if (line.categoryId == null) continue;
+      final limit = BudgetEngine.effectiveBudget(
+        line: line,
+        month: lastMonth,
+        overrides: storage.budgetOverrideBox.values.toList(),
+        spentProvider: (l, m) => getCategorySpendingForMonth(l.categoryId, m),
+      );
+      final spent = getCategorySpendingForMonth(line.categoryId, lastMonth);
+      lastMonthBudgetLimit += limit;
+      if (spent > limit) {
+        lastMonthBudgetOverspend += (spent - limit);
+      }
+    }
+
+    double inc3m = 0.0;
+    double sp3m = 0.0;
+    int valid3m = 0;
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final inc = getMonthIncome(m);
+      final sp = getMonthSpending(m);
+      if (inc > 0 || sp > 0) {
+        inc3m += inc;
+        sp3m += sp;
+        valid3m++;
+      }
+    }
+    final savingsRate3m = inc3m > 0 ? ((inc3m - sp3m) / inc3m).clamp(-1.0, 1.0) : null;
+
+    final monthlyDebtObligations = getTotalMonthlyEmiObligation();
+    final monthlyIncome = inc3m > 0 && valid3m > 0 ? (inc3m / valid3m) : getMonthIncome(today);
+    double totalCardBalance = 0.0;
+    double totalCardLimit = 0.0;
+    for (final card in creditCardAccounts) {
+      final bal = getAccountBalance(card, asOf: today);
+      if (bal < 0) totalCardBalance += bal.abs();
+      totalCardLimit += card.creditLimit ?? 0.0;
+    }
+    final hasNoDebt = loanAccounts.isEmpty && totalCardBalance == 0;
+
+    final liquid = getLiquidBalance(asOf: today);
+    double essential3m = 0.0;
+    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final breakdown = getCategoryBreakdown(m);
+      for (final e in breakdown.entries) {
+        if (essentialCatIds.contains(e.key)) {
+          essential3m += e.value;
+        }
+      }
+    }
+    final avgMonthlyEssential3m = valid3m > 0 ? (essential3m / valid3m) : (sp3m > 0 ? sp3m / 3 : 0.0);
+
+    final last6mSpend = <double>[];
+    for (var i = 1; i <= 6; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final s = getMonthSpending(m);
+      if (s > 0) last6mSpend.add(s);
+    }
+
+    return HealthScoreEngine.calculate(
+      lastMonthBudgetLimit: lastMonthBudgetLimit > 0 ? lastMonthBudgetLimit : null,
+      lastMonthBudgetOverspend: lastMonthBudgetOverspend,
+      savingsRate3m: savingsRate3m,
+      monthlyDebtObligations: monthlyDebtObligations > 0 ? monthlyDebtObligations : null,
+      monthlyIncome: monthlyIncome > 0 ? monthlyIncome : null,
+      totalCardBalance: totalCardBalance > 0 ? totalCardBalance : null,
+      totalCardLimit: totalCardLimit > 0 ? totalCardLimit : null,
+      hasNoDebt: hasNoDebt,
+      liquidBalance: liquid,
+      avgMonthlyEssential3m: avgMonthlyEssential3m,
+      last6MonthsSpending: last6mSpend,
+    );
+  }
+
+  /// P8-6: What-If expense simulator
+  WhatIfResult simulateWhatIf(double amount, {DateTime? asOf}) {
+    final today = asOf ?? DateTime.now();
+    final forecast = getMonthEndForecast(asOf: today);
+
+    double essential3m = 0.0;
+    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    int valid3m = 0;
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final breakdown = getCategoryBreakdown(m);
+      for (final e in breakdown.entries) {
+        if (essentialCatIds.contains(e.key)) {
+          essential3m += e.value;
+        }
+      }
+      if (breakdown.isNotEmpty) valid3m++;
+    }
+    final avgEssential = valid3m > 0 ? (essential3m / valid3m) : getMonthSpending(today);
+
+    double totalSurplus = 0.0;
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      totalSurplus += (getMonthIncome(m) - getMonthSpending(m));
+    }
+    final avgSurplus = valid3m > 0 ? (totalSurplus / valid3m) : 0.0;
+
+    return WhatIfEngine.canAfford(
+      amount: amount,
+      forecastMonthEnd: forecast.projectedMonthEnd,
+      emergencyBuffer: avgEssential > 0 ? avgEssential : 10000.0,
+      avgMonthlySurplus3m: avgSurplus,
+    );
+  }
+
+  /// P8-5: Insights Generator
+  List<FinanceInsight> getInsights({DateTime? asOf}) {
+    final today = asOf ?? DateTime.now();
+    final liquid = getLiquidBalance(asOf: today);
+
+    final currentMonthTxs = getTransactionsForMonth(today);
+    final past3mTxs = <Transaction>[];
+    for (var i = 1; i <= 3; i++) {
+      past3mTxs.addAll(getTransactionsForMonth(DateTime(today.year, today.month - i)));
+    }
+
+    final budgetLines = storage.budgetLineBox.values.toList();
+    final budgetLineSpent = <String, double>{
+      for (final b in budgetLines)
+        if (b.categoryId != null) b.id: getCategorySpendingForMonth(b.categoryId, today),
+    };
+
+    final savedAmounts = {for (final g in activeGoals) g.id: getGoalSavedAmount(g)};
+    final goalRates = {for (final g in activeGoals) g.id: getGoalThreeMonthRate(g)};
+
+    final currentNetWorth = getNetWorth(asOf: today);
+    final lastMonth = DateTime(today.year, today.month - 1);
+    final lastMonthNetWorth = getNetWorth(asOf: lastMonth);
+
+    final inc = getMonthIncome(today);
+    final sp = getMonthSpending(today);
+    final currentSavingsRate = inc > 0 ? (inc - sp) / inc : 0.0;
+
+    double inc3m = 0.0;
+    double sp3m = 0.0;
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      inc3m += getMonthIncome(m);
+      sp3m += getMonthSpending(m);
+    }
+    final pastSavingsRate3m = inc3m > 0 ? (inc3m - sp3m) / inc3m : 0.0;
+
+    double essential3m = 0.0;
+    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    for (var i = 1; i <= 3; i++) {
+      final m = DateTime(today.year, today.month - i);
+      final breakdown = getCategoryBreakdown(m);
+      for (final e in breakdown.entries) {
+        if (essentialCatIds.contains(e.key)) {
+          essential3m += e.value;
+        }
+      }
+    }
+    final avgMonthlyEssential3m = essential3m > 0 ? (essential3m / 3.0) : 10000.0;
+
+    final rawDismissed = storage.settingsBox.get('dismissed_insights');
+    final dismissedSet = <String>{};
+    if (rawDismissed is List) {
+      dismissedSet.addAll(rawDismissed.map((e) => e.toString()));
+    }
+
+    return InsightsEngine.generateInsights(
+      today: today,
+      liquidBalance: liquid,
+      currentMonthTransactions: currentMonthTxs,
+      past3MonthsTransactions: past3mTxs,
+      categories: activeCategories,
+      budgetLines: budgetLines,
+      budgetLineSpent: budgetLineSpent,
+      activeGoals: activeGoals,
+      goalSavedAmounts: savedAmounts,
+      goal3mMonthlyRates: goalRates,
+      recurringRules: storage.recurringBox.values.toList(),
+      currentNetWorth: currentNetWorth,
+      lastMonthNetWorth: lastMonthNetWorth,
+      currentSavingsRate: currentSavingsRate,
+      pastSavingsRate3m: pastSavingsRate3m,
+      avgMonthlyEssential3m: avgMonthlyEssential3m,
+      dismissedKeys: dismissedSet,
+    );
+  }
+
+  /// Dismiss an insight by stableKey
+  Future<void> dismissInsight(String stableKey) async {
+    final raw = storage.settingsBox.get('dismissed_insights');
+    final list = <String>[];
+    if (raw is List) {
+      list.addAll(raw.map((e) => e.toString()));
+    }
+    if (!list.contains(stableKey)) {
+      list.add(stableKey);
+      await storage.settingsBox.put('dismissed_insights', list);
+      notifyListeners();
+    }
+  }
+
+  /// P8-7: Cockpit layout registry
+  List<String> getHomeLayout() {
+    final raw = storage.settingsBox.get('fin_home_layout');
+    if (raw is List && raw.isNotEmpty) {
+      return raw.map((e) => e.toString()).toList();
+    }
+    return const [
+      'net_worth',
+      'safe_to_spend',
+      'cash_flow',
+      'insights',
+      'upcoming',
+      'goals',
+      'budgets',
+      'health_score',
+      'what_if',
+    ];
+  }
+
+  Future<void> updateHomeLayout(List<String> layout) async {
+    await storage.settingsBox.put('fin_home_layout', layout);
+    notifyListeners();
+  }
 }
+
 

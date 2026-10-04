@@ -128,6 +128,22 @@ class MoreTab extends StatelessWidget {
                 },
               ),
               _tile(
+                icon: LucideIcons.sparkles,
+                title: 'Financial Insights',
+                subtitle: 'Spending spikes, pace warnings & anomalies',
+                onTap: () {
+                  if (onNavigate != null) onNavigate!('insights');
+                },
+              ),
+              _tile(
+                icon: LucideIcons.arrowRightLeft,
+                title: 'Cash Flow Analysis',
+                subtitle: 'Inflow, outflow & 30-day projection',
+                onTap: () {
+                  if (onNavigate != null) onNavigate!('cashflow');
+                },
+              ),
+              _tile(
                 icon: LucideIcons.fileSpreadsheet,
                 title: 'Financial Reports',
                 subtitle: 'Monthly cash flow, spending breakdown & CSV export',

@@ -8,9 +8,10 @@ class MoneyFeature {
   /// Sub-modules (More tab / Deep links)
   static bool isAccountsEnabled = true;
   static bool isNetWorthEnabled = true;
-  static bool isRecurringEnabled = false; // Phase 6
-  static bool isDebtEnabled = false; // Phase 7
-  static bool isCashFlowEnabled = false; // Phase 8
+  static bool isRecurringEnabled = true; // Phase 6
+  static bool isDebtEnabled = true; // Phase 7
+  static bool isCashFlowEnabled = true; // Phase 8
+  static bool isInsightsEnabled = true; // Phase 8
   static bool isReportsEnabled = false; // Phase 9
   static bool isImportEnabled = false; // Phase 10
   static bool isSplitSettleEnabled = false; // Phase 12
