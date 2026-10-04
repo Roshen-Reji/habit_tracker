@@ -5,6 +5,7 @@ import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
+import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -478,6 +479,102 @@ class FinanceController extends ChangeNotifier {
         }
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // GOALS & SINKING FUNDS (P5)
+  // ---------------------------------------------------------------------------
+
+  List<SavingsGoal> get allGoals => repository.getAllGoals();
+
+  List<SavingsGoal> get activeGoals =>
+      allGoals.where((g) => !g.archived && g.kind != 'sinking_fund').toList();
+
+  List<SavingsGoal> get activeSinkingFunds =>
+      allGoals.where((g) => !g.archived && g.kind == 'sinking_fund').toList();
+
+  double getGoalSaved(String goalId) {
+    return GoalPlannerEngine.totalSaved(repository.getGoalEntries(goalId));
+  }
+
+  List<GoalEntry> getGoalEntries(String goalId) {
+    return repository.getGoalEntries(goalId);
+  }
+
+  Future<SavingsGoal> addGoal(SavingsGoal goal) => repository.addGoal(goal);
+
+  Future<void> updateGoal(SavingsGoal goal) => repository.updateGoal(goal);
+
+  Future<void> deleteGoal(String id) => repository.deleteGoal(id);
+
+  Future<GoalEntry> addGoalContribution({
+    required String goalId,
+    required double amount,
+    DateTime? date,
+    String? note,
+  }) =>
+      repository.addGoalContribution(
+        goalId: goalId,
+        amount: amount,
+        date: date,
+        note: note,
+      );
+
+  Future<void> deleteGoalEntry(String id) => repository.deleteGoalEntry(id);
+
+  Future<List<GoalEntry>> runAutoContribute({DateTime? now}) =>
+      repository.runAutoContribute(now: now);
+
+  GoalPlan planGoal(SavingsGoal goal, {DateTime? currentDate}) {
+    final budgetLineMap = <String, BudgetLine>{};
+    for (final l in allBudgetLines) {
+      if (l.categoryId != null) {
+        budgetLineMap[l.categoryId!] = l;
+      }
+    }
+
+    final catMap = {for (var c in storage.categoryBox.values) c.id: c};
+
+    return GoalPlannerEngine.planGoal(
+      goal: goal,
+      goalEntries: storage.goalEntryBox.values,
+      transactions: storage.transactionBox.values,
+      categories: catMap,
+      budgetLines: budgetLineMap,
+      currentDate: currentDate ?? DateTime.now(),
+    );
+  }
+
+  Future<void> applyTrimSuggestions(List<TrimSuggestion> suggestions) async {
+    final now = DateTime.now();
+    final monthKey = DateFormat('yyyy-MM').format(now);
+
+    for (final s in suggestions) {
+      final existing = getBudgetLineForCategory(s.categoryId);
+      if (existing != null) {
+        final updated = BudgetLine(
+          id: existing.id,
+          categoryId: existing.categoryId,
+          bucketRef: existing.bucketRef,
+          amount: s.newBudget,
+          rollover: existing.rollover,
+          essential: existing.essential,
+          startMonth: existing.startMonth,
+        );
+        await setBudgetLine(updated);
+      } else {
+        final newLine = BudgetLine(
+          id: 'bl_${DateTime.now().millisecondsSinceEpoch}_${s.categoryId}',
+          categoryId: s.categoryId,
+          amount: s.newBudget,
+          rollover: false,
+          essential: false,
+          startMonth: monthKey,
+        );
+        await setBudgetLine(newLine);
+      }
+    }
+    notifyListeners();
   }
 }
 

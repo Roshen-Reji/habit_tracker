@@ -6,7 +6,7 @@ import 'package:habit_tracker/features/finance/engine/money_feature.dart';
 import 'package:habit_tracker/features/finance/ui/overview/money_overview_tab.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/transactions_tab.dart';
 import 'package:habit_tracker/features/finance/ui/budget/budget_tab.dart';
-import 'package:habit_tracker/features/finance/ui/goals/goals_tab_placeholder.dart';
+import 'package:habit_tracker/features/finance/ui/goals/goals_tab.dart';
 import 'package:habit_tracker/features/finance/ui/more/more_tab.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
@@ -82,7 +82,7 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
       ),
       const TransactionsTab(),
       const BudgetTab(),
-      const GoalsTabPlaceholder(),
+      const GoalsTab(),
       MoreTab(
         onNavigate: (link) => _handleDeepLink(link),
       ),

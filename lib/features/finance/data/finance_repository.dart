@@ -551,9 +551,71 @@ class FinanceRepository {
   }
 
   List<GoalEntry> getGoalEntries(String goalId) {
-    return storage.goalEntryBox.values
+    final list = storage.goalEntryBox.values
         .where((e) => e.goalId == goalId)
         .toList();
+    list.sort((a, b) => b.date.compareTo(a.date));
+    return list;
+  }
+
+  Future<void> updateGoal(SavingsGoal goal) async {
+    await storage.goalBox.put(goal.id, goal);
+    _notify();
+  }
+
+  Future<void> deleteGoal(String id) async {
+    await storage.goalBox.delete(id);
+    // Delete associated entries
+    final entries = storage.goalEntryBox.values.where((e) => e.goalId == id).map((e) => e.id).toList();
+    for (final eid in entries) {
+      await storage.goalEntryBox.delete(eid);
+    }
+    _notify();
+  }
+
+  Future<void> deleteGoalEntry(String id) async {
+    await storage.goalEntryBox.delete(id);
+    _notify();
+  }
+
+  /// P5-4 Auto-contribute:
+  /// When autoContribute is on, creates the month's GoalEntry on first open of each month
+  /// (idempotent via sourceRef: 'autogoal:{goal.id}:{yyyy-MM}').
+  Future<List<GoalEntry>> runAutoContribute({DateTime? now}) async {
+    final current = now ?? DateTime.now();
+    final monthKey = DateFormat('yyyy-MM').format(current);
+    final firstOfMonth = DateTime(current.year, current.month, 1);
+    final createdEntries = <GoalEntry>[];
+
+    for (final goal in storage.goalBox.values) {
+      if (goal.archived || !goal.autoContribute) continue;
+      final monthly = goal.plannedMonthly;
+      if (monthly == null || monthly <= 0) continue;
+
+      final sourceRef = 'autogoal:${goal.id}:$monthKey';
+
+      // Check if entry already exists
+      final alreadyPosted = storage.goalEntryBox.values.any((e) => e.sourceRef == sourceRef);
+      if (alreadyPosted) continue;
+
+      final entry = GoalEntry(
+        id: _generateId('ge'),
+        goalId: goal.id,
+        date: firstOfMonth,
+        amount: monthly,
+        note: 'Auto contribution ($monthKey)',
+        sourceRef: sourceRef,
+      );
+
+      await storage.goalEntryBox.put(entry.id, entry);
+      createdEntries.add(entry);
+    }
+
+    if (createdEntries.isNotEmpty) {
+      _notify();
+    }
+
+    return createdEntries;
   }
 
   // ---------------------------------------------------------------------------
