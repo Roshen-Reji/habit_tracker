@@ -9,6 +9,14 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
+import 'package:habit_tracker/features/finance/data/finance_controller.dart';
+import 'package:habit_tracker/features/finance/engine/query.dart';
+import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
+import 'package:habit_tracker/features/finance/models/account.dart';
+import 'package:habit_tracker/features/finance/models/category.dart';
+import 'package:habit_tracker/features/finance/models/recurring_rule.dart';
+import 'package:habit_tracker/features/finance/models/goal.dart';
+import 'package:habit_tracker/features/finance/models/budget_line.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -989,11 +997,38 @@ class AiService {
   AiResponse? _handleFinanceLocally(String message) {
     final lower = message.toLowerCase().trim();
 
+    // Invariant §6.9 & P11-4: Check privacy switch
+    if (Hive.isBoxOpen('finance_settings')) {
+      final allowed = Hive.box('finance_settings').get('ai_finance_privacy', defaultValue: true);
+      if (allowed == false) {
+        return AiResponse(
+          message: 'Finance AI features are disabled in Settings > AI & Privacy.',
+          intent: 'finance',
+        );
+      }
+    }
+
+    // 1. What-If simulator fast path ("Can I afford a ₹50,000 phone?")
+    final whatIfResponse = _handleWhatIfLocally(lower);
+    if (whatIfResponse != null) return whatIfResponse;
+
+    // 2. Deterministic natural-language query ("spent on Swiggy last month", "top 5 merchants", "net worth")
+    final queryResponse = _handleFinanceQueryLocally(lower);
+    if (queryResponse != null) return queryResponse;
+
     if (_isSipQuery(lower)) return _buildSipResponse();
     if (_isFinanceSummaryQuery(lower)) return _buildFinanceSummaryResponse();
 
     final amount = _extractMoneyAmount(lower);
     if (amount == null || amount <= 0) return null;
+
+    // 3. Transfer fast path ("Transfer 5000 from HDFC to ICICI")
+    final transferResponse = _handleTransferLocally(lower, amount);
+    if (transferResponse != null) return transferResponse;
+
+    // 4. Recurring bill fast path ("Add recurring bill Netflix 649 monthly")
+    final recurringResponse = _handleRecurringLocally(lower, amount);
+    if (recurringResponse != null) return recurringResponse;
 
     final budgetDraft = _parseFinanceBudgetDraft(lower, amount);
     if (budgetDraft != null) {
@@ -1081,6 +1116,293 @@ class AiService {
     }
 
     return null;
+  }
+
+  AiResponse? _handleWhatIfLocally(String lower) {
+    if (!_containsAny(lower, ['can i afford', 'afford a', 'afford to buy', 'can i buy'])) {
+      return null;
+    }
+    final amount = _extractMoneyAmount(lower);
+    if (amount == null || amount <= 0) return null;
+
+    String itemName = lower
+        .replaceAll(RegExp(r'can i afford\s*(?:a|an|the)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'afford\s*(?:to\s+buy)?\s*(?:a|an|the)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'can i buy\s*(?:a|an|the)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'(?:for|\?|\b)(?:₹|rs\.?|inr)?\s*[\d,]+(?:\.\d+)?\b', caseSensitive: false), '')
+        .trim();
+    if (itemName.isEmpty) itemName = 'Purchase';
+
+    final controller = FinanceController();
+    final accounts = controller.activeAccounts.where((a) => a.spendable && !a.archived).toList();
+    final txs = controller.allTransactions;
+    final now = DateTime.now();
+
+    double liquid = 0.0;
+    for (final a in accounts) {
+      liquid += a.balanceAsOf(txs, now);
+    }
+
+    final past3mExpenses = txs.where((t) {
+      final diffDays = now.difference(t.date).inDays;
+      return diffDays >= 0 && diffDays <= 90 && t.effectiveKind == 'expense';
+    }).fold<double>(0.0, (sum, t) => sum + t.amount.abs());
+    final avgMonthlyExpense = past3mExpenses > 0 ? (past3mExpenses / 3.0) : 10000.0;
+    final emergencyBuffer = avgMonthlyExpense;
+
+    final past3mIncome = txs.where((t) {
+      final diffDays = now.difference(t.date).inDays;
+      return diffDays >= 0 && diffDays <= 90 && (t.effectiveKind == 'income' || t.effectiveKind == 'refund');
+    }).fold<double>(0.0, (sum, t) => sum + t.amount.abs());
+    final avgSurplus = ((past3mIncome - past3mExpenses) / 3.0).clamp(0.0, double.infinity);
+
+    final result = WhatIfEngine.canAfford(
+      amount: amount,
+      forecastMonthEnd: liquid,
+      emergencyBuffer: emergencyBuffer,
+      avgMonthlySurplus3m: avgSurplus,
+    );
+
+    final buffer = StringBuffer();
+    buffer.writeln('Verdict: ${result.title}');
+    buffer.writeln(result.explanation);
+    buffer.writeln(result.recommendation);
+    if (result.monthsToSave != null && result.monthsToSave! > 0) {
+      buffer.writeln('Estimated saving time: ~${result.monthsToSave} months (saving ₹${avgSurplus.toStringAsFixed(0)}/mo).');
+    }
+
+    return AiResponse(
+      message: buffer.toString().trim(),
+      intent: 'finance_whatif',
+      actions: [
+        AiAction(
+          type: 'finance_whatif',
+          payload: {
+            'item_name': itemName,
+            'amount': amount,
+            'status': result.status.name,
+            'projected_after': result.projectedAfter,
+          },
+        ),
+      ],
+    );
+  }
+
+  AiResponse? _handleFinanceQueryLocally(String lower) {
+    final controller = FinanceController();
+    final now = DateTime.now();
+
+    // 1. Net worth query
+    if (lower.contains('net worth') || lower.contains('networth')) {
+      final query = const FinanceQuery(subject: QuerySubject.networth);
+      final res = FinanceQueryExecutor.execute(
+        query: query,
+        transactions: controller.allTransactions,
+        accounts: controller.activeAccounts,
+        today: now,
+      );
+      return AiResponse(message: res.formattedAnswer, intent: 'finance_query');
+    }
+
+    // 2. Account balance query
+    if (lower.contains('balance')) {
+      String? accountFilter;
+      for (final a in controller.activeAccounts) {
+        if (lower.contains(a.name.toLowerCase())) {
+          accountFilter = a.name;
+          break;
+        }
+      }
+      final query = FinanceQuery(
+        subject: QuerySubject.balance,
+        filters: QueryFilters(account: accountFilter),
+      );
+      final res = FinanceQueryExecutor.execute(
+        query: query,
+        transactions: controller.allTransactions,
+        accounts: controller.activeAccounts,
+        today: now,
+      );
+      return AiResponse(message: res.formattedAnswer, intent: 'finance_query');
+    }
+
+    // 3. Top merchants query
+    if (lower.contains('top') && (lower.contains('merchant') || lower.contains('payee') || lower.contains('store') || lower.contains('place'))) {
+      int topN = 5;
+      final match = RegExp(r'top\s+(\d+)').firstMatch(lower);
+      if (match != null) {
+        topN = int.tryParse(match.group(1)!) ?? 5;
+      }
+      final query = FinanceQuery(
+        metric: QueryMetric.top,
+        subject: QuerySubject.spending,
+        groupBy: QueryGroupBy.merchant,
+        topN: topN,
+      );
+      final res = FinanceQueryExecutor.execute(
+        query: query,
+        transactions: controller.allTransactions,
+        accounts: controller.activeAccounts,
+        today: now,
+      );
+      return AiResponse(message: res.formattedAnswer, intent: 'finance_query');
+    }
+
+    // 4. "How much did I spend" / "Spent on ..." / "Expenses this month"
+    final isSpendQuery = lower.contains('how much') ||
+        lower.contains('what did i spend') ||
+        lower.contains('spent on') ||
+        lower.contains('expenses on') ||
+        lower.contains('spending on') ||
+        lower.contains('spending this') ||
+        lower.contains('spent this') ||
+        lower.contains('spent last');
+
+    if (isSpendQuery) {
+      QueryPeriod period = QueryPeriod.thisMonth;
+      if (lower.contains('last month') || lower.contains('pichle mahine')) {
+        period = QueryPeriod.lastMonth;
+      } else if (lower.contains('this week') || lower.contains('is hafte')) {
+        period = QueryPeriod.thisWeek;
+      } else if (lower.contains('last week') || lower.contains('pichle hafte')) {
+        period = QueryPeriod.lastWeek;
+      } else if (lower.contains('today') || lower.contains('aaj')) {
+        period = QueryPeriod.today;
+      } else if (lower.contains('yesterday') || lower.contains('kal')) {
+        period = QueryPeriod.yesterday;
+      } else if (lower.contains('this year') || lower.contains('is saal')) {
+        period = QueryPeriod.thisYear;
+      } else if (lower.contains('last year') || lower.contains('pichle saal')) {
+        period = QueryPeriod.lastYear;
+      }
+
+      String? merchant;
+      for (final m in controller.allMerchants) {
+        if (m.isNotEmpty && lower.contains(m.toLowerCase())) {
+          merchant = m;
+          break;
+        }
+      }
+
+      String? category;
+      for (final c in controller.activeCategories) {
+        if (c.name.isNotEmpty && lower.contains(c.name.toLowerCase())) {
+          category = c.name;
+          break;
+        }
+      }
+
+      final query = FinanceQuery(
+        metric: QueryMetric.sum,
+        subject: QuerySubject.spending,
+        filters: QueryFilters(
+          merchant: merchant,
+          category: category,
+          period: period,
+        ),
+      );
+
+      final res = FinanceQueryExecutor.execute(
+        query: query,
+        transactions: controller.allTransactions,
+        accounts: controller.activeAccounts,
+        today: now,
+        categories: controller.activeCategories,
+      );
+      return AiResponse(message: res.formattedAnswer, intent: 'finance_query');
+    }
+
+    return null;
+  }
+
+  AiResponse? _handleTransferLocally(String lower, double amount) {
+    if (!lower.contains('transfer') && !lower.contains('bhejo')) return null;
+
+    final controller = FinanceController();
+    final accounts = controller.activeAccounts;
+
+    String? fromAccount;
+    String? toAccount;
+
+    for (final a in accounts) {
+      if (lower.contains('from ${a.name.toLowerCase()}') ||
+          lower.contains('${a.name.toLowerCase()} se')) {
+        fromAccount = a.name;
+      }
+      if (lower.contains('to ${a.name.toLowerCase()}') ||
+          lower.contains('${a.name.toLowerCase()} me') ||
+          lower.contains('${a.name.toLowerCase()} mein')) {
+        toAccount = a.name;
+      }
+    }
+
+    if (fromAccount == null && accounts.isNotEmpty) {
+      fromAccount = accounts.first.name;
+    }
+    if (toAccount == null && accounts.length > 1) {
+      toAccount = accounts.firstWhere((a) => a.name != fromAccount, orElse: () => accounts.last).name;
+    }
+
+    return AiResponse(
+      message: 'Ready to transfer ${_formatMoney(amount)} from $fromAccount to $toAccount.',
+      intent: 'finance_advice',
+      actions: [
+        AiAction(
+          type: 'finance_transfer',
+          payload: {
+            'amount': amount,
+            'from_account': fromAccount,
+            'to_account': toAccount,
+          },
+        ),
+      ],
+    );
+  }
+
+  AiResponse? _handleRecurringLocally(String lower, double amount) {
+    final isRec = lower.contains('recurring') ||
+        lower.contains('subscription') ||
+        lower.contains('bill') ||
+        lower.contains('every month') ||
+        lower.contains('har mahine');
+    if (!isRec) return null;
+
+    String frequency = 'monthly';
+    if (lower.contains('weekly') || lower.contains('har hafte')) frequency = 'weekly';
+    if (lower.contains('quarterly')) frequency = 'quarterly';
+    if (lower.contains('yearly') || lower.contains('annual')) frequency = 'yearly';
+
+    String kind = 'bill';
+    if (lower.contains('subscription')) kind = 'subscription';
+    if (lower.contains('sip')) kind = 'sip';
+    if (lower.contains('emi')) kind = 'emi';
+
+    String name = 'Recurring Item';
+    final prefixes = ['recurring', 'subscription', 'bill for', 'bill', 'add'];
+    String cleaned = lower;
+    for (final p in prefixes) {
+      cleaned = cleaned.replaceAll(p, '');
+    }
+    cleaned = cleaned
+        .replaceAll(RegExp(r'(?:every\s+\w+|monthly|weekly|quarterly|yearly|₹|rs\.?|inr|[\d,]+(?:\.\d+)?)'), '')
+        .trim();
+    if (cleaned.isNotEmpty) name = _titleCase(cleaned);
+
+    return AiResponse(
+      message: 'Ready to add $frequency $kind "$name" for ${_formatMoney(amount)}.',
+      intent: 'finance_advice',
+      actions: [
+        AiAction(
+          type: 'finance_recurring',
+          payload: {
+            'name': name,
+            'amount': amount,
+            'frequency': frequency,
+            'kind': kind,
+          },
+        ),
+      ],
+    );
   }
 
   AiResponse _buildSipResponse() {
@@ -2385,113 +2707,199 @@ class AiService {
   /// Execute a confirmed finance transaction action
   void executeFinanceAction(AiAction action) {
     final payload = action.payload;
-    final mode = (payload['mode'] ?? 'expense').toString().toLowerCase();
+    final mode = (payload['mode'] ?? payload['kind'] ?? 'expense').toString().toLowerCase();
     final isExpense = mode != 'income';
-    final title =
-        (payload['title'] ?? (isExpense ? 'Expense' : 'Income')).toString();
+    final title = (payload['title'] ?? (isExpense ? 'Expense' : 'Income')).toString();
     final amount = _asDouble(payload['amount']);
     if (amount <= 0) return;
 
-    _recordFinanceTransaction(
+    final repo = FinanceRepository.instance;
+    final categoryName = (payload['category'] ?? (isExpense ? 'Other' : 'Income')).toString();
+    final merchant = payload['merchant']?.toString();
+    final accountName = payload['account_name']?.toString().toLowerCase();
+
+    String? accountId;
+    if (accountName != null) {
+      for (final a in repo.accounts.values) {
+        if (a.name.toLowerCase().contains(accountName)) {
+          accountId = a.id;
+          break;
+        }
+      }
+    }
+    accountId ??= repo.accounts.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+
+    String? categoryId;
+    for (final c in repo.categories.values) {
+      if (c.name.toLowerCase() == categoryName.toLowerCase()) {
+        categoryId = c.id;
+        break;
+      }
+    }
+
+    final date = payload['date'] != null
+        ? (DateTime.tryParse(payload['date'].toString()) ?? DateTime.now())
+        : DateTime.now();
+
+    repo.addTransaction(TxDraft(
       title: title,
-      amount: amount,
-      isExpense: isExpense,
-      category:
-          (payload['category'] ?? (isExpense ? 'Other' : 'Income')).toString(),
-    );
+      amount: isExpense ? -amount.abs() : amount.abs(),
+      kind: isExpense ? 'expense' : 'income',
+      mode: isExpense ? 'expense' : 'income',
+      category: categoryName,
+      categoryId: categoryId,
+      merchant: merchant,
+      accountId: accountId,
+      date: date,
+    ));
+  }
+
+  void _executeFinanceTransferAction(AiAction action) {
+    final payload = action.payload;
+    final amount = _asDouble(payload['amount']);
+    if (amount <= 0) return;
+
+    final repo = FinanceRepository.instance;
+    final fromName = payload['from_account']?.toString().toLowerCase();
+    final toName = payload['to_account']?.toString().toLowerCase();
+
+    String? fromId;
+    String? toId;
+
+    for (final a in repo.accounts.values) {
+      if (fromName != null && a.name.toLowerCase().contains(fromName)) fromId = a.id;
+      if (toName != null && a.name.toLowerCase().contains(toName)) toId = a.id;
+    }
+
+    final spendable = repo.accounts.values.where((a) => a.spendable && !a.archived).toList();
+    if (fromId == null && spendable.isNotEmpty) fromId = spendable.first.id;
+    if (toId == null && spendable.length > 1) {
+      toId = spendable.firstWhere((a) => a.id != fromId, orElse: () => spendable.last).id;
+    }
+
+    if (fromId != null && toId != null && fromId != toId) {
+      repo.addTransaction(TxDraft(
+        title: 'Transfer',
+        amount: amount.abs(),
+        kind: 'transfer',
+        mode: 'transfer',
+        category: 'Transfer',
+        accountId: fromId,
+        toAccountId: toId,
+        date: DateTime.now(),
+        notes: payload['notes']?.toString(),
+      ));
+    }
   }
 
   void _executeFinanceBudgetAction(AiAction action) {
     final payload = action.payload;
-    final category = payload['category']?.toString() ?? 'Other';
-    final total = _asDouble(payload['total'] ?? 0);
+    final categoryName = (payload['category'] ?? 'Other').toString();
+    final total = _asDouble(payload['total'] ?? payload['amount'] ?? 0);
     if (total <= 0) return;
 
-    final settingsBox = Hive.box('finance_settings');
-    List budgets = List.from(settingsBox.get('budgets', defaultValue: []));
-
-    int existingIdx = budgets.indexWhere((b) {
-      final item = Map.from(b as Map);
-      return item['category']?.toString().toLowerCase() ==
-          category.toLowerCase();
-    });
-    if (existingIdx != -1) {
-      final existing = Map.from(budgets[existingIdx] as Map);
-      existing['total'] = total;
-      budgets[existingIdx] = existing;
-    } else {
-      budgets.add({
-        'category': category,
-        'total': total,
-        'color': 0xFF22C55E,
-      });
+    final repo = FinanceRepository.instance;
+    Category? matchedCat;
+    for (final c in repo.categories.values) {
+      if (c.name.toLowerCase() == categoryName.toLowerCase()) {
+        matchedCat = c;
+        break;
+      }
     }
-    settingsBox.put('budgets', budgets);
+
+    final categoryId = matchedCat?.id ?? 'cat_${DateTime.now().millisecondsSinceEpoch}';
+    if (matchedCat == null) {
+      repo.addCategory(Category(
+        id: categoryId,
+        name: categoryName,
+        kind: 'expense',
+        group: 'wants',
+      ));
+    }
+
+    BudgetLine? existingLine;
+    for (final l in repo.budgetLines.values) {
+      if (l.categoryId == categoryId) {
+        existingLine = l;
+        break;
+      }
+    }
+
+    final line = existingLine != null
+        ? BudgetLine(
+            id: existingLine.id,
+            categoryId: categoryId,
+            amount: total,
+            rollover: existingLine.rollover,
+            essential: existingLine.essential,
+            startMonth: existingLine.startMonth,
+          )
+        : BudgetLine(
+            id: 'bl_${DateTime.now().millisecondsSinceEpoch}',
+            categoryId: categoryId,
+            amount: total,
+          );
+
+    repo.setBudgetLine(line);
   }
 
   void _executeFinanceCommitmentAction(AiAction action) {
+    _executeFinanceRecurringAction(action);
+  }
+
+  void _executeFinanceSipAction(AiAction action) {
+    final payload = Map<String, dynamic>.from(action.payload);
+    payload['kind'] = 'sip';
+    _executeFinanceRecurringAction(AiAction(type: 'finance_recurring', payload: payload));
+  }
+
+  void _executeFinanceRecurringAction(AiAction action) {
     final payload = action.payload;
-    final name = payload['name']?.toString() ?? 'Subscription';
-    final amount = _asDouble(payload['amount'] ?? 0);
-    final date = payload['date'] ?? 1;
+    final name = (payload['name'] ?? 'Recurring Bill').toString();
+    final amount = _asDouble(payload['amount']);
     if (amount <= 0) return;
 
-    final settingsBox = Hive.box('finance_settings');
-    Map p = Map.from(settingsBox
-        .get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
-    List fixed = List.from(p['fixedExpenses'] ?? []);
+    final kind = (payload['kind'] ?? 'bill').toString().toLowerCase();
+    final freq = (payload['frequency'] ?? 'monthly').toString().toLowerCase();
+    final dueDay = int.tryParse((payload['due'] ?? payload['date'] ?? 1).toString()) ?? 1;
 
-    fixed.add({
-      'name': name,
-      'amount': amount,
-      'due': int.tryParse(date.toString()) ?? 1,
-      'category': payload['category']?.toString() ?? 'Fixed',
-    });
+    final now = DateTime.now();
+    final anchor = DateTime(now.year, now.month, dueDay.clamp(1, 28));
 
-    p['fixedExpenses'] = fixed;
-    settingsBox.put('planner', p);
+    final rule = RecurringRule(
+      id: 'rec_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      kind: kind,
+      amount: amount,
+      frequency: freq,
+      anchorDate: anchor,
+      startDate: anchor,
+      notes: payload['notes']?.toString(),
+    );
+
+    FinanceRepository.instance.addRecurringRule(rule);
   }
 
   void _executeFinanceGoalAction(AiAction action) {
     final payload = action.payload;
-    final name = payload['name']?.toString() ?? 'Goal';
-    final target = _asDouble(payload['target'] ?? 0);
+    final name = (payload['name'] ?? 'Goal').toString();
+    final target = _asDouble(payload['target']);
     if (target <= 0) return;
 
-    final settingsBox = Hive.box('finance_settings');
-    List goals = List.from(settingsBox.get('goals', defaultValue: []));
+    DateTime? deadline;
+    if (payload['deadline'] != null && payload['deadline'].toString().isNotEmpty) {
+      deadline = DateTime.tryParse(payload['deadline'].toString());
+    }
 
-    goals.add({
-      'name': name,
-      'saved': _asDouble(payload['saved'] ?? 0),
-      'target': target,
-      'deadline': payload['deadline']?.toString() ?? '',
-      'color': 0xFF2DD4BF,
-    });
-    settingsBox.put('goals', goals);
-  }
+    final goal = SavingsGoal(
+      id: 'goal_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      targetAmount: target,
+      deadline: deadline,
+      colorValue: 0xFF2DD4BF,
+    );
 
-  void _executeFinanceSipAction(AiAction action) {
-    final payload = action.payload;
-    final name = payload['name']?.toString() ?? 'SIP';
-    final amount = _asDouble(payload['amount'] ?? 0);
-    final due = payload['due'] ?? 1;
-    if (amount <= 0) return;
-
-    final settingsBox = Hive.box('finance_settings');
-    Map p = Map.from(settingsBox
-        .get('planner', defaultValue: {"fixedExpenses": [], "sips": []}));
-    List sipsList = List.from(p['sips'] ?? []);
-
-    sipsList.add({
-      'name': name,
-      'amount': amount,
-      'due': int.tryParse(due.toString()) ?? 1,
-      'folio': payload['folio']?.toString() ?? 'Auto-added',
-    });
-
-    p['sips'] = sipsList;
-    settingsBox.put('planner', p);
+    FinanceRepository.instance.addGoal(goal);
   }
 
   /// Handles media playback and transport commands on active media sessions
@@ -2634,6 +3042,15 @@ class AiService {
         break;
       case 'finance_goal':
         _executeFinanceGoalAction(action);
+        break;
+      case 'finance_transfer':
+        _executeFinanceTransferAction(action);
+        break;
+      case 'finance_recurring':
+        _executeFinanceRecurringAction(action);
+        break;
+      case 'finance_whatif':
+      case 'finance_query':
         break;
     }
     action.isConfirmed = true;

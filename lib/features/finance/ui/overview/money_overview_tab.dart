@@ -16,6 +16,7 @@ import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet
 import 'package:habit_tracker/features/finance/ui/what_if/what_if_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/cash_flow_chart.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/category_donut_chart.dart';
+import 'package:habit_tracker/features/finance/ui/ai/ai_privacy_page.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/net_trend_chart.dart';
 
 class MoneyOverviewTab extends StatefulWidget {
@@ -160,23 +161,36 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(
-          icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.textSecondary, size: 20),
-          onPressed: _prevMonth,
-          visualDensity: VisualDensity.compact,
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.textSecondary, size: 20),
+              onPressed: _prevMonth,
+              visualDensity: VisualDensity.compact,
+            ),
+            Text(
+              DateFormat('MMMM yyyy').format(_currentMonth).toUpperCase(),
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            IconButton(
+              icon: Icon(LucideIcons.chevronRight, color: BentoTheme.textSecondary, size: 20),
+              onPressed: _nextMonth,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
         ),
-        Text(
-          DateFormat('MMMM yyyy').format(_currentMonth).toUpperCase(),
-          style: TextStyle(
-            color: BentoTheme.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
+        IconButton(
+          icon: Icon(LucideIcons.shieldCheck, color: BentoTheme.textSecondary, size: 18),
+          tooltip: 'AI & Privacy',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AiPrivacyPage()),
           ),
-        ),
-        IconButton(
-          icon: Icon(LucideIcons.chevronRight, color: BentoTheme.textSecondary, size: 20),
-          onPressed: _nextMonth,
           visualDensity: VisualDensity.compact,
         ),
       ],

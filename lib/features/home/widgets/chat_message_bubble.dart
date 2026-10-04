@@ -458,6 +458,24 @@ class _ActionConfirmCard extends StatelessWidget {
           color: AppColors.success,
         );
 
+      case 'finance_transfer':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.arrowLeftRight,
+          title: 'Transfer to ${action.payload['to_account'] ?? 'account'}',
+          subtitle: 'From ${action.payload['from_account'] ?? 'account'}',
+          amount: action.payload['amount'],
+          color: AppColors.primary,
+        );
+
+      case 'finance_recurring':
+        return _buildFinanceActionRow(
+          icon: LucideIcons.repeat,
+          title: action.payload['name'] ?? 'Recurring Bill',
+          subtitle: '${action.payload['frequency'] ?? 'monthly'} ${action.payload['kind'] ?? 'bill'}',
+          amount: action.payload['amount'],
+          color: AppColors.warning,
+        );
+
       default:
         return Text(
           action.payload.toString(),

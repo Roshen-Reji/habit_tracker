@@ -249,6 +249,10 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         return 'Added SIP: ${action.payload['name']}';
       case 'finance_goal':
         return 'Added finance goal: ${action.payload['name']}';
+      case 'finance_transfer':
+        return 'Transferred ₹${action.payload['amount']} from ${action.payload['from_account']} to ${action.payload['to_account']}';
+      case 'finance_recurring':
+        return 'Added recurring: ${action.payload['name']}';
       default:
         return '✓ Done';
     }
