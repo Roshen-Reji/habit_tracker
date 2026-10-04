@@ -5,6 +5,8 @@ import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/backup/finance_backup_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
+import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 
 class MoreTab extends StatelessWidget {
   final Function(String deepLink)? onNavigate;
@@ -78,8 +80,8 @@ class MoreTab extends StatelessWidget {
                   if (onNavigate != null) {
                     onNavigate!('accounts');
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Account Manager lands in Phase 3')),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AccountsPage()),
                     );
                   }
                 },
@@ -92,7 +94,13 @@ class MoreTab extends StatelessWidget {
                 title: 'Net Worth History',
                 subtitle: 'Assets, liabilities and 12-month trend',
                 onTap: () {
-                  if (onNavigate != null) onNavigate!('networth');
+                  if (onNavigate != null) {
+                    onNavigate!('networth');
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NetWorthPage()),
+                    );
+                  }
                 },
               ),
               _tile(

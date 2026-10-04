@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
@@ -158,86 +159,103 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
   }
 
   Widget _buildHeroBalanceCard(double netWorth, double liquid, double savingsRate) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: BentoTheme.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        onTap: () => AppNav.openNetWorth(context),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: BentoTheme.surface,
+            borderRadius: ExpressiveTokens.borderL,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'NET WORTH',
-                style: TextStyle(
-                  color: BentoTheme.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: BentoTheme.cardBackground,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'Liquid: ${FormatUtils.formatCurrency(liquid)}',
-                  style: TextStyle(
-                    color: BentoTheme.accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'NET WORTH',
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        size: 14,
+                        color: BentoTheme.textSecondary,
+                      ),
+                    ],
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Liquid: ${FormatUtils.formatCurrency(liquid)}',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            FormatUtils.formatCurrency(netWorth),
-            style: TextStyle(
-              color: BentoTheme.textPrimary,
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: savingsRate,
-              color: savingsRate >= 0.2
-                  ? const Color(0xFF22C55E)
-                  : const Color(0xFFF59E0B),
-              backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              const SizedBox(height: 8),
               Text(
-                'Savings Rate',
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
-              ),
-              Text(
-                '${(savingsRate * 100).toStringAsFixed(0)}%',
+                FormatUtils.formatCurrency(netWorth),
                 style: TextStyle(
-                  color: savingsRate >= 0.2 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  color: BentoTheme.textPrimary,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
                 ),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 7,
+                  value: savingsRate,
+                  color: savingsRate >= 0.2
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFFF59E0B),
+                  backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Savings Rate',
+                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                  ),
+                  Text(
+                    '${(savingsRate * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: savingsRate >= 0.2 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -325,16 +343,20 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
   Widget _buildQuickActionsRow() {
     return Row(
       children: [
-        _actionChip('Log Expense', LucideIcons.minus, () {
+        _actionChip('Expense', LucideIcons.minus, () {
           TransactionSheet.show(context, initialKind: 'expense');
         }),
-        const SizedBox(width: 8),
-        _actionChip('Add Income', LucideIcons.plus, () {
+        const SizedBox(width: 6),
+        _actionChip('Income', LucideIcons.plus, () {
           TransactionSheet.show(context, initialKind: 'income');
         }),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _actionChip('Transfer', LucideIcons.arrowRightLeft, () {
           TransactionSheet.show(context, initialKind: 'transfer');
+        }),
+        const SizedBox(width: 6),
+        _actionChip('Accounts', LucideIcons.landmark, () {
+          AppNav.openAccounts(context);
         }),
       ],
     );

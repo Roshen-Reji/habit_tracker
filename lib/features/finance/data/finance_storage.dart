@@ -209,4 +209,36 @@ class FinanceStorage {
     await splitEntryBox.clear();
     await settingsBox.clear();
   }
+
+  Future<void> closeAll() async {
+    await _txBox?.close();
+    await _vaultBox?.close();
+    await _settingsBox?.close();
+    await _accountBox?.close();
+    await _categoryBox?.close();
+    await _ruleBox?.close();
+    await _recurringBox?.close();
+    await _budgetLineBox?.close();
+    await _budgetOverrideBox?.close();
+    await _goalBox?.close();
+    await _goalEntryBox?.close();
+    await _valuationBox?.close();
+    await _splitGroupBox?.close();
+    await _splitEntryBox?.close();
+
+    _txBox = null;
+    _vaultBox = null;
+    _settingsBox = null;
+    _accountBox = null;
+    _categoryBox = null;
+    _ruleBox = null;
+    _recurringBox = null;
+    _budgetLineBox = null;
+    _budgetOverrideBox = null;
+    _goalBox = null;
+    _goalEntryBox = null;
+    _valuationBox = null;
+    _splitGroupBox = null;
+    _splitEntryBox = null;
+  }
 }

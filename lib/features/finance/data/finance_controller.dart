@@ -172,5 +172,122 @@ class FinanceController extends ChangeNotifier {
     if (id == null) return null;
     return accountsMap[id];
   }
+
+  /// Computes the balance of a specific [account] as of [asOf].
+  double getAccountBalance(Account account, {DateTime? asOf}) {
+    return LedgerEngine.balance(
+      account,
+      storage.transactionBox.values,
+      storage.valuationBox.values,
+      asOf: asOf,
+    );
+  }
+
+  /// Returns all active asset accounts.
+  List<Account> get assetAccounts =>
+      activeAccounts.where((a) => !a.isLiability).toList();
+
+  /// Returns all active liability accounts.
+  List<Account> get liabilityAccounts =>
+      activeAccounts.where((a) => a.isLiability).toList();
+
+  /// Sum of all active asset accounts.
+  double get totalAssets {
+    double sum = 0.0;
+    for (final a in assetAccounts) {
+      sum += getAccountBalance(a);
+    }
+    return Money.r2(sum);
+  }
+
+  /// Sum of all active liability accounts (positive magnitude).
+  double get totalLiabilities {
+    double sum = 0.0;
+    for (final a in liabilityAccounts) {
+      final bal = getAccountBalance(a);
+      sum += bal.abs();
+    }
+    return Money.r2(sum);
+  }
+
+  /// Net worth change vs end of previous month.
+  double getNetWorthChangeVsLastMonth() {
+    final now = DateTime.now();
+    final lastMonthEnd = DateTime(now.year, now.month, 0, 23, 59, 59);
+    final current = getNetWorth(asOf: now);
+    final last = getNetWorth(asOf: lastMonthEnd);
+    return Money.r2(current - last);
+  }
+
+  /// Net worth percentage change vs end of previous month.
+  double getNetWorthChangePercentVsLastMonth() {
+    final now = DateTime.now();
+    final lastMonthEnd = DateTime(now.year, now.month, 0, 23, 59, 59);
+    final current = getNetWorth(asOf: now);
+    final last = getNetWorth(asOf: lastMonthEnd);
+    if (last == 0) return 0.0;
+    return Money.r2(((current - last) / last.abs()) * 100);
+  }
+
+  /// Net worth history points over the last [months] months.
+  List<MapEntry<DateTime, double>> getNetWorthHistory(
+      {int months = 12, DateTime? asOf}) {
+    return LedgerEngine.netWorthHistory(
+      accounts: storage.accountBox.values,
+      transactions: storage.transactionBox.values,
+      valuations: storage.valuationBox.values,
+      months: months,
+      asOf: asOf,
+    );
+  }
+
+  /// Account balance history over the last [months] months.
+  List<MapEntry<DateTime, double>> getAccountBalanceHistory(Account account,
+      {int months = 6, DateTime? asOf}) {
+    return LedgerEngine.accountBalanceHistory(
+      account: account,
+      transactions: storage.transactionBox.values,
+      valuations: storage.valuationBox.values,
+      months: months,
+      asOf: asOf,
+    );
+  }
+
+  /// Filtered transactions for a given account ID.
+  List<Transaction> getTransactionsForAccount(String accountId) {
+    return allTransactions
+        .where(
+            (tx) => tx.accountId == accountId || tx.toAccountId == accountId)
+        .toList();
+  }
+
+  /// Valuations for an account sorted descending by date.
+  List<Valuation> getValuationsForAccount(String accountId) {
+    return repository.getValuations(accountId);
+  }
+
+  /// Total invested amount in a valued asset.
+  double getInvestedAmount(Account account, {DateTime? asOf}) {
+    return LedgerEngine.investedAmount(
+      account,
+      storage.transactionBox.values,
+      asOf: asOf,
+    );
+  }
+
+  /// Gain or loss on a valued asset.
+  double getGainLoss(Account account, {DateTime? asOf}) {
+    final cur = getAccountBalance(account, asOf: asOf);
+    final inv = getInvestedAmount(account, asOf: asOf);
+    return Money.r2(cur - inv);
+  }
+
+  /// Return percentage on a valued asset.
+  double getReturnPct(Account account, {DateTime? asOf}) {
+    final inv = getInvestedAmount(account, asOf: asOf);
+    if (inv <= 0) return 0.0;
+    final gl = getGainLoss(account, asOf: asOf);
+    return Money.r2((gl / inv) * 100);
+  }
 }
 

@@ -296,4 +296,92 @@ class LedgerEngine {
 
     return Money.r2(total);
   }
+
+  /// Computes historical net worth at month-ends for the past [months] months up to [asOf].
+  /// Returns a list of MapEntry(monthEndDate, netWorth).
+  static List<MapEntry<DateTime, double>> netWorthHistory({
+    required Iterable<Account> accounts,
+    required Iterable<Transaction> transactions,
+    required Iterable<Valuation> valuations,
+    DateTime? asOf,
+    int months = 12,
+  }) {
+    final now = asOf ?? DateTime.now();
+    final points = <MapEntry<DateTime, double>>[];
+
+    for (int i = months - 1; i >= 0; i--) {
+      final targetYear = now.year;
+      final targetMonth = now.month - i;
+      final monthEnd = DateTime(targetYear, targetMonth + 1, 0, 23, 59, 59);
+      final effectiveDate = (i == 0 && now.isBefore(monthEnd)) ? now : monthEnd;
+
+      final nw = netWorth(
+        accounts,
+        transactions,
+        valuations,
+        asOf: effectiveDate,
+        unsettledReceivables: receivablesFromSplits(
+          transactions.where((t) => !t.date.isAfter(effectiveDate)),
+        ),
+      );
+
+      points.add(MapEntry(effectiveDate, nw));
+    }
+
+    return points;
+  }
+
+  /// Computes historical balances for an account at month-ends up to [asOf].
+  static List<MapEntry<DateTime, double>> accountBalanceHistory({
+    required Account account,
+    required Iterable<Transaction> transactions,
+    required Iterable<Valuation> valuations,
+    DateTime? asOf,
+    int months = 6,
+  }) {
+    final now = asOf ?? DateTime.now();
+    final points = <MapEntry<DateTime, double>>[];
+
+    for (int i = months - 1; i >= 0; i--) {
+      final targetYear = now.year;
+      final targetMonth = now.month - i;
+      final monthEnd = DateTime(targetYear, targetMonth + 1, 0, 23, 59, 59);
+      final effectiveDate = (i == 0 && now.isBefore(monthEnd)) ? now : monthEnd;
+
+      final bal = balance(
+        account,
+        transactions,
+        valuations,
+        asOf: effectiveDate,
+      );
+
+      points.add(MapEntry(effectiveDate, bal));
+    }
+
+    return points;
+  }
+
+  /// Calculates total net invested amount in an asset/holding account.
+  static double investedAmount(
+    Account account,
+    Iterable<Transaction> transactions, {
+    DateTime? asOf,
+  }) {
+    final cutoff = asOf ?? DateTime.now();
+    double total = account.openingBalance;
+
+    for (final tx in transactions) {
+      if (tx.date.isAfter(cutoff)) continue;
+      final kind = tx.effectiveKind;
+      final absAmount = tx.amount.abs();
+
+      if (tx.toAccountId == account.id && (kind == 'investment' || kind == 'transfer')) {
+        total += absAmount;
+      } else if (tx.accountId == account.id && (kind == 'investment' || kind == 'transfer')) {
+        total -= absAmount;
+      }
+    }
+
+    return Money.r2(total);
+  }
 }

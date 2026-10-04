@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/account_detail_page.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
+import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 
 enum AppTab {
@@ -92,6 +95,36 @@ class AppNav extends ChangeNotifier {
           initialTab: initialTab,
           deepLink: deepLink,
         ),
+      ),
+    );
+  }
+
+  /// Opens the Accounts management screen.
+  static Future<void> openAccounts(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AccountsPage(),
+      ),
+    );
+  }
+
+  /// Opens the Net Worth screen.
+  static Future<void> openNetWorth(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const NetWorthPage(),
+      ),
+    );
+  }
+
+  /// Opens the Account Detail screen.
+  static Future<void> openAccountDetail(
+    BuildContext context,
+    String accountId,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountDetailPage(accountId: accountId),
       ),
     );
   }

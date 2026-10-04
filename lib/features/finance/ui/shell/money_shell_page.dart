@@ -9,6 +9,8 @@ import 'package:habit_tracker/features/finance/ui/budget/budget_tab_placeholder.
 import 'package:habit_tracker/features/finance/ui/goals/goals_tab_placeholder.dart';
 import 'package:habit_tracker/features/finance/ui/more/more_tab.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
+import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 
 class MoneyShellPage extends StatefulWidget {
   final int initialTab;
@@ -54,6 +56,14 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
       } else if (lower == 'categories') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CategoriesPage()),
+        );
+      } else if (lower == 'accounts' || lower == 'account') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AccountsPage()),
+        );
+      } else if (lower == 'networth' || lower == 'net_worth') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NetWorthPage()),
         );
       } else {
         // More sub-destinations

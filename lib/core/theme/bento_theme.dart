@@ -78,6 +78,9 @@ class BentoTheme {
         ? const Color(0xFF6B7280)
         : const Color(0xFFFFFFFF).withValues(alpha: 0.6);
   }
+
+  static Color get textMuted => textSecondary;
+  static Color get accentColor => accent;
 }
 
 // Replaces BentoContainer with a flat Bento-style container

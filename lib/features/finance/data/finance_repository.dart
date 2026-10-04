@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' hide Category;
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/engine/constants.dart';
+import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
@@ -367,6 +369,80 @@ class FinanceRepository {
 
   Future<void> deleteAccount(String id) async {
     await storage.accountBox.delete(id);
+    _notify();
+  }
+
+  Future<Transaction?> reconcileAccount({
+    required String accountId,
+    required double realBalance,
+    DateTime? date,
+    String? notes,
+  }) async {
+    final account = storage.accountBox.get(accountId);
+    if (account == null) {
+      throw ArgumentError('Account not found: $accountId');
+    }
+
+    final effectiveDate = date ?? DateTime.now();
+    final currentBalance = LedgerEngine.balance(
+      account,
+      storage.transactionBox.values,
+      storage.valuationBox.values,
+      asOf: effectiveDate,
+    );
+
+    final diff = Money.r2(realBalance - currentBalance);
+    if (diff.abs() < 0.01) {
+      return null;
+    }
+
+    return addTransaction(TxDraft(
+      title: 'Reconciliation adjustment',
+      amount: diff,
+      category: 'Adjustment',
+      date: effectiveDate,
+      mode: diff >= 0 ? 'income' : 'expense',
+      icon: 'sliders',
+      kind: 'adjustment',
+      accountId: accountId,
+      notes: notes ?? 'Reconciliation to real balance: ${FormatUtils.formatMoney(realBalance)}',
+    ));
+  }
+
+  // ---------------------------------------------------------------------------
+  // VALUATIONS
+  // ---------------------------------------------------------------------------
+
+  List<Valuation> getValuations(String accountId) {
+    final list = storage.valuationBox.values
+        .where((v) => v.accountId == accountId)
+        .toList();
+    list.sort((a, b) => b.date.compareTo(a.date));
+    return list;
+  }
+
+  Future<Valuation> addValuation({
+    required String accountId,
+    required double value,
+    double? units,
+    double? unitPrice,
+    DateTime? date,
+  }) async {
+    final val = Valuation(
+      id: _generateId('val'),
+      accountId: accountId,
+      date: date ?? DateTime.now(),
+      value: Money.r2(value),
+      units: units,
+      unitPrice: unitPrice,
+    );
+    await storage.valuationBox.put(val.id, val);
+    _notify();
+    return val;
+  }
+
+  Future<void> deleteValuation(String id) async {
+    await storage.valuationBox.delete(id);
     _notify();
   }
 
