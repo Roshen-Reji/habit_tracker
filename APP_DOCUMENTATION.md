@@ -1,13 +1,14 @@
-# COMMANDER HABIT TRACKER — SYSTEM ARCHITECTURE & COMPLETE MANUAL (MVP 2)
+# COMMANDER HABIT TRACKER — SYSTEM ARCHITECTURE & COMPLETE MANUAL (MVP 2 & MVP 3 MONEY OS)
 
-> **Version:** 2.0.0 (MVP 2)  
+> **Version:** 3.0.0 (MVP 3 Money OS)  
 > **Platform Support:** Android (primary), iOS, macOS, Web, Linux, Windows  
 > **Primary Framework:** Flutter 3.x / Dart 3.x  
 > **Design Language:** Google Material 3 Expressive + Dark Bento Cyberpunk  
-> **Core Architecture:** Clean Layered Architecture (Feature-Driven, Offline-First)  
-> **Data Persistence:** Hive NoSQL Binary Store with AES-256 Hardware Encryption  
-> **AI Engine:** Google Gemini Flash (`GeminiClient` with dynamic fallback chain) + On-Device NLP Rule Engine  
-> **Media Architecture:** Android System MediaSession Bridge (`NotificationListenerService` + `NowPlayingService`)
+> **Core Architecture:** Clean Layered Architecture (Feature-Driven, Offline-First, Local-First Ledger)  
+> **Data Persistence:** Hive NoSQL Binary Store with AES-256 Hardware Encryption & SecureStorage Key Vault  
+> **AI Engine:** Google Gemini Flash (`GeminiClient` with dynamic fallback chain) + Local Deterministic Finance Query & Regex Engine  
+> **Media Architecture:** Android System MediaSession Bridge (`NotificationListenerService` + `NowPlayingService`)  
+> **Finance Subsystem:** Double-Entry Ledger, Paise Accuracy (RFC 4180 CSV, Rules Engine, Minimal-Settlements, App Lock)
 
 ---
 
@@ -229,3 +230,93 @@ In MVP 2, the legacy in-app audio player, local file indexer, and lyrics service
 2. **Idempotency**: Ledger stored in `finance_settings['sip_ledger'] = {id: 'yyyy-MM'}` ensures no month is ever double-debited.
 3. **Calendar Rollover**: Correctly resolves leap years and shorter months (e.g. Due 31 in Feb -> posts on Feb 28 or Feb 29).
 4. **Disposable Income Invariant**: PLAN view dynamically deducts only SIPs not yet posted in the current calendar month.
+
+---
+
+## 8. MVP 3 Money OS Architecture
+
+MVP 3 elevates personal finance in Commander from a simple transaction recorder into a robust, offline-first personal **Money OS**.
+
+### 8.1 Core Ledger Invariants
+The finance engine strictly enforces 6 fundamental accounting and mathematical invariants across all models, storage, calculations, and UI representations:
+
+- **Invariant I1 (Atomic Transfer)**: A transfer is an atomic operation affecting two accounts. For every transfer transaction with `fromAccountId` and `toAccountId`, the debited amount from the source equals the credited amount to the destination. Deleting or modifying a transfer adjusts both accounts simultaneously.
+- **Invariant I2 (Opening Balances)**: Every account has an immutable or explicitly edited `openingBalance` dated at `openingDate`. An account's balance as of date $T$ is computed deterministically as:
+  $$\text{Balance}(T) = \text{openingBalance} + \sum_{t \le T} \Delta(t)$$
+  where $\Delta(t)$ represents the net signed impact of confirmed transactions.
+- **Invariant I3 (Net Calculation & Reimbursements)**:
+  $$\text{Net} = \text{Total Income} - \text{Total Expenses}$$
+  Reimbursements received (e.g., from settling group splits) directly offset receivables/expenses rather than inflating gross taxable income. Refunds credit the exact original expense category.
+- **Invariant I4 (Credit Card Transfers)**: Credit card payments are classified as transfers from a bank/cash account to the credit card liability account. Card repayments are never recorded as expense or income.
+- **Invariant I5 (Split Consistency)**: For any itemized transaction with split lines or multiple categories:
+  $$\sum \text{SplitLine.amount} = \text{Transaction.amount}$$
+- **Invariant I6 (Paise Accuracy)**: All internal currency arithmetic is computed either in integer paise or rounded using deterministic half-up precision via `Money.r2()`, eliminating IEEE 754 floating-point drift across millions of transactions.
+
+### 8.2 Hive Persistence Matrix (Type IDs 40–50)
+
+| TypeId | Model Class | Hive Box Name | Key Type | Purpose |
+|---|---|---|---|---|
+| `10` | `Transaction` | `fin_transactions` | String UUID | Double-entry transactions (kind: expense, income, transfer, investment, debt_payment, reimbursement) |
+| `40` | `Account` | `fin_accounts` | String UUID | Asset & liability accounts (bank, cash, credit_card, loan, investment, wallet) |
+| `41` | `Category` | `fin_categories` | String UUID | Hierarchical income and expense categories with color, icon, and parent reference |
+| `42` | `Budget` | `fin_budgets` | String UUID | Period budgets (monthly, custom) with category limits and rollover support |
+| `43` | `Goal` | `fin_goals` | String UUID | Target savings goals with linked accounts, target dates, and monthly contributions |
+| `44` | `RecurringRule` | `fin_recurring` | String UUID | Generalized recurrence engine for subscriptions, bills, salaries, and SIPs |
+| `45` | `Debt` | `fin_debts` | String UUID | Amortized loans, mortgages, BNPL with interest schedules and EMI tracking |
+| `46` | `CategoryRule` | `fin_category_rules` | String UUID | Deterministic merchant and description matching rules for automatic categorization |
+| `47` | `CsvMappingProfile` | `fin_import_profiles` | String UUID | Bank-specific CSV header mapping and date/amount parsing profiles |
+| `48` | `SplitGroup` | `fin_split_groups` | String UUID | Group expense containers with participant rosters and trip mode metadata |
+| `49` | `SplitEntry` | `fin_split_entries` | String UUID | Multi-way split transactions with payer, shares, and settlement status |
+| — | Untyped Key-Value | `fin_settings` | String | Preferences: base currency, lock timeout, privacy flags, home card ordering |
+| — | Untyped Key-Value | `fin_audit_log` | ISO Timestamp | Append-only ledger of security events, migrations, and schema changes |
+
+### 8.3 Specialized Intelligence & Calculation Engines
+
+1. **Forecast Engine (`engine/forecast.dart`)**:
+   - Computes deterministic 30-day forward projections of cash flow.
+   - Evaluates confirmed recurring obligations, historical median variable spending, and planned income.
+   - Generates confidence intervals with clear natural-language summaries.
+2. **Health Score Engine (`engine/health_score.dart`)**:
+   - 100-point composite scoring evaluated across 5 key pillars:
+     1. Savings Rate (30 pts)
+     2. Emergency Fund Runway (25 pts)
+     3. Debt-to-Income / Credit Utilisation (20 pts)
+     4. Budget Adherence (15 pts)
+     5. Goal Pacing (10 pts)
+   - Identifies weakest area and recommends actionable next milestones.
+3. **Insights Engine (`engine/insights.dart`)**:
+   - 11 deterministic rule generators analyzing transaction frequency, duplicate charges (same amount/merchant $\le 24$h), category spikes ($> +20\%$ and $> \text{\textrupee}500$), large transactions ($> 3\times$ median), subscription creep, and bill collision risks.
+   - Outputs structured `Insight` objects with stable keys for persistent dismissal.
+4. **What-If Cockpit (`engine/what_if.dart`)**:
+   - Answers purchase affordability queries before spending: "Can I afford $\text{\textrupee}50,000$ for a phone?".
+   - Categorizes outcomes into: `Comfortable`, `Tight`, `Not Now`, and calculates exact `months_to_save`.
+5. **Reports Engine (`engine/reports.dart`)**:
+   - Monthly and multi-month trend analysis (3, 6, 12 months).
+   - Category breakdowns, merchant rankings, and RFC 4180 compliant CSV exports with proper comma and quote escaping.
+6. **Capture Engine (`engine/capture_engine.dart`)**:
+   - **RFC 4180 CSV Tokenizer**: Parses arbitrary bank statements with auto-detected delimiters (comma, semicolon, tab).
+   - **Transfer Pair Detection**: Auto-detects complementary debits and credits across accounts within 2 days.
+   - **Receipt Capture**: Stores camera/gallery images under `receipts/{txId}/` with on-device OCR pre-fill.
+   - **SMS Parser (Android)**: Local template-based regex parsing for bank/UPI SMS notifications, creating review drafts without auto-posting.
+7. **Query Engine (`engine/query.dart`)**:
+   - Pure-Dart deterministic execution for natural-language queries (`sum`, `count`, `avg`, `list`, `top`).
+   - Supports filtering across period ranges, accounts, categories, and tags.
+8. **Split & Settle Engine (`engine/split_settle_engine.dart`)**:
+   - Paise-accurate equal splits with deterministic remainder distribution.
+   - Greedy minimal-transactions algorithm reducing $N$-person debts to at most $N-1$ bilateral transfers.
+   - Trip mode reports tracking per-person contributions and net balances.
+
+### 8.4 AI & Privacy Safeguards (§6.9)
+
+Commander enforces strict data privacy invariants for all AI and cloud interactions:
+- **Zero Raw Financial Data to Cloud**: Raw transaction histories, balances, and account numbers are never sent to external LLMs.
+- **Deterministic Local Fast Paths**: Financial queries, What-If calculations, and transfers are executed entirely on-device by Dart engines.
+- **Normalized Merchant Privacy**: When AI category suggestions are requested, only stripped merchant names (e.g., "Swiggy", "Uber") are transmitted; amounts and dates are excluded.
+- **Kill-Switch Privacy Toggle**: Setting `ai_finance_privacy = false` immediately empties all financial context passed into `ai_context.dart`.
+- **Mandatory Write Confirmations**: All actions creating or modifying financial records require explicit user confirmation.
+
+### 8.5 Security, Hardware Encryption & App Lock
+
+- **`FinanceLockService`**: Integrates `local_auth` for biometric (fingerprint/face) and device-PIN authentication. Features configurable idle timeout, background lock on app pause, and privacy overlay protection.
+- **`FinanceEncryptionService`**: AES-256 binary encryption of all 11 finance Hive boxes using a 32-byte cryptographic key secured within `FlutterSecureStorage`. Migration uses a **copy, verify checksums, switch** pattern that retains unencrypted backup boxes until confirmed by the user.
+- **Data Privacy & Wipe (`FinancePrivacyDataPage`)**: Complete local storage transparency, permission toggles (notifications, camera, SMS, storage), full JSON/CSV export, and typed "DELETE" safety-gated complete data wipe.

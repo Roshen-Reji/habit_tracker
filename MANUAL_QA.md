@@ -178,3 +178,83 @@ Before running the MVP 2 build over an existing MVP 1 installation, take a backu
    - Test Night Mode toggle (inverts/dims document colors for night reading).
    - Test page slider to jump to specific pages.
    - Exit reader and reopen: confirms last page is remembered and resumed.
+
+---
+
+## 9. Money OS (MVP 3) Device-Only & Hardware Verification
+
+This section covers device-only hardware tests, OS permissions, biometric sensors, camera input, and background lifecycle for the Money OS subsystem.
+
+### 9.1 App Lock & Biometrics (local_auth)
+1. **Enable App Lock**:
+   - Open Money tab -> Settings icon -> "Privacy & Data" (or AI & Privacy page).
+   - Under "Security & App Lock", toggle **Lock Money on App Launch** ON.
+   - Choose timeout: "Immediately" or "After 1 minute".
+2. **Biometric Unlock Test**:
+   - Background the app and return immediately (or wait for the timeout).
+   - Verify: The screen displays the biometric shield overlay ("Money OS Locked").
+   - Authenticate with fingerprint or face: screen unlocks instantly.
+   - Test "Use Device PIN": authenticate with system PIN/pattern fallback.
+3. **App Switcher Privacy**:
+   - Open Android Recent Apps / Task Switcher.
+   - Verify Money OS screen content is obscured or protected by the lock overlay.
+
+### 9.2 Camera & Receipt Attachment
+1. **Camera Capture**:
+   - Open Transactions tab -> Tap "+" (New Transaction).
+   - Under "Receipts", tap **Take Photo**.
+   - Grant Android Camera permission when prompted.
+   - Snap a photo of a physical receipt and accept.
+   - Verify thumbnail strip renders the image with a remove (x) badge.
+2. **Gallery Picker**:
+   - Tap **Gallery** and pick an image.
+   - Save the transaction.
+   - Reopen the transaction from the list: verify attached receipts are preserved and loaded from `receipts/{txId}/`.
+
+### 9.3 SMS Transaction Parser (Android-Only)
+1. **SMS Permission**:
+   - Open Transactions tab -> Tap 3-dot overflow on search bar -> "Import from SMS".
+   - Review the explanation dialog ensuring no data leaves the device.
+   - Grant SMS permission.
+2. **Draft Parsing**:
+   - Verify incoming bank/UPI alerts (HDFC, SBI, ICICI, Axis, Paytm, GPay) generate review drafts:
+     - Correct amount, debit/credit direction, and merchant/beneficiary.
+     - Account number tail (last 4 digits) matched to an existing account.
+   - Confirm: drafts are never auto-posted without explicit user review.
+
+### 9.4 Bill & Recurring Notifications (Exact Alarms)
+1. **Bill Reminders**:
+   - Open Recurring / Bills -> Add a test bill due tomorrow with reminder set to "1 day before at 09:00".
+   - Confirm notification permission and exact alarm permission on Android 12+.
+   - Verify notification triggers at the scheduled time with the bill name and amount.
+   - Tap notification: deep-links directly into the Money OS Recurring tab.
+
+### 9.5 CSV RFC 4180 Export & Share Plus
+1. **Export Execution**:
+   - Open Money tab -> Reports -> Export CSV (or Settings -> Privacy & Data -> Export All Data).
+   - Verify: Android system share sheet appears (`share_plus`).
+   - Share to Google Drive, Files, or email.
+   - Inspect the exported CSV in Excel or text editor:
+     - Verify RFC 4180 compliance (fields containing commas or linebreaks are properly quoted: `"..."`).
+     - Verify paise precision and column headers (`Date`, `Title`, `Amount`, `Kind`, `Category`, `Account`).
+
+### 9.6 At-Rest AES-256 Encryption Migration
+1. **Encryption Enablement**:
+   - In Settings -> Privacy & Data, tap "Enable At-Rest Encryption".
+   - Verify:
+     - A 32-byte key is generated and stored in Android Keystore via `FlutterSecureStorage`.
+     - All 11 Hive boxes are duplicated into encrypted format with verification checksums.
+     - The old unencrypted boxes are retained as a backup until the user taps "Delete Backup".
+2. **Failure Injection Safety**:
+   - If key retrieval fails or process is interrupted, the app falls back safely to the verified backup boxes without data loss.
+
+### 9.7 Complete Data Wipe (P13-4)
+1. **Safety Gating**:
+   - In Settings -> Privacy & Data -> Danger Zone, tap "Delete All Finance Data".
+   - Notice the prompt offering "Export JSON Backup First".
+   - The deletion dialog requires explicitly typing the uppercase word `"DELETE"`.
+   - Tap "Confirm Delete":
+     - All 11 finance Hive boxes are erased and cleared from storage.
+     - Local receipts directory is wiped.
+     - `fin_schema_version` is reset.
+     - App navigates back cleanly with empty ledger state.
