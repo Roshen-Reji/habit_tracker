@@ -17,6 +17,9 @@ import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
+import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/finance_privacy_data_page.dart';
+import 'package:habit_tracker/features/finance/data/finance_lock_service.dart';
 
 class MoneyShellPage extends StatefulWidget {
   final int initialTab;
@@ -95,6 +98,14 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const ReportsPage()),
         );
+      } else if (lower == 'split' || lower == 'splits' || lower == 'settle') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SplitGroupsPage()),
+        );
+      } else if (lower == 'privacy' || lower == 'security' || lower == 'backup') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const FinancePrivacyDataPage()),
+        );
       } else {
         // More sub-destinations
         setState(() => _currentIndex = 4);
@@ -104,26 +115,35 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [
-      MoneyOverviewTab(
-        onSeeAllTransactions: () {
-          setState(() => _currentIndex = 1);
-        },
-      ),
-      const TransactionsTab(),
-      const BudgetTab(),
-      const GoalsTab(),
-      MoreTab(
-        onNavigate: (link) => _handleDeepLink(link),
-      ),
-    ];
+    final lockService = FinanceLockService.instance;
 
-    return Scaffold(
-      backgroundColor: BentoTheme.background,
-      body: IndexedStack(
-        index: _currentIndex.clamp(0, tabs.length - 1),
-        children: tabs,
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: lockService.isUnlocked,
+      builder: (context, isUnlocked, child) {
+        if (lockService.isLockEnabled && !isUnlocked) {
+          return _buildLockScreen(lockService);
+        }
+
+        final tabs = [
+          MoneyOverviewTab(
+            onSeeAllTransactions: () {
+              setState(() => _currentIndex = 1);
+            },
+          ),
+          const TransactionsTab(),
+          const BudgetTab(),
+          const GoalsTab(),
+          MoreTab(
+            onNavigate: (link) => _handleDeepLink(link),
+          ),
+        ];
+
+        return Scaffold(
+          backgroundColor: BentoTheme.background,
+          body: IndexedStack(
+            index: _currentIndex.clamp(0, tabs.length - 1),
+            children: tabs,
+          ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: BentoTheme.surface,
@@ -172,6 +192,66 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
               label: 'More',
             ),
           ],
+        ),
+      ),
+    );
+      },
+    );
+  }
+
+  Widget _buildLockScreen(FinanceLockService lockService) {
+    return Scaffold(
+      backgroundColor: BentoTheme.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Icon(LucideIcons.lock, size: 48, color: BentoTheme.accent),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Money OS is Locked',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Authenticate with your fingerprint, face, or device PIN to access your financial data.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => lockService.authenticateAndUnlock(),
+                  icon: const Icon(LucideIcons.fingerprint, size: 20),
+                  label: const Text('Unlock with Biometrics / PIN'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BentoTheme.accent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
