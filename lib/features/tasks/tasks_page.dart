@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/features/finance/finance_page.dart';
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'widgets/task_card.dart';
@@ -194,8 +193,59 @@ class _TasksPageState extends State<TasksPage>
               ? SizedBox(
                   key: const ValueKey('missions'), child: _buildTaskEngine())
               : _currentView == 'finance'
-                  ? const FinanceDashboard(key: ValueKey('finance'))
+                  ? _buildMoneyLaunchView()
                   : const SpeechVaultPage(key: ValueKey('vault')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoneyLaunchView() {
+    return Center(
+      key: const ValueKey('finance_launch'),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: BentoTheme.accent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(LucideIcons.wallet, size: 48, color: BentoTheme.accent),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Money OS',
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Comprehensive double-entry personal finance, multiple accounts, budgets, and net worth tracking.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => AppNav.openMoney(context),
+              icon: const Icon(LucideIcons.arrowUpRight, size: 18),
+              label: const Text('Open Money OS', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BentoTheme.accent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -206,7 +256,11 @@ class _TasksPageState extends State<TasksPage>
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        AppNav.instance.setTasksSubview(viewKey);
+        if (viewKey == 'finance') {
+          AppNav.openMoney(context);
+        } else {
+          AppNav.instance.setTasksSubview(viewKey);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

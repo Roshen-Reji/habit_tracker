@@ -71,9 +71,11 @@ class FinanceRepository {
     changes.value++;
   }
 
+  int _counter = 0;
   String _generateId(String prefix) {
     final now = DateTime.now().microsecondsSinceEpoch;
-    return '${prefix}_$now';
+    _counter++;
+    return '${prefix}_${now}_$_counter';
   }
 
   // ---------------------------------------------------------------------------
@@ -178,15 +180,51 @@ class FinanceRepository {
     }
   }
 
-  Future<void> updateTransaction(Transaction tx) async {
-    final effectiveKind = tx.effectiveKind;
-    if (tx.splits != null && tx.splits!.isNotEmpty) {
-      _validateSplits(tx.splits!, tx.amount.abs());
+  Future<void> updateTransaction(dynamic txOrId, [TxDraft? draft]) async {
+    Transaction? target;
+    if (txOrId is Transaction) {
+      target = txOrId;
+    } else if (txOrId is String) {
+      for (final t in storage.transactionBox.values) {
+        if (t.id == txOrId || t.key.toString() == txOrId) {
+          target = t;
+          break;
+        }
+      }
     }
-    if (effectiveKind == 'transfer' && tx.accountId == tx.toAccountId) {
+
+    if (target == null) throw ArgumentError('Transaction not found: $txOrId');
+
+    if (draft != null) {
+      final effectiveKind = draft.kind ?? target.effectiveKind;
+      final magnitude = Money.r2(draft.amount.abs());
+      final storedAmount = (effectiveKind == 'expense') ? -magnitude : magnitude;
+
+      target.title = draft.title.trim().isEmpty ? draft.category : draft.title.trim();
+      target.amount = storedAmount;
+      target.kind = effectiveKind;
+      target.accountId = draft.accountId ?? target.accountId;
+      target.toAccountId = draft.toAccountId;
+      target.categoryId = draft.categoryId;
+      target.category = draft.category;
+      target.date = draft.date;
+      target.merchant = draft.merchant;
+      target.paymentMethod = draft.paymentMethod;
+      target.notes = draft.notes;
+      target.tags = draft.tags;
+      target.splits = draft.splits;
+      target.interestAmount = draft.interestAmount;
+      target.refundOfId = draft.refundOfId;
+    }
+
+    final effectiveKind = target.effectiveKind;
+    if (target.splits != null && target.splits!.isNotEmpty) {
+      _validateSplits(target.splits!, target.amount.abs());
+    }
+    if (effectiveKind == 'transfer' && target.accountId == target.toAccountId) {
       throw ArgumentError('Source and destination accounts must be different.');
     }
-    await tx.save();
+    await target.save();
     _notify();
   }
 
@@ -256,6 +294,9 @@ class FinanceRepository {
     _notify();
     return restored;
   }
+
+  /// Alias for in-session undo.
+  Future<Transaction?> undo() => undoDelete();
 
   // ---------------------------------------------------------------------------
   // TRANSFERS & REFUNDS
@@ -345,6 +386,34 @@ class FinanceRepository {
 
   Future<void> updateCategory(Category category) async {
     await storage.categoryBox.put(category.id, category);
+    _notify();
+  }
+
+  Future<void> saveCategory(Category category) async {
+    await storage.categoryBox.put(category.id, category);
+    _notify();
+  }
+
+  Future<void> mergeCategory(String sourceCategoryId, String targetCategoryId) async {
+    final targetCategory = storage.categoryBox.get(targetCategoryId);
+    if (targetCategory == null) {
+      throw ArgumentError('Target category not found: $targetCategoryId');
+    }
+
+    for (final tx in storage.transactionBox.values) {
+      if (tx.categoryId == sourceCategoryId) {
+        tx.categoryId = targetCategoryId;
+        tx.category = targetCategory.name;
+        await tx.save();
+      }
+    }
+
+    final sourceCategory = storage.categoryBox.get(sourceCategoryId);
+    if (sourceCategory != null) {
+      sourceCategory.archived = true;
+      await sourceCategory.save();
+    }
+
     _notify();
   }
 

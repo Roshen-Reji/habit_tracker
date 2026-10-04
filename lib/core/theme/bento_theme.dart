@@ -48,6 +48,8 @@ class BentoTheme {
     return isLight ? const Color(0xFFF9FAFB) : const Color(0xFF1C1C1E);
   }
 
+  static Color get cardBackground => surfaceElevated;
+
   // Accent Color - Dynamic or Strict Black/White default
   static Color get accent {
     bool dynamicBg =

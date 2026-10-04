@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 
 enum AppTab {
   home,
@@ -78,4 +79,21 @@ class AppNav extends ChangeNotifier {
 
     instance.notifyListeners();
   }
+
+  /// Opens the full-screen Money OS shell with optional deep-linking.
+  static Future<void> openMoney(
+    BuildContext context, {
+    int initialTab = 0,
+    String? deepLink,
+  }) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MoneyShellPage(
+          initialTab: initialTab,
+          deepLink: deepLink,
+        ),
+      ),
+    );
+  }
 }
+

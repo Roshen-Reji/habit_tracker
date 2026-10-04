@@ -49,24 +49,74 @@ class FinanceStorage {
   }
 
   /// Opens all boxes required for the finance system.
+  static Future<void> openAllBoxes() => FinanceStorage().init();
+
+  /// Opens all boxes required for the finance system.
   Future<void> init() async {
     registerAdapters();
 
-    _txBox ??= await Hive.openBox<Transaction>('finance_transactions');
-    _vaultBox ??= await Hive.openBox<AssetVault>('finance_vaults');
-    _settingsBox ??= await Hive.openBox('finance_settings');
-    _accountBox ??= await Hive.openBox<Account>('fin_accounts');
-    _categoryBox ??= await Hive.openBox<Category>('fin_categories');
-    _ruleBox ??= await Hive.openBox<CategoryRule>('fin_rules');
-    _recurringBox ??= await Hive.openBox<RecurringRule>('fin_recurring');
-    _budgetLineBox ??= await Hive.openBox<BudgetLine>('fin_budget_lines');
-    _budgetOverrideBox ??=
-        await Hive.openBox<BudgetOverride>('fin_budget_overrides');
-    _goalBox ??= await Hive.openBox<SavingsGoal>('fin_goals');
-    _goalEntryBox ??= await Hive.openBox<GoalEntry>('fin_goal_entries');
-    _valuationBox ??= await Hive.openBox<Valuation>('fin_valuations');
-    _splitGroupBox ??= await Hive.openBox<SplitGroup>('fin_split_groups');
-    _splitEntryBox ??= await Hive.openBox<SplitEntry>('fin_split_entries');
+    if (_txBox == null || !_txBox!.isOpen) {
+      _txBox = await Hive.openBox<Transaction>('finance_transactions');
+    }
+    if (_vaultBox == null || !_vaultBox!.isOpen) {
+      _vaultBox = await Hive.openBox<AssetVault>('finance_vaults');
+    }
+    if (_settingsBox == null || !_settingsBox!.isOpen) {
+      _settingsBox = await Hive.openBox('finance_settings');
+    }
+    if (_accountBox == null || !_accountBox!.isOpen) {
+      _accountBox = await Hive.openBox<Account>('fin_accounts');
+    }
+    if (_categoryBox == null || !_categoryBox!.isOpen) {
+      _categoryBox = await Hive.openBox<Category>('fin_categories');
+    }
+    if (_ruleBox == null || !_ruleBox!.isOpen) {
+      _ruleBox = await Hive.openBox<CategoryRule>('fin_rules');
+    }
+    if (_recurringBox == null || !_recurringBox!.isOpen) {
+      _recurringBox = await Hive.openBox<RecurringRule>('fin_recurring');
+    }
+    if (_budgetLineBox == null || !_budgetLineBox!.isOpen) {
+      _budgetLineBox = await Hive.openBox<BudgetLine>('fin_budget_lines');
+    }
+    if (_budgetOverrideBox == null || !_budgetOverrideBox!.isOpen) {
+      _budgetOverrideBox =
+          await Hive.openBox<BudgetOverride>('fin_budget_overrides');
+    }
+    if (_goalBox == null || !_goalBox!.isOpen) {
+      _goalBox = await Hive.openBox<SavingsGoal>('fin_goals');
+    }
+    if (_goalEntryBox == null || !_goalEntryBox!.isOpen) {
+      _goalEntryBox = await Hive.openBox<GoalEntry>('fin_goal_entries');
+    }
+    if (_valuationBox == null || !_valuationBox!.isOpen) {
+      _valuationBox = await Hive.openBox<Valuation>('fin_valuations');
+    }
+    if (_splitGroupBox == null || !_splitGroupBox!.isOpen) {
+      _splitGroupBox = await Hive.openBox<SplitGroup>('fin_split_groups');
+    }
+    if (_splitEntryBox == null || !_splitEntryBox!.isOpen) {
+      _splitEntryBox = await Hive.openBox<SplitEntry>('fin_split_entries');
+    }
+  }
+
+  /// Reset internal box caches for tests.
+  static void resetForTesting() {
+    final s = FinanceStorage();
+    s._txBox = null;
+    s._vaultBox = null;
+    s._settingsBox = null;
+    s._accountBox = null;
+    s._categoryBox = null;
+    s._ruleBox = null;
+    s._recurringBox = null;
+    s._budgetLineBox = null;
+    s._budgetOverrideBox = null;
+    s._goalBox = null;
+    s._goalEntryBox = null;
+    s._valuationBox = null;
+    s._splitGroupBox = null;
+    s._splitEntryBox = null;
   }
 
   /// Testing helper to inject pre-opened boxes.

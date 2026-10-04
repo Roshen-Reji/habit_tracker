@@ -73,10 +73,7 @@ class FinanceCard extends StatelessWidget {
               icon: LucideIcons.wallet,
               title: 'Finance Summary',
               onTap: () {
-                AppNav.goTo(
-                  AppTab.tasks,
-                  sub: TasksSubview.finance,
-                );
+                AppNav.openMoney(context);
               },
               trailing: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
