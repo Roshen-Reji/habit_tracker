@@ -16,6 +16,7 @@ import 'package:habit_tracker/features/finance/ui/debt/debt_page.dart';
 import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
+import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
 
 class MoneyShellPage extends StatefulWidget {
   final int initialTab;
@@ -89,6 +90,10 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
       } else if (lower == 'cashflow' || lower == 'cash_flow') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CashFlowPage()),
+        );
+      } else if (lower == 'reports' || lower == 'report' || lower == 'export') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ReportsPage()),
         );
       } else {
         // More sub-destinations

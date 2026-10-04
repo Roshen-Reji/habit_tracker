@@ -14,6 +14,9 @@ import 'package:habit_tracker/features/home/cards/music_card.dart';
 import 'package:habit_tracker/features/home/cards/journal_card.dart';
 import 'package:habit_tracker/features/home/cards/brainstorm_card.dart';
 import 'package:habit_tracker/features/home/cards/reader_card.dart';
+import 'package:habit_tracker/features/home/cards/safe_to_spend_card.dart';
+import 'package:habit_tracker/features/home/cards/net_worth_card.dart';
+import 'package:habit_tracker/features/home/cards/upcoming_bills_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Specification for a card in the wallet-stack home screen.
@@ -186,6 +189,30 @@ class HomeCardRegistry {
       icon: LucideIcons.bookOpen,
       compactBuilder: (context) => const ReaderCard(),
       defaultOrder: 13,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'safe_to_spend',
+      title: 'Safe to Spend',
+      icon: LucideIcons.shieldCheck,
+      compactBuilder: (context) => const SafeToSpendCard(),
+      defaultOrder: 14,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'net_worth',
+      title: 'Net Worth',
+      icon: LucideIcons.lineChart,
+      compactBuilder: (context) => const NetWorthHomeCard(),
+      defaultOrder: 15,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'upcoming_bills',
+      title: 'Upcoming Bills',
+      icon: LucideIcons.calendarClock,
+      compactBuilder: (context) => const UpcomingBillsCard(),
+      defaultOrder: 16,
       defaultVisible: true,
     ));
   }

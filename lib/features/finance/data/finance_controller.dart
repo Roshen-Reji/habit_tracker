@@ -14,6 +14,7 @@ import 'package:habit_tracker/features/finance/engine/constants.dart';
 import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
 import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
 import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
+import 'package:habit_tracker/features/finance/engine/report_engine.dart';
 import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
@@ -1281,6 +1282,78 @@ class FinanceController extends ChangeNotifier {
     await storage.settingsBox.put('fin_home_layout', layout);
     notifyListeners();
   }
+
+  // ==========================================
+  // PHASE 9: REPORTS & EXPORT
+  // ==========================================
+
+  MonthlySummaryReport getMonthlySummaryReport(DateTime month) {
+    return ReportEngine.generateMonthlySummary(
+      month: month,
+      transactions: storage.transactionBox.values.toList(),
+      accounts: storage.accountBox.values.toList(),
+      valuations: storage.valuationBox.values.toList(),
+      goalEntries: storage.goalEntryBox.values.toList(),
+    );
+  }
+
+  List<CategoryReportItem> getCategoryReport(DateTime month) {
+    return ReportEngine.generateCategoryReport(
+      month: month,
+      transactions: storage.transactionBox.values.toList(),
+      categories: storage.categoryBox.values.toList(),
+    );
+  }
+
+  List<MerchantReportItem> getMerchantReport(DateTime month) {
+    return ReportEngine.generateMerchantReport(
+      month: month,
+      transactions: storage.transactionBox.values.toList(),
+    );
+  }
+
+  MonthComparisonReport compareMonths(DateTime month1, DateTime month2) {
+    return ReportEngine.compareMonths(
+      month1: month1,
+      month2: month2,
+      transactions: storage.transactionBox.values.toList(),
+      categories: storage.categoryBox.values.toList(),
+    );
+  }
+
+  List<TrendPoint> getTrendReport(int monthsBack, {DateTime? currentMonth}) {
+    return ReportEngine.generateTrends(
+      monthsBack: monthsBack,
+      currentMonth: currentMonth ?? DateTime.now(),
+      transactions: storage.transactionBox.values.toList(),
+      accounts: storage.accountBox.values.toList(),
+      valuations: storage.valuationBox.values.toList(),
+    );
+  }
+
+  String exportTransactionsToCsv() {
+    return CsvExporter.exportTransactionsToCsv(
+      allTransactions,
+      categoriesMap,
+      accountsMap,
+    );
+  }
+
+  String exportMonthlyReportToCsv({int monthsBack = 12}) {
+    final now = DateTime.now();
+    final list = <MonthlySummaryReport>[];
+    for (var i = monthsBack - 1; i >= 0; i--) {
+      final m = DateTime(now.year, now.month - i);
+      list.add(getMonthlySummaryReport(m));
+    }
+    return CsvExporter.exportMonthlySummaryToCsv(list);
+  }
+
+  String exportCategoryReportToCsv(DateTime month) {
+    final items = getCategoryReport(month);
+    return CsvExporter.exportCategoryReportToCsv(month, items);
+  }
 }
+
 
 

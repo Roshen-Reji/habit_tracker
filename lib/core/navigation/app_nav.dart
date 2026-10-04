@@ -7,6 +7,7 @@ import 'package:habit_tracker/features/finance/ui/debt/debt_page.dart';
 import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
+import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 
 enum AppTab {
@@ -175,6 +176,15 @@ class AppNav extends ChangeNotifier {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const CashFlowPage(),
+      ),
+    );
+  }
+
+  /// Opens the Financial Reports & Export page.
+  static Future<void> openReports(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ReportsPage(),
       ),
     );
   }

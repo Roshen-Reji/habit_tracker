@@ -12,7 +12,7 @@ class MoneyFeature {
   static bool isDebtEnabled = true; // Phase 7
   static bool isCashFlowEnabled = true; // Phase 8
   static bool isInsightsEnabled = true; // Phase 8
-  static bool isReportsEnabled = false; // Phase 9
+  static bool isReportsEnabled = true; // Phase 9
   static bool isImportEnabled = false; // Phase 10
   static bool isSplitSettleEnabled = false; // Phase 12
   static bool isPrivacyDataEnabled = true; // Phase 13 preview
