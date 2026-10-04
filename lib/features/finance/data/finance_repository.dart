@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/engine/constants.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
 /// Draft object used to create a new Transaction through the repository.
@@ -515,6 +517,167 @@ class FinanceRepository {
   Future<void> deleteRecurringRule(String id) async {
     await storage.recurringBox.delete(id);
     _notify();
+  }
+
+  /// P6-1: Posts due auto-post recurring rules up to [now].
+  /// Idempotent via sourceRef: 'rec:{id}:{yyyy-MM-dd}'.
+  Future<List<Transaction>> postRecurringDue({DateTime? now}) async {
+    final clock = now ?? DateTime.now();
+    final rules = storage.recurringBox.values.where((r) => r.status == 'active' && r.autoPost).toList();
+    final posted = <Transaction>[];
+
+    for (final rule in rules) {
+      // Find all occurrences from startDate up to clock
+      final dates = RecurringEngine.occurrences(rule, rule.startDate, clock);
+
+      for (final dueDate in dates) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
+        final sourceRef = 'rec:${rule.id}:$dateKey';
+
+        // Check if already posted
+        final exists = storage.transactionBox.values.any((tx) => tx.sourceRef == sourceRef);
+        if (exists) continue;
+
+        final estimatedAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
+        final isIncome = rule.kind == 'income';
+        final isTransfer = rule.kind == 'transfer';
+        final isInvestment = rule.kind == 'investment' || rule.kind == 'sip';
+        final isDebt = rule.kind == 'emi' || rule.kind == 'debt_payment';
+
+        String effectiveKind = 'expense';
+        if (isIncome) effectiveKind = 'income';
+        else if (isTransfer) effectiveKind = 'transfer';
+        else if (isInvestment) effectiveKind = 'investment';
+        else if (isDebt) effectiveKind = 'debt_payment';
+
+        final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
+
+        final tx = await addTransaction(TxDraft(
+          title: rule.name,
+          amount: isIncome ? estimatedAmt : -estimatedAmt,
+          category: cat?.name ?? 'Recurring',
+          date: dueDate,
+          mode: isIncome ? 'income' : 'expense',
+          icon: cat?.iconKey ?? 'repeat',
+          kind: effectiveKind,
+          accountId: rule.accountId ?? 'acc_main',
+          toAccountId: rule.toAccountId,
+          categoryId: rule.categoryId,
+          recurringRuleId: rule.id,
+          sourceRef: sourceRef,
+          notes: rule.notes ?? 'Auto-posted recurring ${rule.kind}',
+        ));
+
+        posted.add(tx);
+      }
+    }
+
+    return posted;
+  }
+
+  /// P6-1: Gets unposted due items for non-autoPost recurring rules up to [now].
+  List<DueItem> getUnpostedDueItems({DateTime? now}) {
+    final clock = now ?? DateTime.now();
+    final rules = storage.recurringBox.values.where((r) => r.status == 'active' && !r.autoPost).toList();
+    final dueItems = <DueItem>[];
+
+    for (final rule in rules) {
+      final dates = RecurringEngine.occurrences(rule, rule.startDate, clock);
+
+      for (final dueDate in dates) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
+        final sourceRef = 'rec:${rule.id}:$dateKey';
+
+        final exists = storage.transactionBox.values.any((tx) => tx.sourceRef == sourceRef);
+        if (exists) continue;
+
+        final estAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
+        dueItems.add(DueItem(
+          rule: rule,
+          dueDate: dueDate,
+          estimatedAmount: estAmt,
+          isVariable: rule.amountIsVariable,
+        ));
+      }
+    }
+
+    dueItems.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return dueItems;
+  }
+
+  /// P6-2: Marks a due item as Paid with user-confirmed date, amount, and account.
+  Future<Transaction> markRecurringPaid(
+    DueItem item, {
+    DateTime? paidDate,
+    String? accountId,
+    double? amount,
+  }) async {
+    final rule = item.rule;
+    final effDate = paidDate ?? item.dueDate;
+    final finalAmt = amount ?? item.estimatedAmount;
+    final finalAccId = accountId ?? rule.accountId ?? 'acc_main';
+
+    final isIncome = rule.kind == 'income';
+    final isTransfer = rule.kind == 'transfer';
+    final isInvestment = rule.kind == 'investment' || rule.kind == 'sip';
+    final isDebt = rule.kind == 'emi' || rule.kind == 'debt_payment';
+
+    String effectiveKind = 'expense';
+    if (isIncome) effectiveKind = 'income';
+    else if (isTransfer) effectiveKind = 'transfer';
+    else if (isInvestment) effectiveKind = 'investment';
+    else if (isDebt) effectiveKind = 'debt_payment';
+
+    final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
+
+    return addTransaction(TxDraft(
+      title: rule.name,
+      amount: isIncome ? finalAmt : -finalAmt,
+      category: cat?.name ?? 'Recurring',
+      date: effDate,
+      mode: isIncome ? 'income' : 'expense',
+      icon: cat?.iconKey ?? 'check-circle',
+      kind: effectiveKind,
+      accountId: finalAccId,
+      toAccountId: rule.toAccountId,
+      categoryId: rule.categoryId,
+      recurringRuleId: rule.id,
+      sourceRef: item.sourceRef,
+      notes: rule.notes ?? 'Confirmed payment for ${rule.name}',
+    ));
+  }
+
+  /// P6-3: Schedules notifications for upcoming recurring rules at 09:00 local time.
+  Future<void> scheduleRecurringReminders({DateTime? now}) async {
+    final clock = now ?? DateTime.now();
+    final horizon = clock.add(const Duration(days: 14));
+    final rules = storage.recurringBox.values.where((r) => r.status == 'active').toList();
+
+    for (final rule in rules) {
+      final dates = RecurringEngine.occurrences(rule, clock, horizon);
+
+      for (final d in dates) {
+        final reminderDate = d.subtract(Duration(days: rule.reminderDaysBefore));
+        final scheduledTime = DateTime(
+          reminderDate.year,
+          reminderDate.month,
+          reminderDate.day,
+          9,
+          0,
+        );
+
+        if (scheduledTime.isAfter(clock)) {
+          final id = (rule.id.hashCode + d.day + d.month * 100) & 0x7FFFFFFF;
+          await NotificationService().schedule(
+            id: id,
+            when: scheduledTime,
+            title: 'Upcoming ${rule.kind}: ${rule.name}',
+            body: '${FormatUtils.formatMoney(rule.amount)} due on ${DateFormat('dd MMM').format(d)}',
+            payload: 'rec:${rule.id}',
+          );
+        }
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

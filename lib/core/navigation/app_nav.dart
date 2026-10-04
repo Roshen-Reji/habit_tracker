@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/account_detail_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
+import 'package:habit_tracker/features/finance/ui/calendar/finance_calendar_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
+import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 
 enum AppTab {
@@ -125,6 +127,24 @@ class AppNav extends ChangeNotifier {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AccountDetailPage(accountId: accountId),
+      ),
+    );
+  }
+
+  /// Opens the Bills & Subscriptions recurring management screen.
+  static Future<void> openBills(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const RecurringPage(),
+      ),
+    );
+  }
+
+  /// Opens the Financial Calendar screen.
+  static Future<void> openCalendar(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FinanceCalendarPage(),
       ),
     );
   }

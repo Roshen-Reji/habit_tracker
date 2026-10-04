@@ -8,6 +8,7 @@ import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
 import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
 /// Reactive controller that exposes memoised financial data, month indexes,
@@ -575,6 +576,87 @@ class FinanceController extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // RECURRING, BILLS & SUBSCRIPTIONS (P6)
+  // ---------------------------------------------------------------------------
+
+  List<RecurringRule> get allRecurringRules => repository.getAllRecurringRules();
+
+  List<RecurringRule> get activeRecurringRules =>
+      allRecurringRules.where((r) => r.status == 'active').toList();
+
+  Future<RecurringRule> addRecurringRule(RecurringRule rule) =>
+      repository.addRecurringRule(rule);
+
+  Future<void> updateRecurringRule(RecurringRule rule) =>
+      repository.updateRecurringRule(rule);
+
+  Future<void> deleteRecurringRule(String id) =>
+      repository.deleteRecurringRule(id);
+
+  Future<List<Transaction>> postRecurringDue({DateTime? now}) =>
+      repository.postRecurringDue(now: now);
+
+  List<DueItem> getUnpostedDueItems({DateTime? now}) =>
+      repository.getUnpostedDueItems(now: now);
+
+  Future<Transaction> markRecurringPaid(
+    DueItem item, {
+    DateTime? paidDate,
+    String? accountId,
+    double? amount,
+  }) =>
+      repository.markRecurringPaid(
+        item,
+        paidDate: paidDate,
+        accountId: accountId,
+        amount: amount,
+      );
+
+  Future<void> scheduleRecurringReminders({DateTime? now}) =>
+      repository.scheduleRecurringReminders(now: now);
+
+  List<DetectedSubscription> getDetectedSubscriptions({DateTime? currentDate}) {
+    final rawDismissed = storage.settingsBox.get('dismissed_sub_suggestions');
+    final dismissed = rawDismissed is List
+        ? rawDismissed.cast<String>().toSet()
+        : <String>{};
+
+    return RecurringEngine.detectSubscriptions(
+      transactions: storage.transactionBox.values,
+      currentDate: currentDate ?? DateTime.now(),
+      dismissedSuggestions: dismissed,
+    );
+  }
+
+  Future<void> dismissSubscriptionSuggestion(String normMerchant) async {
+    final raw = storage.settingsBox.get('dismissed_sub_suggestions');
+    final list = raw is List ? List<String>.from(raw) : <String>[];
+    if (!list.contains(normMerchant)) {
+      list.add(normMerchant);
+      await storage.settingsBox.put('dismissed_sub_suggestions', list);
+      notifyListeners();
+    }
+  }
+
+  double getMonthlyRecurringTotal() {
+    double total = 0.0;
+    for (final rule in activeRecurringRules) {
+      if (rule.kind == 'income') continue;
+      final amt = rule.amount;
+      if (rule.frequency == 'weekly') {
+        total += amt * 4.33;
+      } else if (rule.frequency == 'quarterly') {
+        total += amt / 3.0;
+      } else if (rule.frequency == 'yearly') {
+        total += amt / 12.0;
+      } else {
+        total += amt;
+      }
+    }
+    return Money.r2(total);
   }
 }
 

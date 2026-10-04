@@ -112,6 +112,14 @@ class MoreTab extends StatelessWidget {
                 },
               ),
               _tile(
+                icon: LucideIcons.calendar,
+                title: 'Financial Calendar',
+                subtitle: 'Schedule of bills, SIPs, due dates and cashflow',
+                onTap: () {
+                  if (onNavigate != null) onNavigate!('calendar');
+                },
+              ),
+              _tile(
                 icon: LucideIcons.creditCard,
                 title: 'Debt & Credit Cards',
                 subtitle: 'EMIs, statements and loan amortisation',
