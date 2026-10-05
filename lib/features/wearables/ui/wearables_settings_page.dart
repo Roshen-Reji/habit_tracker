@@ -14,7 +14,6 @@ class WearablesSettingsPage extends StatefulWidget {
 }
 
 class _WearablesSettingsPageState extends State<WearablesSettingsPage> {
-  bool _isChecking = false;
   Map<String, bool> _permissions = {};
 
   @override
@@ -24,13 +23,11 @@ class _WearablesSettingsPageState extends State<WearablesSettingsPage> {
   }
 
   Future<void> _checkStatus() async {
-    setState(() => _isChecking = true);
     final source = SyncService.instance.getActiveSource();
     final perms = await source.checkPermissions();
     if (mounted) {
       setState(() {
         _permissions = perms;
-        _isChecking = false;
       });
     }
   }

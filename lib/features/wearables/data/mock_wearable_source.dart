@@ -8,6 +8,9 @@ class MockWearableSource implements WearableSource {
   String get name => 'Galaxy Watch 7 (Simulator)';
 
   @override
+  String get sourceId => 'mock';
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override

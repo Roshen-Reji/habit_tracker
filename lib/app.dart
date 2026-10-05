@@ -43,7 +43,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
       TaskResetService.checkAndResetTasks();
       WakeService.instance.rolloverMissedDays(DateTime.now());
       SipService.runDue();
-      if (WearableSettings.autoSyncOnResume) {
+      if (WearableSettings.isEnabled && WearableSettings.autoSyncOnResume) {
         SyncService.instance.sync(days: 7);
       }
     } else if (state == AppLifecycleState.paused ||
@@ -55,6 +55,18 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
 
   @override
   Widget build(BuildContext context) {
+    if (!Hive.isBoxOpen('settings')) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Color(0xFF121212),
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings').listenable(),
       builder: (context, Box settings, _) {

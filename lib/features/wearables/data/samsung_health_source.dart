@@ -11,6 +11,9 @@ class SamsungHealthSource implements WearableSource {
   String get name => 'Samsung Health (Galaxy Watch)';
 
   @override
+  String get sourceId => 'samsung_health';
+
+  @override
   Future<bool> isAvailable() async {
     try {
       final res = await _channel.invokeMethod<Map>('isAvailable');
@@ -66,10 +69,7 @@ class SamsungHealthSource implements WearableSource {
           steps: (m['steps'] as num?)?.toInt() ?? 0,
           distanceM: (m['distanceMeters'] as num?)?.toDouble(),
           totalKcal: (m['totalBurnedCalories'] as num?)?.toDouble(),
-          activeKcal: (m['activeCalories'] as num?)?.toDouble() ??
-              ((m['totalBurnedCalories'] as num?)?.toDouble() != null
-                  ? ((m['totalBurnedCalories'] as num)!.toDouble() * 0.35)
-                  : null),
+          activeKcal: (m['activeCalories'] as num?)?.toDouble(),
           activeMinutes: (m['activeMinutes'] as num?)?.toInt(),
           sourceNote: m['source']?.toString() ?? 'samsung_health',
         );
@@ -127,7 +127,7 @@ class SamsungHealthSource implements WearableSource {
           end: DateTime.fromMillisecondsSinceEpoch(endMs),
           durationMin: durMin,
           totalKcal: (m['calories'] as num?)?.toDouble(),
-          activeKcal: (m['calories'] as num?)?.toDouble(),
+          activeKcal: (m['activeCalories'] as num?)?.toDouble(),
           avgHr: (m['avgHeartRate'] as num?)?.toInt(),
           maxHr: (m['maxHeartRate'] as num?)?.toInt(),
           distanceM: (m['distanceMeters'] as num?)?.toDouble(),
@@ -154,7 +154,7 @@ class SamsungHealthSource implements WearableSource {
           bodyFatPct: (m['bodyFatPercent'] as num?)?.toDouble(),
           skeletalMuscleMassKg: (m['skeletalMuscleMassKg'] as num?)?.toDouble(),
           bodyFatMassKg: (m['fatMassKg'] as num?)?.toDouble(),
-          bodyWaterPct: (m['totalBodyWaterKg'] as num?)?.toDouble(),
+          bodyWaterPct: (m['bodyWaterPct'] as num?)?.toDouble(),
           bmi: (m['bmi'] as num?)?.toDouble(),
           bmrKcal: (m['bmrKcal'] as num?)?.toDouble(),
           sourceDevice: m['source']?.toString() ?? 'samsung_health',
@@ -171,13 +171,20 @@ class SamsungHealthSource implements WearableSource {
     try {
       final res = await _channel.invokeListMethod<Map>('readEnergyScore', {'days': days});
       if (res == null) return [];
-      return res.map((m) {
-        return EnergyScoreDay(
-          dayKey: m['dayKey'].toString(),
-          score: (m['score'] as num?)?.toInt() ?? 75,
-          extraJson: jsonEncode(m),
-        );
-      }).toList();
+      final list = <EnergyScoreDay>[];
+      for (final m in res) {
+        final rawScore = m['score'];
+        if (rawScore is num) {
+          list.add(
+            EnergyScoreDay(
+              dayKey: m['dayKey'].toString(),
+              score: rawScore.toInt(),
+              extraJson: jsonEncode(m),
+            ),
+          );
+        }
+      }
+      return list;
     } catch (e) {
       debugPrint('SamsungHealthSource.fetchEnergyScores error: $e');
       return [];
@@ -189,16 +196,23 @@ class SamsungHealthSource implements WearableSource {
     try {
       final res = await _channel.invokeListMethod<Map>('readAgesIndex', {'days': days});
       if (res == null) return [];
-      return res.map((m) {
-        final ts = (m['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
-        return AgesSample(
-          id: m['id']?.toString() ?? 'shealth_ages_$ts',
-          timestamp: DateTime.fromMillisecondsSinceEpoch(ts),
-          score: (m['score'] as num?)?.toDouble() ?? 45.0,
-          sourceDevice: m['source']?.toString() ?? 'samsung_health',
-          extraJson: jsonEncode(m),
-        );
-      }).toList();
+      final list = <AgesSample>[];
+      for (final m in res) {
+        final rawScore = m['score'];
+        if (rawScore is num) {
+          final ts = (m['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+          list.add(
+            AgesSample(
+              id: m['id']?.toString() ?? 'shealth_ages_$ts',
+              timestamp: DateTime.fromMillisecondsSinceEpoch(ts),
+              score: rawScore.toDouble(),
+              sourceDevice: m['source']?.toString() ?? 'samsung_health',
+              extraJson: jsonEncode(m),
+            ),
+          );
+        }
+      }
+      return list;
     } catch (e) {
       debugPrint('SamsungHealthSource.fetchAgesSamples error: $e');
       return [];

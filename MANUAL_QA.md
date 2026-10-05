@@ -258,3 +258,90 @@ This section covers device-only hardware tests, OS permissions, biometric sensor
      - Local receipts directory is wiped.
      - `fin_schema_version` is reset.
      - App navigates back cleanly with empty ledger state.
+
+---
+
+## 10. Wearable Integration & Galaxy Watch 7 Verification (MVP 4.1)
+
+### 10.1 Fresh State (No Wearable Connected)
+1. Launch app with `wear_enabled = false` or on an installation with no synced records.
+2. Home screen Galaxy Watch Card displays:
+   - "Galaxy Watch 7 not connected" banner with "Connect" CTA button.
+   - All metric slots show "—" (honest empty state, no fabricated steps or sleep).
+3. Fitness tab:
+   - Activity, Sleep, Energy, Workouts, and Body Composition cards show honest "No data synced" empty states.
+   - AGEs Index shows "No AGEs entry recorded" with "Log AGEs Value" button.
+
+### 10.2 Purge Migration Verification
+1. On an upgrade from a build with fake simulated data:
+   - `WearableCleanupService.runPurge()` triggers once on launch.
+   - All synthetic records are backed up to `app_docs/wearable_purge_backup_*.json`.
+   - Wearable boxes (`wear_daily`, `wear_sleep`, `wear_exercise`, `wear_body`, `wear_energy`, `wear_ages`) are wiped clean.
+   - Any manual burn entries previously superseded by fake data are un-superseded and count towards daily burn.
+   - Inverted wake XP and synthetic metric XP are reversed via `XpLedger`.
+
+### 10.3 Real Samsung Health Connection
+1. In Settings -> Wearables, toggle "Enable Samsung Health Integration".
+2. System health permission dialog prompts for:
+   - Steps & Daily Activity
+   - Sleep Sessions & Stages
+   - Workouts & Exercise
+   - Body Composition
+3. Tap "Sync Now":
+   - Real steps, sleep, and workouts populate from Samsung Health.
+   - Triggering "Sync Now" a second time produces 0 duplicate entries.
+
+### 10.4 Workout Reconciliation & De-Duplication
+1. Perform or log a 30-minute workout on the Galaxy Watch 7.
+2. Log a manual exercise entry in Diet & Burn: "Ran 30 min, 250 kcal" around the same start time.
+3. Sync wearable data:
+   - `CalorieReconciler` detects ±30 min overlap and ±25% duration match.
+   - Manual entry is marked `supersededBy = session.externalId`.
+   - Only 1 workout burn entry is counted in total daily burn and journal.
+   - Daily XP for exercise is awarded exactly once via `XpLedger.set(day, 'exercise', ...)`.
+
+### 10.5 Wake-up Task Rules & Streak Tolerances
+1. Configure a wake task: Target `05:00 AM`.
+   - Test "By 05:00 AM" (direction = `by` / `<=`).
+   - Logging wake at `04:45 AM` -> ✓ On-time.
+   - Logging wake at `05:25 AM` -> ✕ Late.
+   - Test "From 05:00 AM" (direction = `from` / `>=`).
+   - Logging wake at `04:45 AM` -> ✕ Early (before target).
+   - Logging wake at `05:15 AM` -> ✓ On-time.
+2. Toggling the task checkmark (✓ ↔ ✕) dynamically moves XP in and out through `XpLedger`.
+3. Missing a single day retains the streak; streak resets only after 3 consecutive misses (`wakeStreakResetAfterMisses`).
+
+### 10.6 AGEs Index Manual Logging
+1. Open Fitness Tab -> Samsung Health AGEs Index card.
+2. Tap "Log AGEs Value".
+3. Enter AGEs index (e.g., `42.5`), select date/time of sleep, choose trend ("Improving"), and save.
+4. Verify:
+   - Score immediately displays with proper color badge (LOW / OPTIMAL / MODERATE).
+   - Trend icon reflects chosen direction.
+   - Mini sparkline includes the newly saved point.
+
+### 10.7 Disconnect & Revocation Resilience
+1. In Settings -> Wearables, disable the integration or revoke permissions in Android App Info.
+2. Return to the app:
+   - No exceptions, crashes, or red screens.
+   - Galaxy Watch Card smoothly reverts to "Not connected" CTA state.
+   - All manual tasks, diet logs, and finance transactions remain fully functional.
+
+---
+
+## 11. PDF Reader & Library Verification
+
+1. **Direct PDF Open**:
+   - Tap "Open PDF Document" button on Home Reader Card or in Reader Library.
+   - Android document picker opens.
+   - Select any valid `.pdf` file.
+   - Verify document imports to `app_docs/pdf_books/` and renders smoothly in `PdfReaderPage`.
+2. **Page Progression & Persistence**:
+   - Scroll or navigate to page 15.
+   - Exit back to Home.
+   - Re-open the document: resumes directly at page 15 without jumping to page 0 or page 1.
+3. **Missing File Handling**:
+   - Delete the PDF from disk externally.
+   - Open the book from Library:
+   - Displays clean error card ("PDF Document Not Found on Device") with option to locate or remove from library without crashing.
+

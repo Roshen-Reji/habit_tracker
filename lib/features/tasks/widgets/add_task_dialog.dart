@@ -29,6 +29,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   DateTime? selectedEndDate;
   bool _isWakeup = false;
   TimeOfDay _wakeupTargetTime = const TimeOfDay(hour: 5, minute: 0);
+  String? _metricKey;
+  String? _metricOp;
 
   @override
   void initState() {
@@ -252,10 +254,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                           type: selectedType,
                           category: selectedCategory,
                           targetValue: target,
-                          unit: 'units',
+                          unit: _metricKey == 'steps'
+                              ? 'steps'
+                              : (_metricKey?.contains('minutes') == true ? 'mins' : 'units'),
                           createdDate: DateTime.now(),
                           reminderTime: reminderDate,
                           endDate: selectedEndDate,
+                          kind: _isWakeup ? 'wakeup' : (_metricKey != null ? 'metric' : null),
+                          metricKey: _metricKey,
+                          metricOp: _metricOp ?? '>=',
                         );
                         Hive.box<Goal>('mission_box_v4')
                             .put(newGoal.id, newGoal);
@@ -309,6 +316,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   setState(() {
                     _isWakeup = val;
                     if (val) {
+                      _metricKey = null;
                       selectedType = GoalType.daily;
                       selectedCategory = GoalCategory.health;
                       final h =
@@ -317,6 +325,126 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                           _wakeupTargetTime.minute.toString().padLeft(2, '0');
                       titleController.text = 'Wake up at $h:$m';
                       targetController.text = '1';
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _metricKey == 'steps',
+                avatar: Icon(
+                  LucideIcons.footprints,
+                  size: 14,
+                  color: _metricKey == 'steps' ? Colors.black : BentoTheme.accent,
+                ),
+                label: const Text('10,000 steps'),
+                selectedColor: BentoTheme.accent,
+                backgroundColor: BentoTheme.background,
+                labelStyle: TextStyle(
+                  color: _metricKey == 'steps' ? Colors.black : BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                onSelected: (val) {
+                  setState(() {
+                    _isWakeup = false;
+                    _metricKey = val ? 'steps' : null;
+                    _metricOp = '>=';
+                    if (val) {
+                      selectedType = GoalType.daily;
+                      selectedCategory = GoalCategory.fitness;
+                      titleController.text = '10,000 steps';
+                      targetController.text = '10000';
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _metricKey == 'active_minutes',
+                avatar: Icon(
+                  LucideIcons.flame,
+                  size: 14,
+                  color: _metricKey == 'active_minutes' ? Colors.black : BentoTheme.accent,
+                ),
+                label: const Text('30 active mins'),
+                selectedColor: BentoTheme.accent,
+                backgroundColor: BentoTheme.background,
+                labelStyle: TextStyle(
+                  color: _metricKey == 'active_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                onSelected: (val) {
+                  setState(() {
+                    _isWakeup = false;
+                    _metricKey = val ? 'active_minutes' : null;
+                    _metricOp = '>=';
+                    if (val) {
+                      selectedType = GoalType.daily;
+                      selectedCategory = GoalCategory.fitness;
+                      titleController.text = '30 active minutes';
+                      targetController.text = '30';
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _metricKey == 'sleep_minutes',
+                avatar: Icon(
+                  LucideIcons.moon,
+                  size: 14,
+                  color: _metricKey == 'sleep_minutes' ? Colors.black : BentoTheme.accent,
+                ),
+                label: const Text('Sleep 7 h'),
+                selectedColor: BentoTheme.accent,
+                backgroundColor: BentoTheme.background,
+                labelStyle: TextStyle(
+                  color: _metricKey == 'sleep_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                onSelected: (val) {
+                  setState(() {
+                    _isWakeup = false;
+                    _metricKey = val ? 'sleep_minutes' : null;
+                    _metricOp = '>=';
+                    if (val) {
+                      selectedType = GoalType.daily;
+                      selectedCategory = GoalCategory.health;
+                      titleController.text = 'Sleep 7 h';
+                      targetController.text = '420';
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _metricKey == 'workout_minutes',
+                avatar: Icon(
+                  LucideIcons.dumbbell,
+                  size: 14,
+                  color: _metricKey == 'workout_minutes' ? Colors.black : BentoTheme.accent,
+                ),
+                label: const Text('Workout today'),
+                selectedColor: BentoTheme.accent,
+                backgroundColor: BentoTheme.background,
+                labelStyle: TextStyle(
+                  color: _metricKey == 'workout_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                onSelected: (val) {
+                  setState(() {
+                    _isWakeup = false;
+                    _metricKey = val ? 'workout_minutes' : null;
+                    _metricOp = '>=';
+                    if (val) {
+                      selectedType = GoalType.daily;
+                      selectedCategory = GoalCategory.fitness;
+                      titleController.text = 'Workout today';
+                      targetController.text = '30';
                     }
                   });
                 },
@@ -531,6 +659,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           runSpacing: 6,
           children: [
             _buildQuickSuggestion("Wake up at 5:00 AM"),
+            _buildQuickSuggestion("10,000 steps"),
+            _buildQuickSuggestion("30 active minutes"),
+            _buildQuickSuggestion("Sleep 7 h"),
+            _buildQuickSuggestion("Workout today"),
             _buildQuickSuggestion("Study 3 chapters today"),
             _buildQuickSuggestion("Workout 5hrs this week"),
             _buildQuickSuggestion("Read 20 pages daily"),

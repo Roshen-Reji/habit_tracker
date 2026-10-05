@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/goal.dart';
@@ -46,15 +45,17 @@ class WakeService {
   Future<Goal> createOrUpdateWakeupTask({
     required int targetMinutes,
     int graceMinutes = 0,
+    String? direction,
     String? title,
   }) async {
+    final dir = direction ?? WearableSettings.wakeDirection;
+    final metricOp = (dir == 'by' || dir == '<=' || dir == 'before') ? '<=' : '>=';
+
     final existing = getWakeupGoal();
     if (existing != null) {
       existing.targetMinutes = targetMinutes;
       existing.graceMinutes = graceMinutes;
-      if (title != null) {
-        // Can update description/title if provided
-      }
+      existing.metricOp = metricOp;
       await existing.save();
       return existing;
     }
@@ -73,6 +74,7 @@ class WakeService {
       kind: 'wakeup',
       targetMinutes: targetMinutes,
       graceMinutes: graceMinutes,
+      metricOp: metricOp,
       createdDate: DateTime.now(),
     );
 
@@ -94,13 +96,19 @@ class WakeService {
         WearableSettings.wakeTargetMinutesDefault ??
         300; // default 5:00 AM (300 mins)
     final graceMin = goal?.graceMinutes ?? WearableSettings.wakeGraceMinutes;
+    final direction = (goal?.metricOp == '<=')
+        ? 'by'
+        : WearableSettings.wakeDirection;
 
     final eval = WakeRules.evaluate(
       wakeAt: wakeAt,
       targetMinutes: targetMin,
       graceMinutes: graceMin,
-      direction: 'after', // User confirmed "after"
+      direction: direction,
     );
+
+    final existingWake = WakeLogRepository.instance.getLog(dayKey);
+    final wasOnTime = existingWake?.onTime;
 
     // 1. Save WakeLog
     final wakeLog = WakeLog(
@@ -127,26 +135,32 @@ class WakeService {
       );
       await TaskDayLogRepository.instance.setLog(taskLog);
 
-      // Update goal completion and streak
+      // Update goal completion and streak using log's own date
+      final logDate = DateTime(wakeAt.year, wakeAt.month, wakeAt.day);
+      final resetAfterMisses = WearableSettings.wakeStreakResetAfterMisses;
+
       if (eval.onTime) {
         goal.isCompleted = true;
         goal.currentValue = 1.0;
         goal.progress = 1.0;
-        final now = DateTime.now();
-        if (goal.lastCompletedDate == null ||
-            goal.lastCompletedDate!.year != now.year ||
-            goal.lastCompletedDate!.month != now.month ||
-            goal.lastCompletedDate!.day != now.day) {
+        if (wasOnTime == null || !wasOnTime) {
           goal.streakCount = WakeRules.updateStreak(
             currentStreak: goal.streakCount,
             onTime: true,
+            resetAfterMisses: resetAfterMisses,
           );
         }
-        goal.lastCompletedDate = now;
+        goal.lastCompletedDate = logDate;
       } else {
         goal.isCompleted = false;
         goal.currentValue = 0.0;
         goal.progress = 0.0;
+        if (wasOnTime == true) {
+          // Edit from on-time to missed: decrement streak
+          if (goal.streakCount > 0) {
+            goal.streakCount -= 1;
+          }
+        }
       }
       await goal.save();
     }
@@ -225,6 +239,10 @@ class WakeService {
     final policy = WearableSettings.wakeUnloggedPolicy;
     if (policy == 'neutral') return;
 
+    int consecutiveMisses = 0;
+    final resetAfterMisses = WearableSettings.wakeStreakResetAfterMisses;
+    final penaltyXp = WearableSettings.wakeMissPenaltyXp;
+
     for (int i = 1; i <= 60; i++) {
       final pastDate = now.subtract(Duration(days: i));
       final dayKey = DateFormat('yyyy-MM-dd').format(pastDate);
@@ -237,6 +255,9 @@ class WakeService {
       final existingWake = WakeLogRepository.instance.getLog(dayKey);
       final existingTaskLog = TaskDayLogRepository.instance.getLog(goal.id, dayKey);
 
+      final isMissed = (existingWake != null && !existingWake.onTime) ||
+          (existingTaskLog != null && existingTaskLog.status == 'missed');
+
       if (existingWake == null && existingTaskLog == null) {
         final missedLog = TaskDayLog(
           id: TaskDayLog.generateId(goal.id, dayKey),
@@ -247,7 +268,22 @@ class WakeService {
           note: 'Unlogged day',
         );
         await TaskDayLogRepository.instance.setLog(missedLog);
+
+        if (penaltyXp > 0) {
+          await XpLedger.set(dayKey, 'wake_miss_penalty', -penaltyXp);
+        }
+        consecutiveMisses++;
+      } else if (isMissed) {
+        consecutiveMisses++;
+      } else {
+        // Encountered an on-time or non-missed day, stop counting consecutive misses
+        break;
       }
+    }
+
+    if (consecutiveMisses >= resetAfterMisses && goal.streakCount > 0) {
+      goal.streakCount = 0;
+      await goal.save();
     }
   }
 }

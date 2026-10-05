@@ -320,3 +320,58 @@ Commander enforces strict data privacy invariants for all AI and cloud interacti
 - **`FinanceLockService`**: Integrates `local_auth` for biometric (fingerprint/face) and device-PIN authentication. Features configurable idle timeout, background lock on app pause, and privacy overlay protection.
 - **`FinanceEncryptionService`**: AES-256 binary encryption of all 11 finance Hive boxes using a 32-byte cryptographic key secured within `FlutterSecureStorage`. Migration uses a **copy, verify checksums, switch** pattern that retains unencrypted backup boxes until confirmed by the user.
 - **Data Privacy & Wipe (`FinancePrivacyDataPage`)**: Complete local storage transparency, permission toggles (notifications, camera, SMS, storage), full JSON/CSV export, and typed "DELETE" safety-gated complete data wipe.
+
+---
+
+## 9. Wearable & Galaxy Watch 7 Telemetry Subsystem (MVP 4.1)
+
+### 9.1 Core Tenets & Honest Telemetry
+- **Zero Fabricated Data**: Missing metrics evaluate to `null` and are displayed as "—". No fallback numbers (no `?? 82`, `?? 8450`, `?? 43.5`, etc.) exist anywhere in UI or business logic.
+- **Mock Source Gating**: `MockWearableSource` is restricted strictly to `kDebugMode` and displays a persistent orange `DEMO` badge.
+- **Samsung Bridge**: The Android Kotlin bridge (`SamsungHealthBridge.kt`) interfaces real Samsung Health / Health Connect APIs without synthetic date-based random generators.
+- **Manual AGEs Logging**: Galaxy Watch 7 AGEs Index is logged by the user via `AgesLogSheet` with score tracking, biological level badges, and 14-day sparkline history.
+
+### 9.2 Storage & Hive Boxes
+1. `wear_daily` (`DailyActivity`): Steps, distance, total/active kcal, active minutes, resting/avg HR, SpO2.
+2. `wear_sleep` (`SleepSession`): Duration, sleep score, deep/light/REM/awake minutes, nap flag.
+3. `wear_exercise` (`ExerciseSession`): Type, title, duration, active/total kcal, HR metrics.
+4. `wear_body` (`BodyCompSample`): Weight, body fat %, skeletal muscle mass, BMI.
+5. `wear_energy` (`EnergyScoreDay`): Daily energy score (0-100) and contributing factor scores.
+6. `wear_ages` (`AgesSample`): Biological glycation index, trend, timestamp, notes.
+7. `xp_ledger` (`XpLedgerEntry`): Idempotent rule-based XP allocations (`dayKey`, `ruleKey`, `awardedXp`).
+8. `task_day_logs` (`TaskDayLog`): Explicit daily task checkmark states (`done`, `value`, `updatedAt`).
+9. `wake_logs` (`WakeLog`): Wake timestamp, target minutes, on-time evaluation, note.
+
+### 9.3 Pure Dart Engines
+1. **`WakeRules` (`engine/wake_rules.dart`)**:
+   - Directional evaluation: `by` / `<=` (must wake at or before target + grace) vs `from` / `>=` (must wake at or after target - grace).
+   - Streak rollover: Tolerates missed days up to `resetAfterMisses` (default 3) before resetting streak to 0.
+   - Generates user-friendly plain text descriptions on task cards (e.g., "Ticked if waking by 05:00 AM").
+2. **`CalorieReconciler` (`engine/calorie_reconciler.dart`)**:
+   - Matches wearable exercise sessions against manual diet burn entries within ±30 minutes and ±25% duration.
+   - Marks duplicate manual entries with `supersededBy = session.externalId` to prevent double-counting.
+   - Restores manual entries automatically if the synced session is deleted or revoked.
+   - Calculates personalized BMR targets using Mifflin-St Jeor formula based on latest synced weight.
+3. **`XpRules` (`engine/xp_rules.dart`)**:
+   - Calculates daily health XP rewards (Step goal: +10 XP, Active 30m: +10 XP, Sleep 7h+: +10 XP, Workout: +15 XP, Energy 80+: +5 XP).
+   - Enforces a hard daily cap of 40 XP across all wearable rules.
+
+### 9.4 Key Settings Keys
+- `wear_enabled` (`bool`): Master toggle for wearable integration.
+- `wear_source` (`String`): Active data provider (`samsung_sdk` or `mock`).
+- `wear_wake_sync` (`bool`): Automatically resolve wake-up task from wearable sleep end time.
+- `wear_workout_sync` (`bool`): Reconcile workouts into diet burn ledger.
+- `wear_burn_sync` (`bool`): Credit active calories burned to daily calorie budget.
+- `wear_ai_share` (`bool`): Allow Commander AI assistant to reference wearable status.
+- `wake_direction` (`String`): Default wake direction rule (`by` or `from`).
+- `wake_streak_reset_misses` (`int`): Miss tolerance before wake streak reset (default 3).
+
+---
+
+## 10. Document Reader Subsystem (MVP 4.1)
+
+- **Persistent Document Storage**: Imported PDFs are securely stored under `app_docs/pdf_books/` to prevent Android scoped storage URI expiration.
+- **Reading Progress Persistence**: `ReaderService` tracks `lastPage`, `totalPages`, and `lastRead` timestamp in Hive `book_progress`.
+- **Fault-Tolerant Page Navigation**: `PdfReaderPage` clamps initial page indices (`math.max(1, book.lastPage)`), preventing 0-index crashes and white screens.
+- **Missing Document Recovery**: If an underlying PDF is deleted externally, a clean error state offers the user options to relocate or unbind the document without crashes.
+

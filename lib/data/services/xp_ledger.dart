@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/xp_ledger_entry.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
@@ -8,8 +7,15 @@ class XpLedger {
 
   static Box<XpLedgerEntry> get box => Hive.box<XpLedgerEntry>(boxName);
 
+  static void registerAdapter() {
+    if (!Hive.isAdapterRegistered(68)) {
+      Hive.registerAdapter(XpLedgerEntryAdapter());
+    }
+  }
+
   /// Opens the xp_ledger box.
   static Future<Box<XpLedgerEntry>> openBox() async {
+    registerAdapter();
     if (Hive.isBoxOpen(boxName)) {
       return Hive.box<XpLedgerEntry>(boxName);
     }

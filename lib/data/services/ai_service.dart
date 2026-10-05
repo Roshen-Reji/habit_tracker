@@ -12,7 +12,6 @@ import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/query.dart';
 import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
-import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/models/category.dart';
 import 'package:habit_tracker/features/finance/models/recurring_rule.dart';
 import 'package:habit_tracker/features/finance/models/savings_goal.dart';
@@ -21,6 +20,9 @@ import 'package:habit_tracker/features/wearables/engine/wake_parser.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
+import 'package:habit_tracker/features/wearables/data/sync_service.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -125,13 +127,15 @@ class AiService {
     if (forced == 'diet' || forced == 'food') return 'diet';
     if (forced == 'vault' || forced == 'speech') return 'vault';
     if (forced == 'wake' || forced == 'wakeup') return 'wake';
+    if (forced == 'wear' || forced == 'wearable' || forced == 'watch') return 'wear';
     if (forced == 'journal') return 'journal';
 
     // Image -> most likely food logging
     if (hasImage) return 'diet';
 
-    // Wake and Journal intent routing takes precedence over general task/diet/music
+    // Wake, Wear, and Journal intent routing takes precedence over general task/diet/music
     if (_looksLikeWakeIntent(lower)) return 'wake';
+    if (_looksLikeWearIntent(lower)) return 'wear';
     if (_looksLikeJournalNote(lower)) return 'journal';
     if (_looksLikeVaultCommand(lower)) return 'vault';
     if (_looksLikeFinanceIntent(lower)) return 'finance';
@@ -279,6 +283,7 @@ class AiService {
     final lower = message.toLowerCase().trim();
 
     if (intent == 'wake') return await _handleWakeLocally(message);
+    if (intent == 'wear') return await _handleWearLocally(message);
     if (intent == 'journal') return await _handleJournalLocally(message);
     if (intent == 'vault') return _handleVaultLocally(message);
     if (intent == 'tasks') return _handleTasksLocally(message);
@@ -286,6 +291,7 @@ class AiService {
     if (intent == 'diet') return _handleDietLocally(message);
 
     if (_looksLikeWakeIntent(lower)) return await _handleWakeLocally(message);
+    if (_looksLikeWearIntent(lower)) return await _handleWearLocally(message);
     if (_looksLikeJournalNote(lower)) return await _handleJournalLocally(message);
     if (_isTaskStatusQuery(lower)) return _buildTaskStatusResponse(lower);
     if (_looksLikeVaultCommand(lower)) return _handleVaultLocally(message);
@@ -300,6 +306,95 @@ class AiService {
     final lower = message.toLowerCase().trim();
 
     if (intent == 'tasks') {
+      if (lower.contains('10,000 steps') || lower.contains('10000 steps') || lower == 'steps goal') {
+        return AiResponse(
+          message: 'Created daily metric goal: 10,000 steps (tracks automatically from Galaxy Watch).',
+          intent: 'task_create',
+          actions: [
+            AiAction(
+              type: 'task_create',
+              payload: {
+                'title': '10,000 steps',
+                'type': 'daily',
+                'category': 'fitness',
+                'target_value': 10000.0,
+                'unit': 'steps',
+                'kind': 'metric',
+                'metric_key': 'steps',
+                'metric_op': '>=',
+              },
+              isConfirmed: true,
+            ),
+          ],
+        );
+      }
+      if (lower.contains('30 active min') || lower.contains('30 active minutes')) {
+        return AiResponse(
+          message: 'Created daily metric goal: 30 active minutes (tracks automatically from Galaxy Watch).',
+          intent: 'task_create',
+          actions: [
+            AiAction(
+              type: 'task_create',
+              payload: {
+                'title': '30 active minutes',
+                'type': 'daily',
+                'category': 'fitness',
+                'target_value': 30.0,
+                'unit': 'mins',
+                'kind': 'metric',
+                'metric_key': 'active_minutes',
+                'metric_op': '>=',
+              },
+              isConfirmed: true,
+            ),
+          ],
+        );
+      }
+      if (lower.contains('sleep 7 h') || lower.contains('sleep 7 hours')) {
+        return AiResponse(
+          message: 'Created daily metric goal: Sleep 7 hours (tracks automatically from Galaxy Watch).',
+          intent: 'task_create',
+          actions: [
+            AiAction(
+              type: 'task_create',
+              payload: {
+                'title': 'Sleep 7 h',
+                'type': 'daily',
+                'category': 'health',
+                'target_value': 420.0,
+                'unit': 'mins',
+                'kind': 'metric',
+                'metric_key': 'sleep_minutes',
+                'metric_op': '>=',
+              },
+              isConfirmed: true,
+            ),
+          ],
+        );
+      }
+      if (lower.contains('workout today') || lower == 'daily workout') {
+        return AiResponse(
+          message: 'Created daily metric goal: Workout today (tracks automatically from Galaxy Watch).',
+          intent: 'task_create',
+          actions: [
+            AiAction(
+              type: 'task_create',
+              payload: {
+                'title': 'Workout today',
+                'type': 'daily',
+                'category': 'fitness',
+                'target_value': 30.0,
+                'unit': 'mins',
+                'kind': 'metric',
+                'metric_key': 'workout_minutes',
+                'metric_op': '>=',
+              },
+              isConfirmed: true,
+            ),
+          ],
+        );
+      }
+
       // Create daily task with duration: "i am going to do 10 push ups everyday for 10 days" or "this week i am going to do 10 push ups everyday"
       final dailyRegex = RegExp(
           r'(?:i am going to do|do|i will do|add a daily task to|remind me to)?\s*(\d+)?\s*(.*?)\s*(everyday|daily)(?:\s+(for\s+(\d+)\s+(days?|weeks?|months?)))?',
@@ -1147,7 +1242,6 @@ class AiService {
     if (itemName.isEmpty) itemName = 'Purchase';
 
     final controller = FinanceController();
-    final accounts = controller.activeAccounts.where((a) => a.spendable && !a.archived).toList();
     final txs = controller.allTransactions;
     final now = DateTime.now();
 
@@ -1485,24 +1579,6 @@ class AiService {
     );
   }
 
-  void _recordFinanceTransaction({
-    required String title,
-    required double amount,
-    required bool isExpense,
-    required String category,
-  }) {
-    FinanceRepository().addTransaction(TxDraft(
-      title: _titleCase(
-          title.isEmpty ? (isExpense ? 'Expense' : 'Income') : title),
-      amount: isExpense ? -amount.abs() : amount.abs(),
-      date: DateTime.now(),
-      mode: isExpense ? 'expense' : 'income',
-      category: category,
-      icon: isExpense ? 'expense' : 'income',
-      kind: isExpense ? 'expense' : 'income',
-    ));
-  }
-
   AiResponse? _handleDietLocally(String message) {
     final lower = message.toLowerCase().trim();
 
@@ -1657,6 +1733,40 @@ class AiService {
     return false;
   }
 
+  bool _looksLikeWearIntent(String lower) {
+    if (_containsAny(lower, [
+      'galaxy watch',
+      'samsung health',
+      'sync watch',
+      'sync my watch',
+      'refresh watch',
+      'update watch',
+      'wearable',
+      'ages index',
+      'energy score',
+      'body composition',
+      'skeletal muscle',
+      'body fat',
+    ])) {
+      return true;
+    }
+    if (lower.contains('watch') && _containsAny(lower, ['sync', 'status', 'battery', 'connect', 'steps', 'sleep'])) {
+      return true;
+    }
+    if ((lower.contains('step') || lower.contains('steps')) &&
+        _containsAny(lower, ['today', 'how many', 'count', 'walked', 'goal'])) {
+      return true;
+    }
+    if (lower.contains('sleep') &&
+        _containsAny(lower, ['score', 'last night', 'how long', 'how much', 'hours'])) {
+      return true;
+    }
+    if (lower.contains('energy') && _containsAny(lower, ['score', 'today', 'how is', 'my energy'])) {
+      return true;
+    }
+    return false;
+  }
+
   bool _looksLikeJournalNote(String lower) {
     return lower.startsWith('journal:') ||
         lower.startsWith('journal note:') ||
@@ -1780,6 +1890,165 @@ class AiService {
     }
 
     return null;
+  }
+
+  Future<AiResponse?> _handleWearLocally(String message) async {
+    final lower = message.toLowerCase().trim();
+
+    // 1. Sync Watch Action
+    if (lower.contains('sync') || lower.contains('refresh watch') || lower.contains('update watch')) {
+      SyncService.instance.sync();
+      return AiResponse(
+        message: 'Syncing your Galaxy Watch with Samsung Health...',
+        intent: 'wear',
+        actions: [
+          AiAction(
+            type: 'wear_sync',
+            payload: {'action': 'sync'},
+            isConfirmed: true,
+          ),
+        ],
+      );
+    }
+
+    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final view = WearableRepository.instance.dayView(todayKey);
+
+    // 2. Steps Query
+    if (lower.contains('step')) {
+      final steps = view.totalSteps;
+      final goal = view.activity?.stepGoal ?? WearableSettings.stepGoalDefault;
+      if (steps > 0) {
+        final pct = ((steps / goal) * 100).round();
+        return AiResponse(
+          message: 'You have walked ${NumberFormat('#,###').format(steps)} steps today ($pct% of your $goal step goal).',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No steps recorded for today yet. Make sure your Galaxy Watch is connected and synced.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 3. Sleep Query
+    if (lower.contains('sleep')) {
+      final sleep = view.mainSleep;
+      if (sleep != null && sleep.durationMin > 0) {
+        final h = sleep.durationMin ~/ 60;
+        final m = sleep.durationMin % 60;
+        final scoreStr = sleep.score != null ? ' (Sleep Score: ${sleep.score})' : '';
+        return AiResponse(
+          message: 'You slept for ${h}h ${m}m last night$scoreStr.',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No sleep data recorded for last night yet.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 4. Energy Score Query
+    if (lower.contains('energy')) {
+      final energy = view.energy?.score;
+      if (energy != null) {
+        final rating = energy >= 80 ? 'Optimal' : (energy >= 60 ? 'Good' : 'Needs Rest');
+        return AiResponse(
+          message: 'Your Energy Score today is $energy/100 ($rating).',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No Energy Score recorded for today yet.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 5. AGEs Index Query
+    if (lower.contains('age') || lower.contains('ages') || lower.contains('glycation')) {
+      final ages = view.ages?.score;
+      if (ages != null) {
+        return AiResponse(
+          message: 'Your latest AGEs Index reading is ${ages.toStringAsFixed(1)}.',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No AGEs reading recorded yet. You can log a reading in the Fitness tab.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 6. Workout / Exercise Query
+    if (lower.contains('workout') || lower.contains('exercise')) {
+      final exercises = view.exercises;
+      if (exercises.isNotEmpty) {
+        final lines = exercises.map((e) {
+          final title = e.title ?? e.type;
+          final cal = e.totalKcal ?? e.activeKcal;
+          final calStr = cal != null ? ', ${cal.round()} kcal' : '';
+          return '• $title (${e.durationMin}m$calStr)';
+        }).join('\n');
+        return AiResponse(
+          message: 'Today\'s Workouts (${exercises.length}):\n$lines',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No workouts recorded for today yet.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 7. Body Composition Query
+    if (lower.contains('body') || lower.contains('fat') || lower.contains('muscle') || lower.contains('weight')) {
+      final body = view.bodyComp;
+      if (body != null) {
+        final parts = <String>[];
+        if (body.weightKg != null) parts.add('Weight: ${body.weightKg!.toStringAsFixed(1)} kg');
+        if (body.bodyFatPct != null) parts.add('Body Fat: ${body.bodyFatPct!.toStringAsFixed(1)}%');
+        if (body.skeletalMuscleMassKg != null) parts.add('Muscle: ${body.skeletalMuscleMassKg!.toStringAsFixed(1)} kg');
+        if (body.bmi != null) parts.add('BMI: ${body.bmi!.toStringAsFixed(1)}');
+        return AiResponse(
+          message: 'Latest Body Composition:\n${parts.join(' · ')}',
+          intent: 'wear',
+        );
+      } else {
+        return AiResponse(
+          message: 'No body composition data recorded yet.',
+          intent: 'wear',
+        );
+      }
+    }
+
+    // 8. General Watch Overview
+    final steps = view.totalSteps;
+    final sleep = view.mainSleep;
+    final energy = view.energy?.score;
+    final overview = <String>[];
+    if (steps > 0) overview.add('Steps: ${NumberFormat('#,###').format(steps)}');
+    if (sleep != null && sleep.durationMin > 0) {
+      overview.add('Sleep: ${sleep.durationMin ~/ 60}h ${sleep.durationMin % 60}m');
+    }
+    if (energy != null) overview.add('Energy: $energy/100');
+
+    if (overview.isNotEmpty) {
+      return AiResponse(
+        message: 'Galaxy Watch 7 Status Today:\n${overview.join(' · ')}',
+        intent: 'wear',
+      );
+    } else {
+      return AiResponse(
+        message: 'Galaxy Watch connected, but no health records have been synced for today yet. Say "sync watch" to refresh.',
+        intent: 'wear',
+      );
+    }
   }
 
   Future<AiResponse?> _handleJournalLocally(String message) async {
@@ -2625,6 +2894,11 @@ class AiService {
       } else if (detectedIntent == 'tasks') {
         contextData = AiContext.buildTaskContext();
       }
+
+      final wearCtx = AiContext.buildWearContext();
+      if (wearCtx.isNotEmpty) {
+        contextData = contextData.isNotEmpty ? '$contextData $wearCtx' : wearCtx;
+      }
       // 'music' intent is handled on-device - never reaches AI
       // 'general' intent gets no context - saves tokens
 
@@ -2895,6 +3169,9 @@ class AiService {
       unit: (payload['unit'] ?? 'units').toString(),
       createdDate: DateTime.now(),
       endDate: endDate,
+      kind: payload['kind']?.toString(),
+      metricKey: payload['metric_key']?.toString(),
+      metricOp: payload['metric_op']?.toString() ?? '>=',
     );
 
     box.put(goal.id, goal);
@@ -3248,6 +3525,9 @@ class AiService {
         break;
       case 'finance_recurring':
         _executeFinanceRecurringAction(action);
+        break;
+      case 'wear_sync':
+        SyncService.instance.sync();
         break;
       case 'wakeup_log':
       case 'wakeup_task_create':

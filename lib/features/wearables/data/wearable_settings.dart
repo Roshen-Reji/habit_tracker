@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class WearableSettings {
@@ -63,6 +62,15 @@ class WearableSettings {
 
   static int get wakeMissPenaltyXp => _box.get('wake_miss_penalty_xp', defaultValue: 0);
   static set wakeMissPenaltyXp(int value) => _box.put('wake_miss_penalty_xp', value);
+
+  static int get wakeStreakResetAfterMisses => _box.get('wake_streak_reset_after_misses', defaultValue: 3);
+  static set wakeStreakResetAfterMisses(int value) => _box.put('wake_streak_reset_after_misses', value);
+
+  static String get wakeDirection => _box.get('wake_direction', defaultValue: 'from');
+  static set wakeDirection(String value) => _box.put('wake_direction', value);
+
+  static String? get xpLedgerStart => _box.get('xp_ledger_start');
+  static set xpLedgerStart(String? value) => _box.put('xp_ledger_start', value);
 
   static bool get wakeInferFromSleep => _box.get('wake_infer_from_sleep', defaultValue: true);
   static set wakeInferFromSleep(bool value) => _box.put('wake_infer_from_sleep', value);

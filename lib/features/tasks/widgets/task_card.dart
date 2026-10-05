@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/tasks/widgets/wakeup_detail_sheet.dart';
+import 'package:habit_tracker/features/wearables/engine/wake_rules.dart';
 
 class TaskCard extends StatelessWidget {
   final Goal goal;
@@ -240,9 +241,9 @@ class TaskCard extends StatelessWidget {
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final todayLog = WakeLogRepository.instance.getLog(todayKey);
     final targetMin = goal.targetMinutes ?? 300;
-    final targetH = targetMin ~/ 60;
-    final targetM = targetMin % 60;
-    final targetStr = DateFormat('h:mm a').format(DateTime(2026, 1, 1, targetH, targetM));
+
+    final direction = (goal.metricOp == '<=') ? 'by' : 'from';
+    final ruleText = WakeRules.plainRuleText(targetMin, direction: direction);
 
     final String statusBadge;
     final Color badgeColor;
@@ -308,7 +309,7 @@ class TaskCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Target $targetStr · Today: $wakeTimeStr',
+                      '$ruleText · Today: $wakeTimeStr',
                       style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],

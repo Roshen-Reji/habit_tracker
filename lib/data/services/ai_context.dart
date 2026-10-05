@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 
 class AiContext {
   static String buildSystemPrompt() {
@@ -19,6 +21,7 @@ Action types:
 - finance_whatif(item_name,amount)
 - finance_query(metric,subject,filters)
 - play_vault_video(query)
+- wear_sync()
 No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
   }
 
@@ -68,6 +71,33 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
               .where((g) => g.isCompleted != true && g.isArchived != true)
               .length;
       return '[TASK] Act:$a Dn:$c';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Compact single-line wearable context (under 60 tokens).
+  /// Attached to Gemini only when wear_ai_share is true.
+  static String buildWearContext() {
+    try {
+      if (!WearableSettings.aiShare) return '';
+      final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final view = WearableRepository.instance.dayView(todayKey);
+      final steps = view.totalSteps;
+      final sleepMin = view.mainSleep?.durationMin;
+      final energy = view.energy?.score;
+      final ages = view.ages?.score;
+
+      final parts = <String>[];
+      if (steps > 0) parts.add('Stp:$steps');
+      if (sleepMin != null && sleepMin > 0) {
+        parts.add('Slp:${sleepMin ~/ 60}h${sleepMin % 60}m');
+      }
+      if (energy != null) parts.add('Nrg:$energy');
+      if (ages != null) parts.add('AGEs:${ages.toStringAsFixed(1)}');
+
+      if (parts.isEmpty) return '';
+      return '[WEAR] ${parts.join(' ')}';
     } catch (_) {
       return '';
     }

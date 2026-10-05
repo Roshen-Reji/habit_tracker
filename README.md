@@ -27,9 +27,17 @@ This application combines multiple productivity and lifestyle tools into one coh
    - Store and organize motivational or important speeches.
    - Dedicated library for your most valuable audio/video inspiration.
 
-5. **Health AI (Coming Soon/Experimental)**
-   - Integrated Google Generative AI for advanced health tracking.
-   - Image analysis for food/health tracking using the device camera.
+5. **Wearables & Galaxy Watch 7 (MVP 4.1)**
+   - Honest health telemetry synced directly with Samsung Health / Health Connect.
+   - Automatic sleep session tracking, wake-up verification, and exercise burn ledger credit.
+   - Pure-Dart `CalorieReconciler` preventing double-counting with manual burn logs.
+   - Samsung Health AGEs index manual logging with biological markers and trend curves.
+   - Idempotent `XpLedger` awarding daily health XP (capped at 40 XP/day).
+
+6. **Document Reader & Library**
+   - Distraction-free PDF reader with continuous vertical reading, zoom, and night mode.
+   - Persistent page progress tracking with auto-resume.
+   - Protected document storage under app documents directory (`app_docs/pdf_books/`).
 
 ## Getting Started
 

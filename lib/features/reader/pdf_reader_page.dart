@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,11 +51,17 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   Timer? _sessionTimer;
   int _sessionSeconds = 0;
 
+  String? _resolvedPath;
+  Uint8List? _pdfBytes;
+  bool _isAttemptingFallback = false;
+
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.book.lastPage;
+    _currentPage = math.max(1, widget.book.lastPage);
     _totalPages = widget.book.totalPages > 0 ? widget.book.totalPages : 1;
+    _resolvedPath = widget.book.path;
+    _resolveDocument();
 
     // Restore saved theme and view mode if available
     final progress = ReaderService.getProgress(widget.book.path);
@@ -87,6 +94,53 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _sessionSeconds++;
     });
+  }
+
+  Future<void> _resolveDocument() async {
+    try {
+      await ReaderService.ensurePdfrxInitialized();
+      final resolved = await ReaderService.ensureFileInSandbox(widget.book.path);
+      if (mounted && resolved != _resolvedPath) {
+        setState(() {
+          _resolvedPath = resolved;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error resolving document: $e');
+    }
+  }
+
+  Future<void> _attemptMemoryFallback() async {
+    if (_isAttemptingFallback) return;
+    setState(() => _isAttemptingFallback = true);
+    try {
+      await ReaderService.ensurePdfrxInitialized();
+      final path = _resolvedPath ?? widget.book.path;
+      final file = File(path);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        if (mounted) {
+          setState(() {
+            _pdfBytes = bytes;
+            _isAttemptingFallback = false;
+          });
+          return;
+        }
+      }
+      final newBook = await ReaderService.importPdfFromPicker();
+      if (newBook != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => PdfReaderPage(book: newBook)),
+        );
+      }
+    } catch (e) {
+      debugPrint('Memory fallback failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isAttemptingFallback = false);
+      }
+    }
   }
 
   @override
@@ -1095,50 +1149,226 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   Widget build(BuildContext context) {
     const accent = Color(0xFF38BDF8); // Sky blue accent
 
+    final activePath = _resolvedPath ?? widget.book.path;
+    final file = File(activePath);
+    if (!file.existsSync() && _pdfBytes == null) {
+      return Scaffold(
+        backgroundColor: _currentBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(LucideIcons.arrowLeft, color: BentoTheme.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.book.name,
+            style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(LucideIcons.fileX, color: Colors.orangeAccent, size: 54),
+                const SizedBox(height: 16),
+                Text(
+                  'Document Not Found',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The file at "${widget.book.path}" could not be opened. It may have been moved or storage permission might be required.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.black,
+                      ),
+                      icon: const Icon(LucideIcons.keyRound, size: 16),
+                      label: const Text('Grant Permission'),
+                      onPressed: () async {
+                        await ReaderService.requestStorageAccess();
+                        await _resolveDocument();
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: BentoTheme.surfaceElevated,
+                        foregroundColor: BentoTheme.textPrimary,
+                      ),
+                      icon: const Icon(LucideIcons.folderInput, size: 16),
+                      label: const Text('Locate / Re-import'),
+                      onPressed: () async {
+                        final newBook = await ReaderService.importPdfFromPicker();
+                        if (newBook != null && mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => PdfReaderPage(book: newBook)),
+                          );
+                        }
+                      },
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: BentoTheme.textSecondary,
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      icon: const Icon(LucideIcons.arrowLeft, size: 16),
+                      label: const Text('Back to Library'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final viewerParams = PdfViewerParams(
+      layoutPages: _currentLayoutPages,
+      onPageChanged: _onPageChanged,
+      calculateInitialPageNumber: (doc, controller) {
+        if (doc.pages.isEmpty) return 1;
+        return _currentPage.clamp(1, doc.pages.length);
+      },
+      loadingBannerBuilder: (context, bytesDownloaded, totalBytes) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: accent),
+            const SizedBox(height: 16),
+            Text(
+              'Loading document...',
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+      errorBannerBuilder: (context, error, stackTrace, documentRef) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(LucideIcons.alertTriangle, color: Colors.redAccent, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to Render PDF',
+                style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$error',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.black,
+                    ),
+                    icon: const Icon(LucideIcons.refreshCw, size: 16),
+                    label: const Text('Retry Memory Stream'),
+                    onPressed: () async {
+                      await _attemptMemoryFallback();
+                    },
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: BentoTheme.textPrimary,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    icon: const Icon(LucideIcons.arrowLeft, size: 16),
+                    label: const Text('Back'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      pagePaintCallbacks: [
+        _textSearcher.pageTextMatchPaintCallback,
+      ],
+      linkHandlerParams: PdfLinkHandlerParams(
+        onLinkTap: (link) {
+          if (link.dest != null) {
+            _recordJump(_currentPage);
+            _pdfController.goToDest(link.dest);
+          }
+        },
+      ),
+      onDocumentChanged: (doc) async {
+        if (doc != null) {
+          setState(() {
+            _totalPages = doc.pages.length;
+          });
+          ReaderService.updateProgress(
+            widget.book.path,
+            page: _currentPage,
+            totalPages: doc.pages.length,
+          );
+          try {
+            final outline = await doc.loadOutline();
+            if (mounted) {
+              setState(() {
+                _outline = outline;
+              });
+            }
+          } catch (_) {}
+        }
+      },
+    );
+
+    final Widget viewer = _pdfBytes != null
+        ? PdfViewer.data(
+            _pdfBytes!,
+            sourceName: widget.book.name,
+            key: ValueKey('${_viewMode.name}_data_${_pdfBytes!.length}'),
+            controller: _pdfController,
+            initialPageNumber: _currentPage,
+            params: viewerParams,
+          )
+        : PdfViewer.file(
+            activePath,
+            key: ValueKey('${_viewMode.name}_$activePath'),
+            controller: _pdfController,
+            initialPageNumber: _currentPage,
+            params: viewerParams,
+          );
+
     final viewerWidget = ColorFiltered(
       colorFilter: _currentColorFilter ??
           const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-      child: PdfViewer.file(
-        widget.book.path,
-        key: ValueKey('${_viewMode.name}_${_themeMode.name}'),
-        controller: _pdfController,
-        initialPageNumber: _currentPage,
-        params: PdfViewerParams(
-          layoutPages: _currentLayoutPages,
-          onPageChanged: _onPageChanged,
-          pagePaintCallbacks: [
-            _textSearcher.pageTextMatchPaintCallback,
-          ],
-          linkHandlerParams: PdfLinkHandlerParams(
-            onLinkTap: (link) {
-              if (link.dest != null) {
-                _recordJump(_currentPage);
-                _pdfController.goToDest(link.dest);
-              }
-            },
-          ),
-          onDocumentChanged: (doc) async {
-            if (doc != null) {
-              setState(() {
-                _totalPages = doc.pages.length;
-              });
-              ReaderService.updateProgress(
-                widget.book.path,
-                page: _currentPage,
-                totalPages: doc.pages.length,
-              );
-              try {
-                final outline = await doc.loadOutline();
-                if (mounted) {
-                  setState(() {
-                    _outline = outline;
-                  });
-                }
-              } catch (_) {}
-            }
-          },
-        ),
-      ),
+      child: viewer,
     );
 
     return Scaffold(

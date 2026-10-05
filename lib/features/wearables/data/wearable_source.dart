@@ -2,6 +2,7 @@ import 'package:habit_tracker/features/wearables/models/models.dart';
 
 abstract class WearableSource {
   String get name;
+  String get sourceId;
 
   Future<bool> isAvailable();
 

@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 enum ReaderTab {
@@ -99,6 +100,7 @@ class PdfBook {
 class ReaderService {
   static const String progressBoxName = 'reader_progress';
   static const String foldersSettingsKey = 'reader_folders';
+  static const String filesSettingsKey = 'reader_files';
 
   /// Generates a stable deterministic key for a book path.
   static String getBookKey(String path) {
@@ -127,6 +129,67 @@ class ReaderService {
       } catch (_) {}
     }
     return true;
+  }
+
+  static bool _pdfrxInitialized = false;
+
+  /// Ensures that pdfrx native engine and cache directory are properly initialized.
+  static Future<void> ensurePdfrxInitialized() async {
+    if (_pdfrxInitialized && Pdfrx.cacheDirectoryPath != null) return;
+    try {
+      await pdfrxFlutterInitialize();
+      _pdfrxInitialized = true;
+    } catch (e) {
+      debugPrint('pdfrxFlutterInitialize error: $e');
+    }
+    if (Pdfrx.cacheDirectoryPath == null) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        Pdfrx.cacheDirectoryPath = tempDir.path;
+      } catch (_) {}
+    }
+  }
+
+  /// Ensures that a PDF file is accessible to the app. If the file is on external storage
+  /// or inaccessible via native posix, it copies or links it into the app's persistent sandbox.
+  static Future<String> ensureFileInSandbox(String originalPath) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final booksDir = Directory(p.join(appDir.path, 'pdf_books'));
+      if (!booksDir.existsSync()) {
+        booksDir.createSync(recursive: true);
+      }
+
+      final normOriginal = p.normalize(originalPath);
+      final normBooksDir = p.normalize(booksDir.path);
+
+      if (p.isWithin(normBooksDir, normOriginal)) {
+        return normOriginal;
+      }
+
+      final originalFile = File(normOriginal);
+      final fileName = p.basename(normOriginal);
+      final targetPath = p.join(booksDir.path, fileName);
+      final targetFile = File(targetPath);
+
+      if (originalFile.existsSync()) {
+        if (!targetFile.existsSync() || targetFile.lengthSync() != originalFile.lengthSync()) {
+          if (targetFile.existsSync()) {
+            try {
+              targetFile.deleteSync();
+            } catch (_) {}
+          }
+          await originalFile.copy(targetPath);
+        }
+        await addFile(targetPath);
+        return targetPath;
+      } else if (targetFile.existsSync()) {
+        return targetPath;
+      }
+    } catch (e) {
+      debugPrint('ensureFileInSandbox warning: $e');
+    }
+    return originalPath;
   }
 
   /// Scans configured directories recursively for PDF files.
@@ -226,7 +289,8 @@ class ReaderService {
     }
   }
 
-  /// Asynchronous folder scanner.
+  /// Asynchronous folder scanner that also includes individually imported PDFs
+  /// and the app's persistent documents pdf_books directory.
   static Future<List<PdfBook>> scanConfiguredFolders() async {
     final settingsBox = Hive.box('settings');
     final rawFolders = settingsBox.get(foldersSettingsKey);
@@ -240,15 +304,52 @@ class ReaderService {
       }
     }
 
+    // Automatically check the persistent app storage directory for imported PDFs
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final internalBooksDir = Directory(p.join(appDir.path, 'pdf_books'));
+      if (internalBooksDir.existsSync()) {
+        final norm = p.normalize(internalBooksDir.path);
+        if (!folderPaths.contains(norm)) {
+          folderPaths.add(norm);
+        }
+      }
+    } catch (_) {}
+
     Box<BookProgress>? progressBox;
     if (Hive.isBoxOpen(progressBoxName)) {
       progressBox = Hive.box<BookProgress>(progressBoxName);
     }
 
-    return scanFoldersSync(
+    final books = scanFoldersSync(
       folderPaths,
       progressBox: progressBox,
     );
+
+    // Also include any individually registered files
+    final seenPaths = books.map((b) => b.path).toSet();
+    final individualFiles = getConfiguredFiles();
+    for (final filePath in individualFiles) {
+      if (!seenPaths.contains(filePath)) {
+        final file = File(filePath);
+        if (file.existsSync()) {
+          seenPaths.add(filePath);
+          final stat = file.statSync();
+          final key = getBookKey(filePath);
+          final progress = progressBox?.get(key);
+
+          books.add(PdfBook(
+            path: filePath,
+            name: p.basenameWithoutExtension(filePath),
+            sizeBytes: stat.size,
+            modified: stat.modified,
+            progress: progress,
+          ));
+        }
+      }
+    }
+
+    return books;
   }
 
   /// Gets the local disk path for a cached PDF cover thumbnail.
@@ -268,44 +369,65 @@ class ReaderService {
     DateTime mtime,
   ) async {
     try {
+      await ensurePdfrxInitialized();
+
       final cacheFile = await getCoverCacheFile(pdfPath, mtime);
       if (cacheFile.existsSync() && cacheFile.lengthSync() > 0) {
         return cacheFile;
       }
 
-      final doc = await PdfDocument.openFile(pdfPath);
+      final resolvedPath = await ensureFileInSandbox(pdfPath);
+      final file = File(resolvedPath);
+      if (!file.existsSync()) return null;
+
+      PdfDocument? doc;
+      try {
+        doc = await PdfDocument.openFile(resolvedPath);
+      } catch (e) {
+        debugPrint('PdfDocument.openFile thumbnail fallback: $e');
+        try {
+          final bytes = await file.readAsBytes();
+          doc = await PdfDocument.openData(bytes);
+        } catch (e2) {
+          debugPrint('PdfDocument.openData thumbnail error: $e2');
+          return null;
+        }
+      }
+
       if (doc.pages.isEmpty) {
         await doc.dispose();
         return null;
       }
 
-      final page = doc.pages[0];
-      const double targetWidth = 280;
-      final double targetHeight = (page.height / page.width) * targetWidth;
+      try {
+        final page = doc.pages[0];
+        const double targetWidth = 280;
+        final double targetHeight = (page.height / page.width) * targetWidth;
 
-      final pdfImage = await page.render(
-        fullWidth: targetWidth,
-        fullHeight: targetHeight,
-      );
+        final pdfImage = await page.render(
+          fullWidth: targetWidth,
+          fullHeight: targetHeight,
+        );
 
-      if (pdfImage == null) {
+        if (pdfImage == null) {
+          return null;
+        }
+
+        final image = img.Image.fromBytes(
+          width: pdfImage.width,
+          height: pdfImage.height,
+          bytes: pdfImage.pixels.buffer,
+          order: img.ChannelOrder.bgra,
+        );
+
+        final pngBytes = img.encodePng(image);
+        await cacheFile.writeAsBytes(pngBytes, flush: true);
+
+        pdfImage.dispose();
+        return cacheFile;
+      } finally {
         await doc.dispose();
-        return null;
       }
-
-      final image = img.Image.fromBytes(
-        width: pdfImage.width,
-        height: pdfImage.height,
-        bytes: pdfImage.pixels.buffer,
-        order: img.ChannelOrder.bgra,
-      );
-
-      final pngBytes = img.encodePng(image);
-      await cacheFile.writeAsBytes(pngBytes, flush: true);
-
-      pdfImage.dispose();
-      await doc.dispose();
-      return cacheFile;
     } catch (e) {
       debugPrint('Error generating PDF thumbnail: $e');
       return null;
@@ -536,6 +658,7 @@ class ReaderService {
         final key = getBookKey(path);
         await Hive.box<BookProgress>(progressBoxName).delete(key);
       }
+      await removeFile(path);
       return true;
     } catch (e) {
       debugPrint('Error deleting PDF: $e');
@@ -570,6 +693,115 @@ class ReaderService {
     final normalized = p.normalize(path);
     folders.remove(normalized);
     await box.put(foldersSettingsKey, folders);
+  }
+
+  // --- Single File Management ---
+
+  static List<String> getConfiguredFiles() {
+    if (!Hive.isBoxOpen('settings')) return [];
+    final raw = Hive.box('settings').get(filesSettingsKey);
+    if (raw is List) {
+      return raw.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  static Future<void> addFile(String path) async {
+    final box = Hive.box('settings');
+    final files = getConfiguredFiles();
+    final normalized = p.normalize(path);
+    if (!files.contains(normalized)) {
+      files.add(normalized);
+      await box.put(filesSettingsKey, files);
+    }
+  }
+
+  static Future<void> removeFile(String path) async {
+    final box = Hive.box('settings');
+    final files = getConfiguredFiles();
+    final normalized = p.normalize(path);
+    files.remove(normalized);
+    await box.put(filesSettingsKey, files);
+  }
+
+  /// Opens the system file picker for the user to select any PDF file,
+  /// copies it into the app's persistent storage sandbox, registers it,
+  /// and returns the resulting PdfBook ready for viewing.
+  static Future<PdfBook?> importPdfFromPicker() async {
+    try {
+      await ensurePdfrxInitialized();
+
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) {
+        return null;
+      }
+
+      final pickedFile = result.files.single;
+      final appDir = await getApplicationDocumentsDirectory();
+      final booksDir = Directory(p.join(appDir.path, 'pdf_books'));
+      if (!booksDir.existsSync()) {
+        booksDir.createSync(recursive: true);
+      }
+
+      String fileName = pickedFile.name;
+      if (!fileName.toLowerCase().endsWith('.pdf')) {
+        fileName = '$fileName.pdf';
+      }
+      fileName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+
+      final targetPath = p.join(booksDir.path, fileName);
+      final targetFile = File(targetPath);
+
+      if (targetFile.existsSync()) {
+        try {
+          targetFile.deleteSync();
+        } catch (_) {}
+      }
+
+      if (pickedFile.bytes != null && pickedFile.bytes!.isNotEmpty) {
+        await targetFile.writeAsBytes(pickedFile.bytes!, flush: true);
+      } else if (pickedFile.path != null && File(pickedFile.path!).existsSync()) {
+        final sourceFile = File(pickedFile.path!);
+        await sourceFile.copy(targetPath);
+      } else if (pickedFile.readStream != null) {
+        final sink = targetFile.openWrite();
+        await sink.addStream(pickedFile.readStream!);
+        await sink.close();
+      } else {
+        debugPrint('FilePicker returned no accessible data or path');
+        return null;
+      }
+
+      if (!targetFile.existsSync() || targetFile.lengthSync() == 0) {
+        debugPrint('Imported file is empty or missing after write');
+        return null;
+      }
+
+      await addFile(targetFile.path);
+
+      final stat = targetFile.statSync();
+      final key = getBookKey(targetFile.path);
+      Box<BookProgress>? progressBox;
+      if (Hive.isBoxOpen(progressBoxName)) {
+        progressBox = Hive.box<BookProgress>(progressBoxName);
+      }
+      final progress = progressBox?.get(key);
+
+      return PdfBook(
+        path: targetFile.path,
+        name: p.basenameWithoutExtension(targetFile.path),
+        sizeBytes: stat.size,
+        modified: stat.modified,
+        progress: progress,
+      );
+    } catch (e) {
+      debugPrint('Error importing PDF from picker: $e');
+      return null;
+    }
   }
 
   // --- Filtering & Sorting ---

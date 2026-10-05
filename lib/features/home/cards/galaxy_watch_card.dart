@@ -8,11 +8,87 @@ import 'package:habit_tracker/features/health/health_page.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 
+import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/features/wearables/ui/wearables_settings_page.dart';
+
 class GalaxyWatchCard extends StatelessWidget {
   const GalaxyWatchCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    if (!WearableSettings.isEnabled) {
+      return HomeCardFrame(
+        icon: LucideIcons.watch,
+        title: 'Galaxy Watch 7',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WearablesSettingsPage()),
+          );
+        },
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: BentoTheme.accent.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Connect',
+            style: TextStyle(
+              color: BentoTheme.accent,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: BentoTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: BentoTheme.accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(LucideIcons.bluetooth, color: BentoTheme.accent, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No Watch Connected',
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tap to connect Galaxy Watch 7 or Health Connect',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
+            ],
+          ),
+        ),
+      );
+    }
+
     return AnimatedBuilder(
       animation: Listenable.merge([
         WearableRepository.instance.dailyBox.listenable(),
@@ -25,52 +101,55 @@ class GalaxyWatchCard extends StatelessWidget {
         final view = WearableRepository.instance.dayView(todayKey);
 
         final steps = view.totalSteps;
-        final sleepMin = view.mainSleep?.durationMin ?? 0;
-        final hours = sleepMin ~/ 60;
-        final mins = sleepMin % 60;
-        final energyScore = view.energy?.score ?? 82;
-        final agesScore = view.ages?.score ?? 43.5;
-        final isOptimal = agesScore < 48.0;
+        final sleep = view.mainSleep;
+        final sleepMin = sleep?.durationMin;
+        final hours = (sleepMin ?? 0) ~/ 60;
+        final mins = (sleepMin ?? 0) % 60;
+        final energy = view.energy?.score;
+        final ages = view.ages?.score;
+        final isMock = WearableSettings.useMockProvider;
 
         return HomeCardFrame(
           icon: LucideIcons.watch,
-          title: 'Galaxy Watch 7',
+          title: isMock ? 'Galaxy Watch 7 (DEMO)' : 'Galaxy Watch 7',
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const HealthPage(initialTab: 2)),
             );
           },
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: BentoTheme.accent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.sparkles, size: 12, color: BentoTheme.accent),
-                const SizedBox(width: 4),
-                Text(
-                  'AGEs ${agesScore.toStringAsFixed(1)}',
-                  style: TextStyle(
-                    color: BentoTheme.accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+          trailing: ages != null
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-              ],
-            ),
-          ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.sparkles, size: 12, color: BentoTheme.accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AGEs ${ages.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          color: BentoTheme.accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : null,
           child: Row(
             children: [
               Expanded(
                 child: _buildTile(
                   icon: LucideIcons.footprints,
                   title: 'STEPS',
-                  value: NumberFormat('#,###').format(steps > 0 ? steps : 8450),
-                  subtitle: '${((steps > 0 ? steps : 8450) / 100).round()}% goal',
+                  value: steps > 0 ? NumberFormat('#,###').format(steps) : '—',
+                  subtitle: steps > 0 ? '${((steps / 10000) * 100).round()}% goal' : 'No steps',
                   color: AppColors.fitness,
                 ),
               ),
@@ -79,8 +158,8 @@ class GalaxyWatchCard extends StatelessWidget {
                 child: _buildTile(
                   icon: LucideIcons.moon,
                   title: 'SLEEP',
-                  value: sleepMin > 0 ? '${hours}h ${mins}m' : '7h 25m',
-                  subtitle: 'Score ${view.sleepScore ?? 82}',
+                  value: sleepMin != null && sleepMin > 0 ? '${hours}h ${mins}m' : '—',
+                  subtitle: view.sleepScore != null ? 'Score ${view.sleepScore}' : 'No sleep data',
                   color: const Color(0xFF7C4DFF),
                 ),
               ),
@@ -89,8 +168,8 @@ class GalaxyWatchCard extends StatelessWidget {
                 child: _buildTile(
                   icon: LucideIcons.zap,
                   title: 'ENERGY',
-                  value: '$energyScore/100',
-                  subtitle: energyScore >= 80 ? 'Optimal' : 'Good',
+                  value: energy != null ? '$energy/100' : '—',
+                  subtitle: energy != null ? (energy >= 80 ? 'Optimal' : 'Good') : 'No score',
                   color: AppColors.primary,
                 ),
               ),
@@ -99,8 +178,8 @@ class GalaxyWatchCard extends StatelessWidget {
                 child: _buildTile(
                   icon: LucideIcons.sparkles,
                   title: 'AGES',
-                  value: agesScore.toStringAsFixed(1),
-                  subtitle: isOptimal ? 'Optimal' : 'Moderate',
+                  value: ages != null ? ages.toStringAsFixed(1) : '—',
+                  subtitle: ages != null ? 'Logged' : 'No data',
                   color: BentoTheme.accent,
                 ),
               ),

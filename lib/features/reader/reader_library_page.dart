@@ -68,6 +68,21 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
     }
   }
 
+  Future<void> _openSinglePdf() async {
+    final book = await ReaderService.importPdfFromPicker();
+    if (book != null) {
+      await _loadBooks();
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PdfReaderPage(book: book),
+          ),
+        ).then((_) => _loadBooks());
+      }
+    }
+  }
+
   void _showFolderSettings() {
     showModalBottomSheet(
       context: context,
@@ -559,6 +574,11 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
         ),
         actions: [
           IconButton(
+            icon: const Icon(LucideIcons.filePlus, color: accent),
+            tooltip: 'Open PDF File',
+            onPressed: _openSinglePdf,
+          ),
+          IconButton(
             icon: Icon(
               _isGridView ? LucideIcons.list : LucideIcons.layoutGrid,
               color: BentoTheme.textSecondary,
@@ -575,7 +595,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
             onPressed: _showSortMenu,
           ),
           IconButton(
-            icon: const Icon(LucideIcons.folderCog, color: accent),
+            icon: Icon(LucideIcons.folderCog, color: BentoTheme.textSecondary),
             tooltip: 'Manage Folders',
             onPressed: _showFolderSettings,
           ),
@@ -711,14 +731,25 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                                     ),
                                   ),
                                   if (_books.isEmpty) ...[
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 24),
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: accent,
                                         foregroundColor: Colors.black,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                       ),
-                                      icon: const Icon(LucideIcons.folderPlus,
-                                          size: 18),
+                                      icon: const Icon(LucideIcons.filePlus, size: 18),
+                                      label: const Text('Open PDF File', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      onPressed: _openSinglePdf,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: BentoTheme.textPrimary,
+                                        side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                      ),
+                                      icon: const Icon(LucideIcons.folderPlus, size: 18),
                                       label: const Text('Add PDF Folder'),
                                       onPressed: _pickFolder,
                                     ),
@@ -764,6 +795,13 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
             ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: accent,
+        foregroundColor: Colors.black,
+        icon: const Icon(LucideIcons.filePlus, size: 18),
+        label: const Text('Open PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: _openSinglePdf,
       ),
     );
   }

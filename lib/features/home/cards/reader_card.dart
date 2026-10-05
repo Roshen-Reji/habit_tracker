@@ -227,43 +227,110 @@ class _ReaderCardState extends State<ReaderCard> {
               ],
 
               const SizedBox(height: 12),
-              // View all button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BentoTheme.surfaceElevated,
-                    foregroundColor: BentoTheme.textPrimary,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(ExpressiveTokens.radiusSm),
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.08),
+              // View all / Open button
+              if (displayBooks.isEmpty)
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                          ),
+                        ),
+                        icon: const Icon(LucideIcons.filePlus, size: 15),
+                        label: const Text(
+                          'Open PDF',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final book = await ReaderService.importPdfFromPicker();
+                          if (book != null && context.mounted) {
+                            await _loadBooks();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PdfReaderPage(book: book),
+                              ),
+                            ).then((_) => _loadBooks());
+                          }
+                        },
                       ),
                     ),
-                  ),
-                  icon: const Icon(LucideIcons.library, size: 15),
-                  label: Text(
-                    displayBooks.isNotEmpty
-                        ? 'View Library (${_books.length})'
-                        : 'Configure PDF Folders',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ReaderLibraryPage(),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: BentoTheme.textPrimary,
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                          ),
+                        ),
+                        icon: const Icon(LucideIcons.library, size: 15),
+                        label: const Text(
+                          'Library',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ReaderLibraryPage(),
+                            ),
+                          ).then((_) => _loadBooks());
+                        },
                       ),
-                    ).then((_) => _loadBooks());
-                  },
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BentoTheme.surfaceElevated,
+                      foregroundColor: BentoTheme.textPrimary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(ExpressiveTokens.radiusSm),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(LucideIcons.library, size: 15),
+                    label: Text(
+                      'View Library (${_books.length})',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ReaderLibraryPage(),
+                        ),
+                      ).then((_) => _loadBooks());
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         );

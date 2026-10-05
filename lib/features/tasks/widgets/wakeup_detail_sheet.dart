@@ -5,7 +5,6 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
-import 'package:habit_tracker/features/tasks/models/wake_log.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 class WakeupDetailSheet extends StatefulWidget {
@@ -20,12 +19,14 @@ class WakeupDetailSheet extends StatefulWidget {
 class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
   late int _targetMinutes;
   late int _graceMinutes;
+  late String _direction;
 
   @override
   void initState() {
     super.initState();
     _targetMinutes = widget.goal.targetMinutes ?? 300;
     _graceMinutes = widget.goal.graceMinutes ?? 0;
+    _direction = (widget.goal.metricOp == '<=') ? 'by' : 'from';
   }
 
   String _formatMinutes(int minutes) {
@@ -207,12 +208,84 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                   await WakeService.instance.createOrUpdateWakeupTask(
                     targetMinutes: newTarget,
                     graceMinutes: _graceMinutes,
+                    direction: _direction,
                   );
                   setState(() {
                     _targetMinutes = newTarget;
                   });
                 }
               },
+            ),
+            Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+
+            // Direction Selector Row
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.compass, color: Colors.white70, size: 18),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Wake Rule Direction', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            Text(
+                              _direction == 'by'
+                                  ? 'Ticked if I wake at or before ${_formatMinutes(_targetMinutes)}'
+                                  : 'Ticked if I wake at or after ${_formatMinutes(_targetMinutes)}',
+                              style: TextStyle(color: BentoTheme.accent, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text('Waking by (at or before)')),
+                          selected: _direction == 'by',
+                          selectedColor: BentoTheme.accent.withValues(alpha: 0.25),
+                          onSelected: (selected) async {
+                            if (selected) {
+                              setState(() => _direction = 'by');
+                              await WakeService.instance.createOrUpdateWakeupTask(
+                                targetMinutes: _targetMinutes,
+                                graceMinutes: _graceMinutes,
+                                direction: 'by',
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text('Waking from (at or after)')),
+                          selected: _direction == 'from',
+                          selectedColor: BentoTheme.accent.withValues(alpha: 0.25),
+                          onSelected: (selected) async {
+                            if (selected) {
+                              setState(() => _direction = 'from');
+                              await WakeService.instance.createOrUpdateWakeupTask(
+                                targetMinutes: _targetMinutes,
+                                graceMinutes: _graceMinutes,
+                                direction: 'from',
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
 

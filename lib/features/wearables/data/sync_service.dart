@@ -1,16 +1,18 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
+import 'package:habit_tracker/features/wearables/data/metric_task_service.dart';
 import 'package:habit_tracker/features/wearables/data/mock_wearable_source.dart';
 import 'package:habit_tracker/features/wearables/data/samsung_health_source.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_source.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_xp_service.dart';
+import 'package:habit_tracker/features/wearables/engine/calorie_reconciler.dart';
 import 'package:habit_tracker/features/wearables/models/models.dart';
 
 enum SyncStatus { idle, syncing, success, error }
@@ -29,8 +31,8 @@ class SyncService {
   WearableSource getActiveSource() {
     if (_activeSource != null) return _activeSource!;
 
-    final useMock = WearableSettings.useMockProvider;
-    if (useMock || !Platform.isAndroid) {
+    final useMock = kDebugMode && WearableSettings.useMockProvider;
+    if (useMock) {
       _activeSource = MockWearableSource();
     } else {
       _activeSource = SamsungHealthSource();
@@ -45,6 +47,11 @@ class SyncService {
   /// Triggers a sync for the past [days] (default 7 for incremental, 30 for backfill).
   Future<bool> sync({int days = 7}) async {
     if (statusNotifier.value == SyncStatus.syncing) return false;
+
+    if (!WearableSettings.isEnabled) {
+      statusNotifier.value = SyncStatus.idle;
+      return false;
+    }
 
     statusNotifier.value = SyncStatus.syncing;
     errorNotifier.value = null;
@@ -81,16 +88,25 @@ class SyncService {
         await repo.upsertAges(a);
       }
 
-      // 3. Reconcile Exercise Calories with DietDayLog
-      await _reconcileExerciseCalories(exerciseList, dailyList);
+      // 3. Reconcile Exercise Calories with DietDayLog (skip mock data from polluting real records)
+      if (source.sourceId != 'mock') {
+        await _reconcileExerciseCalories(exerciseList, dailyList);
 
-      // 4. Auto-log to Day Journal if enabled
-      if (WearableSettings.journalAutologEnabled) {
-        await _autoLogToJournal(sleepList, energyList, agesList, exerciseList);
+        // 4. Auto-log to Day Journal if enabled
+        if (WearableSettings.journalAutologEnabled) {
+          await _autoLogToJournal(sleepList, energyList, agesList, exerciseList);
+        }
+
+        // 5. Auto-log wake up from wearable sleep end if wake goal is pending
+        await _autoLogWakeFromSleep(sleepList);
+
+        // 6. Reconcile Wearable XP with XpLedger
+        await WearableXpService.instance.reconcileRecent(days: 3);
+
+        // 7. Reconcile Metric Tasks
+        final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        await MetricTaskService.instance.reconcileDay(todayKey);
       }
-
-      // 5. Auto-log wake up from wearable sleep end if wake goal is pending
-      await _autoLogWakeFromSleep(sleepList);
 
       final now = DateTime.now();
       WearableSettings.lastSyncMs = now.millisecondsSinceEpoch;
@@ -130,44 +146,14 @@ class SyncService {
             targetCalories: Hive.box('settings').get('daily_calorie_target', defaultValue: 2000.0).toDouble(),
           );
 
-      var modified = false;
+      final result = CalorieReconciler.reconcileWorkouts(
+        currentEntries: dayLog.burnEntries,
+        sessions: sessions,
+        creditMode: WearableSettings.burnCreditMode,
+      );
 
-      for (final session in sessions) {
-        final existingIdx = dayLog.burnEntries.indexWhere(
-          (b) => b.externalId == session.externalId || b.id == 'burn_shealth_${session.externalId}',
-        );
-
-        final kcal = session.activeKcal ?? session.totalKcal ?? 0.0;
-
-        if (existingIdx == -1) {
-          // Check if any manual entry overlaps within 30 minutes with similar activity
-          for (final manual in dayLog.burnEntries) {
-            if (manual.source != 'samsung_health' && manual.supersededBy == null) {
-              final diff = manual.timestamp.difference(session.start).inMinutes.abs();
-              if (diff <= 45 && manual.activity.toLowerCase() == session.type.toLowerCase()) {
-                manual.supersededBy = session.externalId;
-                modified = true;
-              }
-            }
-          }
-
-          // Add wearable exercise burn credit
-          dayLog.burnEntries.add(
-            CalorieBurnEntry(
-              id: 'burn_shealth_${session.externalId}',
-              activity: session.title ?? session.type,
-              caloriesBurned: kcal,
-              durationMinutes: session.durationMin,
-              timestamp: session.start,
-              source: 'samsung_health',
-              externalId: session.externalId,
-            ),
-          );
-          modified = true;
-        }
-      }
-
-      if (modified) {
+      if (result.modified) {
+        dayLog.burnEntries = result.entries;
         await dietBox.put(dayKey, dayLog);
       }
     }
@@ -192,13 +178,14 @@ class SyncService {
     if (todaySleep != null) {
       final hours = todaySleep.durationMin ~/ 60;
       final mins = todaySleep.durationMin % 60;
+      final scoreStr = todaySleep.score != null ? ' (Score: ${todaySleep.score})' : '';
       final energyStr = todayEnergy != null ? ' · Energy: ${todayEnergy.score}/100' : '';
       final agesStr = todayAges != null ? ' · AGEs: ${todayAges.score.toStringAsFixed(1)}' : '';
 
       final sleepEvent = AutoLogEvent(
         key: 'sleep_$todayKey',
         kind: 'sleep',
-        text: 'Slept ${hours}h ${mins}m (Score: ${todaySleep.score ?? 80})$energyStr$agesStr',
+        text: 'Slept ${hours}h ${mins}m$scoreStr$energyStr$agesStr',
         timestamp: todaySleep.end,
         source: 'samsung_health',
       );
