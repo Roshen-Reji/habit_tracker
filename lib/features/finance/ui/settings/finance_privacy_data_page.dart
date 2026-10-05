@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -51,9 +52,10 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
 
   Future<void> _loadReceiptStats() async {
     try {
-      final dir = await ReceiptManager.getReceiptsDirectory();
-      if (await dir.exists()) {
-        final files = dir.listSync(recursive: true).whereType<File>().toList();
+      final dir = await getApplicationDocumentsDirectory();
+      final receiptsDir = Directory('${dir.path}/receipts');
+      if (await receiptsDir.exists()) {
+        final files = receiptsDir.listSync(recursive: true).whereType<File>().toList();
         if (mounted) setState(() => _receiptCount = files.length);
       }
     } catch (_) {}
@@ -126,7 +128,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   }
 
   Future<void> _exportJson() async {
-    final jsonStr = await FinanceBackupService.exportFinanceDataJson();
+    final jsonStr = await FinanceBackupService.exportJson();
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/finance_backup_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.json');
     await file.writeAsString(jsonStr);
@@ -134,7 +136,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   }
 
   Future<void> _exportCsv() async {
-    final csv = ReportEngine.exportTransactionsToCsv(_controller.allTransactions, categories: _controller.activeCategories);
+    final csv = _controller.exportTransactionsToCsv();
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/transactions_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv');
     await file.writeAsString(csv);
@@ -236,9 +238,10 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
 
     // 2. Wipe receipts directory
     try {
-      final dir = await ReceiptManager.getReceiptsDirectory();
-      if (await dir.exists()) {
-        await dir.delete(recursive: true);
+      final dir = await getApplicationDocumentsDirectory();
+      final receiptsDir = Directory('${dir.path}/receipts');
+      if (await receiptsDir.exists()) {
+        await receiptsDir.delete(recursive: true);
       }
     } catch (_) {}
 
@@ -466,7 +469,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   label: const Text('JSON Backup'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: BentoTheme.accent,
-                    side: BorderSide(color: BentoTheme.surfaceOutline),
+                    side: BorderSide(color: Colors.white12),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -480,7 +483,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   label: const Text('CSV Export'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: BentoTheme.accent,
-                    side: BorderSide(color: BentoTheme.surfaceOutline),
+                    side: BorderSide(color: Colors.white12),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),

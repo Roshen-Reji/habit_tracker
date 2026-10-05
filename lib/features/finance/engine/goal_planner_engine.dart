@@ -64,6 +64,24 @@ class GoalPlannerEngine {
     return Money.r2(sum);
   }
 
+  /// Calculates required monthly contribution for a target.
+  static double calculateRequiredMonthly({
+    required double target,
+    required double saved,
+    DateTime? deadline,
+    required DateTime asOf,
+  }) {
+    final remainingToSave = max(0.0, target - saved);
+    if (remainingToSave <= 0) return 0.0;
+    final int monthsLeft;
+    if (deadline != null) {
+      monthsLeft = monthsUntil(deadline, asOf);
+    } else {
+      monthsLeft = 12; // default 1 year horizon if no deadline specified
+    }
+    return Money.r2(remainingToSave / monthsLeft);
+  }
+
   /// Evaluates the goal plan: required monthly, rate over last 3 months, shortfall,
   /// and greedy trim suggestions over non-essential categories (up to 20% each).
   static GoalPlan planGoal({

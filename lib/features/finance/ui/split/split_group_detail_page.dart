@@ -414,7 +414,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '₹${FormatUtils.formatCurrency(entry.amount, decimals: 0)}',
+                  '₹${FormatUtils.formatMoney(entry.amount, decimals: 0)}',
                   style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(width: 8),
@@ -573,7 +573,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               ),
               const SizedBox(height: 6),
               Text(
-                '₹${FormatUtils.formatCurrency(report.totalSpent, decimals: 0)}',
+                '₹${FormatUtils.formatMoney(report.totalSpent, decimals: 0)}',
                 style: TextStyle(color: BentoTheme.accent, fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),

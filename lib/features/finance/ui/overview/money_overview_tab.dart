@@ -242,7 +242,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      'Liquid: ${FormatUtils.formatCurrency(liquid)}',
+                      'Liquid: ${FormatUtils.formatMoney(liquid)}',
                       style: TextStyle(
                         color: BentoTheme.accent,
                         fontSize: 11,
@@ -254,7 +254,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
               ),
               const SizedBox(height: 8),
               Text(
-                FormatUtils.formatCurrency(netWorth),
+                FormatUtils.formatMoney(netWorth),
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 32,
@@ -307,7 +307,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
         borderRadius: ExpressiveTokens.borderL,
         border: Border.all(
           color: s.hasShortfall
-              ? ExpressiveTokens.semanticError.withValues(alpha: 0.3)
+              ? Colors.red.withValues(alpha: 0.3)
               : BentoTheme.accent.withValues(alpha: 0.2),
         ),
       ),
@@ -322,7 +322,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                   Icon(
                     s.hasShortfall ? LucideIcons.alertTriangle : LucideIcons.shieldCheck,
                     size: 16,
-                    color: s.hasShortfall ? ExpressiveTokens.semanticError : BentoTheme.accent,
+                    color: s.hasShortfall ? Colors.red : BentoTheme.accent,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -339,16 +339,16 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: (s.hasShortfall ? ExpressiveTokens.semanticError : BentoTheme.accent)
+                  color: (s.hasShortfall ? Colors.red : BentoTheme.accent)
                       .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   s.hasShortfall
-                      ? 'Deficit: ₹${FormatUtils.formatCurrency(s.shortfall, decimals: 0)}'
-                      : '₹${FormatUtils.formatCurrency(s.perDay, decimals: 0)} / day',
+                      ? 'Deficit: ₹${FormatUtils.formatMoney(s.shortfall)}'
+                      : '₹${FormatUtils.formatMoney(s.perDay)} / day',
                   style: TextStyle(
-                    color: s.hasShortfall ? ExpressiveTokens.semanticError : BentoTheme.accent,
+                    color: s.hasShortfall ? Colors.red : BentoTheme.accent,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -360,9 +360,9 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
           Text(
             s.hasShortfall
                 ? '₹0'
-                : '₹${FormatUtils.formatCurrency(s.safeToSpend, decimals: 0)}',
+                : '₹${FormatUtils.formatMoney(s.safeToSpend)}',
             style: TextStyle(
-              color: s.hasShortfall ? ExpressiveTokens.semanticError : BentoTheme.textPrimary,
+              color: s.hasShortfall ? Colors.red : BentoTheme.textPrimary,
               fontSize: 32,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
@@ -383,16 +383,16 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _safeToSpendChip('Liquid', s.liquid, ExpressiveTokens.semanticSuccess),
+                _safeToSpendChip('Liquid', s.liquid, Colors.green),
                 const SizedBox(width: 6),
-                _safeToSpendChip('Bills', -s.obligations, ExpressiveTokens.semanticError),
+                _safeToSpendChip('Bills', -s.obligations, Colors.red),
                 const SizedBox(width: 6),
                 _safeToSpendChip('Goals', -s.goalsEarmark, const Color(0xFFF59E0B)),
                 const SizedBox(width: 6),
                 _safeToSpendChip('Essential', -s.plannedEssential, BentoTheme.textSecondary),
                 if (s.cardDues > 0) ...[
                   const SizedBox(width: 6),
-                  _safeToSpendChip('Cards', -s.cardDues, ExpressiveTokens.semanticError),
+                  _safeToSpendChip('Cards', -s.cardDues, Colors.red),
                 ],
               ],
             ),
@@ -411,7 +411,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Text(
-        '$label: ${val >= 0 ? '' : '-'}₹${FormatUtils.formatCurrency(val.abs(), decimals: 0)}',
+        '$label: ${val >= 0 ? '' : '-'}₹${FormatUtils.formatMoney(val.abs())}',
         style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
       ),
     );
@@ -420,11 +420,11 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
   Widget _buildHealthAndWhatIfRow(HealthScoreResult health) {
     Color scoreColor;
     if (health.overallScore >= 80) {
-      scoreColor = ExpressiveTokens.semanticSuccess;
+      scoreColor = Colors.green;
     } else if (health.overallScore >= 50) {
       scoreColor = BentoTheme.accent;
     } else {
-      scoreColor = ExpressiveTokens.semanticWarning;
+      scoreColor = Colors.orange;
     }
 
     return Row(
@@ -553,15 +553,15 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
     IconData icon;
     switch (top.severity) {
       case InsightSeverity.danger:
-        iconColor = ExpressiveTokens.semanticError;
+        iconColor = Colors.red;
         icon = LucideIcons.alertOctagon;
         break;
       case InsightSeverity.warning:
-        iconColor = ExpressiveTokens.semanticWarning;
+        iconColor = Colors.orange;
         icon = LucideIcons.alertTriangle;
         break;
       case InsightSeverity.success:
-        iconColor = ExpressiveTokens.semanticSuccess;
+        iconColor = Colors.green;
         icon = LucideIcons.trendingUp;
         break;
       case InsightSeverity.info:

@@ -223,10 +223,10 @@ class InsightsEngine {
       if (goal.targetAmount <= 0) continue;
       final saved = goalSavedAmounts[goal.id] ?? 0.0;
       final rate = goal3mMonthlyRates[goal.id] ?? 0.0;
-      final deadline = goal.deadlineDate;
+      final deadline = goal.deadline;
       if (deadline != null) {
         final daysLeft = deadline.difference(today).inDays;
-        final monthsLeft = max(1, (daysLeft / 30.4375).ceil());
+        final monthsLeft = max<int>(1, (daysLeft / 30.4375).ceil());
         final projectedSaved = saved + (rate * monthsLeft);
         if (projectedSaved < goal.targetAmount && (goal.targetAmount - projectedSaved) > 1000) {
           final key = 'goal_behind_${goal.id}_$monthKey';

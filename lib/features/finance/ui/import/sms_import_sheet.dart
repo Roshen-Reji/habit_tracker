@@ -94,8 +94,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Transaction saved: ${d.title} (₹${FormatUtils.formatCurrency(d.amount.abs())})'),
-            backgroundColor: ExpressiveTokens.semanticSuccess,
+            content: Text('Transaction saved: ${d.title} (₹${FormatUtils.formatMoney(d.amount.abs())})'),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -145,11 +145,11 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     children: [
                       Text(
                         'Parse Bank / UPI SMS',
-                        style: BentoTheme.titleMedium.copyWith(color: BentoTheme.textPrimary),
+                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         'Paste bank SMS to extract amount, merchant & date locally',
-                        style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -190,7 +190,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: ExpressiveTokens.semanticSuccess.withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,13 +200,14 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                       children: [
                         Text(
                           _parsedDraft!.title,
-                          style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Text(
-                          '${_parsedDraft!.amount >= 0 ? '+' : ''}₹${FormatUtils.formatCurrency(_parsedDraft!.amount.abs())}',
-                          style: BentoTheme.titleMedium.copyWith(
-                            color: _parsedDraft!.amount >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError,
+                          '${_parsedDraft!.amount >= 0 ? '+' : ''}₹${FormatUtils.formatMoney(_parsedDraft!.amount.abs())}',
+                          style: TextStyle(
+                            color: _parsedDraft!.amount >= 0 ? Colors.green : Colors.red,
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
                       ],
@@ -214,7 +215,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'Merchant: ${_parsedDraft!.merchant ?? "None"} · Payment: ${_parsedDraft!.paymentMethod}',
-                      style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
 

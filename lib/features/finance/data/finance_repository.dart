@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
@@ -914,7 +915,7 @@ class FinanceRepository {
     if (entry == null) throw ArgumentError('SplitEntry not found: $entryId');
 
     final amt = settlementAmount ?? entry.amount;
-    final targetAccountId = accountId ?? accounts.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+    final targetAccountId = accountId ?? storage.accountBox.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
 
     if (targetAccountId != null && amt > 0) {
       if (isReimbursement) {

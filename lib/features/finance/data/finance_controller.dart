@@ -670,13 +670,13 @@ class FinanceController extends ChangeNotifier {
   // DEBT & CREDIT CARDS (P7)
   // ---------------------------------------------------------------------------
 
-  List<Account> get loanAccounts => allAccounts
+  List<Account> get loanAccounts => storage.accountBox.values
       .where((a) =>
           !a.archived &&
           (a.kind == 'loan' || a.kind == 'bnpl' || a.kind == 'other_debt'))
       .toList();
 
-  List<Account> get creditCardAccounts => allAccounts
+  List<Account> get creditCardAccounts => storage.accountBox.values
       .where((a) => !a.archived && a.kind == 'credit_card')
       .toList();
 
@@ -798,9 +798,9 @@ class FinanceController extends ChangeNotifier {
         continue;
       }
       final occurrences = RecurringEngine.occurrences(
-        rule: rule,
-        from: today.add(const Duration(days: 1)),
-        to: effectiveHorizon,
+        rule,
+        today.add(const Duration(days: 1)),
+        effectiveHorizon,
       );
       for (final occ in occurrences) {
         final dateKey = DateFormat('yyyy-MM-dd').format(occ);
@@ -822,7 +822,7 @@ class FinanceController extends ChangeNotifier {
           GoalPlannerEngine.calculateRequiredMonthly(
             target: goal.targetAmount,
             saved: getGoalSavedAmount(goal),
-            deadline: goal.deadlineDate,
+            deadline: goal.deadline,
             asOf: today,
           );
 
@@ -843,21 +843,17 @@ class FinanceController extends ChangeNotifier {
     final budgetLines = storage.budgetLineBox.values.where((b) => b.essential);
     for (final line in budgetLines) {
       if (line.categoryId == null) continue;
-      final effective = BudgetEngine.effectiveBudget(
-        line: line,
-        month: today,
-        overrides: storage.budgetOverrideBox.values.toList(),
-        spentProvider: (l, m) => getCategorySpendingForMonth(l.categoryId, m),
-      );
+      final monthKey = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+      final effective = getEffectiveBudget(line, monthKey);
       final spent = getCategorySpendingForMonth(line.categoryId, today);
 
       double unpostedCatRecurring = 0.0;
       for (final rule in activeRules) {
         if (rule.categoryId == line.categoryId && rule.kind != 'income') {
           final occs = RecurringEngine.occurrences(
-            rule: rule,
-            from: today.add(const Duration(days: 1)),
-            to: effectiveHorizon,
+            rule,
+            today.add(const Duration(days: 1)),
+            effectiveHorizon,
           );
           for (final occ in occs) {
             final dateKey = DateFormat('yyyy-MM-dd').format(occ);
@@ -906,9 +902,9 @@ class FinanceController extends ChangeNotifier {
     for (final rule in activeRules) {
       if (rule.kind == 'income') {
         final occurrences = RecurringEngine.occurrences(
-          rule: rule,
-          from: today.add(const Duration(days: 1)),
-          to: monthEnd,
+          rule,
+          today.add(const Duration(days: 1)),
+          monthEnd,
         );
         for (final occ in occurrences) {
           final dateKey = DateFormat('yyyy-MM-dd').format(occ);
@@ -1006,7 +1002,7 @@ class FinanceController extends ChangeNotifier {
     final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
 
     for (final rule in activeRules) {
-      final occurrences = RecurringEngine.occurrences(rule: rule, from: today, to: horizon30);
+      final occurrences = RecurringEngine.occurrences(rule, today, horizon30);
       for (final occ in occurrences) {
         final dateKey = DateFormat('yyyy-MM-dd').format(occ);
         final sourceRef = 'rec:${rule.id}:$dateKey';
@@ -1058,12 +1054,8 @@ class FinanceController extends ChangeNotifier {
     double lastMonthBudgetOverspend = 0.0;
     for (final line in storage.budgetLineBox.values) {
       if (line.categoryId == null) continue;
-      final limit = BudgetEngine.effectiveBudget(
-        line: line,
-        month: lastMonth,
-        overrides: storage.budgetOverrideBox.values.toList(),
-        spentProvider: (l, m) => getCategorySpendingForMonth(l.categoryId, m),
-      );
+      final lastMonthKey = '${lastMonth.year}-${lastMonth.month.toString().padLeft(2, '0')}';
+      final limit = getEffectiveBudget(line, lastMonthKey);
       final spent = getCategorySpendingForMonth(line.categoryId, lastMonth);
       lastMonthBudgetLimit += limit;
       if (spent > limit) {
@@ -1352,6 +1344,24 @@ class FinanceController extends ChangeNotifier {
   String exportCategoryReportToCsv(DateTime month) {
     final items = getCategoryReport(month);
     return CsvExporter.exportCategoryReportToCsv(month, items);
+  }
+
+  double getCategorySpendingForMonth(String? categoryId, DateTime month) {
+    if (categoryId == null) return 0.0;
+    final txs = getTransactionsForMonth(month);
+    return LedgerEngine.spending(txs, categoryId: categoryId);
+  }
+
+  double getGoalSavedAmount(SavingsGoal goal) {
+    final entries = storage.goalEntryBox.values.where((e) => e.goalId == goal.id);
+    return GoalPlannerEngine.totalSaved(entries);
+  }
+
+  double getGoalThreeMonthRate(SavingsGoal goal) {
+    final now = DateTime.now();
+    final threeMonthsAgo = DateTime(now.year, now.month - 3, now.day);
+    final entries = storage.goalEntryBox.values.where((e) => e.goalId == goal.id && e.date.isAfter(threeMonthsAgo));
+    return GoalPlannerEngine.totalSaved(entries) / 3.0;
   }
 }
 

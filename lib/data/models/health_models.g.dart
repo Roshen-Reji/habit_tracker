@@ -124,19 +124,25 @@ class WeightEntryAdapter extends TypeAdapter<WeightEntry> {
       date: fields[0] as String,
       kg: fields[1] as double,
       note: fields[2] as String,
+      source: fields[3] as String?,
+      externalId: fields[4] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, WeightEntry obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
       ..write(obj.kg)
       ..writeByte(2)
-      ..write(obj.note);
+      ..write(obj.note)
+      ..writeByte(3)
+      ..write(obj.source)
+      ..writeByte(4)
+      ..write(obj.externalId);
   }
 
   @override

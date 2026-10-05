@@ -17,6 +17,7 @@ import 'package:habit_tracker/features/home/cards/reader_card.dart';
 import 'package:habit_tracker/features/home/cards/safe_to_spend_card.dart';
 import 'package:habit_tracker/features/home/cards/net_worth_card.dart';
 import 'package:habit_tracker/features/home/cards/upcoming_bills_card.dart';
+import 'package:habit_tracker/features/home/cards/galaxy_watch_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Specification for a card in the wallet-stack home screen.
@@ -213,6 +214,14 @@ class HomeCardRegistry {
       icon: LucideIcons.calendarClock,
       compactBuilder: (context) => const UpcomingBillsCard(),
       defaultOrder: 16,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'galaxy_watch',
+      title: 'Galaxy Watch 7',
+      icon: LucideIcons.watch,
+      compactBuilder: (context) => const GalaxyWatchCard(),
+      defaultOrder: 17,
       defaultVisible: true,
     ));
   }

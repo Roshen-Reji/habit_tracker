@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
+import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 import 'package:habit_tracker/features/journal/journal_editor_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -61,6 +63,7 @@ class _JournalListPageState extends State<JournalListPage>
       final success = await JournalService.instance.authenticateAndUnlock();
       if (success) {
         await JournalService.instance.openEncryptedBox();
+        await JournalService.instance.migrateDayKeysIfNeeded();
       }
     } finally {
       if (mounted) {
@@ -77,7 +80,7 @@ class _JournalListPageState extends State<JournalListPage>
         if (!isUnlocked) {
           return _buildLockScreen();
         }
-        return _buildJournalView();
+        return _buildTimelineView();
       },
     );
   }
@@ -160,7 +163,7 @@ class _JournalListPageState extends State<JournalListPage>
     );
   }
 
-  Widget _buildJournalView() {
+  Widget _buildTimelineView() {
     return Scaffold(
       backgroundColor: BentoTheme.background,
       appBar: AppBar(
@@ -171,7 +174,7 @@ class _JournalListPageState extends State<JournalListPage>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'PRIVATE JOURNAL',
+          'DAY JOURNAL',
           style: TextStyle(
             color: BentoTheme.textPrimary,
             fontSize: 16,
@@ -181,6 +184,30 @@ class _JournalListPageState extends State<JournalListPage>
         ),
         actions: [
           IconButton(
+            icon: const Icon(LucideIcons.calendarDays, size: 20),
+            tooltip: 'Calendar Jump',
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (picked != null && mounted) {
+                final dayKey = DateFormat('yyyy-MM-dd').format(picked);
+                final dayDoc = await JournalDayRepository.instance.getOrCreateDay(dayKey);
+                if (mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => JournalEditorPage(initialEntry: dayDoc),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          IconButton(
             icon: Icon(LucideIcons.lock,
                 color: BentoTheme.textSecondary, size: 20),
             tooltip: 'Lock Vault',
@@ -188,31 +215,59 @@ class _JournalListPageState extends State<JournalListPage>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         backgroundColor: BentoTheme.accent,
         foregroundColor: Colors.black,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const JournalEditorPage(),
-            ),
-          );
+        icon: const Icon(LucideIcons.penLine, size: 18),
+        label: const Text('Today', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () async {
+          final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          final dayDoc = await JournalDayRepository.instance.getOrCreateDay(todayKey);
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => JournalEditorPage(initialEntry: dayDoc),
+              ),
+            );
+          }
         },
-        child: const Icon(LucideIcons.penTool, size: 22),
       ),
       body: ValueListenableBuilder(
         valueListenable:
             Hive.box<JournalEntry>(JournalService.boxName).listenable(),
         builder: (context, Box<JournalEntry> box, _) {
           final allEntries = JournalService.instance.getEntries();
-          final filtered = allEntries.where((entry) {
+          final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+          // Gather unique days (newest first, today always included)
+          final dayKeysSet = <String>{todayKey};
+          for (final e in allEntries) {
+            final key = e.dayKey ?? DateFormat('yyyy-MM-dd').format(e.createdAt);
+            dayKeysSet.add(key);
+          }
+
+          final sortedDayKeys = dayKeysSet.toList()
+            ..sort((a, b) => b.compareTo(a));
+
+          final filteredDayKeys = sortedDayKeys.where((dayKey) {
             if (_searchQuery.isEmpty) return true;
-            return entry.title.toLowerCase().contains(_searchQuery) ||
-                entry.tags.any((t) => t.toLowerCase().contains(_searchQuery));
+            final dayDoc = allEntries.where((e) => e.id == 'day_$dayKey').firstOrNull;
+            final leg = JournalDayRepository.instance.legacyEntriesFor(dayKey);
+
+            final matchesDoc = dayDoc != null &&
+                (dayDoc.title.toLowerCase().contains(_searchQuery) ||
+                    _extractPlainText(dayDoc.bodyDelta).toLowerCase().contains(_searchQuery) ||
+                    dayDoc.tags.any((t) => t.toLowerCase().contains(_searchQuery)));
+            final matchesLeg = leg.any((l) =>
+                l.title.toLowerCase().contains(_searchQuery) ||
+                _extractPlainText(l.bodyDelta).toLowerCase().contains(_searchQuery) ||
+                l.tags.any((t) => t.toLowerCase().contains(_searchQuery)));
+
+            return matchesDoc || matchesLeg || dayKey.contains(_searchQuery);
           }).toList();
 
           return Column(
@@ -225,7 +280,7 @@ class _JournalListPageState extends State<JournalListPage>
                   controller: _searchController,
                   style: TextStyle(color: BentoTheme.textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Search journals or #tags...',
+                    hintText: 'Search timeline or #tags...',
                     hintStyle: TextStyle(
                         color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
                     prefixIcon: Icon(LucideIcons.search,
@@ -254,36 +309,31 @@ class _JournalListPageState extends State<JournalListPage>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: BentoTheme.accent.withValues(alpha: 0.5),
-                      ),
+                      borderSide: BorderSide(color: BentoTheme.accent),
                     ),
                   ),
                 ),
               ),
 
-              // Entries List
+              // Day Timeline List
               Expanded(
-                child: filtered.isEmpty
+                child: filteredDayKeys.isEmpty
                     ? Center(
                         child: Text(
-                          _searchQuery.isEmpty
-                              ? 'No journal entries yet.\nTap the pen button to write your first entry.'
-                              : 'No entries matching "$_searchQuery"',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: BentoTheme.textSecondary,
-                            fontSize: 13,
-                            height: 1.5,
-                          ),
+                          'No journal entries match "$_searchQuery"',
+                          style: TextStyle(color: BentoTheme.textSecondary),
                         ),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
-                        itemCount: filtered.length,
+                        itemCount: filteredDayKeys.length,
                         itemBuilder: (context, index) {
-                          final entry = filtered[index];
-                          return _buildJournalCard(entry);
+                          final dayKey = filteredDayKeys[index];
+                          return _buildDayTimelineSection(
+                            dayKey: dayKey,
+                            isToday: dayKey == todayKey,
+                            allEntries: allEntries,
+                          );
                         },
                       ),
               ),
@@ -294,139 +344,252 @@ class _JournalListPageState extends State<JournalListPage>
     );
   }
 
-  Widget _buildJournalCard(JournalEntry entry) {
-    final dateStr = DateFormat('MMM d, y · h:mm a').format(entry.updatedAt);
+  Widget _buildDayTimelineSection({
+    required String dayKey,
+    required bool isToday,
+    required List<JournalEntry> allEntries,
+  }) {
+    DateTime date;
+    try {
+      final parts = dayKey.split('-');
+      date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+    } catch (_) {
+      date = DateTime.now();
+    }
+
+    final dateHeader = isToday
+        ? 'TODAY · ${DateFormat('EEE, d MMM').format(date).toUpperCase()}'
+        : DateFormat('EEEE, d MMM yyyy').format(date).toUpperCase();
+
+    final dayDoc = allEntries.where((e) => e.id == 'day_$dayKey').firstOrNull;
+    final legacy = JournalDayRepository.instance.legacyEntriesFor(dayKey);
+    final autoLogs = dayDoc != null
+        ? JournalDayRepository.instance.getAutoLogs(dayDoc)
+        : <AutoLogEvent>[];
+
+    final snippet = dayDoc != null ? _extractPlainText(dayDoc.bodyDelta) : '';
+    final hasContent = snippet.isNotEmpty || autoLogs.isNotEmpty || legacy.isNotEmpty;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: BentoTheme.surface,
-        borderRadius: BorderRadius.circular(ExpressiveTokens.radiusCard),
-        border: Border.all(
-          color: entry.pinned
-              ? Colors.amber.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.06),
-          width: 1.2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(ExpressiveTokens.radiusCard),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => JournalEditorPage(initialEntry: entry),
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Sticky Date Header
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isToday ? BentoTheme.accent : BentoTheme.textSecondary,
+                  shape: BoxShape.circle,
+                ),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (entry.pinned) ...[
-                      const Icon(LucideIcons.pin,
-                          color: Colors.amberAccent, size: 14),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: Text(
-                        entry.title,
-                        style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(LucideIcons.trash2,
-                          color: Colors.redAccent, size: 16),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: BentoTheme.surface,
-                            title: Text('Delete Entry?',
-                                style:
-                                    TextStyle(color: BentoTheme.textPrimary)),
-                            content: Text(
-                                'Are you sure you want to delete "${entry.title}"?',
-                                style:
-                                    TextStyle(color: BentoTheme.textSecondary)),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text('Cancel',
-                                    style: TextStyle(
-                                        color: BentoTheme.textSecondary)),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
+              const SizedBox(width: 8),
+              Text(
+                dateHeader,
+                style: TextStyle(
+                  color: isToday ? BentoTheme.accent : BentoTheme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Day Card
+          GestureDetector(
+            onTap: () async {
+              final doc = await JournalDayRepository.instance.getOrCreateDay(dayKey);
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => JournalEditorPage(initialEntry: doc),
+                  ),
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: BentoTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isToday
+                      ? BentoTheme.accent.withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Auto-log chips (if present)
+                  if (autoLogs.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: autoLogs.map((log) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: BentoTheme.surfaceElevated,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(_getIconForKind(log.kind),
+                                  size: 13, color: BentoTheme.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                log.text,
+                                style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Delete'),
                               ),
                             ],
                           ),
                         );
-                        if (confirm == true) {
-                          await JournalService.instance.deleteEntry(entry.id);
-                        }
-                      },
+                      }).toList(),
                     ),
+                    const SizedBox(height: 10),
                   ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  dateStr,
-                  style: TextStyle(
-                    color: BentoTheme.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-                if (entry.tags.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: entry.tags
-                        .map(
-                          (t) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: BentoTheme.accent.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '#$t',
-                              style: TextStyle(
-                                color: BentoTheme.accent,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
+
+                  // Owner's Text Snippet or Placeholder
+                  if (snippet.isNotEmpty)
+                    Text(
+                      snippet,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    )
+                  else if (!hasContent)
+                    Text(
+                      isToday ? 'Write today’s reflection...' : 'No entry for this day. Tap to write.',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary.withValues(alpha: 0.5),
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+
+                  // Legacy entries group
+                  if (legacy.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(LucideIcons.history, size: 14, color: BentoTheme.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Earlier entries (${legacy.length})',
+                          style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () async {
+                            await JournalDayRepository.instance.mergeLegacyEntries(dayKey);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Merged into day document'),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    onPressed: () async {
+                                      await JournalDayRepository.instance.undoMergeLegacyEntries(dayKey);
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Merge all', style: TextStyle(fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ...legacy.map((l) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            const Text('• ', style: TextStyle(color: Colors.white38)),
+                            Expanded(
+                              child: Text(
+                                '${l.title} (${DateFormat('h:mm a').format(l.createdAt)})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  String _extractPlainText(String bodyDelta) {
+    try {
+      final decoded = jsonDecode(bodyDelta);
+      if (decoded is List) {
+        final buffer = StringBuffer();
+        for (final op in decoded) {
+          if (op is Map && op.containsKey('insert')) {
+            buffer.write(op['insert']);
+          }
+        }
+        return buffer.toString().trim();
+      }
+    } catch (_) {}
+    return bodyDelta.trim();
+  }
+
+  IconData _getIconForKind(String kind) {
+    switch (kind) {
+      case 'wake':
+        return LucideIcons.sunMedium;
+      case 'sleep':
+        return LucideIcons.moon;
+      case 'workout':
+        return LucideIcons.dumbbell;
+      case 'steps':
+        return LucideIcons.footprints;
+      case 'energy':
+        return LucideIcons.zap;
+      default:
+        return LucideIcons.stickyNote;
+    }
   }
 }

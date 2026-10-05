@@ -24,13 +24,16 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       updatedAt: fields[4] as DateTime,
       pinned: fields[5] as bool,
       tags: (fields[6] as List).cast<String>(),
+      dayKey: fields[7] as String?,
+      autoLogJson: fields[8] as String?,
+      mergedInto: fields[9] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, JournalEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +47,13 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       ..writeByte(5)
       ..write(obj.pinned)
       ..writeByte(6)
-      ..write(obj.tags);
+      ..write(obj.tags)
+      ..writeByte(7)
+      ..write(obj.dayKey)
+      ..writeByte(8)
+      ..write(obj.autoLogJson)
+      ..writeByte(9)
+      ..write(obj.mergedInto);
   }
 
   @override

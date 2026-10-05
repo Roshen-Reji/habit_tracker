@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
@@ -445,7 +445,7 @@ class AiCategorizer {
   }) async {
     if (normalizedMerchants.isEmpty || availableCategories.isEmpty) return {};
 
-    final categoriesList = availableCategories.map((c) => '${c.id}: ${c.name}').join('\n');
+    final categoriesList = availableCategories.map((Category c) => '${c.id}: ${c.name}').join('\n');
     final merchantsList = normalizedMerchants.toSet().take(20).join(', ');
 
     final prompt = '''

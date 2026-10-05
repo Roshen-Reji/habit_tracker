@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final GoalType defaultType;
@@ -26,6 +27,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   bool _isAiLoading = false;
   final _aiController = TextEditingController();
   DateTime? selectedEndDate;
+  bool _isWakeup = false;
+  TimeOfDay _wakeupTargetTime = const TimeOfDay(hour: 5, minute: 0);
 
   @override
   void initState() {
@@ -215,6 +218,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   const SizedBox(width: 8),
                   BentoButton(
                     onTap: () {
+                      if (_isWakeup) {
+                        final targetMinutes = _wakeupTargetTime.hour * 60 +
+                            _wakeupTargetTime.minute;
+                        WakeService.instance.createOrUpdateWakeupTask(
+                          targetMinutes: targetMinutes,
+                          title: titleController.text.isNotEmpty
+                              ? titleController.text
+                              : null,
+                        );
+                        Navigator.pop(context);
+                        return;
+                      }
+
                       final title = titleController.text;
                       final target = double.tryParse(targetController.text);
 
@@ -270,6 +286,66 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              FilterChip(
+                selected: _isWakeup,
+                avatar: Icon(
+                  LucideIcons.alarmClock,
+                  size: 14,
+                  color: _isWakeup ? Colors.black : BentoTheme.accent,
+                ),
+                label: const Text('Wake-Up Task'),
+                selectedColor: BentoTheme.accent,
+                backgroundColor: BentoTheme.background,
+                labelStyle: TextStyle(
+                  color: _isWakeup ? Colors.black : BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                onSelected: (val) {
+                  setState(() {
+                    _isWakeup = val;
+                    if (val) {
+                      selectedType = GoalType.daily;
+                      selectedCategory = GoalCategory.health;
+                      final h =
+                          _wakeupTargetTime.hour.toString().padLeft(2, '0');
+                      final m =
+                          _wakeupTargetTime.minute.toString().padLeft(2, '0');
+                      titleController.text = 'Wake up at $h:$m';
+                      targetController.text = '1';
+                    }
+                  });
+                },
+              ),
+              if (_isWakeup) ...[
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: _wakeupTargetTime,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _wakeupTargetTime = picked;
+                        final h = picked.hour.toString().padLeft(2, '0');
+                        final m = picked.minute.toString().padLeft(2, '0');
+                        titleController.text = 'Wake up at $h:$m';
+                      });
+                    }
+                  },
+                  icon: const Icon(LucideIcons.clock, size: 14),
+                  label: Text('${_wakeupTargetTime.format(context)} (Target)'),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         DropdownButtonFormField<GoalType>(
           initialValue: selectedType,
           dropdownColor: BentoTheme.background,
@@ -454,6 +530,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           spacing: 6,
           runSpacing: 6,
           children: [
+            _buildQuickSuggestion("Wake up at 5:00 AM"),
             _buildQuickSuggestion("Study 3 chapters today"),
             _buildQuickSuggestion("Workout 5hrs this week"),
             _buildQuickSuggestion("Read 20 pages daily"),

@@ -5,6 +5,8 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
+import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class JournalEditorPage extends StatefulWidget {
@@ -26,6 +28,9 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
   late bool _isPinned;
   late List<String> _tags;
   late DateTime _createdAt;
+  String? _dayKey;
+  String? _autoLogJson;
+  String? _mergedInto;
   bool _hasUnsavedChanges = false;
 
   @override
@@ -41,6 +46,9 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
       _isPinned = entry.pinned;
       _tags = List.from(entry.tags);
       _createdAt = entry.createdAt;
+      _dayKey = entry.dayKey ?? DateFormat('yyyy-MM-dd').format(entry.createdAt);
+      _autoLogJson = entry.autoLogJson;
+      _mergedInto = entry.mergedInto;
 
       try {
         final deltaJson = jsonDecode(entry.bodyDelta);
@@ -53,11 +61,14 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
         _quillController = QuillController.basic();
       }
     } else {
-      _id = 'journal_${DateTime.now().millisecondsSinceEpoch}';
-      _titleController = TextEditingController();
+      final now = DateTime.now();
+      _dayKey = DateFormat('yyyy-MM-dd').format(now);
+      _id = 'day_$_dayKey';
+      _titleController = TextEditingController(text: DateFormat('EEEE, d MMM yyyy').format(now));
       _isPinned = false;
       _tags = [];
-      _createdAt = DateTime.now();
+      _createdAt = now;
+      _autoLogJson = '[]';
       _quillController = QuillController.basic();
     }
 
@@ -107,6 +118,9 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
       updatedAt: DateTime.now(),
       pinned: _isPinned,
       tags: _tags,
+      dayKey: _dayKey,
+      autoLogJson: _autoLogJson,
+      mergedInto: _mergedInto,
     );
 
     await JournalService.instance.saveEntry(entry);
@@ -413,6 +427,12 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Auto-Log Section (Read-only chips / Swipe or tap to remove)
+                    _buildAutoLogSection(),
+
+                    // Legacy Merge Banner (if unmerged entries exist for this day)
+                    _buildLegacyMergeBanner(),
+
                     // Rich Text Editor Body
                     Expanded(
                       child: QuillEditor.basic(
@@ -436,5 +456,160 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildAutoLogSection() {
+    final entry = JournalEntry(
+      id: _id,
+      title: '',
+      bodyDelta: '',
+      createdAt: _createdAt,
+      updatedAt: DateTime.now(),
+      autoLogJson: _autoLogJson,
+    );
+    final events = JournalDayRepository.instance.getAutoLogs(entry);
+    if (events.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: BentoTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(LucideIcons.sparkles, size: 13, color: BentoTheme.accent),
+              const SizedBox(width: 6),
+              Text(
+                'AUTO-LOG',
+                style: TextStyle(
+                  color: BentoTheme.accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Tap × to remove',
+                style: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.6),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: events.map((event) {
+              return Chip(
+                avatar: Icon(_getIconForKind(event.kind), size: 14, color: BentoTheme.accent),
+                label: Text(
+                  event.text,
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                backgroundColor: BentoTheme.surfaceElevated,
+                side: BorderSide.none,
+                deleteIcon: Icon(LucideIcons.x, size: 12, color: BentoTheme.textSecondary),
+                onDeleted: () async {
+                  if (_dayKey != null) {
+                    await JournalDayRepository.instance.removeAutoLog(_dayKey!, event.key);
+                    final updatedEntry = await JournalDayRepository.instance.getOrCreateDay(_dayKey!);
+                    setState(() {
+                      _autoLogJson = updatedEntry.autoLogJson;
+                      _hasUnsavedChanges = true;
+                    });
+                  }
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegacyMergeBanner() {
+    if (_dayKey == null) return const SizedBox.shrink();
+    final legacy = JournalDayRepository.instance.legacyEntriesFor(_dayKey!);
+    if (legacy.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: BentoTheme.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.gitMerge, color: Colors.amberAccent, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${legacy.length} earlier entry${legacy.length > 1 ? 's' : ''} on this day',
+              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              await JournalDayRepository.instance.mergeLegacyEntries(_dayKey!);
+              final updated = await JournalDayRepository.instance.getOrCreateDay(_dayKey!);
+              try {
+                final deltaJson = jsonDecode(updated.bodyDelta);
+                _quillController.document = Document.fromJson(deltaJson);
+              } catch (_) {}
+              setState(() {
+                _hasUnsavedChanges = false;
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Entries merged into today’s document'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      onPressed: () async {
+                        await JournalDayRepository.instance.undoMergeLegacyEntries(_dayKey!);
+                        if (mounted) setState(() {});
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('Merge', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForKind(String kind) {
+    switch (kind) {
+      case 'wake':
+        return LucideIcons.sunMedium;
+      case 'sleep':
+        return LucideIcons.moon;
+      case 'workout':
+        return LucideIcons.dumbbell;
+      case 'steps':
+        return LucideIcons.footprints;
+      case 'energy':
+        return LucideIcons.zap;
+      default:
+        return LucideIcons.stickyNote;
+    }
   }
 }

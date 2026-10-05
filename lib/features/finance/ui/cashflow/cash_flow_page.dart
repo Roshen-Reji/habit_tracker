@@ -81,7 +81,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   ),
                   Text(
                     monthStr,
-                    style: BentoTheme.titleMedium.copyWith(
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -102,7 +102,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   child: _buildMetricTile(
                     title: 'Inflow',
                     amount: cashFlow.income,
-                    color: ExpressiveTokens.semanticSuccess,
+                    color: Colors.green,
                     icon: LucideIcons.arrowDownLeft,
                   ),
                 ),
@@ -111,7 +111,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   child: _buildMetricTile(
                     title: 'Outflow',
                     amount: cashFlow.spending,
-                    color: ExpressiveTokens.semanticError,
+                    color: Colors.red,
                     icon: LucideIcons.arrowUpRight,
                   ),
                 ),
@@ -131,12 +131,12 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Net Cash Flow', style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary)),
+                      Text('Net Cash Flow', style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
                       const SizedBox(height: 4),
                       Text(
                         '${cashFlow.net >= 0 ? '+' : ''}₹${FormatUtils.formatCurrency(cashFlow.net)}',
-                        style: BentoTheme.titleLarge.copyWith(
-                          color: cashFlow.net >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold).copyWith(
+                          color: cashFlow.net >= 0 ? Colors.green : Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -150,7 +150,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                     ),
                     child: Text(
                       '${(cashFlow.savingsRate * 100).toStringAsFixed(1)}% Saved',
-                      style: BentoTheme.bodySmall.copyWith(
+                      style: const TextStyle(fontSize: 12).copyWith(
                         color: BentoTheme.accent,
                         fontWeight: FontWeight.bold,
                       ),
@@ -178,7 +178,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                       const SizedBox(width: 8),
                       Text(
                         'Next 30 Days Forecast',
-                        style: BentoTheme.titleSmall.copyWith(
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
@@ -186,16 +186,16 @@ class _CashFlowPageState extends State<CashFlowPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildProjectionRow('Expected Inflow', '+₹${FormatUtils.formatCurrency(cashFlow.expectedIncomeNext30)}', ExpressiveTokens.semanticSuccess),
+                  _buildProjectionRow('Expected Inflow', '+₹${FormatUtils.formatMoney(cashFlow.expectedIncomeNext30)}', Colors.green),
                   const SizedBox(height: 8),
-                  _buildProjectionRow('Bills & Dues', '-₹${FormatUtils.formatCurrency(cashFlow.billsDueNext30)}', ExpressiveTokens.semanticError),
+                  _buildProjectionRow('Bills & Dues', '-₹${FormatUtils.formatMoney(cashFlow.billsDueNext30)}', Colors.red),
                   const SizedBox(height: 8),
-                  _buildProjectionRow('Expected Variable Spend', '-₹${FormatUtils.formatCurrency(cashFlow.expectedVariableNext30)}', BentoTheme.textSecondary),
+                  _buildProjectionRow('Expected Variable Spend', '-₹${FormatUtils.formatMoney(cashFlow.expectedVariableNext30)}', BentoTheme.textSecondary),
                   const Divider(height: 20, color: Colors.white12),
                   _buildProjectionRow(
                     'Projected Net Buffer',
-                    '₹${FormatUtils.formatCurrency(cashFlow.remainingNext30)}',
-                    cashFlow.remainingNext30 >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError,
+                    '₹${FormatUtils.formatMoney(cashFlow.remainingNext30)}',
+                    cashFlow.remainingNext30 >= 0 ? Colors.green : Colors.red,
                     isBold: true,
                   ),
                 ],
@@ -207,7 +207,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
             if (cashFlow.merchantBreakdown.isNotEmpty) ...[
               Text(
                 'Top Spending Merchants',
-                style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
               ),
               const SizedBox(height: 12),
               ...cashFlow.merchantBreakdown.entries.take(5).map((e) {
@@ -226,12 +226,12 @@ class _CashFlowPageState extends State<CashFlowPage> {
                         children: [
                           Icon(LucideIcons.store, size: 16, color: BentoTheme.textSecondary),
                           const SizedBox(width: 10),
-                          Text(e.key, style: BentoTheme.bodyMedium.copyWith(color: BentoTheme.textPrimary)),
+                          Text(e.key, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
                         ],
                       ),
                       Text(
-                        '₹${FormatUtils.formatCurrency(e.value)}',
-                        style: BentoTheme.bodyMedium.copyWith(
+                        '₹${FormatUtils.formatMoney(e.value)}',
+                        style: const TextStyle(fontSize: 14).copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
@@ -247,7 +247,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
             if (cashFlow.categoryBreakdown.isNotEmpty) ...[
               Text(
                 'Spending by Category',
-                style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
               ),
               const SizedBox(height: 12),
               ...cashFlow.categoryBreakdown.entries.map((e) {
@@ -264,10 +264,10 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(catName, style: BentoTheme.bodyMedium.copyWith(color: BentoTheme.textPrimary)),
+                      Text(catName, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
                       Text(
-                        '₹${FormatUtils.formatCurrency(e.value)}',
-                        style: BentoTheme.bodyMedium.copyWith(
+                        '₹${FormatUtils.formatMoney(e.value)}',
+                        style: const TextStyle(fontSize: 14).copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
@@ -303,13 +303,13 @@ class _CashFlowPageState extends State<CashFlowPage> {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(title, style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary)),
+              Text(title, style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '₹${FormatUtils.formatCurrency(amount)}',
-            style: BentoTheme.titleMedium.copyWith(
+            '₹${FormatUtils.formatMoney(amount)}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
@@ -325,14 +325,14 @@ class _CashFlowPageState extends State<CashFlowPage> {
       children: [
         Text(
           label,
-          style: BentoTheme.bodySmall.copyWith(
+          style: const TextStyle(fontSize: 12).copyWith(
             color: BentoTheme.textSecondary,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         Text(
           value,
-          style: BentoTheme.bodyMedium.copyWith(
+          style: const TextStyle(fontSize: 14).copyWith(
             color: color,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
           ),

@@ -43,4 +43,21 @@ class GlobalXPService {
     }
     return history;
   }
+
+  /// Adds or subtracts XP for a specific historical or current date, updating both global_xp and xp_history[date].
+  static void addXPForDate(DateTime date, int delta) {
+    if (!Hive.isBoxOpen('settings') || !Hive.isBoxOpen('xp_history')) return;
+    if (delta == 0) return;
+
+    final settings = Hive.box('settings');
+    int currentGlobalXp = settings.get('global_xp', defaultValue: 0);
+    int newGlobalXp = (currentGlobalXp + delta).clamp(0, 9999999);
+    settings.put('global_xp', newGlobalXp);
+
+    final box = Hive.box('xp_history');
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    int currentDaily = box.get(dateStr, defaultValue: 0);
+    int newDaily = (currentDaily + delta).clamp(0, 9999999);
+    box.put(dateStr, newDaily);
+  }
 }

@@ -334,7 +334,7 @@ class _BudgetTabState extends State<BudgetTab> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverList(
-        delegate: SliverChildListAdapter([
+        delegate: SliverChildListDelegate([
           // Summary Card
           Container(
             padding: const EdgeInsets.all(18),
@@ -678,7 +678,7 @@ class _BudgetTabState extends State<BudgetTab> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverList(
-        delegate: SliverChildListAdapter([
+        delegate: SliverChildListDelegate([
           // Expected Income Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -924,7 +924,7 @@ class _BudgetTabState extends State<BudgetTab> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverList(
-        delegate: SliverChildListAdapter([
+        delegate: SliverChildListDelegate([
           // Zero-based Left to Assign Banner
           Container(
             padding: const EdgeInsets.all(18),

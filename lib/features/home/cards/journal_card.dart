@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/data/models/productivity_models.dart';
+import 'package:habit_tracker/data/services/journal_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 import 'package:habit_tracker/features/journal/journal_editor_page.dart';
 import 'package:habit_tracker/features/journal/journal_list_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class JournalCard extends StatelessWidget {
@@ -12,6 +17,14 @@ class JournalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFF6366F1); // Indigo accent
+    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    int autoLogCount = 0;
+    if (Hive.isBoxOpen(JournalService.boxName)) {
+      final dayDoc = Hive.box<JournalEntry>(JournalService.boxName).get('day_$todayKey');
+      if (dayDoc != null) {
+        autoLogCount = JournalDayRepository.instance.getAutoLogs(dayDoc).length;
+      }
+    }
 
     return HomeCardFrame(
       icon: LucideIcons.bookLock,
@@ -31,14 +44,14 @@ class JournalCard extends StatelessWidget {
           color: accent.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(LucideIcons.shieldCheck, color: accent, size: 12),
-            SizedBox(width: 4),
+            const Icon(LucideIcons.shieldCheck, color: accent, size: 12),
+            const SizedBox(width: 4),
             Text(
-              'AES-256',
-              style: TextStyle(
+              autoLogCount > 0 ? '$autoLogCount logged' : 'AES-256',
+              style: const TextStyle(
                 color: accent,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -51,7 +64,9 @@ class JournalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Encrypted private thoughts, daily reflections & notes protected with device biometrics.',
+            autoLogCount > 0
+                ? '$autoLogCount activity event${autoLogCount > 1 ? 's' : ''} auto-recorded in today’s journal.'
+                : 'Encrypted private thoughts, daily reflections & notes protected with device biometrics.',
             style: TextStyle(
               color: BentoTheme.textSecondary,
               fontSize: 12,
@@ -61,7 +76,7 @@ class JournalCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              // Create action (Open editor directly)
+              // Create action (Open today's day document directly)
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -79,14 +94,16 @@ class JournalCard extends StatelessWidget {
                   ),
                   icon: const Icon(LucideIcons.penLine, size: 16),
                   label: const Text(
-                    'Create',
+                    'Today',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
+                    final todayDoc = await JournalDayRepository.instance.getOrCreateDay(todayKey);
+                    if (!context.mounted) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const JournalEditorPage(),
+                        builder: (_) => JournalEditorPage(initialEntry: todayDoc),
                       ),
                     );
                   },

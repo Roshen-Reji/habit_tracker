@@ -7,6 +7,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
+import 'package:habit_tracker/features/tasks/widgets/wakeup_detail_sheet.dart';
 
 class TaskCard extends StatelessWidget {
   final Goal goal;
@@ -55,6 +57,10 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (goal.kind == 'wakeup') {
+      return _buildWakeupCard(context);
+    }
+
     return BentoButton(
       onTap: onTap,
       margin: const EdgeInsets.only(bottom: 16),
@@ -228,5 +234,132 @@ class TaskCard extends StatelessWidget {
             begin: 1.05, end: 0.98, curve: Curves.bounceOut, duration: 250.ms)
         .tint(
             color: BentoTheme.accent.withValues(alpha: 0.1), duration: 300.ms);
+  }
+
+  Widget _buildWakeupCard(BuildContext context) {
+    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayLog = WakeLogRepository.instance.getLog(todayKey);
+    final targetMin = goal.targetMinutes ?? 300;
+    final targetH = targetMin ~/ 60;
+    final targetM = targetMin % 60;
+    final targetStr = DateFormat('h:mm a').format(DateTime(2026, 1, 1, targetH, targetM));
+
+    final String statusBadge;
+    final Color badgeColor;
+    if (todayLog == null) {
+      statusBadge = '–';
+      badgeColor = BentoTheme.textSecondary;
+    } else if (todayLog.onTime) {
+      statusBadge = '✓';
+      badgeColor = AppColors.success;
+    } else {
+      statusBadge = '✕';
+      badgeColor = AppColors.error;
+    }
+
+    final wakeTimeStr = todayLog != null
+        ? DateFormat('h:mm a').format(todayLog.wakeAt)
+        : 'Pending';
+
+    // 7-day strip
+    final now = DateTime.now();
+    final last7Days = List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      final k = DateFormat('yyyy-MM-dd').format(d);
+      return WakeLogRepository.instance.getLog(k);
+    });
+
+    return BentoButton(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => WakeupDetailSheet(goal: goal),
+        );
+      },
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      borderRadius: 16,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(LucideIcons.sunMedium, color: Colors.amber, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Target $targetStr · Today: $wakeTimeStr',
+                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusBadge,
+                  style: TextStyle(
+                    color: badgeColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 7-day strip
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Streak: ${goal.streakCount}d',
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+              Row(
+                children: last7Days.map((log) {
+                  final color = log == null
+                      ? Colors.white12
+                      : (log.onTime ? AppColors.success : AppColors.error);
+                  return Container(
+                    margin: const EdgeInsets.only(left: 4),
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

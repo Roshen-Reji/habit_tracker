@@ -11,6 +11,8 @@ import 'package:habit_tracker/models/speech_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 class HomeChatFAB extends StatefulWidget {
   const HomeChatFAB({super.key});
@@ -219,7 +221,26 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
     );
   }
 
-  void _rejectAction(AiAction action) {
+  Future<void> _rejectAction(AiAction action) async {
+    if (action.type == 'wakeup_log') {
+      final dayKey = action.payload['day_key'] ??
+          DateFormat('yyyy-MM-dd').format(DateTime.now());
+      await WakeService.instance.undo(dayKey);
+      setState(() {
+        action.payload['undone'] = true;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wake-up log reverted and XP undone'),
+            backgroundColor: AppColors.warning,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       for (var msg in _messages) {
         msg.actions?.remove(action);
@@ -235,6 +256,12 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
         return '✓ Logged ${action.payload['calories_burned']} kcal burn';
       case 'task_create':
         return '✓ Created mission: ${action.payload['title']}';
+      case 'wakeup_log':
+        return '✓ Logged wake-up';
+      case 'wakeup_task_create':
+        return '✓ Created wake-up target: ${action.payload['time_str']}';
+      case 'journal_note':
+        return '✓ Saved to Day Journal';
       case 'music_play':
         return '🎵 Playing: ${action.payload['search_query']}';
       case 'play_vault_video':

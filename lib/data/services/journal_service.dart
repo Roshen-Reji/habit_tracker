@@ -169,4 +169,16 @@ class JournalService {
       recordActivity();
     }
   }
+
+  Future<void> migrateDayKeysIfNeeded() async {
+    final entries = getEntries();
+    for (final e in entries) {
+      if (e.dayKey == null || e.dayKey!.isEmpty) {
+        final formatted =
+            '${e.createdAt.year.toString().padLeft(4, '0')}-${e.createdAt.month.toString().padLeft(2, '0')}-${e.createdAt.day.toString().padLeft(2, '0')}';
+        e.dayKey = formatted;
+        await e.save();
+      }
+    }
+  }
 }

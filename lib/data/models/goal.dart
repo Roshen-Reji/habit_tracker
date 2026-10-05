@@ -82,6 +82,24 @@ class Goal extends HiveObject {
   @HiveField(16)
   DateTime? lastReset;
 
+  @HiveField(17)
+  String? kind; // null = standard, 'wakeup', 'metric'
+
+  @HiveField(18)
+  int? targetMinutes; // wake target, minutes after midnight
+
+  @HiveField(19)
+  String? metricKey; // 'steps', 'active_minutes', 'sleep_minutes', 'workout_minutes', 'energy_score'
+
+  @HiveField(20)
+  String? metricOp; // '>=', '<='
+
+  @HiveField(21)
+  int? graceMinutes;
+
+  bool get isWakeup => kind == 'wakeup';
+  bool get isMetric => kind == 'metric';
+
   int get xpValue {
     switch (type) {
       case GoalType.monthly:
@@ -111,6 +129,11 @@ class Goal extends HiveObject {
     this.reminderTime,
     this.endDate,
     this.lastReset,
+    this.kind,
+    this.targetMinutes,
+    this.metricKey,
+    this.metricOp,
+    this.graceMinutes,
   });
 
   double get completionPercentage =>

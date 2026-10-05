@@ -165,7 +165,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Successfully imported $imported transactions!'),
-            backgroundColor: ExpressiveTokens.semanticSuccess,
+            backgroundColor: Colors.green,
           ),
         );
         Navigator.of(context).pop();
@@ -214,7 +214,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
                   const SizedBox(height: 10),
                   Text(
                     _filePath != null ? _filePath!.split(Platform.pathSeparator).last : 'Select CSV Bank Statement',
-                    style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary),
+                    style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -245,7 +245,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Mapping Configuration', style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary)),
+                    Text('Mapping Configuration', style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 12),
 
                     // Destination Account
@@ -302,7 +302,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
               // Summary stats row
               Row(
                 children: [
-                  Expanded(child: _summaryBadge('New', newCount, ExpressiveTokens.semanticSuccess)),
+                  Expanded(child: _summaryBadge('New', newCount, Colors.green)),
                   const SizedBox(width: 8),
                   Expanded(child: _summaryBadge('Duplicates', dupCount, BentoTheme.textSecondary)),
                   const SizedBox(width: 8),
@@ -312,7 +312,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
               const SizedBox(height: 16),
 
               // Preview list
-              Text('Preview Transactions (${_drafts.length})', style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary)),
+              Text('Preview Transactions (${_drafts.length})', style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 8),
 
               ..._drafts.take(15).map((d) {
@@ -335,12 +335,12 @@ class _CsvImportPageState extends State<CsvImportPage> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: (d.amount >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError).withValues(alpha: 0.15),
+                          color: (d.amount >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           d.amount >= 0 ? LucideIcons.arrowDownLeft : LucideIcons.arrowUpRight,
-                          color: d.amount >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError,
+                          color: d.amount >= 0 ? Colors.green : Colors.red,
                           size: 14,
                         ),
                       ),
@@ -351,9 +351,10 @@ class _CsvImportPageState extends State<CsvImportPage> {
                           children: [
                             Text(
                               d.title,
-                              style: BentoTheme.bodyMedium.copyWith(
+                              style: TextStyle(
                                 color: d.isDuplicate ? BentoTheme.textSecondary : BentoTheme.textPrimary,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -361,7 +362,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
                             const SizedBox(height: 2),
                             Text(
                               '${DateFormat('dd MMM yy').format(d.date)} · ${d.merchant ?? 'Uncategorised'}',
-                              style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                             ),
                           ],
                         ),
@@ -370,10 +371,11 @@ class _CsvImportPageState extends State<CsvImportPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${d.amount >= 0 ? '+' : ''}₹${FormatUtils.formatCurrency(d.amount.abs())}',
-                            style: BentoTheme.bodyMedium.copyWith(
-                              color: d.amount >= 0 ? ExpressiveTokens.semanticSuccess : Colors.white,
+                            '${d.amount >= 0 ? '+' : ''}₹${FormatUtils.formatMoney(d.amount.abs())}',
+                            style: TextStyle(
+                              color: d.amount >= 0 ? Colors.green : Colors.white,
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
                           ),
                           if (d.isDuplicate)
@@ -393,7 +395,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
                   child: Text(
                     '+ ${_drafts.length - 15} more records',
                     textAlign: TextAlign.center,
-                    style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ),
 
@@ -430,9 +432,9 @@ class _CsvImportPageState extends State<CsvImportPage> {
       ),
       child: Column(
         children: [
-          Text('$count', style: BentoTheme.titleMedium.copyWith(color: color, fontWeight: FontWeight.bold)),
+          Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 2),
-          Text(label, style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary, fontSize: 11)),
+          Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
         ],
       ),
     );

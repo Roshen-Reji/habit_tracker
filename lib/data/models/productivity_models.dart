@@ -25,6 +25,15 @@ class JournalEntry extends HiveObject {
   @HiveField(6)
   List<String> tags;
 
+  @HiveField(7)
+  String? dayKey;
+
+  @HiveField(8)
+  String? autoLogJson;
+
+  @HiveField(9)
+  String? mergedInto;
+
   JournalEntry({
     required this.id,
     required this.title,
@@ -33,6 +42,9 @@ class JournalEntry extends HiveObject {
     required this.updatedAt,
     this.pinned = false,
     this.tags = const [],
+    this.dayKey,
+    this.autoLogJson,
+    this.mergedInto,
   });
 
   JournalEntry copyWith({
@@ -43,6 +55,9 @@ class JournalEntry extends HiveObject {
     DateTime? updatedAt,
     bool? pinned,
     List<String>? tags,
+    String? dayKey,
+    String? autoLogJson,
+    String? mergedInto,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -52,6 +67,9 @@ class JournalEntry extends HiveObject {
       updatedAt: updatedAt ?? this.updatedAt,
       pinned: pinned ?? this.pinned,
       tags: tags ?? this.tags,
+      dayKey: dayKey ?? this.dayKey,
+      autoLogJson: autoLogJson ?? this.autoLogJson,
+      mergedInto: mergedInto ?? this.mergedInto,
     );
   }
 }

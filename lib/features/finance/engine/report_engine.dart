@@ -141,8 +141,8 @@ class ReportEngine {
         t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
         t.date.isBefore(endOfMonth.add(const Duration(seconds: 1)))).toList();
 
-    final income = LedgerEngine.monthIncome(txsThisMonth, month);
-    final spending = LedgerEngine.monthSpending(txsThisMonth, month);
+    final income = LedgerEngine.income(txsThisMonth);
+    final spending = LedgerEngine.spending(txsThisMonth);
     final net = Money.r2(income - spending);
     final savingsRate = income > 0 ? (net / income).clamp(0.0, 1.0) : 0.0;
 
@@ -289,10 +289,10 @@ class ReportEngine {
     final txs1 = transactions.where((t) => t.date.isAfter(start1.subtract(const Duration(seconds: 1))) && t.date.isBefore(end1.add(const Duration(seconds: 1)))).toList();
     final txs2 = transactions.where((t) => t.date.isAfter(start2.subtract(const Duration(seconds: 1))) && t.date.isBefore(end2.add(const Duration(seconds: 1)))).toList();
 
-    final inc1 = LedgerEngine.monthIncome(txs1, month1);
-    final sp1 = LedgerEngine.monthSpending(txs1, month1);
-    final inc2 = LedgerEngine.monthIncome(txs2, month2);
-    final sp2 = LedgerEngine.monthSpending(txs2, month2);
+    final inc1 = LedgerEngine.income(txs1);
+    final sp1 = LedgerEngine.spending(txs1);
+    final inc2 = LedgerEngine.income(txs2);
+    final sp2 = LedgerEngine.spending(txs2);
 
     final b1 = LedgerEngine.categorySpending(txs1);
     final b2 = LedgerEngine.categorySpending(txs2);
@@ -349,8 +349,8 @@ class ReportEngine {
           t.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
           t.date.isBefore(end.add(const Duration(seconds: 1)))).toList();
 
-      final inc = LedgerEngine.monthIncome(txs, m);
-      final sp = LedgerEngine.monthSpending(txs, m);
+      final inc = LedgerEngine.income(txs);
+      final sp = LedgerEngine.spending(txs);
       final net = inc - sp;
       final rate = inc > 0 ? (net / inc).clamp(0.0, 1.0) : 0.0;
       final nw = LedgerEngine.netWorth(accounts, transactions, valuations, asOf: end);
@@ -422,7 +422,7 @@ class CsvExporter {
         toAcc ?? '',
         tx.paymentMethod ?? '',
         tx.notes ?? '',
-        tx.tags.join(';'),
+        tx.tags?.join(';') ?? '',
         tx.recurringRuleId ?? '',
       ]);
     }

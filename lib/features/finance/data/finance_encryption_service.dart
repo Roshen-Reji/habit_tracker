@@ -60,7 +60,7 @@ class FinanceEncryptionService {
     final storage = FinanceStorage();
 
     // 1. Back up first to in-memory JSON snapshot
-    final backupJson = await FinanceBackupService.exportFinanceDataJson();
+    final backupJson = await FinanceBackupService.exportJson();
     await _settingsBox.put('fin_pre_encrypt_backup', backupJson);
 
     // 2. Get encryption key

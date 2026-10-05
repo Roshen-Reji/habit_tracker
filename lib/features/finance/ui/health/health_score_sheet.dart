@@ -25,16 +25,16 @@ class HealthScoreSheet extends StatelessWidget {
     Color scoreColor;
     String scoreGrade;
     if (health.overallScore >= 80) {
-      scoreColor = ExpressiveTokens.semanticSuccess;
+      scoreColor = Colors.green;
       scoreGrade = 'Excellent';
     } else if (health.overallScore >= 60) {
       scoreColor = BentoTheme.accent;
       scoreGrade = 'Good';
     } else if (health.overallScore >= 40) {
-      scoreColor = ExpressiveTokens.semanticWarning;
+      scoreColor = Colors.orange;
       scoreGrade = 'Fair';
     } else {
-      scoreColor = ExpressiveTokens.semanticError;
+      scoreColor = Colors.red;
       scoreGrade = 'Needs Attention';
     }
 
@@ -71,11 +71,11 @@ class HealthScoreSheet extends StatelessWidget {
                   children: [
                     Text(
                       'Financial Health Score',
-                      style: BentoTheme.titleMedium.copyWith(color: BentoTheme.textPrimary),
+                      style: TextStyle(color: BentoTheme.textPrimary),
                     ),
                     Text(
                       'Holistic financial vitality index (0-100)',
-                      style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                      style: TextStyle(color: BentoTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -114,7 +114,7 @@ class HealthScoreSheet extends StatelessWidget {
                           child: Center(
                             child: Text(
                               health.overallScore.toStringAsFixed(0),
-                              style: BentoTheme.headlineLarge.copyWith(
+                              style: TextStyle(
                                 color: scoreColor,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -128,7 +128,7 @@ class HealthScoreSheet extends StatelessWidget {
                             children: [
                               Text(
                                 scoreGrade,
-                                style: BentoTheme.titleMedium.copyWith(
+                                style: TextStyle(
                                   color: scoreColor,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -136,7 +136,7 @@ class HealthScoreSheet extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 'Based on 5 core pillars: budgeting, savings rate, debt safety, emergency buffer, and spend consistency.',
-                                style: BentoTheme.bodySmall.copyWith(
+                                style: TextStyle(
                                   color: BentoTheme.textSecondary,
                                   height: 1.3,
                                 ),
@@ -168,7 +168,7 @@ class HealthScoreSheet extends StatelessWidget {
                             children: [
                               Text(
                                 'Next Milestone',
-                                style: BentoTheme.bodySmall.copyWith(
+                                style: TextStyle(
                                   color: BentoTheme.accent,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -176,7 +176,7 @@ class HealthScoreSheet extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 health.nextMilestone,
-                                style: BentoTheme.bodySmall.copyWith(
+                                style: TextStyle(
                                   color: BentoTheme.textPrimary,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -194,14 +194,14 @@ class HealthScoreSheet extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: ExpressiveTokens.semanticWarning.withValues(alpha: 0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: ExpressiveTokens.semanticWarning.withValues(alpha: 0.3)),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(LucideIcons.alertCircle, color: ExpressiveTokens.semanticWarning, size: 20),
+                          Icon(LucideIcons.alertCircle, color: Colors.orange, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -209,15 +209,15 @@ class HealthScoreSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   'Focus Area: ${health.weakestComponent!.name}',
-                                  style: BentoTheme.bodySmall.copyWith(
-                                    color: ExpressiveTokens.semanticWarning,
+                                  style: TextStyle(
+                                    color: Colors.orange,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   health.weakestComponent!.description,
-                                  style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                                  style: TextStyle(color: BentoTheme.textSecondary),
                                 ),
                               ],
                             ),
@@ -230,7 +230,7 @@ class HealthScoreSheet extends StatelessWidget {
 
                   Text(
                     'Pillars Breakdown',
-                    style: BentoTheme.titleSmall.copyWith(color: BentoTheme.textPrimary),
+                    style: TextStyle(color: BentoTheme.textPrimary),
                   ),
                   const SizedBox(height: 12),
 
@@ -247,11 +247,11 @@ class HealthScoreSheet extends StatelessWidget {
   Widget _buildComponentTile(HealthScoreComponent comp) {
     Color barColor;
     if (comp.score >= 80) {
-      barColor = ExpressiveTokens.semanticSuccess;
+      barColor = Colors.green;
     } else if (comp.score >= 50) {
       barColor = BentoTheme.accent;
     } else {
-      barColor = ExpressiveTokens.semanticWarning;
+      barColor = Colors.orange;
     }
 
     return Container(
@@ -270,7 +270,7 @@ class HealthScoreSheet extends StatelessWidget {
             children: [
               Text(
                 comp.name,
-                style: BentoTheme.bodyMedium.copyWith(
+                style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -279,14 +279,14 @@ class HealthScoreSheet extends StatelessWidget {
                 children: [
                   Text(
                     '${comp.score.toStringAsFixed(0)}',
-                    style: BentoTheme.titleMedium.copyWith(
+                    style: TextStyle(
                       color: barColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     ' / 100',
-                    style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                    style: TextStyle(color: BentoTheme.textSecondary),
                   ),
                 ],
               ),
@@ -309,12 +309,12 @@ class HealthScoreSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   comp.description,
-                  style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                  style: TextStyle(color: BentoTheme.textSecondary),
                 ),
               ),
               Text(
                 'Weight: ${comp.baseWeight.toStringAsFixed(0)}%',
-                style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
+                style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/models/category.dart';
+import 'package:habit_tracker/features/finance/engine/ledger.dart';
 
 enum QueryMetric { sum, count, avg, list, top }
 
@@ -188,7 +189,7 @@ class FinanceQueryExecutor {
           : accounts.where((a) => a.spendable && !a.archived);
 
       for (final a in targetAccounts) {
-        bal += a.balanceAsOf(transactions, today);
+        bal += LedgerEngine.balance(a, transactions, const [], asOf: today);
       }
       final accountDesc = accFilter != null ? targetAccounts.map((a) => a.name).join(', ') : 'spendable accounts';
       final ans = 'The total balance for $accountDesc as of today is ₹${bal.toStringAsFixed(2)}.';
@@ -305,7 +306,7 @@ class FinanceQueryExecutor {
     double total = 0.0;
     for (final a in accounts) {
       if (!a.includeInNetWorth || a.archived) continue;
-      final bal = a.balanceAsOf(transactions, today);
+      final bal = LedgerEngine.balance(a, transactions, const [], asOf: today);
       if (a.isLiability) {
         total -= bal.abs();
       } else {

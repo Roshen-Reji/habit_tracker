@@ -70,12 +70,24 @@ class CalorieBurnEntry extends HiveObject {
   @HiveField(4)
   DateTime timestamp;
 
+  @HiveField(5)
+  String? source; // 'manual', 'ai', 'wearable'
+
+  @HiveField(6)
+  String? externalId;
+
+  @HiveField(7)
+  String? supersededBy;
+
   CalorieBurnEntry({
     required this.id,
     required this.activity,
     required this.caloriesBurned,
     required this.durationMinutes,
     required this.timestamp,
+    this.source,
+    this.externalId,
+    this.supersededBy,
   });
 }
 
@@ -110,8 +122,9 @@ class DietDayLog extends HiveObject {
   double get totalProtein => entries.fold(0.0, (sum, e) => sum + e.protein);
   double get totalCarbs => entries.fold(0.0, (sum, e) => sum + e.carbs);
   double get totalFat => entries.fold(0.0, (sum, e) => sum + e.fat);
-  double get totalBurned =>
-      burnEntries.fold(0.0, (sum, e) => sum + e.caloriesBurned);
+  double get totalBurned => burnEntries
+      .where((e) => e.supersededBy == null)
+      .fold(0.0, (sum, e) => sum + e.caloriesBurned);
   double get netCalories => totalCalories - totalBurned;
   double get deficit => targetCalories - netCalories;
   bool get isDeficit => deficit > 0;

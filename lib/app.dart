@@ -9,6 +9,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
 import 'package:habit_tracker/data/services/sip_service.dart';
+import 'package:habit_tracker/features/wearables/data/sync_service.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -38,7 +41,11 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       TaskResetService.checkAndResetTasks();
+      WakeService.instance.rolloverMissedDays(DateTime.now());
       SipService.runDue();
+      if (WearableSettings.autoSyncOnResume) {
+        SyncService.instance.sync(days: 7);
+      }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {

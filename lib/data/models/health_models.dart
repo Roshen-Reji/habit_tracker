@@ -120,9 +120,17 @@ class WeightEntry extends HiveObject {
   @HiveField(2)
   final String note;
 
+  @HiveField(3)
+  String? source;
+
+  @HiveField(4)
+  String? externalId;
+
   WeightEntry({
     required this.date,
     required this.kg,
     this.note = '',
+    this.source,
+    this.externalId,
   });
 }

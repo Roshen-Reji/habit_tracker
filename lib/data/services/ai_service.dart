@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:habit_tracker/data/services/ai_context.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
@@ -15,8 +15,12 @@ import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/models/category.dart';
 import 'package:habit_tracker/features/finance/models/recurring_rule.dart';
-import 'package:habit_tracker/features/finance/models/goal.dart';
+import 'package:habit_tracker/features/finance/models/savings_goal.dart';
 import 'package:habit_tracker/features/finance/models/budget_line.dart';
+import 'package:habit_tracker/features/wearables/engine/wake_parser.dart';
+import 'package:habit_tracker/features/wearables/data/wake_service.dart';
+import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
+import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -120,10 +124,15 @@ class AiService {
     if (forced == 'finance') return 'finance';
     if (forced == 'diet' || forced == 'food') return 'diet';
     if (forced == 'vault' || forced == 'speech') return 'vault';
+    if (forced == 'wake' || forced == 'wakeup') return 'wake';
+    if (forced == 'journal') return 'journal';
 
     // Image -> most likely food logging
     if (hasImage) return 'diet';
 
+    // Wake and Journal intent routing takes precedence over general task/diet/music
+    if (_looksLikeWakeIntent(lower)) return 'wake';
+    if (_looksLikeJournalNote(lower)) return 'journal';
     if (_looksLikeVaultCommand(lower)) return 'vault';
     if (_looksLikeFinanceIntent(lower)) return 'finance';
     if (_looksLikeTaskCreate(lower) || _isTaskStatusQuery(lower))
@@ -266,14 +275,18 @@ class AiService {
   }
 
   // --- Local NLP Engine ---
-  AiResponse? _handleLocally(String message, String intent) {
+  Future<AiResponse?> _handleLocally(String message, String intent) async {
     final lower = message.toLowerCase().trim();
 
+    if (intent == 'wake') return await _handleWakeLocally(message);
+    if (intent == 'journal') return await _handleJournalLocally(message);
     if (intent == 'vault') return _handleVaultLocally(message);
     if (intent == 'tasks') return _handleTasksLocally(message);
     if (intent == 'finance') return _handleFinanceLocally(message);
     if (intent == 'diet') return _handleDietLocally(message);
 
+    if (_looksLikeWakeIntent(lower)) return await _handleWakeLocally(message);
+    if (_looksLikeJournalNote(lower)) return await _handleJournalLocally(message);
     if (_isTaskStatusQuery(lower)) return _buildTaskStatusResponse(lower);
     if (_looksLikeVaultCommand(lower)) return _handleVaultLocally(message);
 
@@ -1138,10 +1151,7 @@ class AiService {
     final txs = controller.allTransactions;
     final now = DateTime.now();
 
-    double liquid = 0.0;
-    for (final a in accounts) {
-      liquid += a.balanceAsOf(txs, now);
-    }
+    final liquid = controller.getLiquidBalance(asOf: now);
 
     final past3mExpenses = txs.where((t) {
       final diffDays = now.difference(t.date).inDays;
@@ -1619,6 +1629,192 @@ class AiService {
       intent: 'general_chat',
       actions: [
         AiAction(type: 'play_vault_video', payload: {'query': query})
+      ],
+    );
+  }
+
+  bool _looksLikeWakeIntent(String lower) {
+    if (_containsAny(lower, [
+      'woke up',
+      'wake up',
+      'wakeup',
+      'woke at',
+      'woke by',
+      'woken up',
+      'uth gaya',
+      'baje utha',
+      'pe utha',
+      'ko utha',
+      'wake streak',
+      'wake target',
+      'wake time',
+      'wake status',
+    ])) {
+      return true;
+    }
+    if (WakeParser.parseLog(lower) != null) return true;
+    if (WakeParser.parseTask(lower) != null) return true;
+    return false;
+  }
+
+  bool _looksLikeJournalNote(String lower) {
+    return lower.startsWith('journal:') ||
+        lower.startsWith('journal note:') ||
+        lower.startsWith('log note:') ||
+        lower.startsWith('note to journal:') ||
+        lower.startsWith('note:') ||
+        lower.startsWith("today's note:");
+  }
+
+  Future<AiResponse?> _handleWakeLocally(String message) async {
+    final lower = message.toLowerCase().trim();
+
+    // Check for conversational undo
+    if (lower == 'undo' ||
+        lower == 'undo wake' ||
+        lower == 'undo wake up' ||
+        lower == 'undo wakeup') {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      await WakeService.instance.undo(today);
+      return AiResponse(
+        message: 'Reverted today\'s wake-up log and reversed awarded XP.',
+        intent: 'general_chat',
+      );
+    }
+
+    // 1. Check if it is a wake log (e.g. "woke up at 6:15", "aaj 6 baje utha", "uth gaya 5:30 am")
+    final logDraft = WakeParser.parseLog(message);
+    if (logDraft != null) {
+      final result =
+          await WakeService.instance.logWake(logDraft.wakeAt, source: 'chat');
+      final formattedTime = DateFormat('hh:mm a').format(logDraft.wakeAt);
+      final dayKey = DateFormat('yyyy-MM-dd').format(logDraft.wakeAt);
+      final streak = result.goal?.streakCount ?? (result.onTime ? 1 : 0);
+      final statusText = result.evaluation?.statusText ??
+          (result.onTime ? 'On time (+5 XP)' : 'Missed target');
+
+      final responseMsg = '${result.message} (Streak: 🔥 $streak)';
+
+      return AiResponse(
+        message: responseMsg,
+        intent: 'wakeup_log',
+        actions: [
+          AiAction(
+            type: 'wakeup_log',
+            payload: {
+              'wake_at': logDraft.wakeAt.toIso8601String(),
+              'day_key': dayKey,
+              'formatted_time': formattedTime,
+              'on_time': result.onTime,
+              'streak': streak,
+              'status_text': statusText,
+              'auto_executed': true,
+            },
+            isConfirmed: true,
+          ),
+        ],
+      );
+    }
+
+    // 2. Check if it is a task creation (e.g. "create wake-up task at 5:00 AM", "set wake up goal 5:30 am")
+    final taskDraft = WakeParser.parseTask(message);
+    if (taskDraft != null) {
+      final goal = await WakeService.instance.createOrUpdateWakeupTask(
+        targetMinutes: taskDraft.targetMinutes,
+        title: taskDraft.title,
+      );
+      final h = taskDraft.targetMinutes ~/ 60;
+      final m = taskDraft.targetMinutes % 60;
+      final timeStr =
+          '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+
+      return AiResponse(
+        message:
+            'Created daily wake-up mission: target $timeStr (+5 XP on time).',
+        intent: 'wakeup_task_create',
+        actions: [
+          AiAction(
+            type: 'wakeup_task_create',
+            payload: {
+              'target_minutes': taskDraft.targetMinutes,
+              'time_str': timeStr,
+              'goal_id': goal.id,
+            },
+            isConfirmed: true,
+          ),
+        ],
+      );
+    }
+
+    // 3. Status query: "wake status", "what is my wake streak", etc.
+    if (_containsAny(lower,
+        ['status', 'streak', 'target', 'today', 'how', 'when', 'what'])) {
+      final goal = WakeService.instance.getWakeupGoal();
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final todayLog = WakeLogRepository.instance.getLog(today);
+
+      if (goal == null && todayLog == null) {
+        return AiResponse(
+          message:
+              'No wake-up task is configured yet. Say "Create wake-up task at 5:00 AM" to set one up.',
+          intent: 'general_chat',
+        );
+      }
+
+      final targetH =
+          ((goal?.targetMinutes ?? 300) ~/ 60).toString().padLeft(2, '0');
+      final targetM =
+          ((goal?.targetMinutes ?? 300) % 60).toString().padLeft(2, '0');
+      final streak = goal?.streakCount ?? 0;
+
+      final buf = StringBuffer(
+          'Wake-up Target: $targetH:$targetM. Streak: 🔥 $streak days.');
+      if (todayLog != null) {
+        buf.write(
+            ' Today: Logged at ${DateFormat('hh:mm a').format(todayLog.wakeAt)} (${todayLog.onTime ? 'On time ✓' : 'Missed ✕'}).');
+      } else {
+        buf.write(' Not yet logged for today.');
+      }
+
+      return AiResponse(message: buf.toString(), intent: 'general_chat');
+    }
+
+    return null;
+  }
+
+  Future<AiResponse?> _handleJournalLocally(String message) async {
+    final note = message.replaceFirst(
+      RegExp(
+          r"^(?:journal:\s*|journal\s+note:\s*|log\s+note:\s*|note\s+to\s+journal:\s*|note:\s*|today's\s+note:\s*)",
+          caseSensitive: false),
+      '',
+    ).trim();
+
+    if (note.isEmpty) {
+      return AiResponse(
+        message: 'Please provide some text to save to your journal.',
+        intent: 'general_chat',
+      );
+    }
+
+    final now = DateTime.now();
+    final dayKey = DateFormat('yyyy-MM-dd').format(now);
+    final repo = JournalDayRepository.instance;
+    await repo.appendNote(dayKey, note, time: now);
+
+    return AiResponse(
+      message: 'Saved to today\'s journal: "$note"',
+      intent: 'journal_note',
+      actions: [
+        AiAction(
+          type: 'journal_note',
+          payload: {
+            'day_key': dayKey,
+            'text': note,
+            'timestamp': now.toIso8601String(),
+          },
+          isConfirmed: true,
+        ),
       ],
     );
   }
@@ -2392,7 +2588,7 @@ class AiService {
           }
         }
 
-        final localResponse = _handleLocally(userMessage, detectedIntent);
+        final localResponse = await _handleLocally(userMessage, detectedIntent);
         if (localResponse != null) {
           // Add to history so future Gemini calls know what happened
           _messagesHistory.add({
@@ -2713,24 +2909,24 @@ class AiService {
     final amount = _asDouble(payload['amount']);
     if (amount <= 0) return;
 
-    final repo = FinanceRepository.instance;
+    final repo = FinanceRepository();
     final categoryName = (payload['category'] ?? (isExpense ? 'Other' : 'Income')).toString();
     final merchant = payload['merchant']?.toString();
     final accountName = payload['account_name']?.toString().toLowerCase();
 
     String? accountId;
     if (accountName != null) {
-      for (final a in repo.accounts.values) {
+      for (final a in repo.storage.accountBox.values) {
         if (a.name.toLowerCase().contains(accountName)) {
           accountId = a.id;
           break;
         }
       }
     }
-    accountId ??= repo.accounts.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+    accountId ??= repo.storage.accountBox.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
 
     String? categoryId;
-    for (final c in repo.categories.values) {
+    for (final c in repo.storage.categoryBox.values) {
       if (c.name.toLowerCase() == categoryName.toLowerCase()) {
         categoryId = c.id;
         break;
@@ -2759,19 +2955,19 @@ class AiService {
     final amount = _asDouble(payload['amount']);
     if (amount <= 0) return;
 
-    final repo = FinanceRepository.instance;
+    final repo = FinanceRepository();
     final fromName = payload['from_account']?.toString().toLowerCase();
     final toName = payload['to_account']?.toString().toLowerCase();
 
     String? fromId;
     String? toId;
 
-    for (final a in repo.accounts.values) {
+    for (final a in repo.storage.accountBox.values) {
       if (fromName != null && a.name.toLowerCase().contains(fromName)) fromId = a.id;
       if (toName != null && a.name.toLowerCase().contains(toName)) toId = a.id;
     }
 
-    final spendable = repo.accounts.values.where((a) => a.spendable && !a.archived).toList();
+    final spendable = repo.storage.accountBox.values.where((a) => a.spendable && !a.archived).toList();
     if (fromId == null && spendable.isNotEmpty) fromId = spendable.first.id;
     if (toId == null && spendable.length > 1) {
       toId = spendable.firstWhere((a) => a.id != fromId, orElse: () => spendable.last).id;
@@ -2798,9 +2994,9 @@ class AiService {
     final total = _asDouble(payload['total'] ?? payload['amount'] ?? 0);
     if (total <= 0) return;
 
-    final repo = FinanceRepository.instance;
+    final repo = FinanceRepository();
     Category? matchedCat;
-    for (final c in repo.categories.values) {
+    for (final c in repo.storage.categoryBox.values) {
       if (c.name.toLowerCase() == categoryName.toLowerCase()) {
         matchedCat = c;
         break;
@@ -2814,11 +3010,13 @@ class AiService {
         name: categoryName,
         kind: 'expense',
         group: 'wants',
+        iconKey: 'expense',
+        colorValue: 0xFF9E9E9E,
       ));
     }
 
     BudgetLine? existingLine;
-    for (final l in repo.budgetLines.values) {
+    for (final l in repo.storage.budgetLineBox.values) {
       if (l.categoryId == categoryId) {
         existingLine = l;
         break;
@@ -2838,6 +3036,7 @@ class AiService {
             id: 'bl_${DateTime.now().millisecondsSinceEpoch}',
             categoryId: categoryId,
             amount: total,
+            startMonth: DateFormat('yyyy-MM').format(DateTime.now()),
           );
 
     repo.setBudgetLine(line);
@@ -2875,9 +3074,10 @@ class AiService {
       anchorDate: anchor,
       startDate: anchor,
       notes: payload['notes']?.toString(),
+      createdAt: DateTime.now(),
     );
 
-    FinanceRepository.instance.addRecurringRule(rule);
+    FinanceRepository().addRecurringRule(rule);
   }
 
   void _executeFinanceGoalAction(AiAction action) {
@@ -2899,7 +3099,7 @@ class AiService {
       colorValue: 0xFF2DD4BF,
     );
 
-    FinanceRepository.instance.addGoal(goal);
+    FinanceRepository().addGoal(goal);
   }
 
   /// Handles media playback and transport commands on active media sessions
@@ -3049,6 +3249,9 @@ class AiService {
       case 'finance_recurring':
         _executeFinanceRecurringAction(action);
         break;
+      case 'wakeup_log':
+      case 'wakeup_task_create':
+      case 'journal_note':
       case 'finance_whatif':
       case 'finance_query':
         break;

@@ -14,6 +14,11 @@ import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/data/migrations/finance_migrator.dart';
+import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
+import 'package:habit_tracker/features/tasks/data/task_day_log_repository.dart';
+import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
+import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,8 +78,15 @@ void main() async {
   // Open XP box
   await Hive.openBox('xp_history');
 
+  // Open Wearables, TaskDayLogs, WakeLogs, and XpLedger
+  await WearableRepository.openBoxes();
+  await TaskDayLogRepository.openBox();
+  await WakeLogRepository.openBox();
+  await XpLedger.openBox();
+
   // Check and reset tasks daily/weekly/monthly based on date
   TaskResetService.checkAndResetTasks();
+  await WakeService.instance.rolloverMissedDays(DateTime.now());
 
   // Process due SIP debits
   await SipService.runDue();

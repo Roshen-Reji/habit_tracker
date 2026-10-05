@@ -77,13 +77,16 @@ class CalorieBurnEntryAdapter extends TypeAdapter<CalorieBurnEntry> {
       caloriesBurned: fields[2] as double,
       durationMinutes: fields[3] as int,
       timestamp: fields[4] as DateTime,
+      source: fields[5] as String?,
+      externalId: fields[6] as String?,
+      supersededBy: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, CalorieBurnEntry obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -93,7 +96,13 @@ class CalorieBurnEntryAdapter extends TypeAdapter<CalorieBurnEntry> {
       ..writeByte(3)
       ..write(obj.durationMinutes)
       ..writeByte(4)
-      ..write(obj.timestamp);
+      ..write(obj.timestamp)
+      ..writeByte(5)
+      ..write(obj.source)
+      ..writeByte(6)
+      ..write(obj.externalId)
+      ..writeByte(7)
+      ..write(obj.supersededBy);
   }
 
   @override

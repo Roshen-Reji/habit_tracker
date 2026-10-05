@@ -110,11 +110,11 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                     children: [
                       Text(
                         'What-If Simulator',
-                        style: BentoTheme.titleMedium.copyWith(color: BentoTheme.textPrimary),
+                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         'Can I safely afford this purchase?',
-                        style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -131,20 +131,23 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: BentoTheme.headlineLarge.copyWith(
+              style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontWeight: FontWeight.bold,
+                fontSize: 32,
               ),
               onChanged: _onAmountChanged,
               decoration: InputDecoration(
                 prefixText: '₹ ',
-                prefixStyle: BentoTheme.headlineLarge.copyWith(
+                prefixStyle: TextStyle(
                   color: BentoTheme.accent,
                   fontWeight: FontWeight.bold,
+                  fontSize: 32,
                 ),
                 hintText: '0',
-                hintStyle: BentoTheme.headlineLarge.copyWith(
+                hintStyle: TextStyle(
                   color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                  fontSize: 32,
                 ),
                 filled: true,
                 fillColor: BentoTheme.background,
@@ -163,14 +166,15 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
               children: [5000.0, 15000.0, 30000.0, 50000.0, 100000.0].map((val) {
                 final isSelected = (_amount - val).abs() < 1;
                 return ChoiceChip(
-                  label: Text('₹${FormatUtils.formatCurrency(val, decimals: 0)}'),
+                  label: Text('₹${FormatUtils.formatMoney(val, decimals: 0)}'),
                   selected: isSelected,
                   onSelected: (_) => _setPreset(val),
                   backgroundColor: BentoTheme.background,
                   selectedColor: BentoTheme.accent.withValues(alpha: 0.2),
-                  labelStyle: BentoTheme.bodySmall.copyWith(
+                  labelStyle: TextStyle(
                     color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 12,
                   ),
                   side: BorderSide(
                     color: isSelected ? BentoTheme.accent : Colors.white.withValues(alpha: 0.05),
@@ -200,7 +204,7 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                     Text(
                       'Enter an expense amount above to check affordability against your forecast, upcoming bills, and emergency buffer.',
                       textAlign: TextAlign.center,
-                      style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -232,20 +236,20 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
 
     switch (res.status) {
       case AffordabilityStatus.comfortable:
-        badgeBg = ExpressiveTokens.semanticSuccess.withValues(alpha: 0.15);
-        badgeColor = ExpressiveTokens.semanticSuccess;
+        badgeBg = Colors.green.withValues(alpha: 0.15);
+        badgeColor = Colors.green;
         badgeIcon = LucideIcons.checkCircle;
         badgeText = 'COMFORTABLE';
         break;
       case AffordabilityStatus.tight:
-        badgeBg = ExpressiveTokens.semanticWarning.withValues(alpha: 0.15);
-        badgeColor = ExpressiveTokens.semanticWarning;
+        badgeBg = Colors.orange.withValues(alpha: 0.15);
+        badgeColor = Colors.orange;
         badgeIcon = LucideIcons.alertTriangle;
         badgeText = 'TIGHT BUFFER';
         break;
       case AffordabilityStatus.notNow:
-        badgeBg = ExpressiveTokens.semanticError.withValues(alpha: 0.15);
-        badgeColor = ExpressiveTokens.semanticError;
+        badgeBg = Colors.red.withValues(alpha: 0.15);
+        badgeColor = Colors.red;
         badgeIcon = LucideIcons.xCircle;
         badgeText = 'NOT RECOMMENDED NOW';
         break;
@@ -276,10 +280,11 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                     const SizedBox(width: 6),
                     Text(
                       badgeText,
-                      style: BentoTheme.bodySmall.copyWith(
+                      style: TextStyle(
                         color: badgeColor,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -290,15 +295,16 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
           const SizedBox(height: 12),
           Text(
             res.title,
-            style: BentoTheme.titleMedium.copyWith(
+            style: TextStyle(
               color: BentoTheme.textPrimary,
               fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             res.explanation,
-            style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary, height: 1.4),
+            style: TextStyle(color: BentoTheme.textSecondary, height: 1.4, fontSize: 12),
           ),
           const SizedBox(height: 10),
           Container(
@@ -315,9 +321,10 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                 Expanded(
                   child: Text(
                     res.recommendation,
-                    style: BentoTheme.bodySmall.copyWith(
+                    style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.w500,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -342,24 +349,25 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
         children: [
           Text(
             'Month-End Cash Impact',
-            style: BentoTheme.bodySmall.copyWith(
+            style: TextStyle(
               color: BentoTheme.textSecondary,
               fontWeight: FontWeight.w600,
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 12),
-          _buildRow('Projected Balance (before)', '₹${FormatUtils.formatCurrency(res.forecastMonthEnd)}', false),
+          _buildRow('Projected Balance (before)', '₹${FormatUtils.formatMoney(res.forecastMonthEnd)}', false),
           const SizedBox(height: 8),
-          _buildRow('This Expense', '-₹${FormatUtils.formatCurrency(res.amount)}', true, isNegative: true),
+          _buildRow('This Expense', '-₹${FormatUtils.formatMoney(res.amount)}', true, isNegative: true),
           const Divider(height: 16, color: Colors.white12),
           _buildRow(
             'Projected Balance (after)',
-            '₹${FormatUtils.formatCurrency(res.projectedAfter)}',
+            '₹${FormatUtils.formatMoney(res.projectedAfter)}',
             true,
-            color: res.projectedAfter >= 0 ? ExpressiveTokens.semanticSuccess : ExpressiveTokens.semanticError,
+            color: res.projectedAfter >= 0 ? Colors.green : Colors.red,
           ),
           const SizedBox(height: 8),
-          _buildRow('Target Emergency Buffer', '₹${FormatUtils.formatCurrency(res.emergencyBuffer)}', false),
+          _buildRow('Target Emergency Buffer', '₹${FormatUtils.formatMoney(res.emergencyBuffer)}', false),
         ],
       ),
     );
@@ -371,16 +379,18 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
       children: [
         Text(
           label,
-          style: BentoTheme.bodySmall.copyWith(
+          style: TextStyle(
             color: BentoTheme.textSecondary,
             fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 12,
           ),
         ),
         Text(
           value,
-          style: BentoTheme.bodyMedium.copyWith(
-            color: color ?? (isNegative ? ExpressiveTokens.semanticError : BentoTheme.textPrimary),
+          style: TextStyle(
+            color: color ?? (isNegative ? Colors.red : BentoTheme.textPrimary),
             fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            fontSize: 14,
           ),
         ),
       ],

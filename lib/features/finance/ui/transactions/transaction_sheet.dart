@@ -1027,7 +1027,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
       final picked = await picker.pickImage(source: source);
       if (picked != null) {
         final txId = widget.existingTransaction?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
-        final savedPath = await ReceiptManager.saveReceipt(txId, File(picked.path));
+        final savedPath = await ReceiptManager.saveReceipt(txId: txId, sourceFile: File(picked.path));
         setState(() {
           _receiptPaths.add(savedPath);
         });
@@ -1099,7 +1099,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: (hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.surfaceOutline)
+                    color: (hasReceipts ? const Color(0xFF38BDF8) : Colors.white12)
                         .withValues(alpha: 0.5),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),

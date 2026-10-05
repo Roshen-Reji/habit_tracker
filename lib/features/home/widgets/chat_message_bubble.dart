@@ -217,6 +217,21 @@ class _ActionConfirmCard extends StatelessWidget {
         label = 'FINANCE GOAL';
         color = AppColors.success;
         break;
+      case 'wakeup_log':
+        icon = LucideIcons.sunMedium;
+        label = 'WAKE-UP LOGGED';
+        color = AppColors.warning;
+        break;
+      case 'wakeup_task_create':
+        icon = LucideIcons.alarmClock;
+        label = 'WAKE-UP MISSION';
+        color = AppColors.primary;
+        break;
+      case 'journal_note':
+        icon = LucideIcons.bookOpen;
+        label = 'DAY JOURNAL';
+        color = const Color(0xFF64B5F6);
+        break;
       default:
         icon = LucideIcons.info;
         label = 'ACTION';
@@ -240,14 +255,58 @@ class _ActionConfirmCard extends StatelessWidget {
         if (action.isConfirmed)
           Row(
             children: [
-              const Icon(LucideIcons.checkCircle2,
-                  color: AppColors.success, size: 14),
-              const SizedBox(width: 4),
-              const Text("Done",
-                  style: TextStyle(
-                      color: AppColors.success,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold)),
+              if (action.type == 'wakeup_log' &&
+                  action.payload['undone'] != true) ...[
+                GestureDetector(
+                  onTap: onReject,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.undo2,
+                            color: AppColors.error, size: 11),
+                        SizedBox(width: 4),
+                        Text(
+                          "Undo",
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (action.payload['undone'] == true) ...[
+                const Icon(LucideIcons.undo2,
+                    color: AppColors.textTertiary, size: 14),
+                const SizedBox(width: 4),
+                const Text("Undone",
+                    style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ] else ...[
+                const Icon(LucideIcons.checkCircle2,
+                    color: AppColors.success, size: 14),
+                const SizedBox(width: 4),
+                const Text("Done",
+                    style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ],
             ],
           ),
       ],
@@ -471,9 +530,136 @@ class _ActionConfirmCard extends StatelessWidget {
         return _buildFinanceActionRow(
           icon: LucideIcons.repeat,
           title: action.payload['name'] ?? 'Recurring Bill',
-          subtitle: '${action.payload['frequency'] ?? 'monthly'} ${action.payload['kind'] ?? 'bill'}',
+          subtitle:
+              '${action.payload['frequency'] ?? 'monthly'} ${action.payload['kind'] ?? 'bill'}',
           amount: action.payload['amount'],
           color: AppColors.warning,
+        );
+
+      case 'wakeup_log':
+        final wakeAtStr = action.payload['formatted_time'] ?? 'Wake Time';
+        final onTime = action.payload['on_time'] == true;
+        final streak = action.payload['streak'] ?? 0;
+        final statusText = action.payload['status_text'] ?? '';
+        final isUndone = action.payload['undone'] == true;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  onTime
+                      ? LucideIcons.alarmClockCheck
+                      : LucideIcons.alarmClockMinus,
+                  color: isUndone
+                      ? AppColors.textTertiary
+                      : (onTime ? AppColors.success : AppColors.error),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  wakeAtStr,
+                  style: TextStyle(
+                    color: isUndone
+                        ? AppColors.textTertiary
+                        : AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    decoration: isUndone ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '🔥 $streak days',
+                    style: const TextStyle(
+                      color: AppColors.warning,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isUndone ? 'Log has been reverted.' : statusText,
+              style: TextStyle(
+                color:
+                    isUndone ? AppColors.textTertiary : AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        );
+
+      case 'wakeup_task_create':
+        return Row(
+          children: [
+            const Icon(LucideIcons.alarmClock,
+                color: AppColors.primary, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Wake-up Target: ${action.payload['time_str'] ?? ''}',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Daily health mission · +5 XP for waking on time',
+                    style:
+                        TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+      case 'journal_note':
+        return Row(
+          children: [
+            const Icon(LucideIcons.bookOpen,
+                color: Color(0xFF64B5F6), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    action.payload['text'] ?? 'Journal Note',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Saved to Day Journal',
+                    style:
+                        TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
 
       default:

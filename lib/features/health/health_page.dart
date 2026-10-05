@@ -8,6 +8,7 @@ import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/features/wearables/ui/fitness_tab.dart';
 
 class HealthPage extends StatefulWidget {
   final int initialTab; // 0: Medicine, 1: Weight
@@ -71,14 +72,18 @@ class _HealthPageState extends State<HealthPage> {
                 Expanded(
                   child: _buildTabButton(1, 'WEIGHT', LucideIcons.scale),
                 ),
+                Expanded(
+                  child: _buildTabButton(2, 'GALAXY WATCH', LucideIcons.watch),
+                ),
               ],
             ),
           ),
 
           // Tab content
           Expanded(
-            child:
-                _selectedTab == 0 ? const _MedicineTab() : const _WeightTab(),
+            child: _selectedTab == 0
+                ? const _MedicineTab()
+                : (_selectedTab == 1 ? const _WeightTab() : const FitnessTab()),
           ),
         ],
       ),

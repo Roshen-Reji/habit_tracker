@@ -109,12 +109,12 @@ class _InsightsPageState extends State<InsightsPage> {
                         const SizedBox(height: 16),
                         Text(
                           'All Clear!',
-                          style: BentoTheme.titleMedium.copyWith(color: BentoTheme.textPrimary),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'No active alerts or unusual spending detected.',
-                          style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+                          style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -141,7 +141,7 @@ class _InsightsPageState extends State<InsightsPage> {
       onSelected: (_) => setState(() => _selectedFilter = key),
       backgroundColor: BentoTheme.background,
       selectedColor: BentoTheme.accent.withValues(alpha: 0.2),
-      labelStyle: BentoTheme.bodySmall.copyWith(
+      labelStyle: const TextStyle(fontSize: 12).copyWith(
         color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
@@ -156,15 +156,15 @@ class _InsightsPageState extends State<InsightsPage> {
     IconData icon;
     switch (ins.severity) {
       case InsightSeverity.danger:
-        iconColor = ExpressiveTokens.semanticError;
+        iconColor = Colors.red;
         icon = LucideIcons.alertOctagon;
         break;
       case InsightSeverity.warning:
-        iconColor = ExpressiveTokens.semanticWarning;
+        iconColor = Colors.orange;
         icon = LucideIcons.alertTriangle;
         break;
       case InsightSeverity.success:
-        iconColor = ExpressiveTokens.semanticSuccess;
+        iconColor = Colors.green;
         icon = LucideIcons.trendingUp;
         break;
       case InsightSeverity.info:
@@ -180,10 +180,10 @@ class _InsightsPageState extends State<InsightsPage> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: ExpressiveTokens.semanticError.withValues(alpha: 0.2),
+          color: Colors.red.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(LucideIcons.trash2, color: ExpressiveTokens.semanticError),
+        child: const Icon(LucideIcons.trash2, color: Colors.red),
       ),
       onDismissed: (_) => _dismissInsight(ins),
       child: Container(
@@ -211,7 +211,7 @@ class _InsightsPageState extends State<InsightsPage> {
                 Expanded(
                   child: Text(
                     ins.title,
-                    style: BentoTheme.bodyMedium.copyWith(
+                    style: const TextStyle(fontSize: 14).copyWith(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -227,7 +227,7 @@ class _InsightsPageState extends State<InsightsPage> {
             const SizedBox(height: 8),
             Text(
               ins.body,
-              style: BentoTheme.bodySmall.copyWith(
+              style: const TextStyle(fontSize: 12).copyWith(
                 color: BentoTheme.textSecondary,
                 height: 1.4,
               ),
@@ -239,7 +239,7 @@ class _InsightsPageState extends State<InsightsPage> {
                 child: TextButton.icon(
                   onPressed: () => _handleDeepLink(ins.deepLink),
                   icon: const Icon(LucideIcons.arrowUpRight, size: 14),
-                  label: Text('Take Action', style: BentoTheme.bodySmall.copyWith(fontWeight: FontWeight.bold)),
+                  label: Text('Take Action', style: const TextStyle(fontSize: 12).copyWith(fontWeight: FontWeight.bold)),
                   style: TextButton.styleFrom(
                     foregroundColor: BentoTheme.accent,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
