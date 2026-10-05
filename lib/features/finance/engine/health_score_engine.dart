@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:math';
 import 'package:habit_tracker/features/finance/engine/constants.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
@@ -74,7 +75,7 @@ class HealthScoreEngine {
         hasData: true,
         description: overspend == 0
             ? 'Stayed within all budget limits last month'
-            : '₹${overspend.toStringAsFixed(0)} overspend on ₹${lastMonthBudgetLimit.toStringAsFixed(0)} limit',
+            : '${FormatUtils.formatMoney(overspend, decimals: 0)} overspend on ${FormatUtils.formatMoney(lastMonthBudgetLimit, decimals: 0)} limit',
       ));
     } else {
       components.add(const HealthScoreComponent(
@@ -272,7 +273,7 @@ class HealthScoreEngine {
       final nextMonthsTarget = (currentMonths.floor() + 1).clamp(1, targetMonths);
       final targetAmount = nextMonthsTarget * avgMonthlyEssential3m;
       if (currentMonths < targetMonths) {
-        nextMilestone = 'Save ₹${targetAmount.toStringAsFixed(0)} to reach $nextMonthsTarget months of emergency buffer';
+        nextMilestone = 'Save ${FormatUtils.formatMoney(targetAmount, decimals: 0)} to reach $nextMonthsTarget months of emergency buffer';
       } else {
         nextMilestone = 'Emergency fund fully funded ($targetMonths+ months). Next: boost investment SIPs';
       }

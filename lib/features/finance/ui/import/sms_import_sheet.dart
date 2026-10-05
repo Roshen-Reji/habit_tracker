@@ -94,7 +94,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Transaction saved: ${d.title} (₹${FormatUtils.formatMoney(d.amount.abs())})'),
+            content: Text('Transaction saved: ${d.title} (${FormatUtils.formatMoney(d.amount.abs())})'),
             backgroundColor: Colors.green,
           ),
         );
@@ -203,7 +203,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                           style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Text(
-                          '${_parsedDraft!.amount >= 0 ? '+' : ''}₹${FormatUtils.formatMoney(_parsedDraft!.amount.abs())}',
+                          '${_parsedDraft!.amount >= 0 ? '+' : ''}${FormatUtils.formatMoney(_parsedDraft!.amount.abs())}',
                           style: TextStyle(
                             color: _parsedDraft!.amount >= 0 ? Colors.green : Colors.red,
                             fontWeight: FontWeight.bold,

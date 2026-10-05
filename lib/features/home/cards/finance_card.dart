@@ -5,8 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/finance_calculator.dart';
-import 'package:habit_tracker/data/services/sip_service.dart';
+import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 
 class FinanceCard extends StatelessWidget {
@@ -15,58 +16,31 @@ class FinanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable:
-          Hive.box<Transaction>('finance_transactions').listenable(),
+      valueListenable: Hive.box('finance_transactions').listenable(),
       builder: (context, _, __) {
         return ValueListenableBuilder(
           valueListenable: Hive.box('finance_settings').listenable(),
           builder: (context, Box settingsBox, ___) {
-            final snapshot = FinanceCalculator.calculate(
-              settings: settingsBox,
-            );
+            final controller = FinanceController();
+            final now = DateTime.now();
+            final report = controller.getMonthlySummaryReport(now);
+            final totalBalance = controller.getNetWorth();
 
-            final currencyFormat = NumberFormat.currency(
-              symbol: '\$',
-              decimalDigits: 0,
-            );
+            final isPositiveNet = report.net >= 0;
+            final netFormatted = FormatUtils.signed(report.net, decimals: 0);
 
-            final isPositiveNet = snapshot.monthNet >= 0;
-            final netFormatted =
-                '${isPositiveNet ? '+' : ''}${currencyFormat.format(snapshot.monthNet)}';
-
-            // Next SIP debit lookup
-            final planner = Map<String, dynamic>.from(settingsBox.get(
-              'planner',
-              defaultValue: {'fixedExpenses': [], 'sips': []},
-            ));
-            final sips = List.from(planner['sips'] ?? []);
+            // Next SIP/Bill debit lookup
+            final dueItems = controller.getUnpostedDueItems();
             String? nextSipInfo;
-
-            if (sips.isNotEmpty) {
-              DateTime? earliestDate;
-              String? earliestName;
-              double? earliestAmount;
-
-              for (final raw in sips) {
-                if (raw is Map) {
-                  final sipDate = SipService.getNextDebitDate(raw);
-                  if (earliestDate == null || sipDate.isBefore(earliestDate)) {
-                    earliestDate = sipDate;
-                    earliestName = raw['name']?.toString() ?? 'SIP';
-                    earliestAmount = (raw['amount'] is num)
-                        ? (raw['amount'] as num).toDouble()
-                        : double.tryParse(raw['amount']?.toString() ?? '0');
-                  }
-                }
-              }
-
-              if (earliestDate != null) {
-                final dateStr = DateFormat('MMM d').format(earliestDate);
-                final amtStr = earliestAmount != null
-                    ? ' (${currencyFormat.format(earliestAmount)})'
-                    : '';
-                nextSipInfo = '$earliestName · $dateStr$amtStr';
-              }
+            
+            if (dueItems.isNotEmpty) {
+              // Sort to find the earliest due item
+              final sortedItems = List.of(dueItems)..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+              final earliest = sortedItems.first;
+              
+              final dateStr = DateFormat('MMM d').format(earliest.dueDate);
+              final amtStr = ' (${FormatUtils.formatMoney(earliest.rule.amount, decimals: 0)})';
+              nextSipInfo = '${earliest.rule.name} · $dateStr$amtStr';
             }
 
             return HomeCardFrame(
@@ -112,7 +86,7 @@ class FinanceCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            currencyFormat.format(snapshot.totalBalance),
+                            FormatUtils.formatMoney(totalBalance, decimals: 0),
                             style: TextStyle(
                               color: BentoTheme.textPrimary,
                               fontSize: 22,
@@ -136,7 +110,7 @@ class FinanceCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${currencyFormat.format(snapshot.monthIncome)} in / ${currencyFormat.format(snapshot.monthExpense)} out',
+                            '${FormatUtils.formatMoney(report.income, decimals: 0)} in / ${FormatUtils.formatMoney(report.spending, decimals: 0)} out',
                             style: TextStyle(
                               color: BentoTheme.textSecondary,
                               fontSize: 11,

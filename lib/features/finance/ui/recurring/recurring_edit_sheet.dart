@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -5,6 +6,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 
 class RecurringEditSheet extends StatefulWidget {
   final FinanceController controller;
@@ -186,6 +188,11 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
 
     // Reschedule reminders
     await widget.controller.scheduleRecurringReminders();
+    
+    // Post if needed
+    if (_autoPost) {
+      await RecurringRunner.run(force: true);
+    }
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -234,6 +241,13 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
     final categories = widget.controller.storage.categoryBox.values
         .where((c) => !c.archived && (_kind == 'income' ? c.kind == 'income' : c.kind == 'expense'))
         .toList();
+
+    final isManaged = widget.existingRule != null &&
+        (_kind == 'sip' || _kind == 'emi') &&
+        widget.existingRule!.toAccountId != null;
+    final managedAccountName = isManaged
+        ? widget.controller.storage.accountBox.get(widget.existingRule!.toAccountId!)?.name ?? 'Linked Account'
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -349,56 +363,85 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Amount Field
-              TextFormField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+              // Managed Banner
+              if (isManaged) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.lock, color: BentoTheme.accent, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Managed by $managedAccountName.\nEdit amount/account details in the Account page.',
+                          style: TextStyle(color: BentoTheme.accent, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                decoration: InputDecoration(
-                  prefixText: '₹ ',
-                  prefixStyle: TextStyle(
-                    color: BentoTheme.accent,
+                const SizedBox(height: 16),
+              ],
+
+              // Amount Field
+              if (!isManaged) ...[
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
-                  labelText: _amountIsVariable ? 'Estimated Amount' : 'Amount',
-                  labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
-                  filled: true,
-                  fillColor: BentoTheme.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  decoration: InputDecoration(
+                    prefixText: '${FormatUtils.getCurrencySymbol()} ',
+                    prefixStyle: TextStyle(
+                      color: BentoTheme.accent,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    labelText: _amountIsVariable ? 'Estimated Amount' : 'Amount',
+                    labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    filled: true,
+                    fillColor: BentoTheme.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                    ),
                   ),
+                  validator: (val) {
+                    final num = double.tryParse(val ?? '');
+                    if (num == null || num <= 0) return 'Enter a valid amount > 0';
+                    return null;
+                  },
                 ),
-                validator: (val) {
-                  final num = double.tryParse(val ?? '');
-                  if (num == null || num <= 0) return 'Enter a valid amount > 0';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
 
               // Variable Amount Toggle
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _amountIsVariable,
-                activeColor: BentoTheme.accent,
-                checkColor: Colors.black,
-                title: Text(
-                  'Amount is variable (e.g. utility bills)',
-                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+              if (!isManaged) ...[
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _amountIsVariable,
+                  activeColor: BentoTheme.accent,
+                  checkColor: Colors.black,
+                  title: Text(
+                    'Amount is variable (e.g. utility bills)',
+                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                  ),
+                  subtitle: Text(
+                    'Estimates future charges from the 3-month historical average.',
+                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                  ),
+                  onChanged: (val) => setState(() => _amountIsVariable = val ?? false),
                 ),
-                subtitle: Text(
-                  'Estimates future charges from the 3-month historical average.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
-                ),
-                onChanged: (val) => setState(() => _amountIsVariable = val ?? false),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
 
               // Frequency & Due Day Row
               Row(
@@ -489,30 +532,73 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
               const SizedBox(height: 16),
 
               // Account Selector
-              DropdownButtonFormField<String>(
-                value: _selectedAccountId,
-                dropdownColor: BentoTheme.surface,
-                style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
-                decoration: InputDecoration(
-                  labelText: 'Payment Account',
-                  labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-                  filled: true,
-                  fillColor: BentoTheme.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                  ),
+              if (!isManaged) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedAccountId,
+                        dropdownColor: BentoTheme.surface,
+                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                        decoration: InputDecoration(
+                          labelText: (_kind == 'transfer' || _kind == 'investment' || _kind == 'sip' || _kind == 'emi' || _kind == 'debt_payment') ? 'From Account' : 'Payment Account',
+                          labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                          filled: true,
+                          fillColor: BentoTheme.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('Default / Cash')),
+                          ...accounts.map((acc) {
+                            return DropdownMenuItem(value: acc.id, child: Text(' ()'));
+                          }),
+                        ],
+                        onChanged: (val) => setState(() => _selectedAccountId = val),
+                      ),
+                    ),
+                    if (_kind == 'transfer' || _kind == 'investment' || _kind == 'sip' || _kind == 'emi' || _kind == 'debt_payment') ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedToAccountId,
+                          dropdownColor: BentoTheme.surface,
+                          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                          decoration: InputDecoration(
+                            labelText: 'To Account',
+                            labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                            filled: true,
+                            fillColor: BentoTheme.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                            ),
+                          ),
+                          items: accounts.where((a) => a.id != _selectedAccountId).map((acc) {
+                            return DropdownMenuItem(value: acc.id, child: Text(' ()', overflow: TextOverflow.ellipsis));
+                          }).toList(),
+                          onChanged: (val) => setState(() {
+                            _selectedToAccountId = val;
+                            if (val != null) {
+                              final toAcc = widget.controller.storage.accountBox.get(val);
+                              if (toAcc != null) {
+                                if (toAcc.isValuedAsset && _kind == 'transfer') {
+                                  _kind = 'sip';
+                                } else if (toAcc.isLoan && _kind == 'transfer') {
+                                  _kind = 'emi';
+                                }
+                              }
+                            }
+                          }),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Default / Cash')),
-                  ...accounts.map((acc) {
-                    return DropdownMenuItem(value: acc.id, child: Text('${acc.name} (${acc.kind})'));
-                  }),
-                ],
-                onChanged: (val) => setState(() => _selectedAccountId = val),
-              ),
-              const SizedBox(height: 16),
-
+                const SizedBox(height: 16),
+              ],
               // Auto-Post Switch Card
               Container(
                 padding: const EdgeInsets.all(14),

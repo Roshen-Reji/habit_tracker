@@ -371,7 +371,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${d.amount >= 0 ? '+' : ''}₹${FormatUtils.formatMoney(d.amount.abs())}',
+                            '${d.amount >= 0 ? '+' : ''}${FormatUtils.formatMoney(d.amount.abs())}',
                             style: TextStyle(
                               color: d.amount >= 0 ? Colors.green : Colors.white,
                               fontWeight: FontWeight.bold,

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 @HiveType(typeId: 63)
 class BodyCompSample extends HiveObject {
@@ -34,6 +35,8 @@ class BodyCompSample extends HiveObject {
 
   @HiveField(10)
   bool deleted;
+
+  String get dayKey => DateFormat('yyyy-MM-dd').format(timestamp);
 
   BodyCompSample({
     required this.externalId,

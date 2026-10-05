@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 
 enum AffordabilityStatus {
@@ -60,13 +61,13 @@ class WhatIfEngine {
       status = AffordabilityStatus.comfortable;
       title = 'You can comfortably afford this';
       explanation =
-          'After this expense of ₹${amount.toStringAsFixed(0)}, you will still have ₹${projectedAfter.toStringAsFixed(0)} at month end, keeping your 1-month emergency buffer intact.';
+          'After this expense of ${FormatUtils.formatMoney(amount, decimals: 0)}, you will still have ${FormatUtils.formatMoney(projectedAfter, decimals: 0)} at month end, keeping your 1-month emergency buffer intact.';
       recommendation = 'Safe to proceed with this purchase without impacting commitments.';
     } else if (projectedAfter >= 0) {
       status = AffordabilityStatus.tight;
       title = 'Tight fit — reduces your safety buffer';
       explanation =
-          'You will finish the month positive with ₹${projectedAfter.toStringAsFixed(0)}, but your 1-month emergency buffer (₹${emergencyBuffer.toStringAsFixed(0)}) will be partially compromised.';
+          'You will finish the month positive with ${FormatUtils.formatMoney(projectedAfter, decimals: 0)}, but your 1-month emergency buffer (${FormatUtils.formatMoney(emergencyBuffer, decimals: 0)}) will be partially compromised.';
       recommendation =
           'You can afford it if essential, but consider delaying non-essential purchases or trimming discretionary spending.';
     } else {
@@ -74,13 +75,13 @@ class WhatIfEngine {
       title = 'Not recommended right now';
       final cashDeficit = Money.r2(-projectedAfter);
       explanation =
-          'Spending ₹${amount.toStringAsFixed(0)} causes a projected deficit of ₹${cashDeficit.toStringAsFixed(0)} by month end, potentially risking upcoming bills or obligations.';
+          'Spending ${FormatUtils.formatMoney(amount, decimals: 0)} causes a projected deficit of ${FormatUtils.formatMoney(cashDeficit, decimals: 0)} by month end, potentially risking upcoming bills or obligations.';
 
       if (avgMonthlySurplus3m > 0) {
         monthsToSave = (amount / avgMonthlySurplus3m).ceil();
         if (monthsToSave < 1) monthsToSave = 1;
         recommendation =
-            'Save for $monthsToSave month${monthsToSave > 1 ? 's' : ''} at your current average surplus of ₹${avgMonthlySurplus3m.toStringAsFixed(0)}/month before buying.';
+            'Save for $monthsToSave month${monthsToSave > 1 ? 's' : ''} at your current average surplus of ${FormatUtils.formatMoney(avgMonthlySurplus3m, decimals: 0)}/month before buying.';
       } else {
         recommendation =
             'Reduce recurring bills or wait until liquid cash reserves increase before taking on this expense.';

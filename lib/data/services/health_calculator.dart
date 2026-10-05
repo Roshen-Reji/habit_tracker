@@ -19,8 +19,7 @@ class HealthSummaryData {
   final int medicineTotalToday;
   final int healthMissionsCompletedToday;
   final int healthMissionsTotalToday;
-  final int? sleepScore;
-  final double? agesScore;
+  final int? sleepDurationMin;
   final int? steps;
 
   const HealthSummaryData({
@@ -36,51 +35,13 @@ class HealthSummaryData {
     required this.medicineTotalToday,
     required this.healthMissionsCompletedToday,
     required this.healthMissionsTotalToday,
-    this.sleepScore,
-    this.agesScore,
+    this.sleepDurationMin,
     this.steps,
   });
 
   /// Computes a composite health score from 0 to 100 based on nutrition, adherence,
-  /// missions, and Galaxy Watch 7 sleep + Samsung Health AGEs index when available.
+  /// missions, sleep duration, and activity.
   double get compositeScore {
-    // If no wearable sleep/AGEs data, use classic 35 / 35 / 30 model
-    if (sleepScore == null && agesScore == null) {
-      double score = 0.0;
-      if (calorieTarget > 0) {
-        final ratio = netCalories / calorieTarget;
-        if (ratio >= 0.8 && ratio <= 1.05) {
-          score += 35.0;
-        } else if (ratio > 0.5 && ratio < 1.3) {
-          score += 25.0;
-        } else if (ratio > 0) {
-          score += 15.0;
-        }
-      } else {
-        score += 35.0;
-      }
-
-      if (medicineTotalToday > 0) {
-        final medRatio =
-            (medicineTakenToday / medicineTotalToday).clamp(0.0, 1.0);
-        score += medRatio * 35.0;
-      } else {
-        score += 35.0;
-      }
-
-      if (healthMissionsTotalToday > 0) {
-        final missionRatio =
-            (healthMissionsCompletedToday / healthMissionsTotalToday)
-                .clamp(0.0, 1.0);
-        score += missionRatio * 30.0;
-      } else {
-        score += 30.0;
-      }
-
-      return score.clamp(0.0, 100.0);
-    }
-
-    // Wearable-enhanced composite score (100 pts)
     double score = 0.0;
 
     // 1. Calorie adherence (25 pts)
@@ -97,46 +58,50 @@ class HealthSummaryData {
       score += 25.0;
     }
 
-    // 2. Medicine adherence (25 pts)
+    // 2. Medicine adherence (20 pts)
     if (medicineTotalToday > 0) {
-      final medRatio =
-          (medicineTakenToday / medicineTotalToday).clamp(0.0, 1.0);
-      score += medRatio * 25.0;
-    } else {
-      score += 25.0;
-    }
-
-    // 3. Health & Wake missions (20 pts)
-    if (healthMissionsTotalToday > 0) {
-      final missionRatio =
-          (healthMissionsCompletedToday / healthMissionsTotalToday)
-              .clamp(0.0, 1.0);
-      score += missionRatio * 20.0;
+      final medRatio = (medicineTakenToday / medicineTotalToday).clamp(0.0, 1.0);
+      score += medRatio * 20.0;
     } else {
       score += 20.0;
     }
 
-    // 4. Galaxy Watch Sleep Score (15 pts)
-    if (sleepScore != null) {
-      final sleepRatio = (sleepScore! / 100.0).clamp(0.0, 1.0);
-      score += sleepRatio * 15.0;
+    // 3. Health & Wake missions (15 pts)
+    if (healthMissionsTotalToday > 0) {
+      final missionRatio = (healthMissionsCompletedToday / healthMissionsTotalToday).clamp(0.0, 1.0);
+      score += missionRatio * 15.0;
     } else {
-      score += 12.0;
+      score += 15.0;
     }
 
-    // 5. Samsung Health AGEs Index / Longevity (15 pts)
-    if (agesScore != null) {
-      if (agesScore! <= 45.0) {
+    // 4. Sleep duration (20 pts) - Target 7-9 hours (420-540 mins)
+    if (sleepDurationMin != null && sleepDurationMin! > 0) {
+      if (sleepDurationMin! >= 420 && sleepDurationMin! <= 540) {
+        score += 20.0;
+      } else if (sleepDurationMin! >= 360) {
         score += 15.0;
-      } else if (agesScore! <= 52.0) {
-        score += 12.0;
-      } else if (agesScore! <= 60.0) {
-        score += 8.0;
+      } else if (sleepDurationMin! >= 300) {
+        score += 10.0;
       } else {
         score += 5.0;
       }
     } else {
-      score += 12.0;
+      score += 10.0;
+    }
+
+    // 5. Activity (20 pts) - Target 8000+ steps
+    if (steps != null && steps! > 0) {
+      if (steps! >= 8000) {
+        score += 20.0;
+      } else if (steps! >= 5000) {
+        score += 15.0;
+      } else if (steps! >= 3000) {
+        score += 10.0;
+      } else {
+        score += 5.0;
+      }
+    } else {
+      score += 10.0;
     }
 
     return score.clamp(0.0, 100.0);
@@ -202,18 +167,13 @@ class HealthCalculator {
 
     final completedHealth = healthGoals.where((g) => g.isCompleted).length;
 
-    // 5. Wearables (Sleep, AGEs, Steps)
-    int? sleepScore;
-    double? agesScore;
+    // 5. Wearables (Sleep, Steps)
+    int? sleepDurationMin;
     int? steps;
 
     if (Hive.isBoxOpen(WearableRepository.sleepBoxName)) {
       final sleep = WearableRepository.instance.getMainSleep(todayKey);
-      sleepScore = sleep?.score;
-    }
-    if (Hive.isBoxOpen(WearableRepository.agesBoxName)) {
-      final ages = WearableRepository.instance.getLatestAges();
-      agesScore = ages?.score;
+      sleepDurationMin = sleep?.durationMin;
     }
     if (Hive.isBoxOpen(WearableRepository.dailyBoxName)) {
       final daily = WearableRepository.instance.getDaily(todayKey);
@@ -233,8 +193,7 @@ class HealthCalculator {
       medicineTotalToday: medicineStats.totalDosesToday,
       healthMissionsCompletedToday: completedHealth,
       healthMissionsTotalToday: healthGoals.length,
-      sleepScore: sleepScore,
-      agesScore: agesScore,
+      sleepDurationMin: sleepDurationMin,
       steps: steps,
     );
   }

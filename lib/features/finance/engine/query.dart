@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/models/category.dart';
@@ -177,7 +178,7 @@ class FinanceQueryExecutor {
     // 1. Balance and Net Worth shortcuts
     if (query.subject == QuerySubject.networth) {
       final nw = _calculateNetWorth(accounts, transactions, today);
-      final ans = 'Your current net worth is ₹${nw.toStringAsFixed(2)}.';
+      final ans = 'Your current net worth is ${FormatUtils.formatMoney(nw, decimals: 2)}.';
       return FinanceQueryResult(value: nw, count: 1, formattedAnswer: ans);
     }
 
@@ -192,7 +193,7 @@ class FinanceQueryExecutor {
         bal += LedgerEngine.balance(a, transactions, const [], asOf: today);
       }
       final accountDesc = accFilter != null ? targetAccounts.map((a) => a.name).join(', ') : 'spendable accounts';
-      final ans = 'The total balance for $accountDesc as of today is ₹${bal.toStringAsFixed(2)}.';
+      final ans = 'The total balance for $accountDesc as of today is ${FormatUtils.formatMoney(bal, decimals: 2)}.';
       return FinanceQueryResult(value: bal, count: targetAccounts.length, formattedAnswer: ans);
     }
 
@@ -241,9 +242,9 @@ class FinanceQueryExecutor {
 
       final totalSum = _computeMetricValue(QueryMetric.sum, query.subject, filteredTxs);
       final buffer = StringBuffer();
-      buffer.writeln('Found ${filteredTxs.length} transactions totaling ₹${totalSum.toStringAsFixed(2)}:');
+      buffer.writeln('Found ${filteredTxs.length} transactions totaling ${FormatUtils.formatMoney(totalSum, decimals: 2)}:');
       for (final entry in topGroups.entries) {
-        buffer.writeln('• ${entry.key}: ₹${entry.value.toStringAsFixed(2)}');
+        buffer.writeln('• ${entry.key}: ${FormatUtils.formatMoney(entry.value, decimals: 2)}');
       }
 
       return FinanceQueryResult(
@@ -269,20 +270,20 @@ class FinanceQueryExecutor {
         answer = 'There are $count $subjectName transactions $periodDesc.';
         break;
       case QueryMetric.avg:
-        answer = 'Average $subjectName transaction $periodDesc is ₹${computedValue.toStringAsFixed(2)} (across $count transactions).';
+        answer = 'Average $subjectName transaction $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)} (across $count transactions).';
         break;
       case QueryMetric.list:
-        final preview = filteredTxs.take(5).map((t) => '${t.title}: ₹${t.amount.abs().toStringAsFixed(2)}').join(', ');
-        answer = 'Found $count transactions totaling ₹${computedValue.toStringAsFixed(2)}. $preview${count > 5 ? '...' : ''}';
+        final preview = filteredTxs.take(5).map((t) => '${t.title}: ${FormatUtils.formatMoney(t.amount.abs(), decimals: 2)}').join(', ');
+        answer = 'Found $count transactions totaling ${FormatUtils.formatMoney(computedValue, decimals: 2)}. $preview${count > 5 ? '...' : ''}';
         break;
       case QueryMetric.sum:
       default:
         if (query.filters.merchant != null) {
-          answer = 'You spent ₹${computedValue.toStringAsFixed(2)} at ${query.filters.merchant} $periodDesc.';
+          answer = 'You spent ${FormatUtils.formatMoney(computedValue, decimals: 2)} at ${query.filters.merchant} $periodDesc.';
         } else if (query.filters.category != null) {
-          answer = 'Total $subjectName on ${query.filters.category} $periodDesc is ₹${computedValue.toStringAsFixed(2)}.';
+          answer = 'Total $subjectName on ${query.filters.category} $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
         } else {
-          answer = 'Total $subjectName $periodDesc is ₹${computedValue.toStringAsFixed(2)}.';
+          answer = 'Total $subjectName $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
         }
         if (compValue != null) {
           final diff = computedValue - compValue;

@@ -13,6 +13,9 @@ class LedgerEngine {
   }) {
     final cutoff = asOf ?? DateTime.now();
 
+    double currentBalance = account.openingBalance;
+    DateTime? valuationDate;
+
     // Valued accounts (investments, gold, property, etc.) check for valuations first
     if (account.isValuedAsset) {
       final relevantValuations = valuations
@@ -21,15 +24,17 @@ class LedgerEngine {
         ..sort((a, b) => b.date.compareTo(a.date));
 
       if (relevantValuations.isNotEmpty) {
-        return Money.r2(relevantValuations.first.value);
+        currentBalance = relevantValuations.first.value;
+        // Treat valuation as end-of-day, flows on that day are included in the valuation
+        final vDate = relevantValuations.first.date;
+        valuationDate = DateTime(vDate.year, vDate.month, vDate.day, 23, 59, 59, 999);
       }
     }
-
-    double currentBalance = account.openingBalance;
 
     for (final tx in transactions) {
       if (tx.date.isAfter(cutoff)) continue;
       if (tx.date.isBefore(account.openingDate)) continue;
+      if (valuationDate != null && !tx.date.isAfter(valuationDate)) continue;
 
       final absAmount = tx.amount.abs();
       final kind = tx.effectiveKind;
@@ -79,9 +84,11 @@ class LedgerEngine {
           case 'investment':
             currentBalance += absAmount;
             break;
+          case 'emi':
           case 'debt_payment':
             // Principal part reduces liability / increases balance towards zero
-            final interest = tx.interestAmount ?? 0.0;
+            final rate = account.annualRate ?? 0.0;
+            final interest = tx.interestAmount ?? (rate / 1200.0 * currentBalance.abs());
             final principal = (absAmount - interest).clamp(0.0, absAmount);
             currentBalance += principal;
             break;

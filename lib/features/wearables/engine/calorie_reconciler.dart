@@ -52,7 +52,7 @@ class CalorieReconciler {
 
     // 2. Process each watch exercise session
     for (final session in sessions) {
-      final watchEntryId = 'wear_${session.externalId}';
+      final watchEntryId = 'health_${session.externalId}';
       final kcal = session.totalKcal ?? session.activeKcal ?? 0.0;
       final sessionName = (session.title ?? session.type).trim().toLowerCase();
 
@@ -72,7 +72,7 @@ class CalorieReconciler {
       } else {
         // De-dup against manual entries
         for (final manual in entries) {
-          final isWearable = manual.source == 'wearable' || manual.source == 'samsung_health';
+          final isWearable = manual.source == 'health_connect' || manual.source == 'samsung_health' || manual.source == 'wearable';
           if (!isWearable && manual.supersededBy == null) {
             final timeDiffMin = manual.timestamp.difference(session.start).inMinutes.abs();
             final manualName = manual.activity.trim().toLowerCase();
@@ -99,7 +99,7 @@ class CalorieReconciler {
             caloriesBurned: kcal,
             durationMinutes: session.durationMin,
             timestamp: session.start,
-            source: 'wearable',
+            source: 'health_connect',
             externalId: session.externalId,
           ),
         );

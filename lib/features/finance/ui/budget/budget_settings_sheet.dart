@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -138,7 +139,7 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
             child: Row(
               children: [
                 Text(
-                  '₹',
+                  FormatUtils.getCurrencySymbol(),
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 20,

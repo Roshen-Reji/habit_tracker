@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -509,7 +510,7 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                   fontWeight: FontWeight.bold,
                 ),
                 decoration: InputDecoration(
-                  prefixText: '₹ ',
+                  prefixText: '${FormatUtils.getCurrencySymbol()} ',
                   prefixStyle: TextStyle(
                     color: BentoTheme.accent,
                     fontSize: 20,
@@ -724,7 +725,7 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                       style: TextStyle(
                           color: BentoTheme.textPrimary, fontSize: 14),
                       decoration: InputDecoration(
-                        prefixText: '₹ ',
+                        prefixText: '${FormatUtils.getCurrencySymbol()} ',
                         prefixStyle: TextStyle(
                             color: BentoTheme.accent,
                             fontWeight: FontWeight.bold),

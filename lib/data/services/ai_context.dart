@@ -85,18 +85,18 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
       final view = WearableRepository.instance.dayView(todayKey);
       final steps = view.totalSteps;
       final sleepMin = view.mainSleep?.durationMin;
-      final energy = view.energy?.score;
-      final ages = view.ages?.score;
+      final workouts = view.exercises.length;
 
       final parts = <String>[];
       if (steps > 0) parts.add('Stp:$steps');
       if (sleepMin != null && sleepMin > 0) {
         parts.add('Slp:${sleepMin ~/ 60}h${sleepMin % 60}m');
       }
-      if (energy != null) parts.add('Nrg:$energy');
-      if (ages != null) parts.add('AGEs:${ages.toStringAsFixed(1)}');
+      if (workouts > 0) parts.add('Wrk:$workouts');
+      if (view.latestWeight != null) parts.add('Wgt:${view.latestWeight!.toStringAsFixed(1)}');
+      if (view.restingHeartRate != null) parts.add('HR:${view.restingHeartRate!.round()}');
 
-      if (parts.isEmpty) return '';
+      if (parts.isEmpty) return '[WEAR] No data';
       return '[WEAR] ${parts.join(' ')}';
     } catch (_) {
       return '';

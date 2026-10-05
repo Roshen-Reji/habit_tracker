@@ -9,6 +9,7 @@ import 'package:habit_tracker/features/finance/engine/constants.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
+import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
 /// Draft object used to create a new Transaction through the repository.
@@ -161,6 +162,47 @@ class FinanceRepository {
     );
 
     await storage.transactionBox.add(tx);
+
+    // P1-5: EMI Interest Split
+    // If this is a transfer to a loan account, automatically split the interest portion.
+    if (effectiveKind == 'transfer' && tx.toAccountId != null) {
+      final toAcc = storage.accountBox.get(tx.toAccountId);
+      if (toAcc != null && toAcc.kind.toLowerCase() == 'loan' && toAcc.annualRate != null) {
+        // Calculate the balance of the loan right before this payment
+        final cutoff = tx.date.subtract(const Duration(seconds: 1));
+        final prePaymentBalance = LedgerEngine.balance(
+          toAcc,
+          storage.transactionBox.values,
+          storage.valuationBox.values,
+          asOf: cutoff,
+        );
+
+        final split = LoanEngine.splitPayment(
+          currentBalance: prePaymentBalance.abs(),
+          annualRatePct: toAcc.annualRate!,
+          paymentAmount: magnitude,
+        );
+
+        if (split.interest > 0) {
+          final interestId = _generateId('tx');
+          final interestTx = Transaction(
+            title: ' Interest',
+            amount: split.interest,
+            category: 'Interest Expense',
+            date: tx.date,
+            mode: 'expense',
+            icon: 'percentage',
+            id: interestId,
+            kind: 'expense',
+            accountId: toAcc.id,
+            sourceRef: 'emi_split_',
+            createdAt: DateTime.now(),
+          );
+          await storage.transactionBox.add(interestTx);
+        }
+      }
+    }
+
     _notify();
     return tx;
   }
@@ -527,17 +569,22 @@ class FinanceRepository {
     final rules = storage.recurringBox.values.where((r) => r.status == 'active' && r.autoPost).toList();
     final posted = <Transaction>[];
 
+    final existingRefs = storage.transactionBox.values
+        .map((tx) => tx.sourceRef)
+        .where((ref) => ref != null)
+        .cast<String>()
+        .toSet();
+
     for (final rule in rules) {
-      // Find all occurrences from startDate up to clock
-      final dates = RecurringEngine.occurrences(rule, rule.startDate, clock);
+      final allDates = RecurringEngine.occurrences(rule, rule.startDate, clock);
+      // Catch up at most 60 months per rule per run
+      final dates = allDates.length > 60 ? allDates.sublist(allDates.length - 60) : allDates;
 
       for (final dueDate in dates) {
         final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
         final sourceRef = 'rec:${rule.id}:$dateKey';
 
-        // Check if already posted
-        final exists = storage.transactionBox.values.any((tx) => tx.sourceRef == sourceRef);
-        if (exists) continue;
+        if (existingRefs.contains(sourceRef)) continue;
 
         final estimatedAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
         final isIncome = rule.kind == 'income';
@@ -553,6 +600,46 @@ class FinanceRepository {
 
         final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
 
+        final srcAccId = rule.accountId ?? 'acc_main';
+        final srcAcc = storage.accountBox.get(srcAccId);
+        final bal = srcAcc != null ? LedgerEngine.balance(srcAcc, storage.transactionBox.values, storage.valuationBox.values, asOf: clock) : 0.0;
+        final isLowBalance = !isIncome && bal < estimatedAmt;
+
+        double? interestAmount;
+        bool missingLoanFields = false;
+        bool loanCompleted = false;
+
+        if (rule.kind == 'emi' && rule.toAccountId != null) {
+          final loanAcc = storage.accountBox.get(rule.toAccountId!);
+          if (loanAcc != null) {
+            if (loanAcc.principal != null && loanAcc.annualRate != null) {
+              // Calculate remaining balance before this payment
+              final loanBal = LedgerEngine.balance(loanAcc, storage.transactionBox.values, storage.valuationBox.values, asOf: dueDate.subtract(const Duration(seconds: 1)));
+              
+              if (loanBal.abs() <= 0.01) {
+                loanCompleted = true;
+                rule.status = 'ended';
+                await rule.save();
+                break; // Stop posting further occurrences
+              }
+              
+              final split = LoanEngine.splitPayment(
+                currentBalance: loanBal.abs(),
+                annualRatePct: loanAcc.annualRate!,
+                paymentAmount: estimatedAmt,
+              );
+              interestAmount = split.interest;
+              
+              // If this payment covers the last bit of principal, the next one shouldn't post
+              if (split.principal >= loanBal.abs() - 0.01) {
+                 loanCompleted = true; // Will end it on next iteration or we can end it here, but it's okay, next iteration will break.
+              }
+            } else {
+              missingLoanFields = true;
+            }
+          }
+        }
+
         final tx = await addTransaction(TxDraft(
           title: rule.name,
           amount: isIncome ? estimatedAmt : -estimatedAmt,
@@ -561,15 +648,43 @@ class FinanceRepository {
           mode: isIncome ? 'income' : 'expense',
           icon: cat?.iconKey ?? 'repeat',
           kind: effectiveKind,
-          accountId: rule.accountId ?? 'acc_main',
+          accountId: srcAccId,
           toAccountId: rule.toAccountId,
           categoryId: rule.categoryId,
           recurringRuleId: rule.id,
           sourceRef: sourceRef,
+          interestAmount: interestAmount,
           notes: rule.notes ?? 'Auto-posted recurring ${rule.kind}',
         ));
 
         posted.add(tx);
+        existingRefs.add(sourceRef);
+
+        String msg = '${rule.kind == "sip" || rule.kind == "emi" ? rule.kind.toUpperCase() : "Recurring"} ${FormatUtils.formatMoney(estimatedAmt)} posted';
+        if (rule.toAccountId != null) {
+          final toAcc = storage.accountBox.get(rule.toAccountId!);
+          if (toAcc != null) {
+            msg += ': ${srcAcc?.name ?? "Main"} → ${toAcc.name}';
+          }
+        }
+        if (isLowBalance) {
+          msg += ' (balance low)';
+        }
+        if (missingLoanFields) {
+          msg += '\nAdd rate and tenure for the interest split';
+        }
+        
+        NotificationService().showInstantNotification(
+          id: (rule.id.hashCode & 0x7FFFFFFF),
+          title: 'Auto-post: ${rule.name}',
+          body: msg,
+        );
+        
+        if (loanCompleted) {
+          rule.status = 'ended';
+          await rule.save();
+          break; // Stop if it's the last payment
+        }
       }
     }
 
@@ -582,6 +697,12 @@ class FinanceRepository {
     final rules = storage.recurringBox.values.where((r) => r.status == 'active' && !r.autoPost).toList();
     final dueItems = <DueItem>[];
 
+    final existingRefs = storage.transactionBox.values
+        .map((tx) => tx.sourceRef)
+        .where((ref) => ref != null)
+        .cast<String>()
+        .toSet();
+
     for (final rule in rules) {
       final dates = RecurringEngine.occurrences(rule, rule.startDate, clock);
 
@@ -589,8 +710,7 @@ class FinanceRepository {
         final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
         final sourceRef = 'rec:${rule.id}:$dateKey';
 
-        final exists = storage.transactionBox.values.any((tx) => tx.sourceRef == sourceRef);
-        if (exists) continue;
+        if (existingRefs.contains(sourceRef)) continue;
 
         final estAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
         dueItems.add(DueItem(
@@ -631,7 +751,33 @@ class FinanceRepository {
 
     final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
 
-    return addTransaction(TxDraft(
+    double? interestAmount;
+    bool loanCompleted = false;
+
+    if (rule.kind == 'emi' && rule.toAccountId != null) {
+      final loanAcc = storage.accountBox.get(rule.toAccountId!);
+      if (loanAcc != null && loanAcc.principal != null && loanAcc.annualRate != null) {
+        final loanBal = LedgerEngine.balance(
+          loanAcc, 
+          storage.transactionBox.values, 
+          storage.valuationBox.values, 
+          asOf: effDate.subtract(const Duration(seconds: 1)),
+        );
+        
+        final split = LoanEngine.splitPayment(
+          currentBalance: loanBal.abs(),
+          annualRatePct: loanAcc.annualRate!,
+          paymentAmount: finalAmt,
+        );
+        interestAmount = split.interest;
+        
+        if (split.principal >= loanBal.abs() - 0.01) {
+          loanCompleted = true;
+        }
+      }
+    }
+
+    final tx = await addTransaction(TxDraft(
       title: rule.name,
       amount: isIncome ? finalAmt : -finalAmt,
       category: cat?.name ?? 'Recurring',
@@ -644,8 +790,16 @@ class FinanceRepository {
       categoryId: rule.categoryId,
       recurringRuleId: rule.id,
       sourceRef: item.sourceRef,
+      interestAmount: interestAmount,
       notes: rule.notes ?? 'Confirmed payment for ${rule.name}',
     ));
+
+    if (loanCompleted) {
+      rule.status = 'ended';
+      await rule.save();
+    }
+
+    return tx;
   }
 
   /// P6-3: Schedules notifications for upcoming recurring rules at 09:00 local time.

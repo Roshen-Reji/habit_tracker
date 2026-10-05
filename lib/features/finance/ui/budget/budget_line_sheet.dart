@@ -387,7 +387,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 child: Row(
                   children: [
                     Text(
-                      '₹',
+                      FormatUtils.getCurrencySymbol(),
                       style: TextStyle(
                         color: BentoTheme.textSecondary,
                         fontSize: 22,
@@ -485,7 +485,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                         ),
                         child: Row(
                           children: [
-                            Text('₹',
+                            Text(FormatUtils.getCurrencySymbol(),
                                 style: TextStyle(
                                     color: BentoTheme.accent,
                                     fontWeight: FontWeight.bold,

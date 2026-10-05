@@ -326,7 +326,7 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                     decoration: InputDecoration(
                       labelText: 'Total Valuation Value',
                       hintText: 'e.g. 10577.62',
-                      prefixText: '₹ ',
+                      prefixText: '${FormatUtils.getCurrencySymbol()} ',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -392,7 +392,7 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                         ),
                         subtitle: Text(
                           val.units != null && val.unitPrice != null
-                              ? '${val.units} units @ ₹${val.unitPrice} • ${DateFormat('dd MMM yyyy').format(val.date)}'
+                              ? '${val.units} units @ ${FormatUtils.getCurrencySymbol()}${val.unitPrice} • ${DateFormat('dd MMM yyyy').format(val.date)}'
                               : DateFormat('dd MMM yyyy').format(val.date),
                           style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
                         ),

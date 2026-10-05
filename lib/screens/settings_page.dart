@@ -265,7 +265,7 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (context, Box settings, _) {
           bool dynamicBackground =
               settings.get('dynamic_background', defaultValue: true);
-          String currency = settings.get('currency_symbol', defaultValue: '\$');
+          String currency = settings.get('currency_symbol', defaultValue: '₹');
           bool isDarkMode =
               settings.get('theme_mode', defaultValue: 'dark') == 'dark';
 

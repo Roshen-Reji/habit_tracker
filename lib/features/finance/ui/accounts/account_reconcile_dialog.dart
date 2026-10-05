@@ -198,7 +198,7 @@ class _AccountReconcileDialogState extends State<AccountReconcileDialog> {
                 decoration: InputDecoration(
                   labelText: 'Actual Bank/Statement Balance',
                   hintText: 'e.g. 15420.50',
-                  prefixText: '₹ ',
+                  prefixText: '${FormatUtils.getCurrencySymbol()} ',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

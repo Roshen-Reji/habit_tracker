@@ -1,9 +1,11 @@
+import 'package:habit_tracker/features/finance/data/finance_controller.dart';
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
-import 'package:habit_tracker/features/finance/models/account.dart';
+import 'package:habit_tracker/features/finance/models/models.dart';
 
 /// Modal sheet for creating or editing an account.
 class AccountEditSheet extends StatefulWidget {
@@ -63,6 +65,15 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
   bool _spendable = true;
   bool _archived = false;
 
+  // SIP / EMI
+  RecurringRule? _linkedRule;
+  bool _enableSipEmi = false;
+  final _sipAmountController = TextEditingController();
+  final _sipDayController = TextEditingController();
+  DateTime _sipStartDate = DateTime.now();
+  String _sipPayFrom = 'acc_main';
+  List<Account> _availableAccounts = [];
+
   static const List<int> _palette = [
     0xFF4A90E2, // Blue
     0xFF50E3C2, // Teal
@@ -99,9 +110,23 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
   void initState() {
     super.initState();
     _repository = widget.repository ?? FinanceRepository();
+    _availableAccounts = FinanceController().activeAccounts;
     final acc = widget.account;
 
     if (acc != null) {
+      _linkedRule = _repository.getAllRecurringRules().cast<RecurringRule?>().firstWhere(
+        (r) => r?.toAccountId == acc.id && (r?.kind == 'sip' || r?.kind == 'emi'),
+        orElse: () => null,
+      );
+      if (_linkedRule != null) {
+        _enableSipEmi = true;
+        _sipAmountController.text = _linkedRule!.amount.toString();
+        _sipDayController.text = _linkedRule!.dayOfMonth.toString();
+        _sipStartDate = _linkedRule!.startDate;
+        _sipPayFrom = _linkedRule!.accountId ?? 'acc_main';
+      } else {
+        _sipDayController.text = '1';
+      }
       _isEditing = true;
       _nameController.text = acc.name;
       _institutionController.text = acc.institution ?? '';
@@ -138,6 +163,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       _loanStartDate = acc.startDate;
     } else {
       _spendable = _defaultSpendableForKind(_kind);
+      _sipDayController.text = '1';
     }
   }
 
@@ -157,6 +183,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
     _rateController.dispose();
     _emiController.dispose();
     _tenureController.dispose();
+    _sipAmountController.dispose();
+    _sipDayController.dispose();
     super.dispose();
   }
 
@@ -215,7 +243,6 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       acc.startDate = _loanStartDate;
 
       await _repository.updateAccount(acc);
-      if (mounted) Navigator.of(context).pop(acc);
     } else {
       final id = 'acc_${DateTime.now().millisecondsSinceEpoch}';
       final newAcc = Account(
@@ -240,7 +267,53 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       );
 
       await _repository.addAccount(newAcc);
-      if (mounted) Navigator.of(context).pop(newAcc);
+    }
+
+    final savedAcc = _isEditing ? widget.account! : FinanceController().activeAccounts.last;
+
+    // Handle SIP / EMI rule
+    final isInvestment = ['investment', 'gold', 'fd', 'crypto', 'other_asset'].contains(savedAcc.kind);
+    final isLoan = savedAcc.kind == 'loan';
+
+    if ((isInvestment || isLoan) && _enableSipEmi) {
+      final ruleKind = isLoan ? 'emi' : 'sip';
+      final ruleName = isLoan ? 'EMI for ${savedAcc.name}' : 'SIP for ${savedAcc.name}';
+      final ruleAmt = isLoan ? (savedAcc.emi ?? 0.0) : (double.tryParse(_sipAmountController.text.trim()) ?? 0.0);
+      final ruleDay = int.tryParse(_sipDayController.text.trim()) ?? 1;
+
+      if (_linkedRule != null) {
+        _linkedRule!.name = ruleName;
+        _linkedRule!.kind = ruleKind;
+        _linkedRule!.amount = ruleAmt;
+        _linkedRule!.dayOfMonth = ruleDay;
+        _linkedRule!.accountId = _sipPayFrom;
+        _linkedRule!.startDate = _sipStartDate;
+        _linkedRule!.autoPost = true;
+        await _repository.updateRecurringRule(_linkedRule!);
+      } else {
+        final newRule = RecurringRule(
+          id: 'rec_${DateTime.now().millisecondsSinceEpoch}',
+          name: ruleName,
+          kind: ruleKind,
+          amount: ruleAmt,
+          amountIsVariable: false,
+          accountId: _sipPayFrom,
+          toAccountId: savedAcc.id,
+          frequency: 'monthly',
+          dayOfMonth: ruleDay,
+          startDate: _sipStartDate,
+          autoPost: true,
+          status: 'active',
+          createdAt: DateTime.now(),
+        );
+        await _repository.addRecurringRule(newRule);
+      }
+    } else if (_linkedRule != null) {
+      await _repository.deleteRecurringRule(_linkedRule!.id);
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop(savedAcc);
     }
   }
 
@@ -356,7 +429,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                           decoration: InputDecoration(
                             labelText: 'Opening Balance',
                             hintText: '0.00',
-                            prefixText: '₹ ',
+                            prefixText: '${FormatUtils.getCurrencySymbol()} ',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
@@ -404,7 +477,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                       decoration: InputDecoration(
                         labelText: 'Credit Limit',
                         hintText: 'e.g. 150000',
-                        prefixText: '₹ ',
+                        prefixText: '${FormatUtils.getCurrencySymbol()} ',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -457,7 +530,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Principal Amount',
-                              prefixText: '₹ ',
+                              prefixText: '${FormatUtils.getCurrencySymbol()} ',
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -485,7 +558,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Monthly EMI',
-                              prefixText: '₹ ',
+                              prefixText: '${FormatUtils.getCurrencySymbol()} ',
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -504,6 +577,100 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                       ],
                     ),
                     const SizedBox(height: 16),
+                  ],
+
+                  // SIP or EMI Section
+                  if (['investment', 'gold', 'fd', 'crypto', 'other_asset'].contains(_kind) || isLoan) ...[
+                    const Divider(height: 32, color: Colors.white10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isLoan ? 'Monthly EMI Auto-Post' : 'Monthly SIP',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: BentoTheme.accentColor,
+                          ),
+                        ),
+                        Switch(
+                          value: _enableSipEmi,
+                          onChanged: (val) => setState(() => _enableSipEmi = val),
+                        ),
+                      ],
+                    ),
+                    if (_enableSipEmi) ...[
+                      const SizedBox(height: 8),
+                      if (!isLoan) ...[
+                        TextField(
+                          controller: _sipAmountController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Monthly Amount',
+                            prefixText: '${FormatUtils.getCurrencySymbol()} ',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _sipDayController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Day of Month',
+                                hintText: '1 - 31',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _sipPayFrom,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: 'Pay From',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              items: _availableAccounts
+                                  .where((a) => a.spendable)
+                                  .map((a) => DropdownMenuItem(
+                                        value: a.id,
+                                        child: Text(a.name, overflow: TextOverflow.ellipsis),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setState(() => _sipPayFrom = val);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _sipStartDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() => _sipStartDate = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Start Date',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(DateFormat('dd MMM yyyy').format(_sipStartDate)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
 
                   // Color Picker

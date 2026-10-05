@@ -266,7 +266,7 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
             child: Row(
               children: [
                 Text(
-                  '₹',
+                  FormatUtils.getCurrencySymbol(),
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 24,

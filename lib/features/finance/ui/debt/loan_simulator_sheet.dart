@@ -167,7 +167,7 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('₹0', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                      Text(FormatUtils.formatCurrency(0), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
                       Text(
                         'Base EMI: ${FormatUtils.formatMoney(emi)}/mo',
                         style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),

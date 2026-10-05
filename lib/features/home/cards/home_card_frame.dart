@@ -13,6 +13,7 @@ class HomeCardFrame extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? accentColor;
   final EdgeInsetsGeometry contentPadding;
+  final bool isFocused;
 
   const HomeCardFrame({
     super.key,
@@ -23,6 +24,7 @@ class HomeCardFrame extends StatelessWidget {
     this.onTap,
     this.accentColor,
     this.contentPadding = const EdgeInsets.fromLTRB(18, 14, 18, 18),
+    this.isFocused = true,
   });
 
   @override
@@ -31,9 +33,9 @@ class HomeCardFrame extends StatelessWidget {
     final borderRadius = BorderRadius.circular(ExpressiveTokens.radiusCard);
     final isLight = Theme.of(context).brightness == Brightness.light;
     final glassTop =
-        BentoTheme.surface.withValues(alpha: isLight ? 0.80 : 0.76);
+        BentoTheme.surface.withValues(alpha: isLight ? 0.95 : 0.88);
     final glassBottom =
-        BentoTheme.surfaceElevated.withValues(alpha: isLight ? 0.62 : 0.56);
+        BentoTheme.surfaceElevated.withValues(alpha: isLight ? 0.90 : 0.80);
     final borderColor = isLight
         ? Colors.black.withValues(alpha: 0.08)
         : Colors.white.withValues(alpha: 0.14);
@@ -50,26 +52,16 @@ class HomeCardFrame extends StatelessWidget {
             borderRadius: borderRadius,
             // This decoration deliberately sits outside the clip below so
             // the soft shadow can extend beyond the glass panel.
-            boxShadow: [
+            boxShadow: isFocused ? [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.30),
-                blurRadius: 26,
-                spreadRadius: -6,
-                offset: const Offset(0, 12),
+                blurRadius: 10,
+                spreadRadius: -2,
+                offset: const Offset(0, 4),
               ),
-              BoxShadow(
-                color: effectiveAccent.withValues(alpha: 0.08),
-                blurRadius: 24,
-                spreadRadius: -10,
-                offset: const Offset(0, 16),
-              ),
-            ],
+            ] : null,
           ),
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
+          child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -128,8 +120,6 @@ class HomeCardFrame extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ),
         ),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
@@ -75,7 +75,7 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
         createdFromCorrection: true,
       );
 
-      await _repository.addCategoryRule(rule);
+      await _controller.storage.ruleBox.put(rule.id, rule);
 
       if (_applyToPast) {
         final cat = _controller.getCategory(_selectedCategoryId!);
@@ -100,7 +100,7 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Rule saved! "$pattern" will auto-categorize to ${_controller.getCategory(_selectedCategoryId!)?.name ?? ''}'),
-            backgroundColor: ExpressiveTokens.semanticSuccess,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -129,7 +129,14 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
             child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
           ),
           const SizedBox(width: 12),
-          Text('Auto-Categorize Rule', style: BentoTheme.titleMedium.copyWith(color: BentoTheme.textPrimary)),
+          Text(
+            'Auto-Categorize Rule',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: BentoTheme.textPrimary,
+            ),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -139,7 +146,10 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
           children: [
             Text(
               'Whenever a transaction matches this merchant or keyword, automatically set its category.',
-              style: BentoTheme.bodySmall.copyWith(color: BentoTheme.textSecondary),
+              style: TextStyle(
+                fontSize: 13,
+                color: BentoTheme.textSecondary,
+              ),
             ),
             const SizedBox(height: 16),
 

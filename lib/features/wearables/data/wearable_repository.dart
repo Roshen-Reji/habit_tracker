@@ -160,4 +160,6 @@ class WearableDayView {
   int? get sleepDurationMin => mainSleep?.durationMin;
   int? get energyScore => energy?.score;
   double? get agesScore => ages?.score;
+  double? get latestWeight => bodyComp?.weightKg;
+  int? get restingHeartRate => activity?.restingHr;
 }

@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -588,7 +589,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
       child: Row(
         children: [
           Text(
-            '₹',
+            FormatUtils.getCurrencySymbol(),
             style: TextStyle(
               color: BentoTheme.accent,
               fontSize: 32,
@@ -688,6 +689,17 @@ class _TransactionSheetState extends State<TransactionSheet> {
                   onChanged: (val) {
                     setState(() {
                       _selectedToAccountId = val;
+                      if (val != null && _kind == 'transfer') {
+                        try {
+                          final toAcc = accounts.firstWhere((a) => a.id == val);
+                          if (toAcc.isValuedAsset) {
+                            _kind = 'investment';
+                          } else if (toAcc.isLoan) {
+                            _kind = 'debt_payment';
+                          }
+                          _ensureValidCategory();
+                        } catch (_) {}
+                      }
                     });
                   },
                 ),
@@ -808,7 +820,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
       decoration: InputDecoration(
         labelText: 'Interest portion (optional)',
         labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-        prefixText: '₹ ',
+        prefixText: '${FormatUtils.getCurrencySymbol()} ',
         prefixStyle: TextStyle(color: BentoTheme.accent),
         filled: true,
         fillColor: BentoTheme.surface,

@@ -2,6 +2,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
@@ -277,7 +278,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       case 'finance_goal':
         return 'Added finance goal: ${action.payload['name']}';
       case 'finance_transfer':
-        return 'Transferred ₹${action.payload['amount']} from ${action.payload['from_account']} to ${action.payload['to_account']}';
+        return 'Transferred ${action.payload['amount']} from ${action.payload['from_account']} to ${action.payload['to_account']}';
       case 'finance_recurring':
         return 'Added recurring: ${action.payload['name']}';
       default:

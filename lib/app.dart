@@ -8,10 +8,11 @@ import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
-import 'package:habit_tracker/data/services/sip_service.dart';
+// import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/features/wearables/data/sync_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -42,7 +43,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
     if (state == AppLifecycleState.resumed) {
       TaskResetService.checkAndResetTasks();
       WakeService.instance.rolloverMissedDays(DateTime.now());
-      SipService.runDue();
+      RecurringRunner.run();
       if (WearableSettings.isEnabled && WearableSettings.autoSyncOnResume) {
         SyncService.instance.sync(days: 7);
       }
@@ -68,14 +69,12 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
     }
 
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(),
+      valueListenable: Hive.box('settings').listenable(keys: ['theme_mode']),
       builder: (context, Box settings, _) {
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
         final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
 
-        return ValueListenableBuilder<Color?>(
-          valueListenable: NowPlayingService.instance.currentDominantColor,
-          builder: (context, color, snapshot) {
+
             return MaterialApp(
               navigatorKey: globalNavigatorKey,
               title: 'Habit Tracker',
@@ -126,8 +125,6 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
               home: const HomePage(),
               debugShowCheckedModeBanner: false,
             );
-          },
-        );
       },
     );
   }

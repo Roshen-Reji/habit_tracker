@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:math';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -156,9 +157,9 @@ class ForecastEngine {
 
     String summary;
     if (projected >= 0) {
-      summary = 'On track to finish the month with ₹${projected.toStringAsFixed(0)} liquid buffer';
+      summary = 'On track to finish the month with ${FormatUtils.formatMoney(projected, decimals: 0)} liquid buffer';
     } else {
-      summary = 'Projected deficit of ₹${(-projected).toStringAsFixed(0)} by month end';
+      summary = 'Projected deficit of ${FormatUtils.formatMoney((-projected), decimals: 0)} by month end';
     }
 
     return ForecastResult(

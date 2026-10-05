@@ -404,7 +404,7 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                   decoration: InputDecoration(
                     labelText: 'Amount',
                     labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-                    prefixText: '₹ ',
+                    prefixText: '${FormatUtils.getCurrencySymbol()} ',
                     prefixStyle: TextStyle(
                       color: BentoTheme.accent,
                       fontWeight: FontWeight.bold,

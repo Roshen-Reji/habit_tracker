@@ -73,7 +73,7 @@ class _HealthPageState extends State<HealthPage> {
                   child: _buildTabButton(1, 'WEIGHT', LucideIcons.scale),
                 ),
                 Expanded(
-                  child: _buildTabButton(2, 'GALAXY WATCH', LucideIcons.watch),
+                  child: _buildTabButton(2, 'HEALTH DATA', LucideIcons.heartPulse),
                 ),
               ],
             ),

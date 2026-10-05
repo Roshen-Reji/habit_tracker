@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:math';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -75,7 +76,7 @@ class InsightsEngine {
               kind: 'bill_collision',
               title: 'Upcoming Bill Exceeds Liquid Balance',
               body:
-                  '${rule.name} (₹${rule.amount.toStringAsFixed(0)}) is due in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}, but your liquid balance is ₹${liquidBalance.toStringAsFixed(0)}.',
+                  '${rule.name} (${FormatUtils.formatMoney(rule.amount, decimals: 0)}) is due in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}, but your liquid balance is ${FormatUtils.formatMoney(liquidBalance, decimals: 0)}.',
               deepLink: 'bills',
               params: {'ruleId': rule.id, 'amount': rule.amount},
             ));
@@ -106,7 +107,7 @@ class InsightsEngine {
                 kind: 'duplicate_charge',
                 title: 'Possible Duplicate Charge',
                 body:
-                    'Two charges of ₹${tx1.amount.abs().toStringAsFixed(0)} at ${tx1.merchant} within $diffHours hours on ${tx1.date.day}/${tx1.date.month}.',
+                    'Two charges of ${FormatUtils.formatMoney(tx1.amount.abs(), decimals: 0)} at ${tx1.merchant} within $diffHours hours on ${tx1.date.day}/${tx1.date.month}.',
                 deepLink: 'transactions',
                 params: {'txId1': tx1.id, 'txId2': tx2.id, 'merchant': tx1.merchant},
               ));
@@ -146,7 +147,7 @@ class InsightsEngine {
             kind: 'unusual_large_tx',
             title: 'Unusually Large $catName Expense',
             body:
-                '₹${amt.toStringAsFixed(0)} at ${tx.merchant ?? tx.title} is over 3× your typical spend for $catName (median ₹${median.toStringAsFixed(0)}).',
+                '${FormatUtils.formatMoney(amt, decimals: 0)} at ${tx.merchant ?? tx.title} is over 3× your typical spend for $catName (median ${FormatUtils.formatMoney(median, decimals: 0)}).',
             deepLink: 'transactions',
             params: {'txId': tx.id, 'amount': amt, 'median': median},
           ));
@@ -210,7 +211,7 @@ class InsightsEngine {
             kind: 'category_spike',
             title: '$catName Spending Up +$pctUp%',
             body:
-                'You\'ve spent ₹${currentSpent.toStringAsFixed(0)} so far, exceeding your 3-month average of ₹${avg3m.toStringAsFixed(0)}.',
+                'You\'ve spent ${FormatUtils.formatMoney(currentSpent, decimals: 0)} so far, exceeding your 3-month average of ${FormatUtils.formatMoney(avg3m, decimals: 0)}.',
             deepLink: 'budget',
             params: {'categoryId': catId, 'currentSpent': currentSpent, 'avg3m': avg3m},
           ));
@@ -238,7 +239,7 @@ class InsightsEngine {
               kind: 'goal_behind',
               title: '${goal.name} May Fall Short',
               body:
-                  'At your current pace of ₹${rate.toStringAsFixed(0)}/mo, you will be ₹${shortfall.toStringAsFixed(0)} short of your ₹${goal.targetAmount.toStringAsFixed(0)} goal by ${deadline.day}/${deadline.month}/${deadline.year}.',
+                  'At your current pace of ${FormatUtils.formatMoney(rate, decimals: 0)}/mo, you will be ${FormatUtils.formatMoney(shortfall, decimals: 0)} short of your ${FormatUtils.formatMoney(goal.targetAmount, decimals: 0)} goal by ${deadline.day}/${deadline.month}/${deadline.year}.',
               deepLink: 'goals',
               params: {'goalId': goal.id, 'shortfall': shortfall},
             ));
@@ -270,7 +271,7 @@ class InsightsEngine {
           kind: 'subscription_total',
           title: '${subs.length} Active Subscriptions',
           body:
-              'Totaling ₹${monthlyTotal.toStringAsFixed(0)}/month (₹${(monthlyTotal * 12).toStringAsFixed(0)}/year) across ${subs.length} streaming and software services.',
+              'Totaling ${FormatUtils.formatMoney(monthlyTotal, decimals: 0)}/month (${FormatUtils.formatMoney((monthlyTotal * 12), decimals: 0)}/year) across ${subs.length} streaming and software services.',
           deepLink: 'bills',
           params: {'count': subs.length, 'monthlyTotal': monthlyTotal},
         ));
@@ -290,7 +291,7 @@ class InsightsEngine {
           kind: 'net_worth_trend',
           title: isPositive ? 'Net Worth Grew +${pct.toStringAsFixed(1)}%' : 'Net Worth Dipped ${pct.toStringAsFixed(1)}%',
           body:
-              '${isPositive ? 'Increased' : 'Decreased'} by ₹${change.abs().toStringAsFixed(0)} vs last month.',
+              '${isPositive ? 'Increased' : 'Decreased'} by ${FormatUtils.formatMoney(change.abs(), decimals: 0)} vs last month.',
           deepLink: 'networth',
           params: {'change': change, 'pct': pct},
         ));

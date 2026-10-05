@@ -3,21 +3,15 @@ class WearableXpRules {
   static const int stretchStepsAward = 5;
   static const int activeTimeAward = 5;
   static const int workoutAwardPerSession = 8;
-  static const int maxWorkoutsPerDay = 3;
   static const int sleepGoalAward = 8;
-  static const int sleepQualityAward = 4;
-  static const int energyScoreAward = 3;
 
   /// Combined daily wearable XP cap.
   static const int dailyCap = 40;
 
-  static const String ruleSteps = 'wear_steps';
-  static const String ruleStretchSteps = 'wear_steps_stretch';
-  static const String ruleActiveTime = 'wear_active_time';
-  static const String ruleWorkout = 'wear_workout';
-  static const String ruleSleepGoal = 'wear_sleep_goal';
-  static const String ruleSleepQuality = 'wear_sleep_quality';
-  static const String ruleEnergy = 'wear_energy';
+  static const String ruleSteps = 'steps_goal';
+  static const String ruleStretchSteps = 'steps_stretch';
+  static const String ruleActiveTime = 'active_time_goal';
+  static const String ruleSleepGoal = 'sleep_goal';
 
   /// Evaluates awards for a day's metrics and returns a map of ruleKey -> raw XP award,
   /// plus a scaled/clamped map that respects the 40 XP daily cap.
@@ -26,11 +20,9 @@ class WearableXpRules {
     required int stepGoal,
     required int activeMinutes,
     required int activeMinutesGoal,
-    required int workoutCount,
+    required List<String> workoutIds,
     required int sleepMinutes,
     required int sleepGoalMinutes,
-    int? sleepScore,
-    int? energyScore,
   }) {
     final raw = <String, int>{};
 
@@ -48,24 +40,13 @@ class WearableXpRules {
     }
 
     // 3. Workouts
-    if (workoutCount > 0) {
-      final eligibleWorkouts = workoutCount.clamp(0, maxWorkoutsPerDay);
-      raw[ruleWorkout] = eligibleWorkouts * workoutAwardPerSession;
+    for (final id in workoutIds) {
+      raw['workout:'] = workoutAwardPerSession;
     }
 
     // 4. Sleep duration
     if (sleepGoalMinutes > 0 && sleepMinutes >= sleepGoalMinutes) {
       raw[ruleSleepGoal] = sleepGoalAward;
-    }
-
-    // 5. Sleep quality
-    if (sleepScore != null && sleepScore >= 80) {
-      raw[ruleSleepQuality] = sleepQualityAward;
-    }
-
-    // 6. Energy score
-    if (energyScore != null && energyScore >= 80) {
-      raw[ruleEnergy] = energyScoreAward;
     }
 
     // Apply 40 XP daily cap

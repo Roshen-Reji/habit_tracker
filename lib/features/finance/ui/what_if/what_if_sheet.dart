@@ -138,7 +138,7 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
               ),
               onChanged: _onAmountChanged,
               decoration: InputDecoration(
-                prefixText: '₹ ',
+                prefixText: '${FormatUtils.getCurrencySymbol()} ',
                 prefixStyle: TextStyle(
                   color: BentoTheme.accent,
                   fontWeight: FontWeight.bold,
@@ -166,7 +166,7 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
               children: [5000.0, 15000.0, 30000.0, 50000.0, 100000.0].map((val) {
                 final isSelected = (_amount - val).abs() < 1;
                 return ChoiceChip(
-                  label: Text('₹${FormatUtils.formatMoney(val, decimals: 0)}'),
+                  label: Text(FormatUtils.formatMoney(val, decimals: 0)),
                   selected: isSelected,
                   onSelected: (_) => _setPreset(val),
                   backgroundColor: BentoTheme.background,
@@ -356,18 +356,18 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildRow('Projected Balance (before)', '₹${FormatUtils.formatMoney(res.forecastMonthEnd)}', false),
+          _buildRow('Projected Balance (before)', FormatUtils.formatMoney(res.forecastMonthEnd), false),
           const SizedBox(height: 8),
-          _buildRow('This Expense', '-₹${FormatUtils.formatMoney(res.amount)}', true, isNegative: true),
+          _buildRow('This Expense', '-${FormatUtils.formatMoney(res.amount, customSymbol: '')}', true, isNegative: true),
           const Divider(height: 16, color: Colors.white12),
           _buildRow(
             'Projected Balance (after)',
-            '₹${FormatUtils.formatMoney(res.projectedAfter)}',
+            FormatUtils.formatMoney(res.projectedAfter),
             true,
             color: res.projectedAfter >= 0 ? Colors.green : Colors.red,
           ),
           const SizedBox(height: 8),
-          _buildRow('Target Emergency Buffer', '₹${FormatUtils.formatMoney(res.emergencyBuffer)}', false),
+          _buildRow('Target Emergency Buffer', FormatUtils.formatMoney(res.emergencyBuffer), false),
         ],
       ),
     );

@@ -49,7 +49,7 @@ class UpcomingBillsCard extends StatelessWidget {
                 style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
               ),
               Text(
-                '₹${FormatUtils.formatMoney(totalDue, decimals: 0)}',
+                FormatUtils.formatMoney(totalDue, decimals: 0),
                 style: TextStyle(
                   color: totalDue > 0 ? Colors.red : Colors.green,
                   fontSize: 16,
@@ -76,7 +76,7 @@ class UpcomingBillsCard extends StatelessWidget {
                       style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                     Text(
-                      '₹${FormatUtils.formatMoney(item.rule.amount, decimals: 0)}',
+                      FormatUtils.formatMoney(item.rule.amount, decimals: 0),
                       style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],

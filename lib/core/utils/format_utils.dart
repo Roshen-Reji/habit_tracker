@@ -17,6 +17,21 @@ class FormatUtils {
     return formatMoney(amount, compact: true);
   }
 
+  static String signed(
+    double amount, {
+    bool compact = false,
+    int? decimals,
+    String? customSymbol,
+  }) {
+    final formatted = formatMoney(
+      amount.abs(),
+      compact: compact,
+      decimals: decimals,
+      customSymbol: customSymbol,
+    );
+    return '${amount >= 0 ? '+' : '-'}$formatted';
+  }
+
   /// Formats money with Indian number grouping (en_IN) and optional compact Lakh/Crore formatting.
   static String formatMoney(
     double amount, {
@@ -46,20 +61,35 @@ class FormatUtils {
     }
 
     final dec = decimals ?? 2;
+    String formattedStr;
     try {
       final formatter = NumberFormat.currency(
         locale: 'en_IN',
         symbol: symbol,
         decimalDigits: dec,
       );
-      return formatter.format(isNegative ? -absAmount : absAmount);
+      formattedStr = formatter.format(isNegative ? -absAmount : absAmount);
     } catch (_) {
       // Fallback manual Indian grouping
       final parts = absAmount.toStringAsFixed(dec).split('.');
       final intPart = _formatIndianInt(parts[0]);
       final decimalPart = dec > 0 && parts.length > 1 ? '.${parts[1]}' : '';
-      return '${isNegative ? '-' : ''}$symbol$intPart$decimalPart';
+      formattedStr = '${isNegative ? '-' : ''}$symbol$intPart$decimalPart';
     }
+
+    if (symbol.isNotEmpty) {
+      // Clean up double symbols like '₹ ₹ 20,000' or '₹₹20,000'
+      // Also handles the negative sign like '-₹ ₹ 20,000'
+      final isNeg = formattedStr.startsWith('-');
+      var cleanStr = isNeg ? formattedStr.substring(1) : formattedStr;
+      
+      // Keep removing the symbol + optional spaces until there's only one symbol left
+      // Actually we just remove ALL leading symbols and spaces, then prepend exactly ONE.
+      cleanStr = cleanStr.replaceAll(RegExp('^($symbol\\s*)+'), '');
+      formattedStr = '${isNeg ? '-' : ''}$symbol$cleanStr';
+    }
+    
+    return formattedStr;
   }
 
   static String _stripTrailingZero(String numStr) {

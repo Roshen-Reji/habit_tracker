@@ -2,11 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
+import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/wearables/data/metric_task_service.dart';
 import 'package:habit_tracker/features/wearables/data/mock_wearable_source.dart';
-import 'package:habit_tracker/features/wearables/data/samsung_health_source.dart';
+import 'package:habit_tracker/features/wearables/data/health_connect_source.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
@@ -35,7 +36,7 @@ class SyncService {
     if (useMock) {
       _activeSource = MockWearableSource();
     } else {
-      _activeSource = SamsungHealthSource();
+      _activeSource = HealthConnectSource();
     }
     return _activeSource!;
   }
@@ -44,8 +45,8 @@ class SyncService {
     _activeSource = null;
   }
 
-  /// Triggers a sync for the past [days] (default 7 for incremental, 30 for backfill).
-  Future<bool> sync({int days = 7}) async {
+  /// Triggers a sync for the past [days] (default 3 for incremental, wear_backfill_days for backfill).
+  Future<bool> sync({int? days}) async {
     if (statusNotifier.value == SyncStatus.syncing) return false;
 
     if (!WearableSettings.isEnabled) {
@@ -53,48 +54,81 @@ class SyncService {
       return false;
     }
 
+    final isFirstRun = WearableSettings.lastSyncMs == 0;
+    final int syncDays = days ?? (isFirstRun ? Hive.box('settings').get('wear_backfill_days', defaultValue: 30) : 3);
+
     statusNotifier.value = SyncStatus.syncing;
     errorNotifier.value = null;
 
     try {
-      final source = getActiveSource();
+      WearableSource source = getActiveSource();
+      if (source is HealthConnectSource) {
+        final perms = await source.checkPermissions();
+        if (perms['all'] != true) {
+          final granted = await source.requestPermissions();
+          if (!granted) {
+            source = MockWearableSource();
+          }
+        }
+      }
       final repo = WearableRepository.instance;
 
-      // 1. Fetch telemetry across all 6 streams
-      final dailyList = await source.fetchDailyActivity(days);
-      final sleepList = await source.fetchSleepSessions(days);
-      final exerciseList = await source.fetchExercises(days);
-      final bodyList = await source.fetchBodyComposition(days);
-      final energyList = await source.fetchEnergyScores(days);
-      final agesList = await source.fetchAgesSamples(days);
+      List<DailyActivity> dailyList = [];
+      List<SleepSession> sleepList = [];
+      List<ExerciseSession> exerciseList = [];
+      List<BodyCompSample> bodyList = [];
 
-      // 2. Persist in Hive
-      for (final d in dailyList) {
-        await repo.upsertDaily(d);
-      }
-      for (final s in sleepList) {
-        await repo.upsertSleep(s);
-      }
-      for (final e in exerciseList) {
-        await repo.upsertExercise(e);
-      }
-      for (final b in bodyList) {
-        await repo.upsertBodyComp(b);
-      }
-      for (final en in energyList) {
-        await repo.upsertEnergyScore(en);
-      }
-      for (final a in agesList) {
-        await repo.upsertAges(a);
+      int readCount = 0;
+
+      // 1. Fetch telemetry across streams with per-type try-catch
+      try {
+        dailyList = await source.fetchDailyActivity(syncDays);
+        if (dailyList.isNotEmpty) {
+          await repo.dailyBox.putAll({for (final d in dailyList) d.dayKey: d});
+          readCount += dailyList.length;
+        }
+      } catch (e) {
+        debugPrint('Sync daily error: $e');
       }
 
-      // 3. Reconcile Exercise Calories with DietDayLog (skip mock data from polluting real records)
+      try {
+        sleepList = await source.fetchSleepSessions(syncDays);
+        if (sleepList.isNotEmpty) {
+          await repo.sleepBox.putAll({for (final s in sleepList) s.externalId: s});
+          readCount += sleepList.length;
+        }
+      } catch (e) {
+        debugPrint('Sync sleep error: $e');
+      }
+
+      try {
+        exerciseList = await source.fetchExercises(syncDays);
+        if (exerciseList.isNotEmpty) {
+          await repo.exerciseBox.putAll({for (final e in exerciseList) e.externalId: e});
+          readCount += exerciseList.length;
+        }
+      } catch (e) {
+        debugPrint('Sync exercise error: $e');
+      }
+
+      try {
+        bodyList = await source.fetchBodyComposition(syncDays);
+        if (bodyList.isNotEmpty) {
+          await repo.bodyBox.putAll({for (final b in bodyList) '${b.dayKey}_${b.timestamp.millisecondsSinceEpoch}': b});
+          readCount += bodyList.length;
+        }
+      } catch (e) {
+        debugPrint('Sync body comp error: $e');
+      }
+
+      // 3. Reconcile Exercise Calories with DietDayLog
       if (source.sourceId != 'mock') {
         await _reconcileExerciseCalories(exerciseList, dailyList);
+        await _reconcileWeight(bodyList);
 
         // 4. Auto-log to Day Journal if enabled
         if (WearableSettings.journalAutologEnabled) {
-          await _autoLogToJournal(sleepList, energyList, agesList, exerciseList);
+          await _autoLogToJournal(sleepList, exerciseList);
         }
 
         // 5. Auto-log wake up from wearable sleep end if wake goal is pending
@@ -159,35 +193,78 @@ class SyncService {
     }
   }
 
+  /// Reconciles wearable body composition weight into WeightEntry
+  Future<void> _reconcileWeight(List<BodyCompSample> bodyList) async {
+    if (!Hive.isBoxOpen('weight_entries')) return;
+    final weightBox = Hive.box<WeightEntry>('weight_entries');
+
+    final existingEntries = weightBox.values.toList();
+    bool modified = false;
+
+    // Group body samples by dayKey and keep the latest per day
+    final byDay = <String, BodyCompSample>{};
+    for (final b in bodyList) {
+      if (b.weightKg == null) continue;
+      final existing = byDay[b.dayKey];
+      if (existing == null || b.timestamp.isAfter(existing.timestamp)) {
+        byDay[b.dayKey] = b;
+      }
+    }
+
+    for (final MapEntry(key: dayKey, value: sample) in byDay.entries) {
+      // Check if manual entry exists for this day (manual wins)
+      final existing = existingEntries.where((e) => e.date == dayKey).firstOrNull;
+      if (existing == null) {
+        // Add new wearable entry
+        await weightBox.add(
+          WeightEntry(
+            date: dayKey,
+            kg: sample.weightKg!,
+            source: 'health_connect',
+            externalId: sample.externalId ?? 'wear_${sample.timestamp.millisecondsSinceEpoch}',
+          ),
+        );
+        modified = true;
+      } else if (existing.source == 'health_connect') {
+        // Update existing wearable entry if different
+        if (existing.kg != sample.weightKg!) {
+          final idx = existingEntries.indexOf(existing);
+          final updated = WeightEntry(
+            date: dayKey,
+            kg: sample.weightKg!,
+            source: 'health_connect',
+            externalId: existing.externalId,
+          );
+          await weightBox.putAt(idx, updated);
+          modified = true;
+        }
+      }
+    }
+  }
+
   /// Day Journal auto-log hooks
   Future<void> _autoLogToJournal(
     List<SleepSession> sleepList,
-    List<EnergyScoreDay> energyList,
-    List<AgesSample> agesList,
     List<ExerciseSession> exerciseList,
   ) async {
     final journalRepo = JournalDayRepository.instance;
     final now = DateTime.now();
     final todayKey = DateFormat('yyyy-MM-dd').format(now);
 
-    // Morning telemetry summary (Sleep + Energy + AGEs)
+    // Morning telemetry summary (Sleep)
     final todaySleep = sleepList.where((s) => s.dayKey == todayKey && !s.isNap).firstOrNull;
-    final todayEnergy = energyList.where((e) => e.dayKey == todayKey).firstOrNull;
-    final todayAges = agesList.firstOrNull;
 
     if (todaySleep != null) {
       final hours = todaySleep.durationMin ~/ 60;
       final mins = todaySleep.durationMin % 60;
       final scoreStr = todaySleep.score != null ? ' (Score: ${todaySleep.score})' : '';
-      final energyStr = todayEnergy != null ? ' · Energy: ${todayEnergy.score}/100' : '';
-      final agesStr = todayAges != null ? ' · AGEs: ${todayAges.score.toStringAsFixed(1)}' : '';
 
       final sleepEvent = AutoLogEvent(
         key: 'sleep_$todayKey',
         kind: 'sleep',
-        text: 'Slept ${hours}h ${mins}m$scoreStr$energyStr$agesStr',
+        text: 'Slept ${hours}h ${mins}m$scoreStr',
         timestamp: todaySleep.end,
-        source: 'samsung_health',
+        source: 'health_connect',
       );
       await journalRepo.appendAutoLog(todayKey, sleepEvent);
     }
@@ -200,7 +277,7 @@ class SyncService {
           kind: 'workout',
           text: '${ex.title ?? ex.type} · ${ex.durationMin}m · ${(ex.activeKcal ?? 0).round()} kcal',
           timestamp: ex.start,
-          source: 'samsung_health',
+          source: 'health_connect',
         );
         await journalRepo.appendAutoLog(todayKey, workoutEvent);
       }
@@ -220,7 +297,7 @@ class SyncService {
     if (todaySleep.end.day == DateTime.now().day) {
       await WakeService.instance.logWake(
         todaySleep.end,
-        source: 'samsung_health',
+        source: 'health_connect',
         sleepSessionId: todaySleep.externalId,
       );
     }

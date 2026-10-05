@@ -154,7 +154,7 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
             child: Row(
               children: [
                 Text(
-                  '₹',
+                  FormatUtils.getCurrencySymbol(),
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 22,

@@ -1,78 +1,100 @@
-# Habit Tracker MVP 4.1: Make the wearable layer real, finish MVP 4, harden
+# Habit Tracker MVP 4.2: Money that adds up, real Health data, buttery UI
 
-Spec for Claude Opus working autonomously in the repo root (`Roshen-Reji/habit_tracker`). Based on a read-only audit of `master` at commit `a69a0c2` ("Health Upgrade"), which added the MVP 4 code and `MVP_4.md`. Read `MVP_4.md` first; this file corrects and completes it. Where the two disagree, this file wins.
+Spec for Claude Opus working autonomously in the repo root (`Roshen-Reji/habit_tracker`). Based on a read-only audit of `master` at commit `a69a0c2`. If `MVP_4_1.md` is in the repo, this file replaces its Phase 1 and Phase 2 (the Samsung SDK and AGEs tracks) and keeps its safety ideas, which are repeated here in Phase 0 so this file stands alone.
 
-Nothing was compiled or run in the audit (no Flutter SDK, no device). Every finding below comes from reading code. Anything I did not read in depth is marked **VERIFY**: confirm it in the code before acting on it.
-
-Markers:
-- **VERIFY:** unconfirmed; check in code, SDK docs or on the device.
+Nothing was compiled or run in the audit (no Flutter SDK, no device). Every finding comes from reading code. Markers:
+- **VERIFY:** not confirmed. Check it in the code, the package source or on the device before relying on it.
 - **Default:** a planner decision the owner has not confirmed. Proceed with it and list it in your phase report.
-- **OWNER:** needs the owner's answer. Stop at the gate, do the work that is not blocked, and ask.
+- **OWNER:** needs the owner's answer.
 
 ---
 
 ## 1. Mission
 
-MVP 4's code is in the repo, but the wearable data path is simulated. Do these in order:
+The owner reported four problems. All four are confirmed in the code.
 
-1. **Stop fake data reaching real data, and clean up what already got in** (Phase 0). Ship this alone, first.
-2. **Give the app a real data source** (Phase 1) and handle AGEs Index honestly (Phase 2).
-3. **Finish the MVP 4 spec items that were never built or are wrong** (Phase 3), then harden (Phase 4).
-4. **All testing, QA, docs and release last** (Phase 5), as in `MVP_4.md`.
+1. **SIPs and EMIs do not accumulate.** A fund account (for example "Flexi Cap Fund", SIP ₹1,000 a month) should receive ₹1,000 every month, automatically, with the same amount leaving the main account. Loan EMIs should work the same way. The owner also wants a way to add the account's current balance, and ₹ appears twice in places.
+2. **Watch data sync is a placeholder.** It reports "synced" but reads no real Health data.
+3. **The Health tab is wrong.** Remove all "Samsung Galaxy" data and branding and use plain Health data.
+4. **The UI is laggy.** The owner wants it smooth, fresh and buttery.
 
-**New rule for the whole repo: never fabricate health data.** No code path outside the debug-only mock source may generate, default or estimate a health value and show or store it as if the watch measured it. A missing value is `null` and the UI shows "—".
+Order of work: Phase 0 (safety, ship alone), then Money, Health data, Health tab, Smoothness, then Phase 5 (all testing, docs, release).
+
+**Rule for the whole repo: never fabricate health data.** A missing value is `null` and the UI shows "—".
 
 ---
 
 ## 2. Audit findings
 
-Severity: **C** critical (corrupts real data), **H** high (spec item broken or missing), **M** medium, **L** low.
+Severity: **C** critical (wrong or corrupted data), **H** high (feature does not work), **M** medium, **L** low.
+
+### 2.1 Money (SIP, EMI, balances, ₹)
 
 | ID | Sev | Finding | Evidence |
 |---|---|---|---|
-| C1 | C | **The "Samsung bridge" returns generated data.** `readDailyActivity`, `readSleep`, `readExercises`, `readBodyComposition`, `readEnergyScore`, `readAgesIndex` call `generateNative*` functions that compute values from the calendar date: sleep is always 23:15 to 06:45 on alternate days, weight is a constant 72.4 kg, steps and energy are formulas, and AGEs samples carry the note "Measured by Galaxy Watch 7 BioActive optical sensor". No Samsung SDK class is imported. `android/app/libs/` does not exist, so there is no AAR. `checkPermissions` returns `true` for every type whenever the Samsung Health package is installed, and `requestPermissions` only launches the Samsung Health app. | `android/app/src/main/kotlin/.../SamsungHealthBridge.kt` |
-| C2 | C | **Sync is ungated and writes into core data.** `wear_enabled` is defined but never read anywhere. `app.dart` runs `SyncService.instance.sync(days: 7)` on every resume (`wear_auto_sync_on_resume` defaults true), and `getActiveSource()` falls back to `SamsungHealthSource` (the generator). Each sync writes generated rows to the `wear_*` boxes, adds burn entries to `diet_logs` (changing `netCalories`), appends journal lines such as "Slept 7h 30m (Score: …)", and calls `WakeService.logWake(source: 'samsung_health')` from the generated 06:45 sleep end, which evaluates the wake task and awards `wake_on_time` XP. The owner's real data may already contain all of this. | `lib/app.dart` L43-48, `sync_service.dart`, `wearable_settings.dart` |
-| C3 | C | **AGEs Index cannot be read through the Samsung Health Data SDK.** The owner clarified "Age Index" means Samsung's AGEs index. The public Data SDK type list (developer.samsung.com/health/data/guide/features/data-types.html) has no AGEs entry. The only reference found is a Samsung forum thread where a partner app asks about `advanced_glycation_endproduct.raw` under Samsung's privileged, partner-only Health SDK. So every AGEs value in the app is invented (generator, fallback `45.0`, levels low/optimal/medium), and `HealthSummaryData.agesScore` feeds the health composite from that invented scale. | `generateNativeAgesSamples`, `samsung_health_source.dart`, `health_calculator.dart` |
-| H1 | H | **Wake direction contradicts the headline scenario.** `WakeService` passes `direction: 'after'` (comment: "User confirmed after"), so `onTime = wakeMinutes >= targetMinutes - grace`. With target 05:00, "hey I woke up at 4" is **Missed ✕** and 06:00 is ✓. `MVP_4.md` §8.6 scenario 1 expects 04:00 against 05:00 to be ✓. | `wake_service.dart` L98-103, `wake_rules.dart` |
-| H2 | H | **Wake streak never resets and edits drift.** `WakeRules.updateStreak` is called only on the on-time path (`wake_service.dart` ~L140) and never with `consecutiveMisses`, so the owner's rule "keep unless for a long time" is not implemented. A ✓→✕ edit does not undo that day's increment. `lastCompletedDate` is set to `DateTime.now()` rather than the log's own day. | `wake_service.dart`, `wake_rules.dart` |
-| H3 | H | **XP wiring is unfinished.** Only `wake_on_time` goes through `XpLedger`. No `xp_rules`, `WearableXpService` or any of `steps_goal`, `sleep_goal`, `workout:{id}`, `energy_high`, `diet_deficit` exists. Diet-deficit XP still uses the direct flip logic (`GlobalXPService.addXP/subtractXP(20)`) in `DietDayLog`, which MVP_4 P5-2 said to move to the ledger. | `diet_models.dart` ~L143-164 |
-| H4 | H | **Calorie reconciliation is inline in `SyncService`, not an engine.** De-dup requires a ±45 min match and an exact activity-name match (spec: ±30 min, or normalised name with duration within 25%). The `dailyList` argument is unused, so the owner's "total burned calories should be taken" is not implemented. No Undo, no target suggester. Good: `DietDayLog.totalBurned` already skips `supersededBy` entries. | `sync_service.dart` `_reconcileExerciseCalories` |
-| H5 | H | **Mapper defects fabricate values.** `bodyWaterPct` is filled from `totalBodyWaterKg` (unit mismatch). `activeKcal` is invented as 35% of total kcal. Energy score falls back to `75`, AGEs to `45.0`, and the journal line shows `score ?? 80`. Exercise `totalKcal` and `activeKcal` are both mapped from one `calories` field. | `samsung_health_source.dart`, `sync_service.dart` `_autoLogToJournal` |
-| H6 | H | **Spec items missing or dead.** (a) No `wear` AI intent and no `AiContext.buildWearContext` (`wear_ai_share` is never read, so nothing is sent to Gemini today, which is the safe state). (b) Metric tasks: `Goal` has `kind/metricKey/...` fields, but no sync-to-`currentValue` logic, completion rule or `AddTaskDialog` templates were found. (c) Settings `journal_autolog_kinds`, `wake_infer_from_sleep`, `wear_enabled` are never read. (d) Home has one `galaxy_watch` card instead of the spec's `activity`, `sleep`, `workouts`, `body` cards (**VERIFY** whether that was intended). (e) `HealthCalculator` branches to a separate 100-point model when sleep score or AGEs exist, instead of the §5.5 weights 25/20/15/20/20 with exact 35/35/30 fallback (**VERIFY**). | `ai_service.dart`, `ai_context.dart`, `goal.dart`, `health_calculator.dart`, `home_card.dart` |
-| M1 | M | **`MVP_4.md` is corrupted in §8.5 to §8.7.** The text breaks into a fragment (". No log all day. On the next open…") and a dangling "5" where scenario 5 and the §8.7 heading should be. The owner's answers are typed inline in §9. | `MVP_4.md` |
-| M2 | M | **Finance files were edited in a "Health Upgrade" commit** (21 files, +283/−237): named→positional arguments (`RecurringEngine.occurrences`), `goal.deadlineDate`→`goal.deadline`, `exportFinanceDataJson`→`exportJson`, a new `getEffectiveBudget`. Looks like API alignment, but `MVP_4.md` said no finance changes and nothing was run. **VERIFY** by running the 13 finance test files. | `git diff HEAD~1 -- lib/features/finance` |
-| M3 | M | **Docs and version not updated.** `APP_DOCUMENTATION.md`, `MANUAL_QA.md` and `README.md` have no mention of wearables, the wake-up task or the day journal. `docs/WEARABLE_FIELD_MAP.md` does not exist. `pubspec.yaml` is still `1.0.0+1`. | repo root |
-| M4 | M | **No tests for MVP 4.** `test/features/` has only finance. Expected under the "tests last" rule, but Phase 5 must now cover the whole of MVP 4, not only 4.1. | `test/` |
-| L1 | L | Pre-existing, report only: duplicate typeIds 0/1/2 in the unreferenced `lib/models/goals.dart` (removal needs owner approval); release signed with the debug key; application id `com.example.habit_tracker`; `MANAGE_EXTERNAL_STORAGE` and `CAMERA` permissions. Fine for sideloading, blockers for Play Store. | |
+| M1 | C | **Recurring rules only post when the Recurring page is opened.** `postRecurringDue()` is called from exactly one place, `initState` of `recurring_page.dart` (L31). Nothing calls it at app start, on resume or on a schedule. So "every month, automatically" does not happen unless the owner visits that page. EMI rules default to `autoPost = false`, so they only appear as "due" items that need Mark Paid. | `recurring_page.dart` L31, `finance_repository.dart` `postRecurringDue`, `recurring_edit_sheet.dart` L115 |
+| M2 | C | **A fund's balance ignores contributions made after its latest valuation.** `LedgerEngine.balance` returns the latest `Valuation.value` for any valued asset (`investment`, `gold`, `fd`, `crypto`, ...) as soon as one exists on or before the date, and skips all transactions. So once the owner uses "Log New Valuation" (today the only way to enter a current balance on an account), every later SIP leaves the displayed balance unchanged. Net worth and balance history inherit this. | `engine/ledger.dart` L8-27 |
+| M3 | C | **Two SIP systems run together and can double-debit.** The legacy `SipService.runDue()` still runs at boot (`main.dart` L92) and on every resume (`app.dart` L45). It reads the old `finance_settings['planner']['sips']` and posts a plain **expense** ("SIP · name", key `sip_{id}_{yyyy-MM}`) with no destination account. The MVP 3 migrator copied the same SIPs into `RecurringRule(kind: 'sip', autoPost: true)`, which post as `investment` transactions with source ref `rec:{id}:{yyyy-MM-dd}`. The two keys differ, so the same SIP can be debited twice, and the legacy debit never reaches a fund account. **VERIFY** with a fixture that has one migrated SIP. | `data/services/sip_service.dart`, `data/migrations/finance_migrator.dart` L578-600 |
+| M4 | H | **A SIP or EMI may have no destination.** `toAccountId` is optional, and `postRecurringDue` defaults the source to `acc_main` and passes `rule.toAccountId` as is. With no destination the money leaves the main account and no fund or loan account receives it. **VERIFY** whether `recurring_edit_sheet.dart` forces a destination for kinds `sip` and `emi`. | `finance_repository.dart` `postRecurringDue` |
+| M5 | H | **EMI posts the whole instalment as principal.** `postRecurringDue` builds the `debt_payment` without `interestAmount`. `LedgerEngine.balance` then treats `amount − 0` as principal repaid, so the loan balance falls too fast and interest is never recorded as an expense. `Account` already has `principal`, `annualRate`, `emi`, `tenureMonths`, `startDate`, and `engine/loan_engine.dart` exists, but the posting path does not use it. **VERIFY** the loan engine's schedule function. | `finance_repository.dart`, `engine/ledger.dart` L84 |
+| M6 | H | **No quick way to add a current balance.** The account sheet has only "Opening Balance". The detail page has "Log New Valuation", which is a units and price form. | `account_edit_sheet.dart`, `valuation_history_sheet.dart` |
+| M7 | H | **Double rupee symbol.** `FormatUtils.formatMoney`, `formatCurrency` and `formatCompactCurrency` already include the currency symbol (default ₹), but **42 call sites in 9 files** prepend a literal `₹`, giving "₹₹1,000.00": `cash_flow_page.dart`, `csv_import_page.dart`, `sms_import_sheet.dart`, `money_overview_tab.dart`, `reports_page.dart`, `split_group_detail_page.dart`, `split_groups_page.dart`, `what_if_sheet.dart`, `upcoming_bills_card.dart`. | `grep -rnE "₹\$\{FormatUtils\.format"` |
+| M8 | M | **Mixed currency symbols.** `FormatUtils.getCurrencySymbol()` defaults to ₹, but the home `finance_card.dart` formats with a hard-coded `$` and `settings_page.dart` (L268) defaults `currency_symbol` to `$`. | `finance_card.dart` L28, `settings_page.dart` L268 |
+| M9 | M | **The home finance card and the AI still read legacy finance data.** `finance_card.dart` uses the old `FinanceCalculator` and `planner` SIPs; `ai_service.dart` (L1419-1421) reads `planner`. Neither sees the new accounts or recurring rules. | `finance_card.dart`, `ai_service.dart` |
+| M10 | M | **Posting is quadratic.** `postRecurringDue` and `getUnpostedDueItems` call `transactionBox.values.any(...)` for every rule and date. | `finance_repository.dart` |
 
-**Looks right on reading (do not redo):** typeIds 60-68 do not collide with finance 40-50; `XpLedger` delta approach and `GlobalXPService.addXPForDate` exist; no `addXP(` call inside wearable or wake code; `minSdk = 29`; Samsung Health `<queries>` entry; `DietDayLog.totalBurned` skips superseded entries; `wear_ai_share` defaults off; wake parser, wake intent routing, `rolloverMissedDays` hooks in `main.dart` and `app.dart`; Day Journal repository.
+### 2.2 Health data
+
+| ID | Sev | Finding | Evidence |
+|---|---|---|---|
+| H1 | C | **The "Samsung bridge" generates fake data.** `readDailyActivity`, `readSleep`, `readExercises`, `readBodyComposition`, `readEnergyScore` and `readAgesIndex` return values computed from the calendar date (sleep is always 23:15 to 06:45, weight is always 72.4 kg, AGEs samples are labelled as measured by a watch sensor). No Samsung SDK class is imported and there is no AAR. `checkPermissions` says "granted" for everything whenever Samsung Health is installed, and `requestPermissions` only opens the Samsung Health app. This is why sync "does nothing real". | `SamsungHealthBridge.kt` |
+| H2 | C | **Sync is ungated and writes fake data into core data.** `wear_enabled` is never read. `app.dart` syncs on every resume (`wear_auto_sync_on_resume` defaults to true). Each sync writes generated rows, adds fake burn entries to `diet_logs`, adds fake sleep and workout lines to the journal, and calls `WakeService.logWake` from the fake 06:45 sleep end, which evaluates the wake task and awards XP. The owner's real data may already contain these. | `app.dart` L43-48, `sync_service.dart` |
+| H3 | H | **Mapper defects invent values.** Active kcal is guessed as 35% of total, energy score falls back to 75, AGEs to 45.0, journal sleep score to 80, and `bodyWaterPct` is filled from a water mass in kg. | `samsung_health_source.dart`, `sync_service.dart` |
+| H4 | H | **Samsung-only data cannot come from Health data.** Energy Score and the AGEs Index are Samsung-specific, and Android Health Connect has no such types (**VERIFY** against the package's type list). Per the owner, they are removed rather than replaced. | |
+| H5 | M | **Sync is slow and un-batched.** One `await` per record upsert on the UI isolate. | `sync_service.dart` |
+
+### 2.3 Health tab and smoothness
+
+| ID | Sev | Finding | Evidence |
+|---|---|---|---|
+| U1 | H | **Health tab.** The third tab is labelled `GALAXY WATCH`, three equal `Expanded` buttons with 12 px letter-spaced labels and an icon (likely to clip on narrow phones). Tab content is swapped with a ternary, so every switch rebuilds the 846-line `FitnessTab` and loses scroll position. Samsung and Galaxy branding is spread over `fitness_tab.dart`, `wearables_settings_page.dart`, `galaxy_watch_card.dart`, `settings_page.dart` and `health_calculator.dart`. | `health_page.dart` L58-86 |
+| U2 | C | **Home stack paints several blurs per frame.** Per visible card: an `ImageFiltered` blur, an `Opacity`, a perspective `Transform`, a `HomeCardFrame` with its own `BackdropFilter(sigma 18)` and two large `BoxShadow`s (blur 26 and 24). On top, one full-screen `BackdropFilter` "lens" (sigma 9 to 13) over the star field, rebuilt on every scroll tick. Blur inside blur over a changing backdrop forces offscreen layers every frame. 17 `BackdropFilter`/`ImageFilter.blur` uses exist in 7 files. | `wallet_card_stack.dart` L177, L324; `home_card_frame.dart` L53-71 |
+| U3 | C | **Every scroll tick rebuilds all cards.** `AnimatedBuilder(animation: _scrollController)` rebuilds the full list of cards (up to 19 registered), each with its own Hive listeners and calculations, instead of only updating their transforms. | `wallet_card_stack.dart` |
+| U4 | H | **The star background repaints constantly.** `StarBackground` runs a 4-second repeating controller and also listens to the scroll controller, repainting 50 stars one by one every frame behind the blurs. | `widgets/star_background.dart` |
+| U5 | H | **Whole-app rebuilds.** `app.dart` wraps `MaterialApp` (and both `ThemeData` objects) in `ValueListenableBuilder(Hive.box('settings').listenable())`, plus another builder on `NowPlayingService.currentDominantColor`. Any write to `settings` (sync timestamps, layout, XP, calorie target) or any song change rebuilds the whole app. Across the app there are 49 `.listenable()` uses and none pass `keys:`. | `app.dart` L56-110 |
+| U6 | H | **Slow start.** `main()` awaits about 25 steps in sequence before `runApp`, including the finance migrator, the encrypted journal box, the legacy SIP run, notification init and medicine reminders. | `main.dart` |
+| U7 | M | **Non-lazy lists.** 38 `SingleChildScrollView`, 14 `ListView(` (non-builder), 6 `shrinkWrap: true`, and only 4 `RepaintBoundary` in the whole app. **VERIFY** which screens hold long lists (transactions, journal timeline, fitness tab). | |
+| U8 | M | **Continuous animations** in `speech_vault_page`, `tasks_page`, `home_chat` and `wobbly_slider` (`repeat`), plus 28 `flutter_animate` uses. **VERIFY** they pause off-screen. | |
+| U9 | M | **Derived data recomputed in `build`.** The ledger scans all transactions once per account; the legacy finance card recomputes on every transaction change. | `engine/ledger.dart`, `finance_card.dart` |
+
+**Looks right on reading (do not redo):** typeIds 60-68 and finance 40-50 do not collide; `RecurringRule` already has `accountId`, `toAccountId` and `kind` (`sip`, `emi`), so no schema change is needed for SIP and EMI links; the `XpLedger` delta approach exists; `DietDayLog.totalBurned` skips superseded entries; `FlutterFragmentActivity` is in use; `minSdk = 29`.
 
 ---
 
 ## 3. Owner decisions
 
-Do not block on these except where stated. Ask once, in the Phase 0 report.
+Do not block on these. Ask once, in the Phase 0 report.
 
 | # | Question | Default if unanswered |
 |---|---|---|
-| Q1 | **Wake direction (gates W-1).** Today the code ticks a wake time **at or after** the target. With target 05:00: is 04:00 ✓ or ✕? Is 06:00 ✓ or ✕? (Your note said "if the time is more then it gets ticked", and the §9 answer was "after".) | Keep today's behaviour, but make the rule explicit and visible (W-1). Do not flip it without the answer. |
-| Q2 | **Real data path.** Track A: Samsung Health Data SDK (needs you to download `samsung-health-data-api.aar`, enable Developer Mode in Samsung Health, and Samsung Health 6.30.2+; gives Energy Score and body composition). Track B: Android Health Connect (no AAR, no Developer Mode; Samsung Health writes steps, sleep, exercise, weight to it; **no Energy Score found**, body composition uncertain). Approving Track B approves its read-only Health Connect permissions (§P1-2). | Build Track B first (unblocked), Track A when the AAR is supplied. |
-| Q3 | **AGEs Index.** Since the SDK does not expose it, is **manual entry** (you type the number Samsung Health shows) acceptable? What range and wording does Samsung Health show for it? | Manual entry, display-only, no thresholds, not in the composite or XP. |
-| Q4 | **"Credit for exercise sessions but total burned calories should be taken."** Which do you mean? (a) each workout's burn uses the watch's *total* kcal for that session; (b) also show the day's total burned (resting + active) as information; (c) add the whole day's total burn to the calorie tracker (this double-counts if your calorie target already includes resting burn). | (a) and (b). Not (c). |
-| Q5 | **Cleanup of the simulated data (P0-4).** Run automatically on next launch with a visible summary and a backup, or only when you tap a button? | Automatic with a confirm dialog and a backup. |
+| Q1 | **Past start date.** When a SIP or EMI is created with a start date in the past, post the missed instalments or start from today? | Ask in the sheet, preselected "start from today" (never back-charge silently, as MVP 2 decided). |
+| Q2 | **Old SIP debits.** Past debits titled "SIP · name" are plain expenses that never reached the fund. Convert them to transfers into the matching fund? | Show a preview list and let the owner confirm each. Never automatic. |
+| Q3 | **Third tab name.** | `HEALTH DATA` with the heart-pulse icon. |
+| Q4 | **Home depth-of-field.** The blur on cards behind the focused one is the biggest cost. OK to replace it with scale, fade and a dark overlay while keeping the glass look through gradient and border? | Yes. |
+| Q5 | **"2₹".** Read as a doubled symbol ("₹₹"). If you meant something else (for example a literal ₹2 amount), send a screenshot. | Doubled symbol. |
+| Q6 | **Energy Score and AGEs.** Removed from the UI and purged, since all existing values were fabricated and Health data cannot supply them. | Yes, with a backup. |
 
 ---
 
 ## 4. Working agreement
 
-Everything in `MVP_4.md` §2 still applies (tests last, pure-Dart engines, repositories own Hive, no Hive off the UI isolate, never change an existing `typeId`/`@HiveField`/box name, versioned idempotent migrations preceded by a JSON backup, stop-and-ask list, phase reports). Additions:
-
-- Branches `mvp4.1/p0-safety`, `mvp4.1/p1-source`, ... off `master`; one commit per task (`P0-1: gate sync`). Keep the app compiling at every commit. Run `dart format .` and `flutter analyze` after each task and record the warning count against the baseline in P0-0.
-- **Phase 0 ships on its own** before any other phase starts.
-- Never claim the Samsung bridge, Health Connect, permissions, sync or UI work unless you ran them on a device. Put them under "Not verified" in the phase report and in `MANUAL_QA.md`.
-- Read the real API (pub cache, Samsung SDK reference, Health Connect docs) before writing SDK calls. Do not write SDK calls from memory.
-- Mock data: only in debug builds, always tagged `sourceDevice = 'mock'`, always labelled "DEMO DATA" in the UI, and **never** flows into the calorie tracker, XP, journal, wake task, composite or AI.
-- Report after each phase: what changed, what you ran, what you could not verify, defaults applied, questions.
+- **Testing last (owner's standing instruction).** Phases 0 to 4 have no test tasks. After each task run only `dart format .` and `flutter analyze`. All tests, device QA, docs and release are Phase 5. Keep logic in pure Dart so Phase 5 is cheap.
+- Branches `mvp4.2/p0-safety`, `mvp4.2/p1-money`, ...; one commit per task; the app compiles at every commit. Run `dart run build_runner build --delete-conflicting-outputs` after any `@HiveType` change (none are expected).
+- **Data safety.** Never change an existing `typeId`, `@HiveField` index or box name. Keep adapters registered for models that are no longer used (`EnergyScoreDay` 64, `AgesSample` 65) so existing boxes still open. Migrations are versioned, idempotent, preceded by a JSON backup, and abort on error. Never delete user rows automatically. No Hive access from a background isolate.
+- **Never claim** that Health Connect, permissions, sync, notifications or frame rate work unless you ran them on a device. List them under "Not verified" in the phase report and add them to `MANUAL_QA.md`.
+- Read the real API (pub cache source for packages, Health Connect docs) before writing calls.
+- **Stop and ask before:** upgrading Flutter, changing the application id or signing, deleting user data, adding Android permissions beyond those in P2-2, removing `lib/models/goals.dart`.
+- Phase report (short): what changed, what you ran, what you could not verify, defaults applied, questions.
 
 ---
 
@@ -80,142 +102,209 @@ Everything in `MVP_4.md` §2 still applies (tests last, pure-Dart engines, repos
 
 ### Phase 0: Safety stop (ship first, alone)
 
-**P0-0 Baseline.** Run `flutter analyze` and `flutter test` on a clean checkout of `master` and record the results (including any failing finance tests; that settles M2). Grep the real typeIds in use.
+**P0-0 Baseline.** Run `flutter analyze` and `flutter test` on a clean checkout and record the results. Record the real typeIds in use. **Performance baseline:** on a device, in `--profile` mode, record cold-start time to first frame, and frame build/raster p90 and p99 while (a) scrolling the home stack for 10 seconds, (b) switching Health tabs, (c) scrolling the Transactions list. If there is no device, write "not measured" and continue.
 
-**P0-1 Gate the sync.** `SyncService.sync()` returns immediately unless `WearableSettings.isEnabled` is true **and** the active source reports a real, granted state. Resume, start and timer triggers respect it and `wear_auto_sync_on_resume`. `wear_enabled` is set to true only after a successful real permission grant (or the debug mock toggle). Result: a fresh install and the owner's current install do nothing wearable-related until the owner connects a real source.
+**P0-1 Gate the sync.** `SyncService.sync()` returns immediately unless `wear_enabled` is true and the active source reports a real, granted state. Start, resume and timer triggers respect it. `wear_enabled` becomes true only after a successful real permission grant. Result: nothing wearable runs until the owner connects the real source.
 
-**P0-2 Remove every generator from the Kotlin bridge.** Delete all `generateNative*` functions and their callers. Until Phase 1 lands, every read method returns a typed error (`not_implemented`), `checkPermissions` returns all-false, and `requestPermissions` returns the real result. Add a CI-style check (Phase 5.5) that fails if `android/` contains hard-coded health values. Error codes: `not_installed`, `old_version`, `no_permission`, `access_control`, `policy_2003`, `not_implemented`, `unknown`.
+**P0-2 Remove every generator.** Delete all `generateNative*` functions and the whole Samsung bridge path (`SamsungHealthBridge.kt`, its registration and unregistration in `MainActivity.kt`, `samsung_health_source.dart`). Delete `MockWearableSource` from `lib/` (move a fake into `test/` in Phase 5). Remove the "Simulator" toggle and `wear_use_mock_provider`. Until Phase 2 lands, the source is a stub that returns "not connected".
 
-**P0-3 Restrict the mock source.** `MockWearableSource` is selectable only when `kDebugMode`. Tag its rows `sourceDevice = 'mock'`. Downstream consumers (calorie reconciler, journal auto-log, wake inference, XP rules, composite, AI) skip `mock` rows. Show a "DEMO DATA" banner on every wearable surface while it is active. Remove `wear_use_mock_provider` from release builds.
+**P0-3 Stop the legacy SIP run.** Remove the calls to `SipService.runDue()` in `main.dart` and `app.dart`. Keep the legacy `planner` data in place (never delete it). Keep `SipService.migrateSips` and `getNextDebitDate` only until P1-7 removes their last callers.
 
-**P0-4 Purge migration for simulated data.** Versioned (`wear_bridge_version`, set to 2 on completion), idempotent. Steps:
-1. Back up affected boxes to `backups/mvp4_1_purge_<timestamp>.json` in the app documents directory. If the backup fails, abort and change nothing.
-2. Show a dialog (Q5 default): "Remove N simulated watch records?" with Remove / Later. While "Later", all wearable surfaces stay hidden (they are already gated by P0-1).
+**P0-4 Purge the simulated data** (versioned, idempotent, `wear_bridge_version = 2`):
+1. Back up the affected boxes to `backups/mvp4_2_purge_<timestamp>.json` in the app documents directory. If the backup fails, abort and change nothing.
+2. Show a dialog "Remove N simulated watch records?" with Remove or Later. While on Later, wearable surfaces stay hidden (they are already gated by P0-1).
 3. On Remove:
-   - `wear_daily`, `wear_sleep`, `wear_exercise`, `wear_body`, `wear_energy`, `wear_ages`: clear all rows. (The bridge never read a real value, so none are real.)
-   - `diet_logs`: remove `CalorieBurnEntry` rows with `id` starting `burn_shealth_` or `externalId` starting `shealth_`; set `supersededBy = null` on any entry whose `supersededBy` starts with `shealth_` (this restores manual burns that the generator hid). Leave empty day logs alone.
-   - Journal: remove auto-log events with `source == 'samsung_health'` through `JournalDayRepository.removeAutoLog`. Do not touch the owner's own text.
-   - Wake: delete `WakeLog` rows with `source == 'samsung_health'`, their `TaskDayLog` rows, set `XpLedger.set(dayKey, 'wake_on_time', 0)` for each day (the ledger reverses the XP on that day's own date), then recompute the wake goal's `isCompleted` and `streakCount` from the remaining logs.
-   - **VERIFY** whether any `WeightEntry` rows were written with a wearable source; if so, remove only those.
-   - Settings: clear `wear_last_sync`, `wear_last_sync_ms`, `wear_change_tokens`; set `wear_enabled = false`.
-4. Show a result summary ("Removed 30 sleep, 15 workouts, …"). Never silent. Never delete anything that does not match a rule above.
+   - Clear `wear_daily`, `wear_sleep`, `wear_exercise`, `wear_body`, `wear_energy`, `wear_ages`.
+   - In `diet_logs`, remove `CalorieBurnEntry` rows whose `id` starts with `burn_shealth_` or whose `externalId` starts with `shealth_`; clear `supersededBy` on any entry whose value starts with `shealth_` (this restores manual burns the generator hid).
+   - Remove journal auto-log events with `source == 'samsung_health'` through `JournalDayRepository.removeAutoLog`. Never touch the owner's own text.
+   - Delete `WakeLog` rows with `source == 'samsung_health'` and their `TaskDayLog` rows, set `XpLedger.set(dayKey, 'wake_on_time', 0)` for each affected day (the ledger reverses XP on that day's own date), then recompute the wake goal's `isCompleted` and `streakCount` from the remaining logs.
+   - **VERIFY** whether any `WeightEntry` was written with a wearable source; remove only those.
+   - Clear `wear_last_sync`, `wear_last_sync_ms`, `wear_change_tokens`; set `wear_enabled = false`.
+4. Show a result summary. Never silent. Delete nothing that does not match a rule above.
 
-**P0-5 Repair `MVP_4.md`.** Fix the corrupted §8.5 to §8.7 headings and restore the missing structure from §5 and §8.6 where it can be reconstructed; mark any scenario text that cannot be recovered as "lost, see §5". Move the owner's inline §9 answers into a short "Owner answers" table so they stop being mixed into the questions.
-
-**Done when:** a build with no connected source writes nothing to `wear_*`, `diet_logs`, journal, wake logs or XP; the Kotlin bridge contains no fabricated values; the purge removes only matching rows and is safe to run twice.
+**Done when:** a build with no connected source writes nothing to `wear_*`, `diet_logs`, journal, wake logs or XP; the legacy SIP run is gone; the purge only removes matching rows and is safe to run twice.
 
 ---
 
-### Phase 1: A real data source (Q2 gates the track)
+### Phase 1: Money that accumulates
 
-Both tracks implement the existing `WearableSource` interface. Engines and UI do not change between tracks. `wear_source` selects `samsung_sdk` or `health_connect`.
+**Design (no schema change).** A SIP or EMI is a `RecurringRule` whose `toAccountId` is the fund or loan account and whose `accountId` is the paying account (default `acc_main`). The account's screen finds its rules with `rules.where((r) => r.toAccountId == account.id)`.
 
-**P1-1 Status model end to end.** One status enum shared by Kotlin and Dart (Not set up, Platform missing, Update needed, Developer Mode needed, Permission needed, Connected, Error) driven by real checks. The Settings status chip and the home card's connect prompt read it. After two permission denials, stop asking and show guidance.
+**P1-1 Fix the balance of valued accounts (M2).** In `LedgerEngine.balance`, for a valued asset with a valuation on or before the cutoff, return `latestValuation.value + Σ flows dated after the valuation's day`, where flows use the same `transfer` and `investment` rules as today for both the source and destination side. With no valuation the behaviour is unchanged (opening balance plus flows). Treat a valuation as end-of-day: flows dated on the valuation's day are assumed included (Default; document it). Apply the same rule in `accountBalanceHistory` and net worth. `investedAmount` stays as is (opening plus net inflows). The detail page shows **Invested**, **Current value** and **Gain/Loss = current − invested**.
 
-**P1-2 Track B: Health Connect source (Default first).** **Default:** Kotlin bridge over `androidx.health.connect:connect-client` on a new channel, following the `MediaSessionBridge` pattern (the project already needed Java 17 fixes for plugins, so avoid a new Flutter plugin unless it builds cleanly: **VERIFY**). Read-only permissions: steps, distance, active calories, total calories, sleep sessions with stages, exercise sessions, weight, body fat, heart rate. Add the Health Connect `<queries>` package and permission rationale activity the API requires. Historical reads are limited to 30 days before the first grant unless `READ_HEALTH_DATA_HISTORY` is requested (**VERIFY** current behaviour). Energy Score shows "Needs Samsung Data SDK". Body composition: **VERIFY on device** what Samsung writes.
+**P1-2 Auto-post at the right times (M1, M10).** Add `RecurringRunner.run(now)` that calls `postRecurringDue` for every active `autoPost` rule. Call it at app start (after boxes open, off the first-frame path), on resume, and right after any rule is created, edited or resumed. Build the set of existing `sourceRef`s once per run instead of scanning per rule and date. Post only occurrences dated on or before today. Catch up at most 60 months per rule per run. Run at most once per calendar day unless a rule changed (`recurring_last_run` in `finance_settings`). Clamp days 29 to 31 to the month's last day (**VERIFY** `RecurringEngine.occurrences` already does). Show a notification on each post: "SIP ₹1,000 debited: Main → Flexi Cap Fund" (use `NotificationService.showInstantNotification`). Post even if the source balance is too low (real SIPs debit regardless) and add "balance low" to the notification (Default).
 
-**P1-3 Track A: Samsung Health Data SDK (when the AAR is supplied).** OWNER prerequisites: AAR placed in `android/app/libs/` (the Gradle `fileTree` line already exists), Samsung Health 6.30.2+, Developer Mode on, watch paired. Implement the bridge per `MVP_4.md` P4-1: `getStatus`, `requestPermissions(types)`, `readDaily`, `readSleep` (with stages via the associated-data API), `readExercises`, `readBodyComposition`, `readEnergyScore`, `readUserProfile`, `readChanges`. Off the main thread; map every SDK exception to the error codes in P0-2. The SDK does not support emulators. **No synthetic fallback, ever.**
+**P1-3 SIP and EMI sections in the account UI.**
+- Creating or editing an account of kind `investment`, `gold`, `fd`, `crypto` or `other_asset`: add a **Monthly SIP** section with a switch, amount, day of month, "Pay from" (default main), and start date. Saving creates or updates the linked rule: `kind 'sip'`, `toAccountId = this account`, `autoPost = true`, `frequency 'monthly'`. Past start date follows Q1.
+- Creating or editing a `loan`: an **EMI** section prefilled from `account.emi`, plus day of month and "Pay from". Linked rule: `kind 'emi'`, `autoPost = true`, `toAccountId = this loan`.
+- Account detail shows the linked rules with Pause, Resume, Edit and Stop, a "next instalment" line, and a short cumulative history ("12 instalments, ₹12,000 invested"). For loans: paid n of N, principal paid, interest paid, outstanding, next due date, estimated payoff date.
+- `recurring_edit_sheet.dart`: for kinds `sip` and `emi`, require a destination account (M4).
 
-**P1-4 Fix the mappers.** Pure functions from channel maps to models. Canonical units (kg, m, kcal, minutes). `bodyWaterPct` only from a percentage field or computed from water mass and weight with a stated formula. Distinct `activeKcal` and `totalKcal` for daily activity and for exercise. Remove every invented default (energy `75`, AGEs `45.0`, sleep score `80`, active kcal ×0.35): missing means `null` and the UI shows "—". The journal sleep line omits the score when absent.
+**P1-4 Add the current balance (M6).** Add **Update current value** on the account detail page for valued assets: one amount field, date defaulting to today, optional units and price under "More". It creates a `Valuation`. In the create sheet for valued assets, show **Invested so far** (stored as `openingBalance`) and **Current value** (if different, create a `Valuation` dated today). For plain bank, cash and wallet accounts keep the existing reconcile dialog and label it "Set current balance".
 
-**P1-5 Harden `SyncService`.** Keep single-flight. Per-type `try/catch` so one failing type leaves the others consistent. Minimum 10 minutes between resume syncs. Use change tokens where the source supports them; if a token is rejected, re-read the last 7 days (upserts are idempotent). Aggregate-only types re-aggregate the last 3 days plus today. Surface typed errors, never crash. Wire the dead settings: respect `journal_autolog_kinds` in `_autoLogToJournal`, and `wake_infer_from_sleep` plus the main-sleep rule (longest session ending before 14:00, naps excluded) in `_autoLogWakeFromSleep`. A chat or manual wake log always beats a watch inference, and an inferred line says "(from watch)".
+**P1-5 EMI interest split (M5).** When posting a rule of kind `emi` linked to a loan with `principal`, `annualRate` and `tenureMonths`, compute that month's interest and principal from the loan engine (**VERIFY** the schedule API) and set `interestAmount`. Interest is recorded as a debt-interest expense, principal reduces the liability. Stop posting and set the rule `ended` when the schedule completes or the outstanding reaches zero. If loan fields are missing, post as today and show "Add rate and tenure for the interest split".
 
-**P1-6 `docs/WEARABLE_FIELD_MAP.md`.** Source field → model field → unit for each track, with every unconfirmed field marked.
+**P1-6 Rupee fixes (M7, M8).**
+- Remove the literal `₹` in front of every `FormatUtils.formatMoney`, `formatCurrency` and `formatCompactCurrency` call (the 42 sites in M7). Where a sign is needed, build it as `${v >= 0 ? '+' : '-'}${FormatUtils.formatMoney(v.abs())}`. Add `FormatUtils.signed(double)` for this.
+- **VERIFY** the other literal `₹` uses in `ai_service.dart`, `query.dart`, `insights_engine.dart`, `what_if_engine.dart`, `account_edit_sheet.dart`, `transaction_sheet.dart`, `goal_edit_sheet.dart` and `upcoming_bills_card.dart`: they are fine only if they are not followed by a formatter that already adds the symbol.
+- One source of truth: every amount goes through `FormatUtils`. Default `currency_symbol` is ₹ everywhere (fix `settings_page.dart` L268 and the `$` in `finance_card.dart`).
 
-**Done when:** with a real source connected on a device, values in `wear_*` match what Samsung Health shows, with no invented numbers; with no source, the app is fully usable and shows connect prompts.
+**P1-7 Retire the legacy finance reads (M9).** Rewire `FinanceCard` to the new `FinanceController` (month income, spend, net, and the next SIP or EMI from the recurring rules) using `FormatUtils`. Rewire the planner read in `ai_service.dart` (L1419-1421) to recurring rules. After this, remove the last callers of `SipService`.
 
----
+**P1-8 Duplicate and legacy-debit review (Q2).** One-time, versioned check. Find (a) months where both `sip_{id}_{yyyy-MM}` and `rec:{id}:{yyyy-MM-dd}` exist for the same SIP, and (b) legacy "SIP · name" expenses with no destination. Show a review sheet with a preview: **Remove duplicates** (backup first) and **Convert to transfer into <fund>** per item. Never act automatically.
 
-### Phase 2: AGEs Index, honestly
-
-**P2-1 Remove fabricated AGEs.** Delete generator output and fallbacks. `AgesSample` (typeId 65) stays; manual rows use `sourceDevice = 'manual'`.
-
-**P2-2 Manual entry and trend (Q3 default).** A sheet to add a reading (value, date and time, optional free-text level exactly as Samsung Health shows it) and a `fl_chart` trend on the Fitness tab and the body/watch card. Edit and delete. No thresholds, colours or "improving" labels that imply a scale you have not verified. Optional: a confirm-first chat action `ages_log` ("my AGEs index is 1.8").
-
-**P2-3 Composite and XP.** Remove `agesScore` from `HealthSummaryData` weighting and from XP until the owner supplies the scale. Display only.
-
-**P2-4 Drop the fitness-age estimate.** The `MVP_4.md` §5.6 "Age Index" estimate was never built and is replaced by AGEs. Update docs; do not build it.
-
----
-
-### Phase 3: Finish the MVP 4 spec
-
-**P3-W Wake-up task.**
-- **W-1 Direction (Q1).** Add an explicit rule to the task: store the direction (`by` = at or before target, `from` = at or after), show it in plain words on the task card and in the edit sheet ("Ticked if I wake at or before 05:00"). Keep current behaviour (`from`) until Q1 is answered. Remove the hard-coded `direction: 'after'`.
-- **W-2 Streak.** Implement the owner's rule "keep unless for a long time": derive consecutive missed days from `TaskDayLog`; a single miss keeps the streak; reset only after N consecutive misses. **Default** N = 3 (matches the current helper; settings key `wake_streak_reset_after_misses`). Call it from both the log path and `rolloverMissedDays`.
-- **W-3 Edits and dates.** A ✓→✕ edit undoes that day's streak increment; `lastCompletedDate` uses the log's own day, not `now`; logging yesterday's wake does not change today's state. Re-evaluate both directions through `XpLedger`.
-- **W-4 Rollover.** Honour `wake_unlogged_policy` and `wake_miss_penalty_xp` (**VERIFY** current code); bound multi-day gaps at 60 days.
-
-**P3-X XP and ledger (MVP_4 P5-2).** Add `engine/xp_rules.dart` with the §5.5 table as constants, `WearableXpService.reconcile(dayKey)` after each sync for the last 3 days plus today, and the 40 XP wearable daily cap. Move diet-deficit XP off the flip logic (`DietDayLog.addFood/addBurn/removeFood/removeBurn`) onto the ledger rule `diet_deficit`. Set `xp_ledger_start` to the migration day and never reconcile earlier days (their XP was already awarded). **VERIFY** the current flip behaviour before editing. Mock rows are excluded. Only the ledger awards wearable or wake XP; never call `addXP` from that code.
-
-**P3-C Calorie tracker (MVP_4 P5-3, Q4 default).** Extract `engine/calorie_reconciler.dart` (pure) plus a thin writer. Burn credit modes per `wear_burn_credit_mode`, with the Q4 default: each workout becomes one `CalorieBurnEntry` (id `wear_{externalId}`, `source = wearable`) using the session's total kcal if present, else active. De-dup per spec (±30 min, or normalised name and duration within 25%), nothing deleted, "merged with watch workout" note with Undo, `supersededBy` cleared when the source row is deleted. Show the day's total burned as a read-only row. Imports never trigger flip XP. Add the suggest-only target banner (Accept / Dismiss) using the §5.5 Mifflin-St Jeor rule; it needs `profile_sex`, `profile_dob`, `profile_height_cm`.
-
-**P3-H Health composite (MVP_4 P5-5).** Align `HealthCalculator` with §5.5: weights calories 25, medicine 20, missions 15, sleep 20, activity 20, renormalised over available components; with no wearable data it must reproduce the original 35/35/30 results exactly. Sleep and activity come from the day view, never from invented values. AGEs excluded (P2-3).
-
-**P3-M Metric tasks (MVP_4 P5-7).** **VERIFY** nothing exists, then implement: sync updates `currentValue` for `kind == 'metric'` goals (`steps`, `active_minutes`, `sleep_minutes`, `workout_minutes`, `energy_score`); reaching the target completes the task directly, XP through ledger rule `metric:{goalId}`, never `Goal.complete()`; reversal when data is revised down; `AddTaskDialog` templates "10,000 steps", "30 active minutes", "Sleep 7 h", "Workout today"; the daily reset applies.
-
-**P3-A AI (MVP_4 P5-9).** Add intent `wear`, answered locally from `WearableRepository.dayView(dayKey)` (create it if missing) and the engines: steps, sleep, workouts, energy, body, AGEs, "sync my watch" as an auto-execute `wear_sync` action. If data is missing the answer says so. `AiContext.buildWearContext()` returns one compact line (under 60 tokens), attached to Gemini calls only when `wear_ai_share` is on. Keep `wake` routing before the task-create check and the diet scan.
-
-**P3-U Cards and Fitness tab.** **VERIFY** `galaxy_watch_card.dart` and `fitness_tab.dart`. Required behaviour: not-connected state with a "Connect" call to action, loading, empty and error states, "—" for missing values, DEMO banner for mock, no fabricated fallbacks. **Default:** keep the single `galaxy_watch` card plus the Fitness tab; add the spec's separate `activity`, `sleep`, `workouts`, `body` cards only if the owner asks. New cards append to existing layouts per the registry merge rule.
+**Done when:** an account "Flexi Cap Fund" with a ₹1,000 SIP on the 5th shows +₹1,000 invested on the 5th of each month, the main account shows −₹1,000, nothing is debited twice, and entering a current value of ₹2,300 followed by the next SIP shows ₹3,300 and a gain of ₹300 once the invested total is ₹3,000.
 
 ---
 
-### Phase 4: Hardening and loose ends
+### Phase 2: Real Health data (Android Health Connect)
 
-**P4-1 Finance regression check (M2).** Run all finance tests. If red, fix the specific hunks or revert them; do not widen finance scope. List what the "Health Upgrade" commit changed in finance and why, in the report.
+**Decision.** Replace the Samsung path with one real source: **Android Health Connect**, the system store that Samsung Health and other apps write into. Samsung Health must be set to share data to Health Connect (in-app guide in P2-5; the menu path varies by version, **VERIFY**). No Samsung SDK file, no Developer Mode, no partner registration. Health Connect is built in on Android 14 and later; older versions need the Health Connect app from Google Play (the package can open the install page, **VERIFY**).
 
-**P4-2 Dead and duplicate settings.** Every key in `WearableSettings` is either read somewhere or removed. Report the list.
+**P2-1 Package.** Add the Flutter `health` package (current stable 13.x at the time of writing; pin an exact version). Read its source in the pub cache first: the exact type names, the permission request flow, how `uuid` and `sourceId` are exposed, and whether it requires a newer `compileSdk`, Kotlin or Gradle than the project uses. If it conflicts with the Java 17 and Gradle setup already in `android/`, stop and report; the fallback is a small Kotlin bridge over `androidx.health.connect:connect-client` on a new channel following the `MediaSessionBridge` pattern, behind the same Dart interface.
 
-**P4-3 Journal day model.** **VERIFY** auto-log writes work while the journal is locked, the `settings['journal_inbox']` fallback flushes, and the 60-second auto-lock and unlock gate still protect viewing.
+**P2-2 Android setup.** `AndroidManifest.xml`: add read-only Health Connect permissions for steps, distance, active calories, total calories, sleep, exercise, heart rate, resting heart rate, weight, body fat, and `READ_HEALTH_DATA_HISTORY` only if a backfill beyond 30 days is wanted (**VERIFY** how far back Health Connect lets an app read without it). Add the Health Connect `<queries>` package entry and the permission-rationale activity or alias that Health Connect requires on each Android version (**VERIFY** against the package README). Do not add any other permission. Keep `FlutterFragmentActivity` (needed for the permission contract).
 
-**P4-4 Report only (L1).** Do not change typeIds, `lib/models/goals.dart`, signing, application id or permissions without the owner.
+**P2-3 `HealthConnectSource`** implements the existing `WearableSource` interface (remove `fetchEnergyScores` and `fetchAgesSamples` from the interface and from `SyncService`). Mapping, in canonical units (kg, m, kcal, minutes):
+- **Steps and distance** from the plugin's aggregate call per day, not by summing raw records (Health Connect de-duplicates overlapping sources in aggregates).
+- **Active and total calories** per day, as separate fields. Never derive one from the other.
+- **Sleep sessions** with stages; the day is the local date of the session's end; naps flagged; stage minutes from the stage records.
+- **Exercise sessions** with type, title, start, end, duration, calories where present, average and max heart rate where present, distance where present.
+- **Heart rate and resting heart rate**: daily resting value, daily average where available.
+- **Weight and body fat** samples.
+- A missing field is `null`. No defaults. Keep each record's source app (`dataOrigin`) in `sourceDevice` as plain text for Diagnostics only.
+- External id = the record's `uuid` (**VERIFY** it is exposed), so upserts are idempotent.
+
+**P2-4 `SyncService` rewrite.** Single-flight. Triggers: app start, resume (at least 10 minutes apart), manual, and after a permission grant. First run backfills `wear_backfill_days` (default 30); later runs re-read the last 3 days plus today. Per data type `try/catch`, so one failing type never blocks the others. Batch writes with `putAll` per box instead of one `await` per record. No work on the first-frame path; run after the UI is up. Status model, shown honestly in the UI: Not available, Needs update or install, Needs permission, Connected with no data yet, Connected, Error (with a readable reason). **"Synced" is shown only when records were actually read**, and the message includes counts ("Read 7 days: 52,310 steps, 6 sleep sessions, 3 workouts").
+
+**P2-5 Settings: Health Data** (rewrite `wearables_settings_page.dart`; rename the entry in `settings_page.dart`). Status chip, **Connect** (request permissions), **Open Health Connect settings**, Sync now, last sync, per-type toggles, backfill days, workout calorie credit mode, an AI-sharing toggle (default off), and a **Diagnostics** screen showing, for the last sync, the record count per type with first and last timestamps and the source apps seen. A short setup guide: install or update Health Connect, turn on sharing from the phone's health app, grant permissions here. Remove every "Samsung", "Galaxy", "Simulator" and "BioActive" string.
+
+**P2-6 Wire real data into the app** (each reads one `dayView(dayKey)` from `WearableRepository`, never raw boxes):
+- **Calorie tracker.** Each workout becomes one `CalorieBurnEntry` (`id = health_{externalId}`, `source = 'health_connect'`), using the session's calories. De-duplicate against manual entries (same day, start within 30 minutes, or similar name and duration within 25%; mark `supersededBy`, never delete; show "merged with workout" with Undo). The day's total burned (resting plus active) is shown as a read-only row and is not added to the target (Default). Imports never trigger the old flip-XP. Put this logic in a pure `calorie_reconciler.dart`.
+- **Wake-up task.** If `wake_infer_from_sleep` is on and there is no chat or manual log for the day, create an inferred wake log from the main sleep session's end (the longest session ending before 14:00; naps excluded), marked "(from Health data)". A chat or manual log always wins. Read `wake_infer_from_sleep` and `journal_autolog_kinds`, which are defined today but never read.
+- **Journal auto-log.** Sleep summary, one line per workout, steps, written without unlocking and respecting `journal_autolog_kinds`. Omit the sleep score when absent.
+- **Health composite.** Align `HealthCalculator` with weights calories 25, medicine 20, missions 15, sleep 20, activity 20, renormalised over the components that have data. With no Health data it must reproduce the old 35/35/30 results exactly. Remove the AGEs and "sleep score" branches that depend on Samsung-only fields.
+- **XP.** Use ledger rules only (`steps_goal`, `steps_stretch`, `active_time_goal`, `workout:{id}`, `sleep_goal`), never `addXP` from this code; 40 XP daily cap on these rules. Keep the diet-deficit flip logic as it is for now.
+- **Weight.** Write a `WeightEntry` (source `health_connect`) for a day only when no manual entry exists that day (manual wins). **VERIFY** `WeightEntry` has `source` and `externalId`.
+- **AI.** Add a local `wear` intent answering steps, sleep, workouts, weight and heart rate from `dayView`, saying so plainly when data is missing. `AiContext.buildWearContext()` returns one compact line, attached to Gemini calls only when the AI-sharing toggle is on. Keep the `wake` intent routing ahead of the task-create check and the diet scan.
+- **Metric tasks.** **VERIFY** whether `Goal.kind == 'metric'` has any logic (the fields exist). If not, implement: sync updates `currentValue` for `steps`, `active_minutes`, `sleep_minutes`, `workout_minutes`; reaching the target completes the task through the ledger rule `metric:{goalId}`, not `Goal.complete()`.
+
+**Done when:** on a phone with Health Connect and Samsung Health sharing enabled, the Diagnostics screen's record counts and the Health tab's numbers match what Samsung Health shows for the same days; a re-sync adds nothing; with Health Connect missing or permission denied the app stays fully usable and says what to do.
 
 ---
 
-### Phase 5: Testing, QA, documentation, release (everything testing-related lives here)
+### Phase 3: Health tab and Samsung cleanup
 
-Do not start before Phases 0 to 4 compile. Fix defects in the owning phase's files and re-run the affected tests.
+**P3-1 Tab bar (U1).** Replace the hand-built row in `health_page.dart` with a `TabBar` and `TabBarView` (or a segmented control with a `PageView`), three tabs: `MEDICINE`, `WEIGHT`, `HEALTH DATA` (Q3). Labels never clip (`FittedBox` or a shorter label on narrow widths), swipe between tabs, each tab keeps its state and scroll position (`AutomaticKeepAliveClientMixin`), the `initialTab` argument keeps its meaning (0, 1, 2).
 
-**5.1 Infrastructure.** `FakeWearableSource` (scriptable data, errors, tokens), an injectable clock, a temp-directory Hive harness (copy `test/services/*`), `JournalService.setMockDependencies`. Fixtures hand-built to match `docs/WEARABLE_FIELD_MAP.md`. New tests under `test/features/wearables/`, `test/features/journal/`, `test/features/wakeup/`.
+**P3-2 Health Data tab** (rename `FitnessTab` content; keep the file path to keep the diff small). Sections, each shown only when it has data: **Today** (steps ring against `step_goal_default`, active calories, distance, active minutes), **Sleep** (last night's duration and stage bar, 7-day chart, wake-time consistency), **Workouts** (list and detail), **Heart** (resting heart rate trend), **Body** (weight and body fat trend). States: not connected (Connect call to action), loading (skeleton without shimmer), connected with no data (one explanation line), error. "—" for missing values. Build lists lazily (slivers or `ListView.builder`), precompute chart series in the repository (not in `build`), wrap each chart in a `RepaintBoundary`.
+
+**P3-3 Remove Samsung and Galaxy data.** Delete the AGEs Index card, the Energy Score UI and every "Galaxy Watch 7", "Samsung Health", "BioActive Sensor" string and icon in `fitness_tab.dart`, `galaxy_watch_card.dart`, `wearables_settings_page.dart`, `settings_page.dart` and `health_calculator.dart` comments. Keep the home card's registry **id** `galaxy_watch` (saved home layouts reference it) but change its title to "Activity" and its content to Health data. Do not remove the `EnergyScoreDay` and `AgesSample` adapters (data safety).
+
+**Done when:** `grep -rniE "galaxy|samsung|bioactive|ages index"` over `lib/` and `android/app/src/main/AndroidManifest.xml` returns nothing except the retained adapter files, the home-card id, and the unrelated `SamsungVideoAssistant` class in `speech_vault_page.dart` (leave that one; report it).
+
+---
+
+### Phase 4: Smoothness ("so smooth, so fresh, buttery")
+
+Targets, measured in profile mode on a device: no sustained frame over the display's frame budget (16.6 ms at 60 Hz, 8.3 ms at 120 Hz) while scrolling the home stack, switching Health tabs and scrolling Transactions; cold start to first frame under 1.5 seconds. Record before and after in the report. Without a device, apply the changes and report "not measured".
+
+**P4-1 Home stack, the biggest win (U2, U3).** Keep the look, drop the per-frame blur:
+1. Remove the per-card `ImageFiltered` blur and the full-screen "lens" `BackdropFilter` (Q4). For cards behind the focused one, use scale, fade (via `FadeTransition` or a colour overlay, not an `Opacity` widget) and a dark overlay.
+2. In `HomeCardFrame`, replace the `BackdropFilter(sigma 18)` with a pre-composed translucent gradient plus the existing hairline border. Replace the two large shadows with one cheap shadow, applied only to the focused card.
+3. Replace the `AnimatedBuilder` that rebuilds all cards on every scroll tick with a `Flow` (a `FlowDelegate` with `repaint: _scrollController`) or an equivalent that updates transforms in paint only, so card widgets are built once.
+4. Build only the cards within three positions of the focus; give the rest a `SizedBox.shrink()`.
+5. Keep a `RepaintBoundary` directly under each transform so card contents are not re-rasterised while the transform moves.
+
+**P4-2 Star background (U4).** Paint all stars with one batched `drawPoints` or `drawRawPoints` call, reduce to about 24 stars, drop the scroll listener in favour of a transform on a cached layer, and pause the ticker when the home route is covered, the app is paused, or the system reduce-motion setting is on.
+
+**P4-3 Scope rebuilds (U5).** Pass `keys:` to every `box.listenable()` (49 sites; at minimum `app.dart`, `wallet_card_stack.dart`, every home card). The `MaterialApp` listens only to `theme_mode` (and the accent if it is a setting). Build both `ThemeData` objects once per mode and accent, not on every rebuild. Move the `NowPlayingService.currentDominantColor` builder down to the widgets that use it (mini player, now-playing card) instead of wrapping `MaterialApp`.
+
+**P4-4 Data work off the hot path (U9, M10).** Compute the finance summary once per change (memoise on the controller's `_notify`), not per `build`. Compute all account balances in a single pass over the transactions grouped by account instead of one full scan per account. Keep heavy jobs (backfill, catch-up posting) off the first-frame path and batch Hive writes with `putAll`.
+
+**P4-5 Startup (U6).** Open only what the first frame needs (settings, goals, the boxes the home cards read). Open independent boxes with `Future.wait`. Run the finance migrator, journal box, wake rollover, recurring runner, notification init and medicine reminder reschedule after the first frame (`addPostFrameCallback` or `unawaited`). Cheap version-flag checks stay in front of any migration. **VERIFY** ordering dependencies (adapters before boxes; the migrator before finance screens).
+
+**P4-6 Lists and screens (U7, U8).** Convert long `Column` + `SingleChildScrollView` screens to slivers or `ListView.builder` (Transactions, Journal timeline, Health Data tab, Accounts, Recurring). Remove `shrinkWrap: true` inside scrollables where an item count can be large. Add `const` constructors and `RepaintBoundary` around list items and charts. Pause repeating animations when off-screen. Replace `Opacity` with `FadeTransition` or `AnimatedOpacity`.
+
+**P4-7 Motion polish.** One motion token set (durations 160 to 320 ms, `Curves.easeOutCubic` for entrances, `Curves.fastOutSlowIn` for moves) in `expressive_tokens.dart`. A consistent page transition for every route through `PageTransitionsTheme` (**VERIFY** what `core/utils/page_transitions.dart` already does and reuse it). Respect `disableAnimations`. Keep haptics to taps on primary controls only.
+
+**P4-8 Optional: high refresh rate.** If the device runs a lower rate than it supports, evaluate `flutter_displaymode` to request the highest mode. Stop and ask before adding the dependency.
+
+**P4-9 Jank probe (debug and profile only).** A `SchedulerBinding.addTimingsCallback` logger that counts frames over budget per route. Not shipped in release builds.
+
+---
+
+## 6. Phase 5: Testing, QA, documentation and release
+
+Everything testing-related lives here. Do not start before Phases 0 to 4 compile.
+
+**5.1 Infrastructure.** `FakeHealthSource` (scriptable data, errors) under `test/`, an injectable clock, a temp-directory Hive harness (copy the pattern in `test/services/*`). Fixtures built by hand from the field map written in 5.7.
 
 **5.2 Unit tests.**
 
 | Area | Must cover |
 |---|---|
-| Purge migration | Removes only matching rows; manual burns lose `supersededBy` and count again; wake XP reversed on the event's date; streak recomputed; backup file exists; backup failure aborts with no change; second run is a no-op; "Later" leaves data untouched |
-| Sync gate | Disabled, not granted, or error → zero writes to `wear_*`, `diet_logs`, journal, wake logs, XP; mock rows never reach core; per-type failure keeps others consistent; single-flight; resume interval |
-| Mappers | Units; missing field → `null` (no defaults); naps; sleep crossing midnight lands on the wake day; body water; active vs total kcal |
-| Wake rules | Both directions at the boundary (target 05:00: 04:59, 05:00, 05:01; with grace); edits both ways; unlogged policy; multi-day gap; task created after target time |
-| Wake streak | Single miss keeps it; N consecutive misses reset it; ✓→✕ undoes the increment; back-dated log does not touch today |
-| XP ledger and rules | Idempotent `set`; reversal; own-date writes; per-day clamp; 40 XP cap; each rule at its boundary; revised data lowers XP; no double award with the diet migration |
-| Diet XP migration | Past days untouched; ledger starts on the migration day; toggling food in and out of deficit nets one award |
-| Calorie reconciler | Each credit mode; upsert without duplicates; ±30 min and 25% thresholds; Undo; `totalBurned` excludes superseded; no flip XP; missing day log created; Q4 behaviour |
-| Composite | Renormalisation; wearable off reproduces 35/35/30 exactly; AGEs excluded |
-| Metric tasks | Threshold completion, reversal, daily reset |
-| AGEs manual | Add, edit, delete, ordering, no derived labels |
-| AI routing | `wake` routes before diet; regression table of existing diet, finance, task, vault, music phrases; `wear` answers local; context line attached only with `wear_ai_share`, under budget; missing data answered honestly |
+| Valued-account balance | No valuation (opening plus flows); valuation then later SIP (anchor plus flows); same-day flows; two valuations; flows before the valuation ignored; history and net worth consistent |
+| SIP and EMI posting | Monthly post on the due day; idempotent re-run; day 31 in short months; catch-up cap of 60; past start date per Q1; paused and ended rules; destination required; no double debit with legacy data; source and destination both change |
+| EMI split | Interest and principal from the schedule; final instalment; ends at zero; missing loan fields |
+| Currency | No formatter output contains two symbols; signed formatting; default symbol ₹; a repo-wide search for a literal `₹` directly before `FormatUtils.format` is empty |
+| Legacy review | Duplicate detection; convert-to-transfer; nothing automatic; backup written |
+| Purge | Only matching rows removed; manual burns restored; wake XP reversed on the event's date; second run is a no-op; backup failure aborts |
+| Sync | Gate (disabled, no permission, error: zero writes); per-type failure isolation; single-flight; idempotent upserts; batch writes; "synced" only when records were read |
+| Mappers | Units; missing field gives `null`; naps; sleep crossing midnight lands on the wake day; steps from aggregates; active versus total calories |
+| Calorie reconciler | Credit mode; no duplicates; 30 minute and 25% de-duplication with Undo; `totalBurned` excludes superseded; no flip-XP |
+| Composite | Renormalisation; no Health data reproduces 35/35/30 exactly |
+| Wake inference | Main sleep rule; manual or chat log beats inference; setting off |
+| Metric tasks, XP rules | Boundaries, reversal when data is revised down, 40 XP cap |
 
-**5.3 Widget tests.** Wake-up task card (pending, ✓, ✕, 7-day strip, rule text); wearable card and Fitness tab (not connected, loading, empty, connected, error, DEMO banner); Settings status chips; purge dialog; burn list watch icon and merge note with Undo; AGEs sheet.
+**5.3 Widget tests.** Health page tabs (labels do not clip at 320 dp width, swipe, state kept); Health Data tab in all states; Settings status chips; account sheet SIP and EMI sections; Update current value; purge and review dialogs; home stack builds only nearby cards.
 
-**5.4 Integration tests (fake source, no device).** Sync → burn entries → ledger XP → composite → journal lines in one pass; re-sync produces no duplicates; disconnect leaves every screen usable.
+**5.4 Integration (fake source, no device).** Create fund account with SIP, advance the clock three months, check balances, notifications and net worth. Sync, burn entries, XP, composite and journal in one pass; re-sync adds nothing.
 
-**5.5 Static checks.** `dart format .` clean; `flutter analyze` no new warnings versus P0-0; the whole existing suite (including finance phases 1 to 13) green. Searches that must come back empty: `generateNative` and hard-coded health literals under `android/`; `addXP(` inside `features/wearables` and wake code; Hive box access outside the repositories; any Hive access reachable from a background isolate; `?? 75`, `?? 45.0`, `?? 80` style defaults on health values.
+**5.5 Static checks.** `dart format .`; `flutter analyze` no new warnings against P0-0; the existing suite (including finance phases 1 to 13) green. Searches that must come back empty: `generateNative`; `SamsungHealth` outside the retained adapters; `?? 75`, `?? 45.0`, `?? 80` on health values; `addXP(` in wearable and wake code; `.listenable()` with no `keys:` on the `settings` box; `BackdropFilter` inside `home_card_frame.dart`.
 
-**5.6 Device QA (owner, real Galaxy Watch 7; add to `MANUAL_QA.md`).**
-1. Fresh state, no source: no wearable rows anywhere, cards show Connect.
-2. After the purge: yesterday's fake entries gone, manual burns count again, wake XP reversed, summary matched what you saw.
-3. Connect the real source: steps and sleep match Samsung Health; a re-sync adds nothing.
-4. Run a 30-minute workout: one burn entry, a manual "ran 30 min" merged under it with Undo, XP once.
-5. Wake task: target 05:00, say "woke up at 4" and "woke up at 5:40"; result follows the Q1 rule shown on the card; edits ✓↔✕ move XP and streak correctly; one missed day keeps the streak.
-6. Disconnect or revoke permission: app stays usable, nothing crashes.
-7. AGEs: add a reading by hand, see it in the trend.
+**5.6 Device QA (owner; add to `MANUAL_QA.md`).**
+1. No Health Connect permission: no health rows anywhere, cards show Connect.
+2. After the purge: yesterday's fake entries are gone and manual burns count again.
+3. Grant permission: steps and sleep match the phone's health app; a re-sync adds nothing; Diagnostics shows real counts and source apps.
+4. Run a 30 minute workout: one burn entry, an earlier manual "ran 30 min" merged with Undo.
+5. Create "Flexi Cap Fund" with a ₹1,000 SIP on a day close to today (or use the debug clock): main goes down by ₹1,000 and the fund goes up by ₹1,000 once; reopening the app does not post again.
+6. Enter a current value, then wait for or simulate the next SIP: the value rises by the SIP amount.
+7. Create a loan with an EMI: outstanding falls by the principal part only.
+8. No amount shows two ₹ symbols, and no screen shows `$`.
+9. Home scroll, Health tabs and Transactions scroll feel smooth, and cold start feels fast. Record numbers or a screen recording.
 
-**5.7 Documentation.** `APP_DOCUMENTATION.md` (boxes, models, engines, channels, XP rule table, wake rules, settings keys, data-source tracks, cards), `docs/WEARABLE_FIELD_MAP.md`, `MANUAL_QA.md`, `README.md`.
-
-**5.8 Release.** Bump `pubspec.yaml` version. Record that the build is debug-signed and, for Track A, relies on Samsung Developer Mode. Rollback note: purge backup JSON, `.bak_mvp4` journal copy, `wear_enabled = false`. Final report in the usual format with three explicit lists: verified by tests, verified only by reading code, needs the device.
+**5.7 Documentation and release.** `APP_DOCUMENTATION.md` (recurring runner, valued-account balance rule, Health Connect source, sync states, settings keys, Health Data tab, performance rules: no `BackdropFilter` on repeated or animated surfaces, `keys:` on listenables), `docs/HEALTH_FIELD_MAP.md` (Health Connect field, model field, unit, with every unconfirmed field marked), `MANUAL_QA.md`, `README.md`. Bump `pubspec.yaml`. Rollback note: the purge backup JSON, the review-sheet backup, and `wear_enabled = false`. Final report in the usual format with three lists: verified by tests, verified only by reading code, needs the device.
 
 ---
 
-## 6. Out of scope
+## 7. Out of scope
 
-Everything in `MVP_4.md` §10, plus: building the fitness-age estimate, anything that needs Samsung's partner-only SDK, writing data back to Samsung Health or Health Connect, finance feature changes, signing or application-id changes, removing `lib/models/goals.dart`.
+Samsung Health Data SDK, AGEs Index, Energy Score, Samsung partner registration, writing data back to Health Connect, background sync, iOS and HealthKit, any change to existing typeIds, field indexes or box names, signing or application-id changes, removing `lib/models/goals.dart`, and the wake-up task issues listed in `MVP_4_1.md` (wake direction and streak), which are tracked there.1. SIP and EMI not accumulating (four causes)
+
+Auto-posting only happens when you open the Recurring page. Nothing posts SIPs or EMIs at app start, on resume or on a schedule. EMI rules also default to manual confirm.
+Fund balances ignore later contributions. Once any value has been logged on an investment account, the balance is just that latest value and every SIP after it is ignored. So "add current balance" actually stops the account growing.
+The old SIP system still runs beside the new one. It posts plain expenses with no destination account, and can double-debit a SIP that was migrated to the new system.
+EMIs count entirely as principal. No interest split is recorded, so the loan balance drops too fast.
+
+The plan makes the fund account the destination of its SIP rule. Each month the SIP posts automatically (main account down, fund up). There's a quick "Update current value" button, and a one-time review to remove duplicate or old SIP debits, with a backup first and nothing automatic.
+
+2. Double ₹
+FormatUtils already adds the symbol, but 42 places in 9 files add another ₹ in front. The home finance card also hard-codes $. I read "2₹" as this doubled symbol; if you meant something else, send a screenshot.
+
+3. Watch sync
+The bridge never calls Samsung. It generates fake steps, sleep, weight and AGEs from the calendar date, and sync writes them into your calorie tracker, journal, wake task and XP. The plan stops that, removes the fake data (with a backup and a confirm dialog), and reads real data through Android Health Connect instead. Samsung Health has to be set to share into Health Connect for the watch data to arrive; the plan includes an in-app guide for that. Energy Score and AGEs are removed, since Health Connect doesn't provide them.
+
+4. Health tab and lag
+
+The tab: the third tab becomes HEALTH DATA with proper swipeable tabs that keep their state, and all Samsung and Galaxy text is removed.
+The main lag cause: the home card stack paints several blurs and shadows per card on every frame, and rebuilds all cards on every scroll tick. The animated star background also repaints constantly behind the blurs.
+Whole-app rebuilds: any write to settings rebuilds the entire app, because no listener filters by key.
+Slow start: about 25 awaited steps run before the first screen.
+Fixes: swap the blurs for scale, fade and gradient glass, move to paint-only card transforms, scope the listeners, and defer startup work. The agent is also asked to measure frame times before and after if it has a device.
+
+Please answer (defaults are in the file):
+
+For a SIP or EMI with a past start date, should it post the missed months, or start from today?
+Is it okay to drop the depth-of-field blur on the home cards? It's the biggest speed cost, and the glass look stays.
+Is HEALTH DATA the right name for the third tab?

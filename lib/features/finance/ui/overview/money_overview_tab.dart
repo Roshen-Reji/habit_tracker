@@ -345,8 +345,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                 ),
                 child: Text(
                   s.hasShortfall
-                      ? 'Deficit: ₹${FormatUtils.formatMoney(s.shortfall)}'
-                      : '₹${FormatUtils.formatMoney(s.perDay)} / day',
+                      ? 'Deficit: ${FormatUtils.formatMoney(s.shortfall)}'
+                      : '${FormatUtils.formatMoney(s.perDay)} / day',
                   style: TextStyle(
                     color: s.hasShortfall ? Colors.red : BentoTheme.accent,
                     fontSize: 11,
@@ -359,8 +359,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
           const SizedBox(height: 8),
           Text(
             s.hasShortfall
-                ? '₹0'
-                : '₹${FormatUtils.formatMoney(s.safeToSpend)}',
+                ? FormatUtils.formatCurrency(0)
+                : '${FormatUtils.formatMoney(s.safeToSpend)}',
             style: TextStyle(
               color: s.hasShortfall ? Colors.red : BentoTheme.textPrimary,
               fontSize: 32,
@@ -411,7 +411,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Text(
-        '$label: ${val >= 0 ? '' : '-'}₹${FormatUtils.formatMoney(val.abs())}',
+        '$label: ${val >= 0 ? '' : '-'}${FormatUtils.formatMoney(val.abs())}',
         style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
       ),
     );

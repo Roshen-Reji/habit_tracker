@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:convert';
 import 'package:habit_tracker/data/services/ai_context.dart';
 import 'package:habit_tracker/data/services/gemini_client.dart';
@@ -1272,7 +1273,7 @@ class AiService {
     buffer.writeln(result.explanation);
     buffer.writeln(result.recommendation);
     if (result.monthsToSave != null && result.monthsToSave! > 0) {
-      buffer.writeln('Estimated saving time: ~${result.monthsToSave} months (saving ₹${avgSurplus.toStringAsFixed(0)}/mo).');
+      buffer.writeln('Estimated saving time: ~${result.monthsToSave} months (saving ${FormatUtils.formatMoney(avgSurplus, decimals: 0)}/mo).');
     }
 
     return AiResponse(
@@ -1510,32 +1511,17 @@ class AiService {
   }
 
   AiResponse _buildSipResponse() {
-    final settingsBox = Hive.box('finance_settings');
-    final planner = Map.from(settingsBox
-        .get('planner', defaultValue: {'fixedExpenses': [], 'sips': []}));
-    final sips = List.from(planner['sips'] ?? []);
-    final monthlySip = sips.fold<double>(
-        0, (sum, item) => sum + _asDouble((item as Map)['amount']));
+    final controller = FinanceController();
+    final sips = controller.allRecurringRules.where((r) => r.kind == 'sip').toList();
+    final monthlySip = sips.fold<double>(0, (sum, rule) => sum + rule.amount);
 
-    final vaultBox = Hive.box<AssetVault>('finance_vaults');
-    final sipVaults = vaultBox.values.where((vault) {
-      final name = vault.name.toLowerCase();
-      final type = vault.type.toLowerCase();
-      return name.contains('sip') || type.contains('sip');
-    }).toList();
-    final vaultTotal =
-        sipVaults.fold<double>(0, (sum, vault) => sum + vault.balance);
-
-    final details = sips.map((item) {
-      final sip = Map.from(item as Map);
-      return '${sip['name'] ?? 'SIP'}: ${_formatMoney(_asDouble(sip['amount']))}/mo';
+    final details = sips.map((rule) {
+      return ': /mo';
     }).join(', ');
 
     final msg = StringBuffer(
-        'Your current SIP commitment is ${_formatMoney(monthlySip)}/month.');
-    if (details.isNotEmpty) msg.write(' $details.');
-    if (vaultTotal > 0)
-      msg.write(' SIP-tagged vault balance: ${_formatMoney(vaultTotal)}.');
+        'Your current SIP commitment is /month.');
+    if (details.isNotEmpty) msg.write(' .');
 
     return AiResponse(message: msg.toString(), intent: 'general_chat');
   }
@@ -1951,34 +1937,33 @@ class AiService {
       }
     }
 
-    // 4. Energy Score Query
-    if (lower.contains('energy')) {
-      final energy = view.energy?.score;
-      if (energy != null) {
-        final rating = energy >= 80 ? 'Optimal' : (energy >= 60 ? 'Good' : 'Needs Rest');
+    // 4. Weight Query
+    if (lower.contains('weight')) {
+      final weight = view.latestWeight;
+      if (weight != null) {
         return AiResponse(
-          message: 'Your Energy Score today is $energy/100 ($rating).',
+          message: 'Your recorded weight for today is  kg.',
           intent: 'wear',
         );
       } else {
         return AiResponse(
-          message: 'No Energy Score recorded for today yet.',
+          message: 'No weight recorded for today yet.',
           intent: 'wear',
         );
       }
     }
 
-    // 5. AGEs Index Query
-    if (lower.contains('age') || lower.contains('ages') || lower.contains('glycation')) {
-      final ages = view.ages?.score;
-      if (ages != null) {
+    // 5. Heart Rate Query
+    if (lower.contains('heart rate') || lower.contains('hr') || lower.contains('bpm')) {
+      final hr = view.restingHeartRate;
+      if (hr != null) {
         return AiResponse(
-          message: 'Your latest AGEs Index reading is ${ages.toStringAsFixed(1)}.',
+          message: 'Your resting heart rate today is  bpm.',
           intent: 'wear',
         );
       } else {
         return AiResponse(
-          message: 'No AGEs reading recorded yet. You can log a reading in the Fitness tab.',
+          message: 'No resting heart rate recorded for today yet.',
           intent: 'wear',
         );
       }

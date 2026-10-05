@@ -107,9 +107,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
-                      labelText: 'Amount (₹)',
+                      labelText: 'Amount (${FormatUtils.getCurrencySymbol()})',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
-                      prefixText: '₹ ',
+                      prefixText: '${FormatUtils.getCurrencySymbol()} ',
                       prefixStyle: TextStyle(color: BentoTheme.accent),
                       filled: true,
                       fillColor: BentoTheme.background,
@@ -170,9 +170,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                           decoration: InputDecoration(
-                            labelText: '$m share (₹)',
+                            labelText: '$m share (${FormatUtils.getCurrencySymbol()})',
                             labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
-                            prefixText: '₹ ',
+                            prefixText: '${FormatUtils.getCurrencySymbol()} ',
                             isDense: true,
                             filled: true,
                             fillColor: BentoTheme.background,
@@ -248,8 +248,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
     }
 
     final actionText = isYouCreditor
-        ? 'Confirm receiving ₹${transfer.amount.toStringAsFixed(2)} from ${transfer.from}?'
-        : 'Confirm paying ₹${transfer.amount.toStringAsFixed(2)} to ${transfer.to}?';
+        ? 'Confirm receiving ${FormatUtils.formatMoney(transfer.amount, decimals: 2)} from ${transfer.from}?'
+        : 'Confirm paying ${FormatUtils.formatMoney(transfer.amount, decimals: 2)} to ${transfer.to}?';
 
     showDialog(
       context: context,
@@ -304,7 +304,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Settlement of ₹${transfer.amount.toStringAsFixed(2)} recorded!')),
+                  SnackBar(content: Text('Settlement of ${FormatUtils.formatMoney(transfer.amount, decimals: 2)} recorded!')),
                 );
               }
             },
@@ -414,7 +414,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '₹${FormatUtils.formatMoney(entry.amount, decimals: 0)}',
+                  '${FormatUtils.formatMoney(entry.amount, decimals: 0)}',
                   style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(width: 8),
@@ -454,8 +454,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               final isNegative = b.net < -0.005;
               final color = isPositive ? const Color(0xFF22C55E) : (isNegative ? const Color(0xFFEF4444) : BentoTheme.textSecondary);
               final text = isPositive
-                  ? 'gets back ₹${b.net.toStringAsFixed(2)}'
-                  : (isNegative ? 'owes ₹${(-b.net).toStringAsFixed(2)}' : 'settled');
+                  ? 'gets back ${FormatUtils.formatMoney(b.net, decimals: 2)}'
+                  : (isNegative ? 'owes ${FormatUtils.formatMoney((-b.net), decimals: 2)}' : 'settled');
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -524,7 +524,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                           const TextSpan(text: ' pays '),
                           TextSpan(text: s.to, style: const TextStyle(fontWeight: FontWeight.bold)),
                           TextSpan(
-                            text: ' ₹${s.amount.toStringAsFixed(2)}',
+                            text: ' ${FormatUtils.formatMoney(s.amount, decimals: 2)}',
                             style: TextStyle(color: BentoTheme.accent, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -573,7 +573,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               ),
               const SizedBox(height: 6),
               Text(
-                '₹${FormatUtils.formatMoney(report.totalSpent, decimals: 0)}',
+                '${FormatUtils.formatMoney(report.totalSpent, decimals: 0)}',
                 style: TextStyle(color: BentoTheme.accent, fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
@@ -620,8 +620,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('Paid: ₹${paid.toStringAsFixed(0)}', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12)),
-                          Text('Share: ₹${consumed.toStringAsFixed(0)}', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                          Text('Paid: ${FormatUtils.formatMoney(paid, decimals: 0)}', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12)),
+                          Text('Share: ${FormatUtils.formatMoney(consumed, decimals: 0)}', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
                         ],
                       ),
                     ),

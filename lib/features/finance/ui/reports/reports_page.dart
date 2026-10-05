@@ -269,7 +269,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   children: [
                     Text('Net Worth Delta', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary)),
                     Text(
-                      '${rep.netWorthChange >= 0 ? '+' : ''}₹${FormatUtils.formatCurrency(rep.netWorthChange)}',
+                      '${rep.netWorthChange >= 0 ? '+' : ''}${FormatUtils.formatCurrency(rep.netWorthChange)}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
                         color: rep.netWorthChange >= 0 ? Colors.green : Colors.red,
                         fontWeight: FontWeight.bold,
@@ -278,9 +278,9 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 12),
-                _rowText('Starting Net Worth', '₹${FormatUtils.formatCurrency(rep.netWorthStart)}'),
+                _rowText('Starting Net Worth', '${FormatUtils.formatCurrency(rep.netWorthStart)}'),
                 const SizedBox(height: 6),
-                _rowText('Ending Net Worth', '₹${FormatUtils.formatCurrency(rep.netWorthEnd)}'),
+                _rowText('Ending Net Worth', '${FormatUtils.formatCurrency(rep.netWorthEnd)}'),
                 const SizedBox(height: 6),
                 _rowText('Savings Rate', '${(rep.savingsRate * 100).toStringAsFixed(1)}%'),
               ],
@@ -329,7 +329,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     ),
                   ),
                   Text(
-                    '₹${FormatUtils.formatCurrency(item.amount)}',
+                    '${FormatUtils.formatCurrency(item.amount)}',
                     style: const TextStyle(fontSize: 14).copyWith(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -401,13 +401,13 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${item.transactionCount} txn${item.transactionCount > 1 ? 's' : ''} · Avg ₹${FormatUtils.formatMoney(item.avgAmount, decimals: 0)}',
+                    '${item.transactionCount} txn${item.transactionCount > 1 ? 's' : ''} · Avg ${FormatUtils.formatMoney(item.avgAmount, decimals: 0)}',
                     style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
                   ),
                 ],
               ),
               Text(
-                '₹${FormatUtils.formatCurrency(item.totalSpent)}',
+                '${FormatUtils.formatCurrency(item.totalSpent)}',
                 style: const TextStyle(fontSize: 14).copyWith(
                   color: BentoTheme.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -480,10 +480,10 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   Text(c.categoryName, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
                   Row(
                     children: [
-                      Text('₹${FormatUtils.formatCurrency(c.month2Amount)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      Text('${FormatUtils.formatCurrency(c.month2Amount)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       Text(
-                        '${isIncrease ? '+' : ''}₹${FormatUtils.formatMoney(c.difference, decimals: 0)}',
+                        '${isIncrease ? '+' : ''}${FormatUtils.formatMoney(c.difference, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -540,7 +540,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                       Text(p.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary)),
                       const SizedBox(height: 4),
                       Text(
-                        'In: ₹${FormatUtils.formatMoney(p.income, decimals: 0)} · Out: ₹${FormatUtils.formatMoney(p.spending, decimals: 0)}',
+                        'In: ${FormatUtils.formatMoney(p.income, decimals: 0)} · Out: ${FormatUtils.formatMoney(p.spending, decimals: 0)}',
                         style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
                       ),
                     ],
@@ -549,12 +549,12 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'NW: ₹${FormatUtils.formatMoney(p.netWorth, decimals: 0)}',
+                        'NW: ${FormatUtils.formatMoney(p.netWorth, decimals: 0)}',
                         style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.accent, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Net: ${p.net >= 0 ? '+' : ''}₹${FormatUtils.formatMoney(p.net, decimals: 0)}',
+                        'Net: ${p.net >= 0 ? '+' : ''}${FormatUtils.formatMoney(p.net, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
                           color: p.net >= 0 ? Colors.green : Colors.red,
@@ -592,7 +592,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
           ),
           const SizedBox(height: 8),
           Text(
-            '₹${FormatUtils.formatCurrency(amount)}',
+            '${FormatUtils.formatCurrency(amount)}',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(color: color, fontWeight: FontWeight.bold),
           ),
         ],
@@ -615,8 +615,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        Text('₹${FormatUtils.formatMoney(val1, decimals: 0)}', style: TextStyle(color: BentoTheme.textSecondary)),
-        Text('₹${FormatUtils.formatMoney(val2, decimals: 0)}', style: TextStyle(color: isExpense ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
+        Text('${FormatUtils.formatMoney(val1, decimals: 0)}', style: TextStyle(color: BentoTheme.textSecondary)),
+        Text('${FormatUtils.formatMoney(val2, decimals: 0)}', style: TextStyle(color: isExpense ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
       ],
     );
   }

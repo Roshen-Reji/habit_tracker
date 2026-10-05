@@ -40,6 +40,8 @@ class FinanceController extends ChangeNotifier {
 
   void _onRepositoryChanged() {
     _isIndexDirty = true;
+    _isBalancesDirty = true;
+    _financeSummaryMemo = null;
     notifyListeners();
   }
 
@@ -185,8 +187,54 @@ class FinanceController extends ChangeNotifier {
     return accountsMap[id];
   }
 
+
+  final Map<String, double> _cachedBalances = {};
+  bool _isBalancesDirty = true;
+  FinanceSnapshot? _financeSummaryMemo;
+  
+  void _rebuildBalancesIfNeeded() {
+    if (!_isBalancesDirty) return;
+    _cachedBalances.clear();
+    
+    // Single pass computation:
+    final asOf = DateTime.now();
+    final allTxs = storage.transactionBox.values;
+    final allVals = storage.valuationBox.values;
+    
+    // Group transactions by account
+    final txByAcc = <String, List<Transaction>>{};
+    for (final tx in allTxs) {
+       if (tx.accountId != null) {
+          txByAcc.putIfAbsent(tx.accountId!, () => []).add(tx);
+       }
+       if (tx.toAccountId != null) {
+          txByAcc.putIfAbsent(tx.toAccountId!, () => []).add(tx);
+       }
+    }
+    
+    final valByAcc = <String, List<Valuation>>{};
+    for (final v in allVals) {
+       valByAcc.putIfAbsent(v.accountId, () => []).add(v);
+    }
+    
+    for (final acc in storage.accountBox.values) {
+       _cachedBalances[acc.id] = LedgerEngine.balance(
+         acc,
+         txByAcc[acc.id] ?? [],
+         valByAcc[acc.id] ?? [],
+         asOf: asOf,
+       );
+    }
+    _isBalancesDirty = false;
+  }
+  
   /// Computes the balance of a specific [account] as of [asOf].
   double getAccountBalance(Account account, {DateTime? asOf}) {
+    if (asOf == null || asOf.year == DateTime.now().year && asOf.month == DateTime.now().month && asOf.day == DateTime.now().day) {
+       _rebuildBalancesIfNeeded();
+       return _cachedBalances[account.id] ?? 0.0;
+    }
+    // Fallback for custom dates
     return LedgerEngine.balance(
       account,
       storage.transactionBox.values,
@@ -194,6 +242,7 @@ class FinanceController extends ChangeNotifier {
       asOf: asOf,
     );
   }
+
 
   /// Returns all active asset accounts.
   List<Account> get assetAccounts =>

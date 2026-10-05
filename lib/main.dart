@@ -4,7 +4,7 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
-import 'package:habit_tracker/data/services/sip_service.dart';
+// import 'package:habit_tracker/data/services/sip_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
@@ -20,6 +20,7 @@ import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/data/services/xp_ledger.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_cleanup_service.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -115,7 +116,7 @@ void main() async {
     // Open Finance boxes
     try {
       await FinanceStorage().init();
-      await FinanceMigrator().migrateIfNeeded();
+      
     } catch (e) {
       debugPrint('FinanceStorage init warning: $e');
     }
@@ -140,7 +141,7 @@ void main() async {
     try {
       await Hive.openBox<Idea>('ideas');
       await Hive.openBox<BookProgress>('reader_progress');
-      await JournalService.instance.openEncryptedBox();
+      
     } catch (e) {
       debugPrint('Productivity boxes warning: $e');
     }
@@ -173,9 +174,9 @@ void main() async {
     }
 
     try {
-      await SipService.runDue();
+      await RecurringRunner.run();
     } catch (e) {
-      debugPrint('SipService warning: $e');
+      debugPrint('RecurringRunner warning: $e');
     }
 
     try {
@@ -193,6 +194,18 @@ void main() async {
     debugPrint('Fatal initialization error in main(): $e\n$st');
   }
 
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try { await FinanceMigrator().migrateIfNeeded(); } catch (e) { debugPrint('FinanceMigrator warning: '); }
+    try { await JournalService.instance.openEncryptedBox(); } catch (e) { debugPrint('JournalService warning: '); }
+    try { TaskResetService.checkAndResetTasks(); } catch (e) { debugPrint('TaskResetService warning: '); }
+    try { await WakeService.instance.rolloverMissedDays(DateTime.now()); } catch (e) { debugPrint('WakeService warning: '); }
+    try { await RecurringRunner.run(); } catch (e) { debugPrint('RecurringRunner warning: '); }
+    try { await NotificationService().init(); } catch (e) { debugPrint('NotificationService warning: '); }
+    try { await MedicineService.rescheduleAll(); } catch (e) { debugPrint('MedicineService warning: '); }
+  });
+
   // runApp MUST ALWAYS execute after initializations
   runApp(const HabitTrackerApp());
+
 }
