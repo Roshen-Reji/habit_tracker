@@ -11,8 +11,8 @@ class WearableXpService {
 
   /// Reconciles wearable XP for a specific dayKey using the reversible XpLedger.
   Future<void> reconcile(String dayKey) async {
-    // 1. Safety gates: must be enabled, mock rows excluded
-    if (!WearableSettings.isEnabled || WearableSettings.useMockProvider) {
+    // 1. Safety gates: must be enabled
+    if (!WearableSettings.isEnabled) {
       return;
     }
 
@@ -25,7 +25,8 @@ class WearableXpService {
     final view = WearableRepository.instance.dayView(dayKey);
 
     final steps = view.totalSteps;
-    final stepGoal = view.activity?.stepGoal ?? WearableSettings.stepGoalDefault;
+    final stepGoal =
+        view.activity?.stepGoal ?? WearableSettings.stepGoalDefault;
     final activeMinutes = view.activeMinutes;
     final activeMinutesGoal = WearableSettings.activeMinutesGoalDefault;
     final workoutIds = view.exercises.map((e) => e.externalId).toList();
@@ -49,7 +50,9 @@ class WearableXpService {
       WearableXpRules.ruleStretchSteps,
       WearableXpRules.ruleActiveTime,
       WearableXpRules.ruleSleepGoal,
-      ...currentEntries.where((e) => e.ruleId.startsWith('workout:')).map((e) => e.ruleId),
+      ...currentEntries
+          .where((e) => e.ruleId.startsWith('workout:'))
+          .map((e) => e.ruleId),
     ];
 
     // Apply awards or reverse down to 0 if no longer eligible

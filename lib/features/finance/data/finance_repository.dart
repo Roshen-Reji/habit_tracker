@@ -167,7 +167,9 @@ class FinanceRepository {
     // If this is a transfer to a loan account, automatically split the interest portion.
     if (effectiveKind == 'transfer' && tx.toAccountId != null) {
       final toAcc = storage.accountBox.get(tx.toAccountId);
-      if (toAcc != null && toAcc.kind.toLowerCase() == 'loan' && toAcc.annualRate != null) {
+      if (toAcc != null &&
+          toAcc.kind.toLowerCase() == 'loan' &&
+          toAcc.annualRate != null) {
         // Calculate the balance of the loan right before this payment
         final cutoff = tx.date.subtract(const Duration(seconds: 1));
         final prePaymentBalance = LedgerEngine.balance(
@@ -186,7 +188,7 @@ class FinanceRepository {
         if (split.interest > 0) {
           final interestId = _generateId('tx');
           final interestTx = Transaction(
-            title: ' Interest',
+            title: '${tx.title} · Interest',
             amount: split.interest,
             category: 'Interest Expense',
             date: tx.date,
@@ -195,7 +197,7 @@ class FinanceRepository {
             id: interestId,
             kind: 'expense',
             accountId: toAcc.id,
-            sourceRef: 'emi_split_',
+            sourceRef: 'emi_split_${tx.id}',
             createdAt: DateTime.now(),
           );
           await storage.transactionBox.add(interestTx);
@@ -245,9 +247,11 @@ class FinanceRepository {
     if (draft != null) {
       final effectiveKind = draft.kind ?? target.effectiveKind;
       final magnitude = Money.r2(draft.amount.abs());
-      final storedAmount = (effectiveKind == 'expense') ? -magnitude : magnitude;
+      final storedAmount =
+          (effectiveKind == 'expense') ? -magnitude : magnitude;
 
-      target.title = draft.title.trim().isEmpty ? draft.category : draft.title.trim();
+      target.title =
+          draft.title.trim().isEmpty ? draft.category : draft.title.trim();
       target.amount = storedAmount;
       target.kind = effectiveKind;
       target.accountId = draft.accountId ?? target.accountId;
@@ -450,7 +454,8 @@ class FinanceRepository {
       icon: 'sliders',
       kind: 'adjustment',
       accountId: accountId,
-      notes: notes ?? 'Reconciliation to real balance: ${FormatUtils.formatMoney(realBalance)}',
+      notes: notes ??
+          'Reconciliation to real balance: ${FormatUtils.formatMoney(realBalance)}',
     ));
   }
 
@@ -515,7 +520,8 @@ class FinanceRepository {
     _notify();
   }
 
-  Future<void> mergeCategory(String sourceCategoryId, String targetCategoryId) async {
+  Future<void> mergeCategory(
+      String sourceCategoryId, String targetCategoryId) async {
     final targetCategory = storage.categoryBox.get(targetCategoryId);
     if (targetCategory == null) {
       throw ArgumentError('Target category not found: $targetCategoryId');
@@ -566,7 +572,9 @@ class FinanceRepository {
   /// Idempotent via sourceRef: 'rec:{id}:{yyyy-MM-dd}'.
   Future<List<Transaction>> postRecurringDue({DateTime? now}) async {
     final clock = now ?? DateTime.now();
-    final rules = storage.recurringBox.values.where((r) => r.status == 'active' && r.autoPost).toList();
+    final rules = storage.recurringBox.values
+        .where((r) => r.status == 'active' && r.autoPost)
+        .toList();
     final posted = <Transaction>[];
 
     final existingRefs = storage.transactionBox.values
@@ -575,127 +583,203 @@ class FinanceRepository {
         .cast<String>()
         .toSet();
 
+    int skippedCount = 0;
+    int failedCount = 0;
+    final needsFundsDueItems = <DueItem>[];
+    final allowOverdraw = storage.settingsBox
+            .get('allow_autopost_overdraw', defaultValue: false) ==
+        true;
+    final defaultMainAccId = storage.settingsBox.get('primary_account_id',
+        defaultValue: FinanceConstants.defaultAccountId);
+
     for (final rule in rules) {
-      final allDates = RecurringEngine.occurrences(rule, rule.startDate, clock);
-      // Catch up at most 60 months per rule per run
-      final dates = allDates.length > 60 ? allDates.sublist(allDates.length - 60) : allDates;
+      try {
+        final policy = storage.settingsBox
+            .get('rule_policy:${rule.id}', defaultValue: 'start_today');
+        DateTime effectiveStartDate = rule.startDate;
+        if (policy == 'start_today') {
+          final createdDay = DateTime(
+              rule.createdAt.year, rule.createdAt.month, rule.createdAt.day);
+          if (createdDay.isAfter(effectiveStartDate)) {
+            effectiveStartDate = createdDay;
+          }
+        }
 
-      for (final dueDate in dates) {
-        final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
-        final sourceRef = 'rec:${rule.id}:$dateKey';
+        final allDates =
+            RecurringEngine.occurrences(rule, effectiveStartDate, clock);
+        final dates = (policy == 'post_missed')
+            ? (allDates.length > 24
+                ? allDates.sublist(allDates.length - 24)
+                : allDates)
+            : allDates;
 
-        if (existingRefs.contains(sourceRef)) continue;
+        for (final dueDate in dates) {
+          final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
+          final sourceRef = 'rec:${rule.id}:$dateKey';
 
-        final estimatedAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
-        final isIncome = rule.kind == 'income';
-        final isTransfer = rule.kind == 'transfer';
-        final isInvestment = rule.kind == 'investment' || rule.kind == 'sip';
-        final isDebt = rule.kind == 'emi' || rule.kind == 'debt_payment';
+          if (existingRefs.contains(sourceRef)) continue;
 
-        String effectiveKind = 'expense';
-        if (isIncome) effectiveKind = 'income';
-        else if (isTransfer) effectiveKind = 'transfer';
-        else if (isInvestment) effectiveKind = 'investment';
-        else if (isDebt) effectiveKind = 'debt_payment';
+          final estimatedAmt = RecurringEngine.estimateAmount(
+              rule, storage.transactionBox.values);
+          final isIncome = rule.kind == 'income';
+          final isTransfer = rule.kind == 'transfer';
+          final isInvestment = rule.kind == 'investment' || rule.kind == 'sip';
+          final isDebt = rule.kind == 'emi' || rule.kind == 'debt_payment';
 
-        final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
+          String effectiveKind = 'expense';
+          if (isIncome) {
+            effectiveKind = 'income';
+          } else if (isTransfer) {
+            effectiveKind = 'transfer';
+          } else if (isInvestment) {
+            effectiveKind = 'investment';
+          } else if (isDebt) {
+            effectiveKind = 'debt_payment';
+          }
 
-        final srcAccId = rule.accountId ?? 'acc_main';
-        final srcAcc = storage.accountBox.get(srcAccId);
-        final bal = srcAcc != null ? LedgerEngine.balance(srcAcc, storage.transactionBox.values, storage.valuationBox.values, asOf: clock) : 0.0;
-        final isLowBalance = !isIncome && bal < estimatedAmt;
+          final cat = rule.categoryId != null
+              ? storage.categoryBox.get(rule.categoryId!)
+              : null;
 
-        double? interestAmount;
-        bool missingLoanFields = false;
-        bool loanCompleted = false;
+          final srcAccId = rule.accountId ?? defaultMainAccId;
+          final srcAcc = storage.accountBox.get(srcAccId);
+          final bal = srcAcc != null
+              ? LedgerEngine.balance(srcAcc, storage.transactionBox.values,
+                  storage.valuationBox.values,
+                  asOf: clock)
+              : 0.0;
 
-        if (rule.kind == 'emi' && rule.toAccountId != null) {
-          final loanAcc = storage.accountBox.get(rule.toAccountId!);
-          if (loanAcc != null) {
-            if (loanAcc.principal != null && loanAcc.annualRate != null) {
-              // Calculate remaining balance before this payment
-              final loanBal = LedgerEngine.balance(loanAcc, storage.transactionBox.values, storage.valuationBox.values, asOf: dueDate.subtract(const Duration(seconds: 1)));
-              
-              if (loanBal.abs() <= 0.01) {
-                loanCompleted = true;
-                rule.status = 'ended';
-                await rule.save();
-                break; // Stop posting further occurrences
-              }
-              
-              final split = LoanEngine.splitPayment(
-                currentBalance: loanBal.abs(),
-                annualRatePct: loanAcc.annualRate!,
-                paymentAmount: estimatedAmt,
-              );
-              interestAmount = split.interest;
-              
-              // If this payment covers the last bit of principal, the next one shouldn't post
-              if (split.principal >= loanBal.abs() - 0.01) {
-                 loanCompleted = true; // Will end it on next iteration or we can end it here, but it's okay, next iteration will break.
-              }
-            } else {
-              missingLoanFields = true;
+          // P1-4: Stop silent overdrafts on non-credit accounts without allowOverdraw setting
+          if (!isIncome &&
+              !allowOverdraw &&
+              (srcAcc == null || !srcAcc.isLiability)) {
+            if (bal - estimatedAmt < 0) {
+              skippedCount++;
+              needsFundsDueItems.add(DueItem(
+                rule: rule,
+                dueDate: dueDate,
+                estimatedAmount: estimatedAmt,
+                isVariable: rule.amountIsVariable,
+                needsFunds: true,
+              ));
+              continue; // Do not post this occurrence
             }
           }
-        }
 
-        final tx = await addTransaction(TxDraft(
-          title: rule.name,
-          amount: isIncome ? estimatedAmt : -estimatedAmt,
-          category: cat?.name ?? 'Recurring',
-          date: dueDate,
-          mode: isIncome ? 'income' : 'expense',
-          icon: cat?.iconKey ?? 'repeat',
-          kind: effectiveKind,
-          accountId: srcAccId,
-          toAccountId: rule.toAccountId,
-          categoryId: rule.categoryId,
-          recurringRuleId: rule.id,
-          sourceRef: sourceRef,
-          interestAmount: interestAmount,
-          notes: rule.notes ?? 'Auto-posted recurring ${rule.kind}',
-        ));
+          double? interestAmount;
+          bool missingLoanFields = false;
+          bool loanCompleted = false;
 
-        posted.add(tx);
-        existingRefs.add(sourceRef);
+          if (rule.kind == 'emi' && rule.toAccountId != null) {
+            final loanAcc = storage.accountBox.get(rule.toAccountId!);
+            if (loanAcc != null) {
+              if (loanAcc.principal != null && loanAcc.annualRate != null) {
+                final loanBal = LedgerEngine.balance(loanAcc,
+                    storage.transactionBox.values, storage.valuationBox.values,
+                    asOf: dueDate.subtract(const Duration(seconds: 1)));
 
-        String msg = '${rule.kind == "sip" || rule.kind == "emi" ? rule.kind.toUpperCase() : "Recurring"} ${FormatUtils.formatMoney(estimatedAmt)} posted';
-        if (rule.toAccountId != null) {
-          final toAcc = storage.accountBox.get(rule.toAccountId!);
-          if (toAcc != null) {
-            msg += ': ${srcAcc?.name ?? "Main"} → ${toAcc.name}';
+                if (loanBal.abs() <= 0.01) {
+                  loanCompleted = true;
+                  rule.status = 'ended';
+                  await rule.save();
+                  break;
+                }
+
+                final split = LoanEngine.splitPayment(
+                  currentBalance: loanBal.abs(),
+                  annualRatePct: loanAcc.annualRate!,
+                  paymentAmount: estimatedAmt,
+                );
+                interestAmount = split.interest;
+
+                if (split.principal >= loanBal.abs() - 0.01) {
+                  loanCompleted = true;
+                }
+              } else {
+                missingLoanFields = true;
+              }
+            }
+          }
+
+          final tx = await addTransaction(TxDraft(
+            title: rule.name,
+            amount: isIncome ? estimatedAmt : -estimatedAmt,
+            category: cat?.name ?? 'Recurring',
+            date: dueDate,
+            mode: isIncome ? 'income' : 'expense',
+            icon: cat?.iconKey ?? 'repeat',
+            kind: effectiveKind,
+            accountId: srcAccId,
+            toAccountId: rule.toAccountId,
+            categoryId: rule.categoryId,
+            recurringRuleId: rule.id,
+            sourceRef: sourceRef,
+            interestAmount: interestAmount,
+            notes: rule.notes ?? 'Auto-posted recurring ${rule.kind}',
+          ));
+
+          posted.add(tx);
+          existingRefs.add(sourceRef);
+
+          if (loanCompleted) {
+            rule.status = 'ended';
+            await rule.save();
+            break;
           }
         }
-        if (isLowBalance) {
-          msg += ' (balance low)';
-        }
-        if (missingLoanFields) {
-          msg += '\nAdd rate and tenure for the interest split';
-        }
-        
-        NotificationService().showInstantNotification(
-          id: (rule.id.hashCode & 0x7FFFFFFF),
-          title: 'Auto-post: ${rule.name}',
-          body: msg,
-        );
-        
-        if (loanCompleted) {
-          rule.status = 'ended';
-          await rule.save();
-          break; // Stop if it's the last payment
-        }
+      } catch (e, st) {
+        failedCount++;
+        debugPrint(
+            'postRecurringDue error for rule ${rule.id} (${rule.name}): $e\n$st');
       }
     }
+
+    // P2-4: Grouped summary notification
+    if (posted.isNotEmpty) {
+      final totalAmt = posted.fold(0.0, (s, t) => s + t.amount.abs());
+      final summaryMsg = posted.length == 1
+          ? '${posted.first.title}: ${FormatUtils.formatMoney(totalAmt)} posted'
+          : '${posted.length} instalments posted (${FormatUtils.formatMoney(totalAmt)})';
+
+      NotificationService().showInstantNotification(
+        id: 0x51B001,
+        title: 'Recurring Payments',
+        body: summaryMsg,
+      );
+    }
+
+    if (needsFundsDueItems.isNotEmpty) {
+      NotificationService().showInstantNotification(
+        id: 0x51B002,
+        title: 'Payment Needs Funds',
+        body:
+            '${needsFundsDueItems.length} recurring payment${needsFundsDueItems.length > 1 ? "s" : ""} could not post due to low balance.',
+      );
+    }
+
+    // P2-4: Save last result
+    await storage.settingsBox.put('recurring_last_result', {
+      'posted': posted.length,
+      'skipped': skippedCount,
+      'failed': failedCount,
+      'needsFunds': needsFundsDueItems.length,
+      'timestamp': clock.toIso8601String(),
+    });
 
     return posted;
   }
 
-  /// P6-1: Gets unposted due items for non-autoPost recurring rules up to [now].
+  /// P6-1: Gets unposted due items up to [now], including non-autoPost items and autoPost items needing funds.
   List<DueItem> getUnpostedDueItems({DateTime? now}) {
     final clock = now ?? DateTime.now();
-    final rules = storage.recurringBox.values.where((r) => r.status == 'active' && !r.autoPost).toList();
+    final rules =
+        storage.recurringBox.values.where((r) => r.status == 'active').toList();
     final dueItems = <DueItem>[];
+    final defaultMainAccId = storage.settingsBox.get('primary_account_id',
+        defaultValue: FinanceConstants.defaultAccountId);
+    final allowOverdraw = storage.settingsBox
+            .get('allow_autopost_overdraw', defaultValue: false) ==
+        true;
 
     final existingRefs = storage.transactionBox.values
         .map((tx) => tx.sourceRef)
@@ -704,7 +788,19 @@ class FinanceRepository {
         .toSet();
 
     for (final rule in rules) {
-      final dates = RecurringEngine.occurrences(rule, rule.startDate, clock);
+      final policy = storage.settingsBox
+          .get('rule_policy:${rule.id}', defaultValue: 'start_today');
+      DateTime effectiveStartDate = rule.startDate;
+      if (policy == 'start_today') {
+        final createdDay = DateTime(
+            rule.createdAt.year, rule.createdAt.month, rule.createdAt.day);
+        if (createdDay.isAfter(effectiveStartDate)) {
+          effectiveStartDate = createdDay;
+        }
+      }
+
+      final dates =
+          RecurringEngine.occurrences(rule, effectiveStartDate, clock);
 
       for (final dueDate in dates) {
         final dateKey = DateFormat('yyyy-MM-dd').format(dueDate);
@@ -712,13 +808,29 @@ class FinanceRepository {
 
         if (existingRefs.contains(sourceRef)) continue;
 
-        final estAmt = RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
-        dueItems.add(DueItem(
-          rule: rule,
-          dueDate: dueDate,
-          estimatedAmount: estAmt,
-          isVariable: rule.amountIsVariable,
-        ));
+        final estAmt =
+            RecurringEngine.estimateAmount(rule, storage.transactionBox.values);
+        final srcAccId = rule.accountId ?? defaultMainAccId;
+        final srcAcc = storage.accountBox.get(srcAccId);
+        final bal = srcAcc != null
+            ? LedgerEngine.balance(srcAcc, storage.transactionBox.values,
+                storage.valuationBox.values,
+                asOf: clock)
+            : 0.0;
+        final needsFunds = !rule.isIncome &&
+            !allowOverdraw &&
+            (srcAcc == null || !srcAcc.isLiability) &&
+            (bal - estAmt < 0);
+
+        if (!rule.autoPost || needsFunds) {
+          dueItems.add(DueItem(
+            rule: rule,
+            dueDate: dueDate,
+            estimatedAmount: estAmt,
+            isVariable: rule.amountIsVariable,
+            needsFunds: needsFunds,
+          ));
+        }
       }
     }
 
@@ -744,33 +856,40 @@ class FinanceRepository {
     final isDebt = rule.kind == 'emi' || rule.kind == 'debt_payment';
 
     String effectiveKind = 'expense';
-    if (isIncome) effectiveKind = 'income';
-    else if (isTransfer) effectiveKind = 'transfer';
-    else if (isInvestment) effectiveKind = 'investment';
+    if (isIncome)
+      effectiveKind = 'income';
+    else if (isTransfer)
+      effectiveKind = 'transfer';
+    else if (isInvestment)
+      effectiveKind = 'investment';
     else if (isDebt) effectiveKind = 'debt_payment';
 
-    final cat = rule.categoryId != null ? storage.categoryBox.get(rule.categoryId!) : null;
+    final cat = rule.categoryId != null
+        ? storage.categoryBox.get(rule.categoryId!)
+        : null;
 
     double? interestAmount;
     bool loanCompleted = false;
 
     if (rule.kind == 'emi' && rule.toAccountId != null) {
       final loanAcc = storage.accountBox.get(rule.toAccountId!);
-      if (loanAcc != null && loanAcc.principal != null && loanAcc.annualRate != null) {
+      if (loanAcc != null &&
+          loanAcc.principal != null &&
+          loanAcc.annualRate != null) {
         final loanBal = LedgerEngine.balance(
-          loanAcc, 
-          storage.transactionBox.values, 
-          storage.valuationBox.values, 
+          loanAcc,
+          storage.transactionBox.values,
+          storage.valuationBox.values,
           asOf: effDate.subtract(const Duration(seconds: 1)),
         );
-        
+
         final split = LoanEngine.splitPayment(
           currentBalance: loanBal.abs(),
           annualRatePct: loanAcc.annualRate!,
           paymentAmount: finalAmt,
         );
         interestAmount = split.interest;
-        
+
         if (split.principal >= loanBal.abs() - 0.01) {
           loanCompleted = true;
         }
@@ -806,13 +925,15 @@ class FinanceRepository {
   Future<void> scheduleRecurringReminders({DateTime? now}) async {
     final clock = now ?? DateTime.now();
     final horizon = clock.add(const Duration(days: 14));
-    final rules = storage.recurringBox.values.where((r) => r.status == 'active').toList();
+    final rules =
+        storage.recurringBox.values.where((r) => r.status == 'active').toList();
 
     for (final rule in rules) {
       final dates = RecurringEngine.occurrences(rule, clock, horizon);
 
       for (final d in dates) {
-        final reminderDate = d.subtract(Duration(days: rule.reminderDaysBefore));
+        final reminderDate =
+            d.subtract(Duration(days: rule.reminderDaysBefore));
         final scheduledTime = DateTime(
           reminderDate.year,
           reminderDate.month,
@@ -827,7 +948,8 @@ class FinanceRepository {
             id: id,
             when: scheduledTime,
             title: 'Upcoming ${rule.kind}: ${rule.name}',
-            body: '${FormatUtils.formatMoney(rule.amount)} due on ${DateFormat('dd MMM').format(d)}',
+            body:
+                '${FormatUtils.formatMoney(rule.amount)} due on ${DateFormat('dd MMM').format(d)}',
             payload: 'rec:${rule.id}',
           );
         }
@@ -869,9 +991,8 @@ class FinanceRepository {
   }
 
   List<GoalEntry> getGoalEntries(String goalId) {
-    final list = storage.goalEntryBox.values
-        .where((e) => e.goalId == goalId)
-        .toList();
+    final list =
+        storage.goalEntryBox.values.where((e) => e.goalId == goalId).toList();
     list.sort((a, b) => b.date.compareTo(a.date));
     return list;
   }
@@ -884,7 +1005,10 @@ class FinanceRepository {
   Future<void> deleteGoal(String id) async {
     await storage.goalBox.delete(id);
     // Delete associated entries
-    final entries = storage.goalEntryBox.values.where((e) => e.goalId == id).map((e) => e.id).toList();
+    final entries = storage.goalEntryBox.values
+        .where((e) => e.goalId == id)
+        .map((e) => e.id)
+        .toList();
     for (final eid in entries) {
       await storage.goalEntryBox.delete(eid);
     }
@@ -913,7 +1037,8 @@ class FinanceRepository {
       final sourceRef = 'autogoal:${goal.id}:$monthKey';
 
       // Check if entry already exists
-      final alreadyPosted = storage.goalEntryBox.values.any((e) => e.sourceRef == sourceRef);
+      final alreadyPosted =
+          storage.goalEntryBox.values.any((e) => e.sourceRef == sourceRef);
       if (alreadyPosted) continue;
 
       final entry = GoalEntry(
@@ -967,7 +1092,8 @@ class FinanceRepository {
     return map;
   }
 
-  Future<void> setBudgetOverride(String lineId, String monthKey, double amount) async {
+  Future<void> setBudgetOverride(
+      String lineId, String monthKey, double amount) async {
     final key = '${lineId}_$monthKey';
     final override = BudgetOverride(
       lineId: lineId,
@@ -1005,7 +1131,8 @@ class FinanceRepository {
   }
 
   bool getRolloverCarryNegative() {
-    return storage.settingsBox.get('rollover_carry_negative', defaultValue: false);
+    return storage.settingsBox
+        .get('rollover_carry_negative', defaultValue: false);
   }
 
   Future<void> setRolloverCarryNegative(bool value) async {
@@ -1031,7 +1158,10 @@ class FinanceRepository {
 
   Future<void> deleteSplitGroup(String groupId) async {
     await storage.splitGroupBox.delete(groupId);
-    final entriesToDelete = storage.splitEntryBox.values.where((e) => e.groupId == groupId).map((e) => e.id).toList();
+    final entriesToDelete = storage.splitEntryBox.values
+        .where((e) => e.groupId == groupId)
+        .map((e) => e.id)
+        .toList();
     for (final id in entriesToDelete) {
       await storage.splitEntryBox.delete(id);
     }
@@ -1069,7 +1199,11 @@ class FinanceRepository {
     if (entry == null) throw ArgumentError('SplitEntry not found: $entryId');
 
     final amt = settlementAmount ?? entry.amount;
-    final targetAccountId = accountId ?? storage.accountBox.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+    final targetAccountId = accountId ??
+        storage.accountBox.values
+            .where((a) => a.spendable && !a.archived)
+            .firstOrNull
+            ?.id;
 
     if (targetAccountId != null && amt > 0) {
       if (isReimbursement) {

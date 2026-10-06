@@ -21,6 +21,21 @@ import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
 import 'package:habit_tracker/features/finance/ui/settings/finance_privacy_data_page.dart';
 import 'package:habit_tracker/features/finance/data/finance_lock_service.dart';
 
+class MoneyTabSpec {
+  final String id;
+  final IconData icon;
+  final String label;
+  final Widget Function(BuildContext context, VoidCallback onSeeAllTransactions,
+      void Function(String?) onNavigate) builder;
+
+  const MoneyTabSpec({
+    required this.id,
+    required this.icon,
+    required this.label,
+    required this.builder,
+  });
+}
+
 class MoneyShellPage extends StatefulWidget {
   final int initialTab;
   final String? deepLink;
@@ -38,6 +53,44 @@ class MoneyShellPage extends StatefulWidget {
 class _MoneyShellPageState extends State<MoneyShellPage> {
   late int _currentIndex;
 
+  List<MoneyTabSpec> _getTabSpecs() {
+    return [
+      MoneyTabSpec(
+        id: 'overview',
+        icon: LucideIcons.layoutDashboard,
+        label: 'Overview',
+        builder: (ctx, onSeeAll, onNav) =>
+            MoneyOverviewTab(onSeeAllTransactions: onSeeAll),
+      ),
+      MoneyTabSpec(
+        id: 'transactions',
+        icon: LucideIcons.arrowRightLeft,
+        label: 'Transactions',
+        builder: (ctx, onSeeAll, onNav) => const TransactionsTab(),
+      ),
+      if (MoneyFeature.isBudgetTabEnabled)
+        MoneyTabSpec(
+          id: 'budget',
+          icon: LucideIcons.pieChart,
+          label: 'Budget',
+          builder: (ctx, onSeeAll, onNav) => const BudgetTab(),
+        ),
+      if (MoneyFeature.isGoalsTabEnabled)
+        MoneyTabSpec(
+          id: 'goals',
+          icon: LucideIcons.target,
+          label: 'Goals',
+          builder: (ctx, onSeeAll, onNav) => const GoalsTab(),
+        ),
+      MoneyTabSpec(
+        id: 'more',
+        icon: LucideIcons.moreHorizontal,
+        label: 'More',
+        builder: (ctx, onSeeAll, onNav) => MoreTab(onNavigate: onNav),
+      ),
+    ];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,17 +104,25 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final specs = _getTabSpecs();
+
+      int findTabIndex(String id) => specs.indexWhere((s) => s.id == id);
 
       if (lower == 'overview' || lower == 'home') {
-        setState(() => _currentIndex = 0);
+        final idx = findTabIndex('overview');
+        if (idx != -1) setState(() => _currentIndex = idx);
       } else if (lower == 'transactions' || lower == 'txns') {
-        setState(() => _currentIndex = 1);
+        final idx = findTabIndex('transactions');
+        if (idx != -1) setState(() => _currentIndex = idx);
       } else if (lower == 'budget' || lower == 'budgets') {
-        setState(() => _currentIndex = 2);
+        final idx = findTabIndex('budget');
+        if (idx != -1) setState(() => _currentIndex = idx);
       } else if (lower == 'goals' || lower == 'goal') {
-        setState(() => _currentIndex = 3);
+        final idx = findTabIndex('goals');
+        if (idx != -1) setState(() => _currentIndex = idx);
       } else if (lower == 'more') {
-        setState(() => _currentIndex = 4);
+        final idx = findTabIndex('more');
+        if (idx != -1) setState(() => _currentIndex = idx);
       } else if (lower == 'categories') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CategoriesPage()),
@@ -74,7 +135,10 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const NetWorthPage()),
         );
-      } else if (lower == 'recurring' || lower == 'bills' || lower == 'subscriptions' || lower == 'subs') {
+      } else if (lower == 'recurring' ||
+          lower == 'bills' ||
+          lower == 'subscriptions' ||
+          lower == 'subs') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const RecurringPage()),
         );
@@ -86,7 +150,9 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const DebtPage()),
         );
-      } else if (lower == 'insights' || lower == 'insight' || lower == 'alerts') {
+      } else if (lower == 'insights' ||
+          lower == 'insight' ||
+          lower == 'alerts') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const InsightsPage()),
         );
@@ -102,13 +168,16 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SplitGroupsPage()),
         );
-      } else if (lower == 'privacy' || lower == 'security' || lower == 'backup') {
+      } else if (lower == 'privacy' ||
+          lower == 'security' ||
+          lower == 'backup') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const FinancePrivacyDataPage()),
         );
       } else {
-        // More sub-destinations
-        setState(() => _currentIndex = 4);
+        // More sub-destinations fallback
+        final idx = findTabIndex('more');
+        if (idx != -1) setState(() => _currentIndex = idx);
       }
     });
   }
@@ -124,77 +193,56 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
           return _buildLockScreen(lockService);
         }
 
-        final tabs = [
-          MoneyOverviewTab(
-            onSeeAllTransactions: () {
-              setState(() => _currentIndex = 1);
+        final specs = _getTabSpecs();
+        final safeIndex =
+            _currentIndex.clamp(0, specs.isNotEmpty ? specs.length - 1 : 0);
+
+        final tabs = specs.map((s) {
+          return s.builder(
+            context,
+            () {
+              final txIdx = specs.indexWhere((x) => x.id == 'transactions');
+              if (txIdx != -1) setState(() => _currentIndex = txIdx);
             },
-          ),
-          const TransactionsTab(),
-          const BudgetTab(),
-          const GoalsTab(),
-          MoreTab(
-            onNavigate: (link) => _handleDeepLink(link),
-          ),
-        ];
+            (link) => _handleDeepLink(link),
+          );
+        }).toList();
 
         return Scaffold(
           backgroundColor: BentoTheme.background,
           body: IndexedStack(
-            index: _currentIndex.clamp(0, tabs.length - 1),
+            index: safeIndex,
             children: tabs,
           ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: BentoTheme.surface,
-          border: Border(
-            top: BorderSide(
-              color: Colors.white.withValues(alpha: 0.05),
-              width: 1,
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: NavigationBar(
+              selectedIndex: safeIndex,
+              onDestinationSelected: (index) {
+                HapticFeedback.selectionClick();
+                setState(() => _currentIndex = index);
+              },
+              backgroundColor: BentoTheme.surface,
+              indicatorColor: BentoTheme.accent.withValues(alpha: 0.25),
+              elevation: 0,
+              destinations: specs.map((spec) {
+                return NavigationDestination(
+                  icon: Icon(spec.icon, color: BentoTheme.textSecondary),
+                  selectedIcon: Icon(spec.icon, color: BentoTheme.accent),
+                  label: spec.label,
+                );
+              }).toList(),
             ),
           ),
-        ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            HapticFeedback.selectionClick();
-            setState(() => _currentIndex = index);
-          },
-          backgroundColor: BentoTheme.surface,
-          indicatorColor: BentoTheme.accent.withValues(alpha: 0.25),
-          elevation: 0,
-          destinations: [
-            NavigationDestination(
-              icon: Icon(LucideIcons.layoutDashboard, color: BentoTheme.textSecondary),
-              selectedIcon: Icon(LucideIcons.layoutDashboard, color: BentoTheme.accent),
-              label: 'Overview',
-            ),
-            NavigationDestination(
-              icon: Icon(LucideIcons.arrowRightLeft, color: BentoTheme.textSecondary),
-              selectedIcon: Icon(LucideIcons.arrowRightLeft, color: BentoTheme.accent),
-              label: 'Transactions',
-            ),
-            if (MoneyFeature.isBudgetTabEnabled)
-              NavigationDestination(
-                icon: Icon(LucideIcons.pieChart, color: BentoTheme.textSecondary),
-                selectedIcon: Icon(LucideIcons.pieChart, color: BentoTheme.accent),
-                label: 'Budget',
-              ),
-            if (MoneyFeature.isGoalsTabEnabled)
-              NavigationDestination(
-                icon: Icon(LucideIcons.target, color: BentoTheme.textSecondary),
-                selectedIcon: Icon(LucideIcons.target, color: BentoTheme.accent),
-                label: 'Goals',
-              ),
-            NavigationDestination(
-              icon: Icon(LucideIcons.moreHorizontal, color: BentoTheme.textSecondary),
-              selectedIcon: Icon(LucideIcons.moreHorizontal, color: BentoTheme.accent),
-              label: 'More',
-            ),
-          ],
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -214,9 +262,11 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     shape: BoxShape.circle,
-                    border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color: BentoTheme.accent.withValues(alpha: 0.3)),
                   ),
-                  child: Icon(LucideIcons.lock, size: 48, color: BentoTheme.accent),
+                  child: Icon(LucideIcons.lock,
+                      size: 48, color: BentoTheme.accent),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -245,8 +295,10 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BentoTheme.accent,
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ],

@@ -56,7 +56,8 @@ class GalaxyWatchCard extends StatelessWidget {
                   color: BentoTheme.accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(LucideIcons.bluetooth, color: BentoTheme.accent, size: 20),
+                child: Icon(LucideIcons.bluetooth,
+                    color: BentoTheme.accent, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -82,7 +83,8 @@ class GalaxyWatchCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
+              Icon(LucideIcons.chevronRight,
+                  size: 16, color: BentoTheme.textSecondary),
             ],
           ),
         ),
@@ -107,20 +109,21 @@ class GalaxyWatchCard extends StatelessWidget {
         final mins = (sleepMin ?? 0) % 60;
         final energy = view.energy?.score;
         final ages = view.ages?.score;
-        final isMock = WearableSettings.useMockProvider;
 
         return HomeCardFrame(
           icon: LucideIcons.watch,
-          title: isMock ? 'Galaxy Watch 7 (DEMO)' : 'Galaxy Watch 7',
+          title: 'Activity',
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HealthPage(initialTab: 2)),
+              MaterialPageRoute(
+                  builder: (_) => const HealthPage(initialTab: 2)),
             );
           },
           trailing: ages != null
               ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: BentoTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -128,7 +131,8 @@ class GalaxyWatchCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(LucideIcons.sparkles, size: 12, color: BentoTheme.accent),
+                      Icon(LucideIcons.sparkles,
+                          size: 12, color: BentoTheme.accent),
                       const SizedBox(width: 4),
                       Text(
                         'AGEs ${ages.toStringAsFixed(1)}',
@@ -149,7 +153,9 @@ class GalaxyWatchCard extends StatelessWidget {
                   icon: LucideIcons.footprints,
                   title: 'STEPS',
                   value: steps > 0 ? NumberFormat('#,###').format(steps) : '—',
-                  subtitle: steps > 0 ? '${((steps / 10000) * 100).round()}% goal' : 'No steps',
+                  subtitle: steps > 0
+                      ? '${((steps / 10000) * 100).round()}% goal'
+                      : 'No steps',
                   color: AppColors.fitness,
                 ),
               ),
@@ -158,8 +164,12 @@ class GalaxyWatchCard extends StatelessWidget {
                 child: _buildTile(
                   icon: LucideIcons.moon,
                   title: 'SLEEP',
-                  value: sleepMin != null && sleepMin > 0 ? '${hours}h ${mins}m' : '—',
-                  subtitle: view.sleepScore != null ? 'Score ${view.sleepScore}' : 'No sleep data',
+                  value: sleepMin != null && sleepMin > 0
+                      ? '${hours}h ${mins}m'
+                      : '—',
+                  subtitle: view.sleepScore != null
+                      ? 'Score ${view.sleepScore}'
+                      : 'No sleep data',
                   color: const Color(0xFF7C4DFF),
                 ),
               ),
@@ -169,7 +179,9 @@ class GalaxyWatchCard extends StatelessWidget {
                   icon: LucideIcons.zap,
                   title: 'ENERGY',
                   value: energy != null ? '$energy/100' : '—',
-                  subtitle: energy != null ? (energy >= 80 ? 'Optimal' : 'Good') : 'No score',
+                  subtitle: energy != null
+                      ? (energy >= 80 ? 'Optimal' : 'Good')
+                      : 'No score',
                   color: AppColors.primary,
                 ),
               ),

@@ -97,4 +97,5 @@ class RecurringRule extends HiveObject {
   bool get isSubscription => kind == 'subscription';
   bool get isBill => kind == 'bill';
   bool get isEmi => kind == 'emi';
+  bool get isIncome => kind == 'income';
 }

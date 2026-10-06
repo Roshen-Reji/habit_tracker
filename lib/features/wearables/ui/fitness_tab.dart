@@ -45,15 +45,9 @@ class _FitnessTabState extends State<FitnessTab> {
         final allAges = WearableRepository.instance.agesBox.values.toList()
           ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-        final isMock = WearableSettings.useMockProvider;
-
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
-            if (isMock) ...[
-              _buildDemoBanner(),
-              const SizedBox(height: 12),
-            ],
             // Sync & Date Navigation Bar
             _buildSyncAndDateBar(),
             const SizedBox(height: 16),
@@ -90,7 +84,8 @@ class _FitnessTabState extends State<FitnessTab> {
   Widget _buildSyncAndDateBar() {
     final lastSyncMs = WearableSettings.lastSyncMs;
     final lastSyncStr = lastSyncMs != null
-        ? DateFormat('h:mm a').format(DateTime.fromMillisecondsSinceEpoch(lastSyncMs))
+        ? DateFormat('h:mm a')
+            .format(DateTime.fromMillisecondsSinceEpoch(lastSyncMs))
         : 'Not synced';
 
     final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) ==
@@ -125,7 +120,11 @@ class _FitnessTabState extends State<FitnessTab> {
               child: Column(
                 children: [
                   Text(
-                    isToday ? 'TODAY' : DateFormat('EEEE, MMM d').format(_selectedDate).toUpperCase(),
+                    isToday
+                        ? 'TODAY'
+                        : DateFormat('EEEE, MMM d')
+                            .format(_selectedDate)
+                            .toUpperCase(),
                     style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -135,8 +134,9 @@ class _FitnessTabState extends State<FitnessTab> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Galaxy Watch 7 · Synced $lastSyncStr',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    'Health Connect · Synced $lastSyncStr',
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
@@ -149,7 +149,8 @@ class _FitnessTabState extends State<FitnessTab> {
                 ? null
                 : () {
                     setState(() {
-                      _selectedDate = _selectedDate.add(const Duration(days: 1));
+                      _selectedDate =
+                          _selectedDate.add(const Duration(days: 1));
                     });
                   },
           ),
@@ -162,19 +163,23 @@ class _FitnessTabState extends State<FitnessTab> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: BentoTheme.accent),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: BentoTheme.accent),
                       )
-                    : Icon(LucideIcons.refreshCw, size: 18, color: BentoTheme.accent),
+                    : Icon(LucideIcons.refreshCw,
+                        size: 18, color: BentoTheme.accent),
                 onPressed: isSyncing ? null : _sync,
               );
             },
           ),
           IconButton(
-            icon: Icon(LucideIcons.settings, size: 18, color: BentoTheme.textSecondary),
+            icon: Icon(LucideIcons.settings,
+                size: 18, color: BentoTheme.textSecondary),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const WearablesSettingsPage()),
+                MaterialPageRoute(
+                    builder: (_) => const WearablesSettingsPage()),
               );
             },
           ),
@@ -183,30 +188,7 @@ class _FitnessTabState extends State<FitnessTab> {
     );
   }
 
-  Widget _buildDemoBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
-      ),
-      child: const Row(
-        children: [
-          Icon(LucideIcons.alertTriangle, size: 16, color: AppColors.warning),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'DEMO MODE: Showing simulated records for testing. Real Galaxy Watch data will replace this when connected.',
-              style: TextStyle(color: AppColors.warning, fontSize: 11.5, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- 1. Samsung Health AGEs Index Card ---
+  // --- 1. AGEs Index (manual) ---
   Widget _buildAgesIndexCard(AgesSample? sample, List<AgesSample> history) {
     if (sample == null) {
       return BentoContainer(
@@ -224,7 +206,8 @@ class _FitnessTabState extends State<FitnessTab> {
                     color: BentoTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
+                  child: Icon(LucideIcons.sparkles,
+                      color: BentoTheme.accent, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -232,7 +215,7 @@ class _FitnessTabState extends State<FitnessTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SAMSUNG HEALTH AGEs INDEX',
+                        'AGEs INDEX (MANUAL)',
                         style: TextStyle(
                           color: BentoTheme.accent,
                           fontSize: 11,
@@ -243,7 +226,8 @@ class _FitnessTabState extends State<FitnessTab> {
                       const SizedBox(height: 2),
                       Text(
                         'Biological Glycation & Aging Marker',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -252,8 +236,9 @@ class _FitnessTabState extends State<FitnessTab> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No AGEs entry recorded for this date. Galaxy Watch measures AGEs during sleep; log the value here manually.',
-              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, height: 1.4),
+              'No AGEs entry recorded for this date. Log the value here manually.',
+              style: TextStyle(
+                  color: BentoTheme.textSecondary, fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
@@ -262,8 +247,10 @@ class _FitnessTabState extends State<FitnessTab> {
               label: const Text('Log AGEs Value'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: BentoTheme.accent,
-                side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.5)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                side:
+                    BorderSide(color: BentoTheme.accent.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ],
@@ -275,7 +262,9 @@ class _FitnessTabState extends State<FitnessTab> {
     final isOptimal = score < 48.0;
     final isLow = score < 44.0;
     final level = isLow ? 'LOW' : (isOptimal ? 'OPTIMAL' : 'MODERATE');
-    final levelColor = isLow ? const Color(0xFF64B5F6) : (isOptimal ? AppColors.success : AppColors.warning);
+    final levelColor = isLow
+        ? const Color(0xFF64B5F6)
+        : (isOptimal ? AppColors.success : AppColors.warning);
 
     Map<String, dynamic> extra = {};
     if (sample.extraJson != null) {
@@ -300,7 +289,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   color: BentoTheme.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
+                child: Icon(LucideIcons.sparkles,
+                    color: BentoTheme.accent, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -308,7 +298,7 @@ class _FitnessTabState extends State<FitnessTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SAMSUNG HEALTH AGEs INDEX',
+                      'AGEs INDEX (MANUAL)',
                       style: TextStyle(
                         color: BentoTheme.accent,
                         fontSize: 11,
@@ -319,7 +309,8 @@ class _FitnessTabState extends State<FitnessTab> {
                     const SizedBox(height: 2),
                     Text(
                       'Biological Glycation & Aging Marker',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -332,7 +323,8 @@ class _FitnessTabState extends State<FitnessTab> {
               ),
               const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: levelColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
@@ -371,15 +363,23 @@ class _FitnessTabState extends State<FitnessTab> {
                 child: Row(
                   children: [
                     Icon(
-                      trend == 'improving' ? LucideIcons.trendingDown : LucideIcons.trendingUp,
-                      color: trend == 'improving' ? AppColors.success : AppColors.warning,
+                      trend == 'improving'
+                          ? LucideIcons.trendingDown
+                          : LucideIcons.trendingUp,
+                      color: trend == 'improving'
+                          ? AppColors.success
+                          : AppColors.warning,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      trend == 'improving' ? 'Lower glycation trend' : 'Stable index',
+                      trend == 'improving'
+                          ? 'Lower glycation trend'
+                          : 'Stable index',
                       style: TextStyle(
-                        color: trend == 'improving' ? AppColors.success : AppColors.warning,
+                        color: trend == 'improving'
+                            ? AppColors.success
+                            : AppColors.warning,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -402,7 +402,12 @@ class _FitnessTabState extends State<FitnessTab> {
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: history.take(14).toList().asMap().entries.map((entry) {
+                      spots: history
+                          .take(14)
+                          .toList()
+                          .asMap()
+                          .entries
+                          .map((entry) {
                         return FlSpot(entry.key.toDouble(), entry.value.score);
                       }).toList(),
                       isCurved: true,
@@ -437,7 +442,7 @@ class _FitnessTabState extends State<FitnessTab> {
                     Icon(LucideIcons.info, size: 14, color: BentoTheme.accent),
                     const SizedBox(width: 6),
                     Text(
-                      'Galaxy Watch 7 BioActive Sensor',
+                      'Health Sensor',
                       style: TextStyle(
                         color: BentoTheme.accent,
                         fontSize: 11,
@@ -449,7 +454,10 @@ class _FitnessTabState extends State<FitnessTab> {
                 const SizedBox(height: 6),
                 Text(
                   'Monitored optically during deep sleep. Reflects advanced glycation end-products in skin cells. Lower scores reflect optimal biological cellular health.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11.5, height: 1.4),
+                  style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 11.5,
+                      height: 1.4),
                 ),
               ],
             ),
@@ -474,7 +482,8 @@ class _FitnessTabState extends State<FitnessTab> {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(LucideIcons.zap, color: AppColors.primary, size: 20),
+              child: const Icon(LucideIcons.zap,
+                  color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -491,13 +500,18 @@ class _FitnessTabState extends State<FitnessTab> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text('No energy score recorded for today', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  Text('No energy score recorded for today',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                 ],
               ),
             ),
             Text(
               '—/100',
-              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: BentoTheme.textSecondary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -505,7 +519,9 @@ class _FitnessTabState extends State<FitnessTab> {
     }
 
     final score = energy.score;
-    final eval = score >= 80 ? 'Optimal Energy' : (score >= 70 ? 'Good Readiness' : 'Needs Recovery');
+    final eval = score >= 80
+        ? 'Optimal Energy'
+        : (score >= 70 ? 'Good Readiness' : 'Needs Recovery');
 
     Map<String, dynamic> extra = {};
     if (energy.extraJson != null) {
@@ -537,7 +553,8 @@ class _FitnessTabState extends State<FitnessTab> {
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(LucideIcons.zap, color: AppColors.primary, size: 20),
+                    child: const Icon(LucideIcons.zap,
+                        color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -553,7 +570,9 @@ class _FitnessTabState extends State<FitnessTab> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(eval, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                      Text(eval,
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -577,7 +596,8 @@ class _FitnessTabState extends State<FitnessTab> {
               value: (score / 100.0).clamp(0.0, 1.0),
               minHeight: 8,
               backgroundColor: Colors.white12,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ),
           const SizedBox(height: 16),
@@ -585,13 +605,24 @@ class _FitnessTabState extends State<FitnessTab> {
           // Contributing 4 Factors Grid
           Row(
             children: [
-              Expanded(child: _buildFactorPill('Sleep Avg', sleepScore != null ? '${sleepScore.round()}%' : '—')),
+              Expanded(
+                  child: _buildFactorPill('Sleep Avg',
+                      sleepScore != null ? '${sleepScore.round()}%' : '—')),
               const SizedBox(width: 8),
-              Expanded(child: _buildFactorPill('Prev Activity', activityScore != null ? '${activityScore.round()}%' : '—')),
+              Expanded(
+                  child: _buildFactorPill(
+                      'Prev Activity',
+                      activityScore != null
+                          ? '${activityScore.round()}%'
+                          : '—')),
               const SizedBox(width: 8),
-              Expanded(child: _buildFactorPill('Sleep HR', sleepHr != null ? '${sleepHr.round()}%' : '—')),
+              Expanded(
+                  child: _buildFactorPill('Sleep HR',
+                      sleepHr != null ? '${sleepHr.round()}%' : '—')),
               const SizedBox(width: 8),
-              Expanded(child: _buildFactorPill('Sleep HRV', sleepHrv != null ? '${sleepHrv.round()}%' : '—')),
+              Expanded(
+                  child: _buildFactorPill('Sleep HRV',
+                      sleepHrv != null ? '${sleepHrv.round()}%' : '—')),
             ],
           ),
         ],
@@ -608,9 +639,15 @@ class _FitnessTabState extends State<FitnessTab> {
       ),
       child: Column(
         children: [
-          Text(title, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10), maxLines: 1),
+          Text(title,
+              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+              maxLines: 1),
           const SizedBox(height: 4),
-          Text(val, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(val,
+              style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -631,7 +668,8 @@ class _FitnessTabState extends State<FitnessTab> {
                 color: AppColors.fitness.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(LucideIcons.footprints, color: AppColors.fitness, size: 20),
+              child: const Icon(LucideIcons.footprints,
+                  color: AppColors.fitness, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -650,7 +688,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   const SizedBox(height: 4),
                   Text(
                     'No activity synced for this day.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -661,12 +700,16 @@ class _FitnessTabState extends State<FitnessTab> {
     }
 
     final steps = activity.steps;
-    final target = (activity.stepGoal != null && activity.stepGoal! > 0) ? activity.stepGoal! : 10000;
+    final target = (activity.stepGoal != null && activity.stepGoal! > 0)
+        ? activity.stepGoal!
+        : 10000;
     final totalBurned = activity.totalKcal;
     final activeBurned = activity.activeKcal;
     final activeMin = activity.activeMinutes;
     final distanceM = activity.distanceM;
-    final distKm = (distanceM != null && distanceM > 0) ? (distanceM / 1000.0) : (steps > 0 ? (steps * 0.76 / 1000.0) : null);
+    final distKm = (distanceM != null && distanceM > 0)
+        ? (distanceM / 1000.0)
+        : (steps > 0 ? (steps * 0.76 / 1000.0) : null);
     final progress = target > 0 ? (steps / target).clamp(0.0, 1.0) : 0.0;
 
     return BentoContainer(
@@ -687,7 +730,8 @@ class _FitnessTabState extends State<FitnessTab> {
                       color: AppColors.fitness.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(LucideIcons.footprints, color: AppColors.fitness, size: 20),
+                    child: const Icon(LucideIcons.footprints,
+                        color: AppColors.fitness, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -703,15 +747,20 @@ class _FitnessTabState extends State<FitnessTab> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text('Target: ${NumberFormat('#,###').format(target)} steps',
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                      Text(
+                          'Target: ${NumberFormat('#,###').format(target)} steps',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12)),
                     ],
                   ),
                 ],
               ),
               Text(
                 NumberFormat('#,###').format(steps),
-                style: TextStyle(color: BentoTheme.textPrimary, fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -722,17 +771,36 @@ class _FitnessTabState extends State<FitnessTab> {
               value: progress,
               minHeight: 8,
               backgroundColor: Colors.white12,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.fitness),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.fitness),
             ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildMetricItem(LucideIcons.flame, totalBurned != null && totalBurned > 0 ? '${totalBurned.round()} kcal' : '—', 'Total Burned'),
-              _buildMetricItem(LucideIcons.zap, activeBurned != null && activeBurned > 0 ? '${activeBurned.round()} kcal' : '—', 'Active Burn'),
-              _buildMetricItem(LucideIcons.timer, (activeMin != null && activeMin > 0) ? '$activeMin min' : '—', 'Active Time'),
-              _buildMetricItem(LucideIcons.mapPin, distKm != null && distKm > 0 ? '${distKm.toStringAsFixed(1)} km' : '—', 'Distance'),
+              _buildMetricItem(
+                  LucideIcons.flame,
+                  totalBurned != null && totalBurned > 0
+                      ? '${totalBurned.round()} kcal'
+                      : '—',
+                  'Total Burned'),
+              _buildMetricItem(
+                  LucideIcons.zap,
+                  activeBurned != null && activeBurned > 0
+                      ? '${activeBurned.round()} kcal'
+                      : '—',
+                  'Active Burn'),
+              _buildMetricItem(
+                  LucideIcons.timer,
+                  (activeMin != null && activeMin > 0) ? '$activeMin min' : '—',
+                  'Active Time'),
+              _buildMetricItem(
+                  LucideIcons.mapPin,
+                  distKm != null && distKm > 0
+                      ? '${distKm.toStringAsFixed(1)} km'
+                      : '—',
+                  'Distance'),
             ],
           ),
         ],
@@ -745,9 +813,14 @@ class _FitnessTabState extends State<FitnessTab> {
       children: [
         Icon(icon, size: 16, color: BentoTheme.textSecondary),
         const SizedBox(height: 4),
-        Text(val, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(val,
+            style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
+        Text(label,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
       ],
     );
   }
@@ -767,7 +840,8 @@ class _FitnessTabState extends State<FitnessTab> {
                 color: const Color(0xFF7C4DFF).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(LucideIcons.moon, color: Color(0xFF7C4DFF), size: 20),
+              child: const Icon(LucideIcons.moon,
+                  color: Color(0xFF7C4DFF), size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -786,7 +860,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   const SizedBox(height: 4),
                   Text(
                     'No sleep session synced for this day.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -824,7 +899,8 @@ class _FitnessTabState extends State<FitnessTab> {
                       color: const Color(0xFF7C4DFF).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(LucideIcons.moon, color: Color(0xFF7C4DFF), size: 20),
+                    child: const Icon(LucideIcons.moon,
+                        color: Color(0xFF7C4DFF), size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -841,8 +917,11 @@ class _FitnessTabState extends State<FitnessTab> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        score != null ? 'Score: $score/100 · ${hours}h ${mins}m' : '${hours}h ${mins}m duration',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        score != null
+                            ? 'Score: $score/100 · ${hours}h ${mins}m'
+                            : '${hours}h ${mins}m duration',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -850,7 +929,10 @@ class _FitnessTabState extends State<FitnessTab> {
               ),
               Text(
                 '${hours}h ${mins}m',
-                style: TextStyle(color: BentoTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -864,10 +946,21 @@ class _FitnessTabState extends State<FitnessTab> {
                 height: 10,
                 child: Row(
                   children: [
-                    if (deep > 0) Expanded(flex: deep, child: Container(color: const Color(0xFF304FFE))),
-                    if (rem > 0) Expanded(flex: rem, child: Container(color: const Color(0xFF7C4DFF))),
-                    if (light > 0) Expanded(flex: light, child: Container(color: const Color(0xFF00B0FF))),
-                    if (awake > 0) Expanded(flex: awake, child: Container(color: Colors.amber)),
+                    if (deep > 0)
+                      Expanded(
+                          flex: deep,
+                          child: Container(color: const Color(0xFF304FFE))),
+                    if (rem > 0)
+                      Expanded(
+                          flex: rem,
+                          child: Container(color: const Color(0xFF7C4DFF))),
+                    if (light > 0)
+                      Expanded(
+                          flex: light,
+                          child: Container(color: const Color(0xFF00B0FF))),
+                    if (awake > 0)
+                      Expanded(
+                          flex: awake, child: Container(color: Colors.amber)),
                   ],
                 ),
               ),
@@ -880,14 +973,18 @@ class _FitnessTabState extends State<FitnessTab> {
               children: [
                 _buildStageLegend('Deep', '${deep}m', const Color(0xFF304FFE)),
                 _buildStageLegend('REM', '${rem}m', const Color(0xFF7C4DFF)),
-                _buildStageLegend('Light', '${light}m', const Color(0xFF00B0FF)),
+                _buildStageLegend(
+                    'Light', '${light}m', const Color(0xFF00B0FF)),
                 _buildStageLegend('Awake', '${awake}m', Colors.amber),
               ],
             ),
           ] else ...[
             Text(
               'Detailed sleep stage breakdown was not recorded for this session.',
-              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11.5, fontStyle: FontStyle.italic),
+              style: TextStyle(
+                  color: BentoTheme.textSecondary,
+                  fontSize: 11.5,
+                  fontStyle: FontStyle.italic),
             ),
           ],
         ],
@@ -898,13 +995,22 @@ class _FitnessTabState extends State<FitnessTab> {
   Widget _buildStageLegend(String name, String time, Color color) {
     return Row(
       children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(name, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
-            Text(time, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(name,
+                style:
+                    TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
+            Text(time,
+                style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ],
@@ -928,7 +1034,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   color: AppColors.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(LucideIcons.dumbbell, color: AppColors.warning, size: 20),
+                child: const Icon(LucideIcons.dumbbell,
+                    color: AppColors.warning, size: 20),
               ),
               const SizedBox(width: 12),
               Column(
@@ -945,8 +1052,11 @@ class _FitnessTabState extends State<FitnessTab> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    exercises.isEmpty ? 'No recorded exercises today' : '${exercises.length} synced session(s)',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    exercises.isEmpty
+                        ? 'No recorded exercises today'
+                        : '${exercises.length} synced session(s)',
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -957,8 +1067,11 @@ class _FitnessTabState extends State<FitnessTab> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'Workouts recorded on Galaxy Watch 7 will automatically sync and credit to your daily burn ledger.',
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
+                'Workouts recorded on your health tracker will automatically sync and credit to your daily burn ledger.',
+                style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic),
               ),
             )
           else
@@ -973,7 +1086,9 @@ class _FitnessTabState extends State<FitnessTab> {
                 child: Row(
                   children: [
                     Icon(
-                      ex.type.toLowerCase().contains('run') ? LucideIcons.footprints : LucideIcons.bicepsFlexed,
+                      ex.type.toLowerCase().contains('run')
+                          ? LucideIcons.footprints
+                          : LucideIcons.bicepsFlexed,
                       color: BentoTheme.accent,
                       size: 20,
                     ),
@@ -984,12 +1099,16 @@ class _FitnessTabState extends State<FitnessTab> {
                         children: [
                           Text(
                             ex.title ?? ex.type,
-                            style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(
+                                color: BentoTheme.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${ex.durationMin}m · ${(ex.activeKcal ?? 0).round()} kcal burned',
-                            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                            style: TextStyle(
+                                color: BentoTheme.textSecondary, fontSize: 11),
                           ),
                         ],
                       ),
@@ -997,11 +1116,15 @@ class _FitnessTabState extends State<FitnessTab> {
                     if (ex.avgHr != null)
                       Row(
                         children: [
-                          const Icon(LucideIcons.heartPulse, size: 14, color: AppColors.error),
+                          const Icon(LucideIcons.heartPulse,
+                              size: 14, color: AppColors.error),
                           const SizedBox(width: 4),
                           Text(
                             '${ex.avgHr} bpm',
-                            style: const TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -1029,7 +1152,8 @@ class _FitnessTabState extends State<FitnessTab> {
                 color: AppColors.health.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(LucideIcons.scale, color: AppColors.health, size: 20),
+              child: const Icon(LucideIcons.scale,
+                  color: AppColors.health, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1048,7 +1172,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   const SizedBox(height: 4),
                   Text(
                     'No body composition reading synced.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -1078,7 +1203,8 @@ class _FitnessTabState extends State<FitnessTab> {
                   color: AppColors.health.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(LucideIcons.scale, color: AppColors.health, size: 20),
+                child: const Icon(LucideIcons.scale,
+                    color: AppColors.health, size: 20),
               ),
               const SizedBox(width: 12),
               Column(
@@ -1094,7 +1220,9 @@ class _FitnessTabState extends State<FitnessTab> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text('Galaxy Watch 7 BioActive Sensor', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  Text('Health Sensor',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                 ],
               ),
             ],
@@ -1103,10 +1231,14 @@ class _FitnessTabState extends State<FitnessTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBodyCompItem('Weight', weight != null ? '${weight.toStringAsFixed(1)} kg' : '—'),
-              _buildBodyCompItem('Body Fat', fatPct != null ? '${fatPct.toStringAsFixed(1)}%' : '—'),
-              _buildBodyCompItem('Skeletal Muscle', muscle != null ? '${muscle.toStringAsFixed(1)} kg' : '—'),
-              _buildBodyCompItem('BMI', bmi != null ? bmi.toStringAsFixed(1) : '—'),
+              _buildBodyCompItem('Weight',
+                  weight != null ? '${weight.toStringAsFixed(1)} kg' : '—'),
+              _buildBodyCompItem('Body Fat',
+                  fatPct != null ? '${fatPct.toStringAsFixed(1)}%' : '—'),
+              _buildBodyCompItem('Skeletal Muscle',
+                  muscle != null ? '${muscle.toStringAsFixed(1)} kg' : '—'),
+              _buildBodyCompItem(
+                  'BMI', bmi != null ? bmi.toStringAsFixed(1) : '—'),
             ],
           ),
         ],
@@ -1117,9 +1249,14 @@ class _FitnessTabState extends State<FitnessTab> {
   Widget _buildBodyCompItem(String label, String val) {
     return Column(
       children: [
-        Text(val, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+        Text(val,
+            style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
+        Text(label,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10)),
       ],
     );
   }

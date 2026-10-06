@@ -156,7 +156,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   itemBuilder: (_, idx) {
                     final cat = categories[idx];
                     return ListTile(
-                      title: Text(cat.name, style: TextStyle(color: BentoTheme.textPrimary)),
+                      title: Text(cat.name,
+                          style: TextStyle(color: BentoTheme.textPrimary)),
                       onTap: () => Navigator.of(ctx).pop(cat),
                     );
                   },
@@ -197,7 +198,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Updated ${idsToUpdate.length} transactions to ${selectedCategory.name}')),
+        SnackBar(
+            content: Text(
+                'Updated ${idsToUpdate.length} transactions to ${selectedCategory.name}')),
       );
     }
   }
@@ -249,7 +252,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                           setModalState(() {});
                           Navigator.of(ctx).pop();
                         },
-                        child: Text('Reset', style: TextStyle(color: BentoTheme.accent)),
+                        child: Text('Reset',
+                            style: TextStyle(color: BentoTheme.accent)),
                       ),
                     ],
                   ),
@@ -258,7 +262,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   DropdownButtonFormField<String>(
                     value: _filterKind,
                     dropdownColor: BentoTheme.surface,
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+                    style:
+                        TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       labelText: 'Kind',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
@@ -271,14 +276,20 @@ class _TransactionsTabState extends State<TransactionsTab> {
                     ),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('All Kinds')),
-                      DropdownMenuItem(value: 'expense', child: Text('Expense')),
+                      DropdownMenuItem(
+                          value: 'expense', child: Text('Expense')),
                       DropdownMenuItem(value: 'income', child: Text('Income')),
-                      DropdownMenuItem(value: 'transfer', child: Text('Transfer')),
+                      DropdownMenuItem(
+                          value: 'transfer', child: Text('Transfer')),
                       DropdownMenuItem(value: 'refund', child: Text('Refund')),
-                      DropdownMenuItem(value: 'investment', child: Text('Investment')),
-                      DropdownMenuItem(value: 'debt_payment', child: Text('Debt Payment')),
-                      DropdownMenuItem(value: 'adjustment', child: Text('Adjustment')),
-                      DropdownMenuItem(value: 'reimbursement', child: Text('Reimbursement')),
+                      DropdownMenuItem(
+                          value: 'investment', child: Text('Investment')),
+                      DropdownMenuItem(
+                          value: 'debt_payment', child: Text('Debt Payment')),
+                      DropdownMenuItem(
+                          value: 'adjustment', child: Text('Adjustment')),
+                      DropdownMenuItem(
+                          value: 'reimbursement', child: Text('Reimbursement')),
                     ],
                     onChanged: (val) {
                       setModalState(() => _filterKind = val);
@@ -290,7 +301,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   DropdownButtonFormField<String>(
                     value: _filterAccountId,
                     dropdownColor: BentoTheme.surface,
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+                    style:
+                        TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       labelText: 'Account',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
@@ -302,8 +314,10 @@ class _TransactionsTabState extends State<TransactionsTab> {
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('All Accounts')),
-                      ...accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))),
+                      const DropdownMenuItem(
+                          value: null, child: Text('All Accounts')),
+                      ...accounts.map((a) =>
+                          DropdownMenuItem(value: a.id, child: Text(a.name))),
                     ],
                     onChanged: (val) {
                       setModalState(() => _filterAccountId = val);
@@ -315,7 +329,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   DropdownButtonFormField<String>(
                     value: _filterCategoryId,
                     dropdownColor: BentoTheme.surface,
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+                    style:
+                        TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       labelText: 'Category',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
@@ -327,8 +342,10 @@ class _TransactionsTabState extends State<TransactionsTab> {
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('All Categories')),
-                      ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                      const DropdownMenuItem(
+                          value: null, child: Text('All Categories')),
+                      ...categories.map((c) =>
+                          DropdownMenuItem(value: c.id, child: Text(c.name))),
                     ],
                     onChanged: (val) {
                       setModalState(() => _filterCategoryId = val);
@@ -348,7 +365,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text('Apply Filters',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -368,15 +386,22 @@ class _TransactionsTabState extends State<TransactionsTab> {
       list = list.where((tx) => tx.effectiveKind == _filterKind).toList();
     }
     if (_filterAccountId != null) {
-      list = list.where((tx) => tx.accountId == _filterAccountId || tx.toAccountId == _filterAccountId).toList();
+      list = list
+          .where((tx) =>
+              tx.accountId == _filterAccountId ||
+              tx.toAccountId == _filterAccountId)
+          .toList();
     }
     if (_filterCategoryId != null) {
       list = list.where((tx) => tx.categoryId == _filterCategoryId).toList();
     }
     if (_dateRange != null) {
-      list = list.where((tx) =>
-          tx.date.isAfter(_dateRange!.start.subtract(const Duration(seconds: 1))) &&
-          tx.date.isBefore(_dateRange!.end.add(const Duration(days: 1)))).toList();
+      list = list
+          .where((tx) =>
+              tx.date.isAfter(
+                  _dateRange!.start.subtract(const Duration(seconds: 1))) &&
+              tx.date.isBefore(_dateRange!.end.add(const Duration(days: 1))))
+          .toList();
     }
 
     // Apply parsed query
@@ -450,7 +475,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
         backgroundColor: BentoTheme.accent,
         foregroundColor: Colors.black,
         icon: const Icon(LucideIcons.plus, size: 20),
-        label: const Text('Add Transaction', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Add Transaction',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -484,10 +510,12 @@ class _TransactionsTabState extends State<TransactionsTab> {
                     color: BentoTheme.textSecondary.withValues(alpha: 0.5),
                     fontSize: 12,
                   ),
-                  prefixIcon: Icon(LucideIcons.search, size: 16, color: BentoTheme.textSecondary),
+                  prefixIcon: Icon(LucideIcons.search,
+                      size: 16, color: BentoTheme.textSecondary),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(LucideIcons.x, size: 14, color: Colors.white70),
+                          icon: const Icon(LucideIcons.x,
+                              size: 14, color: Colors.white70),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
@@ -506,7 +534,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
                 Icon(
                   LucideIcons.slidersHorizontal,
                   size: 20,
-                  color: hasActiveFilters ? BentoTheme.accent : BentoTheme.textSecondary,
+                  color: hasActiveFilters
+                      ? BentoTheme.accent
+                      : BentoTheme.textSecondary,
                 ),
                 if (hasActiveFilters)
                   Positioned(
@@ -525,9 +555,11 @@ class _TransactionsTabState extends State<TransactionsTab> {
             ),
           ),
           PopupMenuButton<String>(
-            icon: Icon(LucideIcons.moreVertical, size: 20, color: BentoTheme.textSecondary),
+            icon: Icon(LucideIcons.moreVertical,
+                size: 20, color: BentoTheme.textSecondary),
             color: BentoTheme.surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (val) {
               if (val == 'csv') {
                 Navigator.push(
@@ -543,9 +575,12 @@ class _TransactionsTabState extends State<TransactionsTab> {
                 value: 'csv',
                 child: Row(
                   children: [
-                    Icon(LucideIcons.fileSpreadsheet, size: 16, color: BentoTheme.accent),
+                    Icon(LucideIcons.fileSpreadsheet,
+                        size: 16, color: BentoTheme.accent),
                     const SizedBox(width: 10),
-                    Text('Import Bank CSV', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13)),
+                    Text('Import Bank CSV',
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13)),
                   ],
                 ),
               ),
@@ -553,9 +588,12 @@ class _TransactionsTabState extends State<TransactionsTab> {
                 value: 'sms',
                 child: Row(
                   children: [
-                    Icon(LucideIcons.messageSquare, size: 16, color: BentoTheme.accent),
+                    Icon(LucideIcons.messageSquare,
+                        size: 16, color: BentoTheme.accent),
                     const SizedBox(width: 10),
-                    Text('Paste SMS Alert', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13)),
+                    Text('Paste SMS Alert',
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13)),
                   ],
                 ),
               ),
@@ -604,7 +642,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
   Widget _buildDayHeader(String dayKey, List<Transaction> txs) {
     final date = DateTime.parse(dayKey);
     final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
     final isYesterday = date.year == now.year &&
         date.month == now.month &&
         date.day == now.subtract(const Duration(days: 1)).day;
@@ -637,7 +676,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
               Text(
                 '${isPositive ? '+' : ''}${FormatUtils.formatCurrency(net)}',
                 style: TextStyle(
-                  color: isPositive ? const Color(0xFF22C55E) : BentoTheme.textSecondary,
+                  color: isPositive
+                      ? const Color(0xFF22C55E)
+                      : BentoTheme.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -667,7 +708,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
     final id = _txId(tx);
     final isSelected = _selectedTxIds.contains(id);
     final kind = tx.effectiveKind;
-    final isIncome = kind == 'income' || kind == 'refund' || kind == 'reimbursement';
+    final isIncome =
+        kind == 'income' || kind == 'refund' || kind == 'reimbursement';
     final category = _controller.getCategory(tx.categoryId);
     final account = _controller.getAccount(tx.accountId);
     final toAccount = _controller.getAccount(tx.toAccountId);
@@ -681,7 +723,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
             : BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
         border: Border.all(
-          color: isSelected ? BentoTheme.accent : Colors.white.withValues(alpha: 0.04),
+          color: isSelected
+              ? BentoTheme.accent
+              : Colors.white.withValues(alpha: 0.04),
         ),
       ),
       child: InkWell(
@@ -710,7 +754,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   child: Icon(
                     isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
                     size: 20,
-                    color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
+                    color: isSelected
+                        ? BentoTheme.accent
+                        : BentoTheme.textSecondary,
                   ),
                 ),
               // Category / Kind Icon Avatar
@@ -755,7 +801,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
                         if (hasSplits) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
                               color: BentoTheme.accent.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
@@ -782,28 +829,23 @@ class _TransactionsTabState extends State<TransactionsTab> {
                             fontSize: 12,
                           ),
                         ),
-                        if (account != null) ...[
-                          Text(' · ', style: TextStyle(color: BentoTheme.textSecondary)),
+                        if (account != null)
                           Text(
-                            kind == 'transfer' && toAccount != null
-                                ? '${account.name} → ${toAccount.name}'
-                                : account.name,
+                            ' · ${kind == 'transfer' && toAccount != null ? '${account.name} → ${toAccount.name}' : account.name}',
                             style: TextStyle(
                               color: BentoTheme.textSecondary,
                               fontSize: 11,
                             ),
                           ),
-                        ],
-                        if (tx.paymentMethod != null && tx.paymentMethod!.isNotEmpty) ...[
-                          Text(' · ', style: TextStyle(color: BentoTheme.textSecondary)),
+                        if (tx.paymentMethod != null &&
+                            tx.paymentMethod!.isNotEmpty)
                           Text(
-                            tx.paymentMethod!,
+                            ' · ${tx.paymentMethod!}',
                             style: TextStyle(
                               color: BentoTheme.textSecondary,
                               fontSize: 11,
                             ),
                           ),
-                        ],
                       ],
                     ),
                   ],
@@ -816,7 +858,9 @@ class _TransactionsTabState extends State<TransactionsTab> {
                   Text(
                     '${isIncome ? '+' : '-'}${FormatUtils.formatCurrency(tx.amount.abs())}',
                     style: TextStyle(
-                      color: isIncome ? const Color(0xFF22C55E) : BentoTheme.textPrimary,
+                      color: isIncome
+                          ? const Color(0xFF22C55E)
+                          : BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
@@ -847,22 +891,38 @@ class _TransactionsTabState extends State<TransactionsTab> {
     if (kind == 'adjustment') return LucideIcons.scale;
 
     switch (iconKey) {
-      case 'utensils': return LucideIcons.utensils;
-      case 'shopping_cart': return LucideIcons.shoppingCart;
-      case 'car': return LucideIcons.car;
-      case 'bolt': return LucideIcons.zap;
-      case 'heart_pulse': return LucideIcons.heartPulse;
-      case 'film': return LucideIcons.film;
-      case 'tv': return LucideIcons.tv;
-      case 'apple': return LucideIcons.apple;
-      case 'home': return LucideIcons.home;
-      case 'graduation_cap': return LucideIcons.graduationCap;
-      case 'plane': return LucideIcons.plane;
-      case 'repeat': return LucideIcons.repeat;
-      case 'shield': return LucideIcons.shield;
-      case 'gift': return LucideIcons.gift;
-      case 'sparkles': return LucideIcons.sparkles;
-      default: return LucideIcons.tag;
+      case 'utensils':
+        return LucideIcons.utensils;
+      case 'shopping_cart':
+        return LucideIcons.shoppingCart;
+      case 'car':
+        return LucideIcons.car;
+      case 'bolt':
+        return LucideIcons.zap;
+      case 'heart_pulse':
+        return LucideIcons.heartPulse;
+      case 'film':
+        return LucideIcons.film;
+      case 'tv':
+        return LucideIcons.tv;
+      case 'apple':
+        return LucideIcons.apple;
+      case 'home':
+        return LucideIcons.home;
+      case 'graduation_cap':
+        return LucideIcons.graduationCap;
+      case 'plane':
+        return LucideIcons.plane;
+      case 'repeat':
+        return LucideIcons.repeat;
+      case 'shield':
+        return LucideIcons.shield;
+      case 'gift':
+        return LucideIcons.gift;
+      case 'sparkles':
+        return LucideIcons.sparkles;
+      default:
+        return LucideIcons.tag;
     }
   }
 
@@ -871,7 +931,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.inbox, size: 48, color: BentoTheme.textSecondary.withValues(alpha: 0.4)),
+          Icon(LucideIcons.inbox,
+              size: 48, color: BentoTheme.textSecondary.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             'No transactions found',

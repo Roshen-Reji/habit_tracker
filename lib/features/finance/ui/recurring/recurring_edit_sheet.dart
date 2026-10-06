@@ -96,14 +96,16 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
     final r = widget.existingRule;
 
     _kind = r?.kind ?? widget.initialKind ?? 'bill';
-    _nameController = TextEditingController(text: r?.name ?? widget.initialName ?? '');
+    _nameController =
+        TextEditingController(text: r?.name ?? widget.initialName ?? '');
     _amountController = TextEditingController(
       text: r != null
           ? (r.amount.truncateToDouble() == r.amount
               ? r.amount.toInt().toString()
               : r.amount.toStringAsFixed(2))
           : (widget.initialAmount != null
-              ? (widget.initialAmount!.truncateToDouble() == widget.initialAmount
+              ? (widget.initialAmount!.truncateToDouble() ==
+                      widget.initialAmount
                   ? widget.initialAmount!.toInt().toString()
                   : widget.initialAmount!.toStringAsFixed(2))
               : ''),
@@ -159,7 +161,8 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
 
     final amtVal = double.parse(_amountController.text.trim());
     final isNew = widget.existingRule == null;
-    final id = widget.existingRule?.id ?? 'rec_${DateTime.now().millisecondsSinceEpoch}';
+    final id = widget.existingRule?.id ??
+        'rec_${DateTime.now().millisecondsSinceEpoch}';
 
     final rule = RecurringRule(
       id: id,
@@ -176,7 +179,9 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
       autoPost: _autoPost,
       reminderDaysBefore: _reminderDays,
       status: _status,
-      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      notes: _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
       createdAt: widget.existingRule?.createdAt ?? DateTime.now(),
     );
 
@@ -188,7 +193,7 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
 
     // Reschedule reminders
     await widget.controller.scheduleRecurringReminders();
-    
+
     // Post if needed
     if (_autoPost) {
       await RecurringRunner.run(force: true);
@@ -198,7 +203,9 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isNew ? '${rule.name} added to recurring' : '${rule.name} updated'),
+          content: Text(isNew
+              ? '${rule.name} added to recurring'
+              : '${rule.name} updated'),
           backgroundColor: BentoTheme.surface,
         ),
       );
@@ -210,7 +217,8 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: BentoTheme.surface,
-        title: Text('Delete ${widget.existingRule!.name}?', style: TextStyle(color: BentoTheme.textPrimary)),
+        title: Text('Delete ${widget.existingRule!.name}?',
+            style: TextStyle(color: BentoTheme.textPrimary)),
         content: Text(
           'This will remove this recurring rule. Past posted transactions will remain untouched.',
           style: TextStyle(color: BentoTheme.textSecondary),
@@ -239,14 +247,19 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
   Widget build(BuildContext context) {
     final accounts = widget.controller.activeAccounts;
     final categories = widget.controller.storage.categoryBox.values
-        .where((c) => !c.archived && (_kind == 'income' ? c.kind == 'income' : c.kind == 'expense'))
+        .where((c) =>
+            !c.archived &&
+            (_kind == 'income' ? c.kind == 'income' : c.kind == 'expense'))
         .toList();
 
     final isManaged = widget.existingRule != null &&
         (_kind == 'sip' || _kind == 'emi') &&
         widget.existingRule!.toAccountId != null;
     final managedAccountName = isManaged
-        ? widget.controller.storage.accountBox.get(widget.existingRule!.toAccountId!)?.name ?? 'Linked Account'
+        ? widget.controller.storage.accountBox
+                .get(widget.existingRule!.toAccountId!)
+                ?.name ??
+            'Linked Account'
         : null;
 
     return Container(
@@ -286,7 +299,9 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   Icon(LucideIcons.repeat, color: BentoTheme.accent, size: 22),
                   const SizedBox(width: 10),
                   Text(
-                    widget.existingRule == null ? 'New Recurring Rule' : 'Edit Recurring Rule',
+                    widget.existingRule == null
+                        ? 'New Recurring Rule'
+                        : 'Edit Recurring Rule',
                     style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontSize: 18,
@@ -296,11 +311,13 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   const Spacer(),
                   if (widget.existingRule != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20),
+                      icon: const Icon(LucideIcons.trash2,
+                          color: Colors.redAccent, size: 20),
                       onPressed: _delete,
                     ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white60, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -330,7 +347,9 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                         side: BorderSide(
-                          color: isSel ? BentoTheme.accent : Colors.white.withValues(alpha: 0.08),
+                          color: isSel
+                              ? BentoTheme.accent
+                              : Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
                       onSelected: (val) {
@@ -348,16 +367,19 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                 style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16),
                 decoration: InputDecoration(
                   labelText: 'Name (e.g. Netflix, Electricity Bill)',
-                  labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                  labelStyle:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                   filled: true,
                   fillColor: BentoTheme.background,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                    borderSide:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Please enter a name';
+                  if (val == null || val.trim().isEmpty)
+                    return 'Please enter a name';
                   return null;
                 },
               ),
@@ -370,16 +392,19 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   decoration: BoxDecoration(
                     color: BentoTheme.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color: BentoTheme.accent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      Icon(LucideIcons.lock, color: BentoTheme.accent, size: 16),
+                      Icon(LucideIcons.lock,
+                          color: BentoTheme.accent, size: 16),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Managed by $managedAccountName.\nEdit amount/account details in the Account page.',
-                          style: TextStyle(color: BentoTheme.accent, fontSize: 13),
+                          style:
+                              TextStyle(color: BentoTheme.accent, fontSize: 13),
                         ),
                       ),
                     ],
@@ -392,7 +417,8 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
               if (!isManaged) ...[
                 TextFormField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   style: TextStyle(
                     color: BentoTheme.textPrimary,
                     fontSize: 22,
@@ -405,18 +431,22 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
-                    labelText: _amountIsVariable ? 'Estimated Amount' : 'Amount',
-                    labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    labelText:
+                        _amountIsVariable ? 'Estimated Amount' : 'Amount',
+                    labelStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                     filled: true,
                     fillColor: BentoTheme.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
                   ),
                   validator: (val) {
                     final num = double.tryParse(val ?? '');
-                    if (num == null || num <= 0) return 'Enter a valid amount > 0';
+                    if (num == null || num <= 0)
+                      return 'Enter a valid amount > 0';
                     return null;
                   },
                 ),
@@ -432,13 +462,16 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   checkColor: Colors.black,
                   title: Text(
                     'Amount is variable (e.g. utility bills)',
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                    style:
+                        TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   ),
                   subtitle: Text(
                     'Estimates future charges from the 3-month historical average.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
-                  onChanged: (val) => setState(() => _amountIsVariable = val ?? false),
+                  onChanged: (val) =>
+                      setState(() => _amountIsVariable = val ?? false),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -450,19 +483,23 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                     child: DropdownButtonFormField<String>(
                       value: _frequency,
                       dropdownColor: BentoTheme.surface,
-                      style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary, fontSize: 13),
                       decoration: InputDecoration(
                         labelText: 'Frequency',
-                        labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        labelStyle: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                         filled: true,
                         fillColor: BentoTheme.background,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                          borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.08)),
                         ),
                       ),
                       items: _frequencies.map((f) {
-                        return DropdownMenuItem(value: f, child: Text(f.toUpperCase()));
+                        return DropdownMenuItem(
+                            value: f, child: Text(f.toUpperCase()));
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _frequency = val);
@@ -474,19 +511,23 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                     child: DropdownButtonFormField<int>(
                       value: _dayOfMonth.clamp(1, 31),
                       dropdownColor: BentoTheme.surface,
-                      style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary, fontSize: 13),
                       decoration: InputDecoration(
                         labelText: 'Due Day of Month',
-                        labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        labelStyle: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                         filled: true,
                         fillColor: BentoTheme.background,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                          borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.08)),
                         ),
                       ),
                       items: List.generate(31, (i) => i + 1).map((d) {
-                        return DropdownMenuItem(value: d, child: Text('$d${_daySuffix(d)}'));
+                        return DropdownMenuItem(
+                            value: d, child: Text('$d${_daySuffix(d)}'));
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _dayOfMonth = val);
@@ -504,12 +545,14 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                 style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                 decoration: InputDecoration(
                   labelText: 'Category',
-                  labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  labelStyle:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                   filled: true,
                   fillColor: BentoTheme.background,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                    borderSide:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                   ),
                 ),
                 items: categories.map((c) {
@@ -539,54 +582,82 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                       child: DropdownButtonFormField<String>(
                         value: _selectedAccountId,
                         dropdownColor: BentoTheme.surface,
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13),
                         decoration: InputDecoration(
-                          labelText: (_kind == 'transfer' || _kind == 'investment' || _kind == 'sip' || _kind == 'emi' || _kind == 'debt_payment') ? 'From Account' : 'Payment Account',
-                          labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                          labelText: (_kind == 'transfer' ||
+                                  _kind == 'investment' ||
+                                  _kind == 'sip' ||
+                                  _kind == 'emi' ||
+                                  _kind == 'debt_payment')
+                              ? 'From Account'
+                              : 'Payment Account',
+                          labelStyle: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12),
                           filled: true,
                           fillColor: BentoTheme.background,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                            borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.08)),
                           ),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Default / Cash')),
+                          const DropdownMenuItem(
+                              value: null, child: Text('Default / Cash')),
                           ...accounts.map((acc) {
-                            return DropdownMenuItem(value: acc.id, child: Text(' ()'));
+                            return DropdownMenuItem(
+                                value: acc.id,
+                                child: Text('${acc.name} (${acc.kind})'));
                           }),
                         ],
-                        onChanged: (val) => setState(() => _selectedAccountId = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedAccountId = val),
                       ),
                     ),
-                    if (_kind == 'transfer' || _kind == 'investment' || _kind == 'sip' || _kind == 'emi' || _kind == 'debt_payment') ...[
+                    if (_kind == 'transfer' ||
+                        _kind == 'investment' ||
+                        _kind == 'sip' ||
+                        _kind == 'emi' ||
+                        _kind == 'debt_payment') ...[
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _selectedToAccountId,
                           dropdownColor: BentoTheme.surface,
-                          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                          style: TextStyle(
+                              color: BentoTheme.textPrimary, fontSize: 13),
                           decoration: InputDecoration(
                             labelText: 'To Account',
-                            labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                            labelStyle: TextStyle(
+                                color: BentoTheme.textSecondary, fontSize: 12),
                             filled: true,
                             fillColor: BentoTheme.background,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                              borderSide: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.08)),
                             ),
                           ),
-                          items: accounts.where((a) => a.id != _selectedAccountId).map((acc) {
-                            return DropdownMenuItem(value: acc.id, child: Text(' ()', overflow: TextOverflow.ellipsis));
+                          items: accounts
+                              .where((a) => a.id != _selectedAccountId)
+                              .map((acc) {
+                            return DropdownMenuItem(
+                                value: acc.id,
+                                child: Text('${acc.name} (${acc.kind})',
+                                    overflow: TextOverflow.ellipsis));
                           }).toList(),
                           onChanged: (val) => setState(() {
                             _selectedToAccountId = val;
                             if (val != null) {
-                              final toAcc = widget.controller.storage.accountBox.get(val);
+                              final toAcc =
+                                  widget.controller.storage.accountBox.get(val);
                               if (toAcc != null) {
-                                if (toAcc.isValuedAsset && _kind == 'transfer') {
+                                if (toAcc.isValuedAsset &&
+                                    _kind == 'transfer') {
                                   _kind = 'sip';
-                                } else if (toAcc.isLoan && _kind == 'transfer') {
+                                } else if (toAcc.isLoan &&
+                                    _kind == 'transfer') {
                                   _kind = 'emi';
                                 }
                               }
@@ -605,7 +676,8 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -626,7 +698,8 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                             _autoPost
                                 ? 'Transactions post automatically on due date (e.g. SIPs).'
                                 : 'Creates a due item you confirm when paid (e.g. credit card bills).',
-                            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                            style: TextStyle(
+                                color: BentoTheme.textSecondary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -655,8 +728,11 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                     ),
                   ),
                   child: Text(
-                    widget.existingRule == null ? 'Create Recurring Rule' : 'Save Changes',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    widget.existingRule == null
+                        ? 'Create Recurring Rule'
+                        : 'Save Changes',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),
               ),
