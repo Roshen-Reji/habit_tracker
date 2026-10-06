@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
+import 'package:habit_tracker/data/services/reminder_scheduler.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/finance/engine/constants.dart';
 import 'package:habit_tracker/features/finance/engine/ledger.dart';
@@ -702,7 +703,6 @@ class FinanceRepository {
           }
 
           double? interestAmount;
-          bool missingLoanFields = false;
           bool loanCompleted = false;
 
           if (rule.kind == 'emi' && rule.toAccountId != null) {
@@ -730,8 +730,6 @@ class FinanceRepository {
                 if (split.principal >= loanBal.abs() - 0.01) {
                   loanCompleted = true;
                 }
-              } else {
-                missingLoanFields = true;
               }
             }
           }
@@ -956,40 +954,9 @@ class FinanceRepository {
     return tx;
   }
 
-  /// P6-3: Schedules notifications for upcoming recurring rules at 09:00 local time.
+  /// Schedules notifications and alarms for upcoming recurring rules and dues using ReminderScheduler.
   Future<void> scheduleRecurringReminders({DateTime? now}) async {
-    final clock = now ?? DateTime.now();
-    final horizon = clock.add(const Duration(days: 14));
-    final rules =
-        storage.recurringBox.values.where((r) => r.status == 'active').toList();
-
-    for (final rule in rules) {
-      final dates = RecurringEngine.occurrences(rule, clock, horizon);
-
-      for (final d in dates) {
-        final reminderDate =
-            d.subtract(Duration(days: rule.reminderDaysBefore));
-        final scheduledTime = DateTime(
-          reminderDate.year,
-          reminderDate.month,
-          reminderDate.day,
-          9,
-          0,
-        );
-
-        if (scheduledTime.isAfter(clock)) {
-          final id = (rule.id.hashCode + d.day + d.month * 100) & 0x7FFFFFFF;
-          await NotificationService().schedule(
-            id: id,
-            when: scheduledTime,
-            title: 'Upcoming ${rule.kind}: ${rule.name}',
-            body:
-                '${FormatUtils.formatMoney(rule.amount)} due on ${DateFormat('dd MMM').format(d)}',
-            payload: 'rec:${rule.id}',
-          );
-        }
-      }
-    }
+    await ReminderScheduler.sync(clock: now, force: true);
   }
 
   // ---------------------------------------------------------------------------

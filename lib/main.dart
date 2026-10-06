@@ -22,6 +22,7 @@ import 'package:habit_tracker/data/services/xp_ledger.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_cleanup_service.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
+import 'package:habit_tracker/data/services/reminder_scheduler.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -203,6 +204,11 @@ void main() async {
       await RecurringRunner.run();
     } catch (e) {
       debugPrint('RecurringRunner warning: $e');
+    }
+    try {
+      await ReminderScheduler.sync();
+    } catch (e) {
+      debugPrint('ReminderScheduler sync warning: $e');
     }
     try {
       await MedicineService.rescheduleAll();

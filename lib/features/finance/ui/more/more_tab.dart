@@ -7,6 +7,7 @@ import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
 
 class MoreTab extends StatelessWidget {
   final Function(String deepLink)? onNavigate;
@@ -63,6 +64,18 @@ class MoreTab extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               _sectionHeader('MANAGE & CONFIGURE'),
+              _tile(
+                icon: LucideIcons.bellRing,
+                title: 'Reminders & Alarms',
+                subtitle: 'Schedules, notifications, styles and permissions',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const RemindersSettingsPage(),
+                    ),
+                  );
+                },
+              ),
               _tile(
                 icon: LucideIcons.tag,
                 title: 'Categories',

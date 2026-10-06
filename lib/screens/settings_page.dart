@@ -9,6 +9,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_layout_settings_page.dart';
 import 'package:habit_tracker/features/wearables/ui/wearables_settings_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -285,6 +286,15 @@ class _SettingsPageState extends State<SettingsPage> {
             }),
             _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
                 () => _editCurrency(settings)),
+            _buildActionTile(LucideIcons.bellRing, "Finance Reminders & Alarms",
+                "Schedules, styles, permissions & test", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RemindersSettingsPage(),
+                ),
+              );
+            }),
             _buildActionTile(
                 LucideIcons.layoutGrid, "Home Layout", "Reorder & toggle cards",
                 () {
@@ -295,9 +305,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               );
             }),
-            _buildActionTile(
-                LucideIcons.watch,
-                "Galaxy Watch & Wearables",
+            _buildActionTile(LucideIcons.watch, "Galaxy Watch & Wearables",
                 "Samsung Health sync, AGEs index & sleep", () {
               Navigator.push(
                 context,
