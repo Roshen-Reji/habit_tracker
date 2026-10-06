@@ -22,8 +22,10 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
   void initState() {
     super.initState();
     _settingsBox = Hive.box('finance_settings');
-    _aiFinanceEnabled = _settingsBox.get('ai_finance_privacy', defaultValue: true) as bool;
-    _llmRewordingEnabled = _settingsBox.get('ai_insight_rewording', defaultValue: false) as bool;
+    _aiFinanceEnabled =
+        _settingsBox.get('ai_finance_privacy', defaultValue: true) as bool;
+    _llmRewordingEnabled =
+        _settingsBox.get('ai_insight_rewording', defaultValue: false) as bool;
   }
 
   void _updateAiFinance(bool val) {
@@ -67,7 +69,8 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
+              border:
+                  Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +81,8 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
                     color: BentoTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(LucideIcons.shieldCheck, color: BentoTheme.accent, size: 24),
+                  child: Icon(LucideIcons.shieldCheck,
+                      color: BentoTheme.accent, size: 24),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -123,7 +127,8 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
           const SizedBox(height: 10),
           _buildToggleTile(
             title: 'Finance AI Assistant',
-            subtitle: 'Allow AI chat to answer questions and draft transactions for your review.',
+            subtitle:
+                'Allow AI chat to answer questions and draft transactions for your review.',
             icon: LucideIcons.sparkles,
             value: _aiFinanceEnabled,
             onChanged: _updateAiFinance,
@@ -131,7 +136,8 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
           const SizedBox(height: 10),
           _buildToggleTile(
             title: 'Insight Natural Phrasing',
-            subtitle: 'Optionally rewrite rule-based financial insights via LLM. Off by default.',
+            subtitle:
+                'Optionally rewrite rule-based financial insights via LLM. Off by default.',
             icon: LucideIcons.messageSquareText,
             value: _llmRewordingEnabled,
             onChanged: _updateLlmRewording,
@@ -162,28 +168,32 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
                   icon: LucideIcons.check,
                   color: const Color(0xFF22C55E),
                   title: 'Raw transactions never leave your device',
-                  desc: 'Dates, notes, payees, and receipt images are strictly kept in local storage.',
+                  desc:
+                      'Dates, notes, payees, and receipt images are strictly kept in local storage.',
                 ),
                 const Divider(color: Colors.white10, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
                   color: const Color(0xFF22C55E),
                   title: 'Calculations run 100% locally',
-                  desc: 'Safe-to-Spend, net worth, budgets, and what-if simulators run pure Dart on-device.',
+                  desc:
+                      'Safe-to-Spend, net worth, budgets, and what-if simulators run pure Dart on-device.',
                 ),
                 const Divider(color: Colors.white10, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
                   color: const Color(0xFF22C55E),
                   title: 'Aggregated context only',
-                  desc: 'When AI chat is used, only monthly totals (income and expense) are supplied to assist responses.',
+                  desc:
+                      'When AI chat is used, only monthly totals (income and expense) are supplied to assist responses.',
                 ),
                 const Divider(color: Colors.white10, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
                   color: const Color(0xFF22C55E),
                   title: 'Zero auto-posting',
-                  desc: 'AI can only propose draft actions. Every single change requires your explicit confirmation.',
+                  desc:
+                      'AI can only propose draft actions. Every single change requires your explicit confirmation.',
                 ),
               ],
             ),
@@ -199,7 +209,8 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
                   const SnackBar(content: Text('AI chat session cleared')),
                 );
               },
-              icon: Icon(LucideIcons.trash2, size: 16, color: BentoTheme.textSecondary),
+              icon: Icon(LucideIcons.trash2,
+                  size: 16, color: BentoTheme.textSecondary),
               label: Text(
                 'Reset AI Chat Session',
                 style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),

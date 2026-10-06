@@ -18,7 +18,9 @@ class MoreTab extends StatelessWidget {
       final backup = await FinanceBackupService.exportJson();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup exported successfully (${backup.length} bytes)')),
+        SnackBar(
+            content:
+                Text('Backup exported successfully (${backup.length} bytes)')),
       );
     } catch (e) {
       if (!context.mounted) return;
@@ -60,7 +62,6 @@ class MoreTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
               _sectionHeader('MANAGE & CONFIGURE'),
               _tile(
                 icon: LucideIcons.tag,
@@ -86,7 +87,6 @@ class MoreTab extends StatelessWidget {
                   }
                 },
               ),
-
               const SizedBox(height: 20),
               _sectionHeader('INTELLIGENCE & REPORTS'),
               _tile(
@@ -151,13 +151,13 @@ class MoreTab extends StatelessWidget {
                   if (onNavigate != null) onNavigate!('reports');
                 },
               ),
-
               const SizedBox(height: 20),
               _sectionHeader('DATA & PRIVACY'),
               _tile(
                 icon: LucideIcons.download,
                 title: 'Export JSON Backup',
-                subtitle: 'Create a full encrypted snapshot of all finance data',
+                subtitle:
+                    'Create a full encrypted snapshot of all finance data',
                 onTap: () => _exportBackup(context),
               ),
               _tile(
@@ -232,7 +232,8 @@ class MoreTab extends StatelessWidget {
               fontSize: 12,
             ),
           ),
-          trailing: Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
+          trailing: Icon(LucideIcons.chevronRight,
+              size: 16, color: BentoTheme.textSecondary),
           onTap: onTap,
         ),
       ),

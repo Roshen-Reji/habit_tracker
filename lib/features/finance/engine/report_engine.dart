@@ -137,9 +137,11 @@ class ReportEngine {
     final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
     final prevMonthEnd = DateTime(month.year, month.month, 0, 23, 59, 59);
 
-    final txsThisMonth = transactions.where((t) =>
-        t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-        t.date.isBefore(endOfMonth.add(const Duration(seconds: 1)))).toList();
+    final txsThisMonth = transactions
+        .where((t) =>
+            t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(endOfMonth.add(const Duration(seconds: 1))))
+        .toList();
 
     final income = LedgerEngine.income(txsThisMonth);
     final spending = LedgerEngine.spending(txsThisMonth);
@@ -157,7 +159,8 @@ class ReportEngine {
     // Goal savings contributions this month
     double goalSavings = 0.0;
     for (final entry in goalEntries) {
-      if (entry.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+      if (entry.date
+              .isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
           entry.date.isBefore(endOfMonth.add(const Duration(seconds: 1)))) {
         if (entry.amount > 0) {
           goalSavings += entry.amount;
@@ -167,8 +170,10 @@ class ReportEngine {
     final saved = Money.r2(goalSavings + invested);
 
     // Net worth change
-    final nwStart = LedgerEngine.netWorth(accounts, transactions, valuations, asOf: prevMonthEnd);
-    final nwEnd = LedgerEngine.netWorth(accounts, transactions, valuations, asOf: endOfMonth);
+    final nwStart = LedgerEngine.netWorth(accounts, transactions, valuations,
+        asOf: prevMonthEnd);
+    final nwEnd = LedgerEngine.netWorth(accounts, transactions, valuations,
+        asOf: endOfMonth);
     final nwChange = Money.r2(nwEnd - nwStart);
 
     return MonthlySummaryReport(
@@ -196,20 +201,27 @@ class ReportEngine {
 
     final prevMonth = DateTime(month.year, month.month - 1);
     final startOfPrevMonth = DateTime(prevMonth.year, prevMonth.month, 1);
-    final endOfPrevMonth = DateTime(prevMonth.year, prevMonth.month + 1, 0, 23, 59, 59);
+    final endOfPrevMonth =
+        DateTime(prevMonth.year, prevMonth.month + 1, 0, 23, 59, 59);
 
-    final txsThisMonth = transactions.where((t) =>
-        t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-        t.date.isBefore(endOfMonth.add(const Duration(seconds: 1)))).toList();
+    final txsThisMonth = transactions
+        .where((t) =>
+            t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(endOfMonth.add(const Duration(seconds: 1))))
+        .toList();
 
-    final txsPrevMonth = transactions.where((t) =>
-        t.date.isAfter(startOfPrevMonth.subtract(const Duration(seconds: 1))) &&
-        t.date.isBefore(endOfPrevMonth.add(const Duration(seconds: 1)))).toList();
+    final txsPrevMonth = transactions
+        .where((t) =>
+            t.date.isAfter(
+                startOfPrevMonth.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(endOfPrevMonth.add(const Duration(seconds: 1))))
+        .toList();
 
     final curBreakdown = LedgerEngine.categorySpending(txsThisMonth);
     final prevBreakdown = LedgerEngine.categorySpending(txsPrevMonth);
 
-    final totalSpending = curBreakdown.values.fold(0.0, (sum, val) => sum + val);
+    final totalSpending =
+        curBreakdown.values.fold(0.0, (sum, val) => sum + val);
     final catMap = {for (final c in categories) c.id: c.name};
 
     final items = <CategoryReportItem>[];
@@ -244,10 +256,12 @@ class ReportEngine {
     final startOfMonth = DateTime(month.year, month.month, 1);
     final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
-    final txsThisMonth = transactions.where((t) =>
-        t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-        t.date.isBefore(endOfMonth.add(const Duration(seconds: 1))) &&
-        t.effectiveKind == 'expense').toList();
+    final txsThisMonth = transactions
+        .where((t) =>
+            t.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(endOfMonth.add(const Duration(seconds: 1))) &&
+            t.effectiveKind == 'expense')
+        .toList();
 
     final totals = <String, double>{};
     final counts = <String, int>{};
@@ -286,8 +300,16 @@ class ReportEngine {
     final start2 = DateTime(month2.year, month2.month, 1);
     final end2 = DateTime(month2.year, month2.month + 1, 0, 23, 59, 59);
 
-    final txs1 = transactions.where((t) => t.date.isAfter(start1.subtract(const Duration(seconds: 1))) && t.date.isBefore(end1.add(const Duration(seconds: 1)))).toList();
-    final txs2 = transactions.where((t) => t.date.isAfter(start2.subtract(const Duration(seconds: 1))) && t.date.isBefore(end2.add(const Duration(seconds: 1)))).toList();
+    final txs1 = transactions
+        .where((t) =>
+            t.date.isAfter(start1.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(end1.add(const Duration(seconds: 1))))
+        .toList();
+    final txs2 = transactions
+        .where((t) =>
+            t.date.isAfter(start2.subtract(const Duration(seconds: 1))) &&
+            t.date.isBefore(end2.add(const Duration(seconds: 1))))
+        .toList();
 
     final inc1 = LedgerEngine.income(txs1);
     final sp1 = LedgerEngine.spending(txs1);
@@ -345,15 +367,18 @@ class ReportEngine {
       final start = DateTime(m.year, m.month, 1);
       final end = DateTime(m.year, m.month + 1, 0, 23, 59, 59);
 
-      final txs = transactions.where((t) =>
-          t.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
-          t.date.isBefore(end.add(const Duration(seconds: 1)))).toList();
+      final txs = transactions
+          .where((t) =>
+              t.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
+              t.date.isBefore(end.add(const Duration(seconds: 1))))
+          .toList();
 
       final inc = LedgerEngine.income(txs);
       final sp = LedgerEngine.spending(txs);
       final net = inc - sp;
       final rate = inc > 0 ? (net / inc).clamp(0.0, 1.0) : 0.0;
-      final nw = LedgerEngine.netWorth(accounts, transactions, valuations, asOf: end);
+      final nw =
+          LedgerEngine.netWorth(accounts, transactions, valuations, asOf: end);
 
       points.add(TrendPoint(
         month: m,
@@ -374,7 +399,10 @@ class CsvExporter {
   static String escapeCell(dynamic value) {
     if (value == null) return '';
     final str = value.toString();
-    if (str.contains(',') || str.contains('"') || str.contains('\n') || str.contains('\r')) {
+    if (str.contains(',') ||
+        str.contains('"') ||
+        str.contains('\n') ||
+        str.contains('\r')) {
       return '"${str.replaceAll('"', '""')}"';
     }
     return str;
@@ -385,7 +413,8 @@ class CsvExporter {
   }
 
   /// Export transactions to CSV
-  static String exportTransactionsToCsv(List<Transaction> transactions, Map<String, Category> categories, Map<String, Account> accounts) {
+  static String exportTransactionsToCsv(List<Transaction> transactions,
+      Map<String, Category> categories, Map<String, Account> accounts) {
     final headers = [
       'ID',
       'Date',
@@ -405,9 +434,11 @@ class CsvExporter {
 
     final rows = <List<dynamic>>[headers];
     for (final tx in transactions) {
-      final cat = tx.categoryId != null ? categories[tx.categoryId]?.name : tx.category;
+      final cat =
+          tx.categoryId != null ? categories[tx.categoryId]?.name : tx.category;
       final acc = tx.accountId != null ? accounts[tx.accountId]?.name : '';
-      final toAcc = tx.toAccountId != null ? accounts[tx.toAccountId]?.name : '';
+      final toAcc =
+          tx.toAccountId != null ? accounts[tx.toAccountId]?.name : '';
 
       rows.add([
         tx.id,
@@ -465,7 +496,8 @@ class CsvExporter {
   }
 
   /// Export category breakdown report to CSV
-  static String exportCategoryReportToCsv(DateTime month, List<CategoryReportItem> items) {
+  static String exportCategoryReportToCsv(
+      DateTime month, List<CategoryReportItem> items) {
     final headers = [
       'Month',
       'Category',

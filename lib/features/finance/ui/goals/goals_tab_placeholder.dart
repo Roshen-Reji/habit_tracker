@@ -37,12 +37,14 @@ class GoalsTabPlaceholder extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: BentoTheme.surface,
                       borderRadius: ExpressiveTokens.borderL,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.target, size: 48, color: BentoTheme.accent),
+                        Icon(LucideIcons.target,
+                            size: 48, color: BentoTheme.accent),
                         const SizedBox(height: 16),
                         Text(
                           'Goals & Funds Engine',
@@ -56,7 +58,8 @@ class GoalsTabPlaceholder extends StatelessWidget {
                         Text(
                           'Phase 5 introduces goal planner with trim suggestions, auto-contributions, and sinking funds.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 13),
                         ),
                       ],
                     ),

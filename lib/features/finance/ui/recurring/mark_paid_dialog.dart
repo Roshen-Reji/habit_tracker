@@ -43,7 +43,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
   void initState() {
     super.initState();
     _amountController = TextEditingController(
-      text: widget.item.estimatedAmount.truncateToDouble() == widget.item.estimatedAmount
+      text: widget.item.estimatedAmount.truncateToDouble() ==
+              widget.item.estimatedAmount
           ? widget.item.estimatedAmount.toInt().toString()
           : widget.item.estimatedAmount.toStringAsFixed(2),
     );
@@ -113,7 +114,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
 
           Row(
             children: [
-              Icon(LucideIcons.checkCircle, color: const Color(0xFF10B981), size: 22),
+              Icon(LucideIcons.checkCircle,
+                  color: const Color(0xFF10B981), size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -165,7 +167,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
                 Expanded(
                   child: TextField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontSize: 22,
@@ -190,16 +193,19 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
             style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
             decoration: InputDecoration(
               labelText: 'Paid From Account',
-              labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+              labelStyle:
+                  TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
               filled: true,
               fillColor: BentoTheme.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
             ),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Default / Cash')),
+              const DropdownMenuItem(
+                  value: null, child: Text('Default / Cash')),
               ...accounts.map((acc) {
                 return DropdownMenuItem(
                   value: acc.id,

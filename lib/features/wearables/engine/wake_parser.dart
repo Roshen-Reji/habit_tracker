@@ -36,7 +36,8 @@ class WakeParser {
     final lower = text.trim().toLowerCase();
 
     // Rejection of "tomorrow"
-    if (lower.contains('tomorrow') || lower.contains('kal subah') && lower.contains('uthoonga')) {
+    if (lower.contains('tomorrow') ||
+        lower.contains('kal subah') && lower.contains('uthoonga')) {
       return WakeParseResult(
         error: "You cannot log a wake-up time for tomorrow.",
       );
@@ -54,7 +55,8 @@ class WakeParser {
     }
 
     // Relative offset: "woke up 10 minutes ago", "got up 15 mins ago"
-    final offsetMatch = RegExp(r'(\d+)\s*(?:minutes?|mins?)\s*ago').firstMatch(lower);
+    final offsetMatch =
+        RegExp(r'(\d+)\s*(?:minutes?|mins?)\s*ago').firstMatch(lower);
     if (offsetMatch != null) {
       final mins = int.tryParse(offsetMatch.group(1)!) ?? 0;
       return WakeParseResult(
@@ -67,8 +69,12 @@ class WakeParser {
     bool isYesterday = lower.contains('yesterday') || lower.contains('kal');
 
     // Ambiguity check: "at 12" without am/pm
-    final at12Match = RegExp(r'(?:at|around|@)\s*12(?!\s*(?:am|pm|:|\d))').firstMatch(lower);
-    if (at12Match != null && !lower.contains('12 am') && !lower.contains('12 pm') && !lower.contains('12:')) {
+    final at12Match =
+        RegExp(r'(?:at|around|@)\s*12(?!\s*(?:am|pm|:|\d))').firstMatch(lower);
+    if (at12Match != null &&
+        !lower.contains('12 am') &&
+        !lower.contains('12 pm') &&
+        !lower.contains('12:')) {
       return WakeParseResult(
         needsClarification: true,
         question: "Did you wake up at 12:00 AM (midnight) or 12:00 PM (noon)?",
@@ -76,17 +82,21 @@ class WakeParser {
     }
 
     // Explicit 24h format: "16:00", "04:30"
-    final time24Match = RegExp(r'\b([01]?\d|2[0-3]):([0-5]\d)\b').firstMatch(lower);
+    final time24Match =
+        RegExp(r'\b([01]?\d|2[0-3]):([0-5]\d)\b').firstMatch(lower);
     if (time24Match != null && !lower.contains('am') && !lower.contains('pm')) {
       final h = int.parse(time24Match.group(1)!);
       final m = int.parse(time24Match.group(2)!);
-      var targetDate = isYesterday ? clock.subtract(const Duration(days: 1)) : clock;
-      var candidate = DateTime(targetDate.year, targetDate.month, targetDate.day, h, m);
+      var targetDate =
+          isYesterday ? clock.subtract(const Duration(days: 1)) : clock;
+      var candidate =
+          DateTime(targetDate.year, targetDate.month, targetDate.day, h, m);
 
       if (candidate.isAfter(clock) && !isYesterday) {
         return WakeParseResult(
           needsClarification: true,
-          question: "That time is in the future. Did you mean yesterday at ${DateFormat('h:mm a').format(candidate)}?",
+          question:
+              "That time is in the future. Did you mean yesterday at ${DateFormat('h:mm a').format(candidate)}?",
         );
       }
       return WakeParseResult(wakeAt: candidate, confidence: 0.95);
@@ -106,10 +116,14 @@ class WakeParser {
         lower.contains('morning') ||
         lower.contains('subah');
 
-    final timeMatch = RegExp(r'\b(?:at|around|@|baje\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje)?\b').firstMatch(lower);
+    final timeMatch = RegExp(
+            r'\b(?:at|around|@|baje\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje)?\b')
+        .firstMatch(lower);
     if (timeMatch != null) {
       int? rawH = int.tryParse(timeMatch.group(1)!);
-      int rawM = timeMatch.group(2) != null ? (int.tryParse(timeMatch.group(2)!) ?? 0) : 0;
+      int rawM = timeMatch.group(2) != null
+          ? (int.tryParse(timeMatch.group(2)!) ?? 0)
+          : 0;
       final matchedMeridiem = timeMatch.group(3);
 
       if (matchedMeridiem == 'pm') hasPm = true;
@@ -124,8 +138,10 @@ class WakeParser {
           hour = rawH; // default AM
         }
 
-        var targetDate = isYesterday ? clock.subtract(const Duration(days: 1)) : clock;
-        var candidate = DateTime(targetDate.year, targetDate.month, targetDate.day, hour, rawM);
+        var targetDate =
+            isYesterday ? clock.subtract(const Duration(days: 1)) : clock;
+        var candidate = DateTime(
+            targetDate.year, targetDate.month, targetDate.day, hour, rawM);
 
         if (candidate.isAfter(clock) && !isYesterday) {
           return WakeParseResult(
@@ -139,7 +155,8 @@ class WakeParser {
     }
 
     return WakeParseResult(
-      error: "Could not understand wake-up time. Try saying 'I woke up at 5:00 AM' or 'woke up at 4'.",
+      error:
+          "Could not understand wake-up time. Try saying 'I woke up at 5:00 AM' or 'woke up at 4'.",
     );
   }
 
@@ -174,7 +191,8 @@ class WakeParser {
     final isWake = lower.contains('wake') || lower.contains('uthna');
     if (!isTaskIntent || !isWake) return null;
 
-    final match = RegExp(r'\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b').firstMatch(lower);
+    final match =
+        RegExp(r'\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b').firstMatch(lower);
     if (match != null) {
       int h = int.parse(match.group(1)!);
       int m = match.group(2) != null ? int.parse(match.group(2)!) : 0;

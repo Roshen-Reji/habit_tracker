@@ -16,7 +16,10 @@ import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
 import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
 import 'package:habit_tracker/features/finance/engine/report_engine.dart';
 import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
+import 'package:habit_tracker/features/finance/engine/finance_snapshot.dart';
+import 'package:habit_tracker/features/finance/engine/safe_to_spend_engine.dart';
+import 'package:habit_tracker/features/finance/models/models.dart'
+    hide FinanceSnapshot;
 
 /// Reactive controller that exposes memoised financial data, month indexes,
 /// and reactive updates for the UI.
@@ -29,6 +32,45 @@ class FinanceController extends ChangeNotifier {
 
   final Map<String, List<Transaction>> _monthIndex = {};
   bool _isIndexDirty = true;
+  FinanceSnapshot? _snapshot;
+
+  FinanceSnapshot get snapshot {
+    if (_snapshot == null || _isBalancesDirty) {
+      _snapshot = FinanceSnapshot.compute(
+        accounts: storage.accountBox.values,
+        transactions: storage.transactionBox.values,
+        valuations: storage.valuationBox.values,
+        recurringRules: storage.recurringBox.values,
+        goals: storage.goalBox.values,
+        goalEntries: storage.goalEntryBox.values,
+        budgetLines: storage.budgetLineBox.values,
+        getEffectiveBudget: (line, monthKey) =>
+            getEffectiveBudget(line, monthKey),
+      );
+      _isBalancesDirty = false;
+    }
+    return _snapshot!;
+  }
+
+  String get primaryAccountId {
+    return storage.settingsBox.get('primary_account_id',
+        defaultValue: FinanceConstants.defaultAccountId);
+  }
+
+  Account? get primaryAccount {
+    final id = primaryAccountId;
+    final acc = storage.accountBox.get(id);
+    if (acc != null && !acc.archived) return acc;
+    return storage.accountBox.values
+        .where((a) => a.spendable && !a.isLiability && !a.archived)
+        .firstOrNull;
+  }
+
+  double get primaryAccountBalance {
+    final acc = primaryAccount;
+    if (acc == null) return 0.0;
+    return getAccountBalance(acc);
+  }
 
   FinanceController._internal(
       {FinanceStorage? storage, FinanceRepository? repository})
@@ -41,7 +83,7 @@ class FinanceController extends ChangeNotifier {
   void _onRepositoryChanged() {
     _isIndexDirty = true;
     _isBalancesDirty = true;
-    _financeSummaryMemo = null;
+    _snapshot = null;
     notifyListeners();
   }
 
@@ -187,52 +229,53 @@ class FinanceController extends ChangeNotifier {
     return accountsMap[id];
   }
 
-
   final Map<String, double> _cachedBalances = {};
   bool _isBalancesDirty = true;
-  FinanceSnapshot? _financeSummaryMemo;
-  
+
   void _rebuildBalancesIfNeeded() {
     if (!_isBalancesDirty) return;
     _cachedBalances.clear();
-    
+
     // Single pass computation:
     final asOf = DateTime.now();
     final allTxs = storage.transactionBox.values;
     final allVals = storage.valuationBox.values;
-    
+
     // Group transactions by account
     final txByAcc = <String, List<Transaction>>{};
     for (final tx in allTxs) {
-       if (tx.accountId != null) {
-          txByAcc.putIfAbsent(tx.accountId!, () => []).add(tx);
-       }
-       if (tx.toAccountId != null) {
-          txByAcc.putIfAbsent(tx.toAccountId!, () => []).add(tx);
-       }
+      if (tx.accountId != null) {
+        txByAcc.putIfAbsent(tx.accountId!, () => []).add(tx);
+      }
+      if (tx.toAccountId != null) {
+        txByAcc.putIfAbsent(tx.toAccountId!, () => []).add(tx);
+      }
     }
-    
+
     final valByAcc = <String, List<Valuation>>{};
     for (final v in allVals) {
-       valByAcc.putIfAbsent(v.accountId, () => []).add(v);
+      valByAcc.putIfAbsent(v.accountId, () => []).add(v);
     }
-    
+
     for (final acc in storage.accountBox.values) {
-       _cachedBalances[acc.id] = LedgerEngine.balance(
-         acc,
-         txByAcc[acc.id] ?? [],
-         valByAcc[acc.id] ?? [],
-         asOf: asOf,
-       );
+      _cachedBalances[acc.id] = LedgerEngine.balance(
+        acc,
+        txByAcc[acc.id] ?? [],
+        valByAcc[acc.id] ?? [],
+        asOf: asOf,
+      );
     }
     _isBalancesDirty = false;
   }
-  
+
   /// Computes the balance of a specific [account] as of [asOf].
   double getAccountBalance(Account account, {DateTime? asOf}) {
-    if (asOf == null || asOf.year == DateTime.now().year && asOf.month == DateTime.now().month && asOf.day == DateTime.now().day) {
-       _rebuildBalancesIfNeeded();
-       return _cachedBalances[account.id] ?? 0.0;
+    if (asOf == null ||
+        asOf.year == DateTime.now().year &&
+            asOf.month == DateTime.now().month &&
+            asOf.day == DateTime.now().day) {
+      _rebuildBalancesIfNeeded();
+      return _cachedBalances[account.id] ?? 0.0;
     }
     // Fallback for custom dates
     return LedgerEngine.balance(
@@ -242,7 +285,6 @@ class FinanceController extends ChangeNotifier {
       asOf: asOf,
     );
   }
-
 
   /// Returns all active asset accounts.
   List<Account> get assetAccounts =>
@@ -317,8 +359,7 @@ class FinanceController extends ChangeNotifier {
   /// Filtered transactions for a given account ID.
   List<Transaction> getTransactionsForAccount(String accountId) {
     return allTransactions
-        .where(
-            (tx) => tx.accountId == accountId || tx.toAccountId == accountId)
+        .where((tx) => tx.accountId == accountId || tx.toAccountId == accountId)
         .toList();
   }
 
@@ -393,7 +434,8 @@ class FinanceController extends ChangeNotifier {
     );
   }
 
-  double getRecommendedWeeklyCut(double projectedSpend, double budgetLimit, DateTime currentDate) {
+  double getRecommendedWeeklyCut(
+      double projectedSpend, double budgetLimit, DateTime currentDate) {
     return BudgetEngine.recommendedWeeklyCut(
       projectedSpend: projectedSpend,
       budgetLimit: budgetLimit,
@@ -418,22 +460,28 @@ class FinanceController extends ChangeNotifier {
   Future<void> setBudgetMode(String mode) => repository.setBudgetMode(mode);
 
   double? get expectedIncome => repository.getExpectedIncome();
-  Future<void> setExpectedIncome(double income) => repository.setExpectedIncome(income);
+  Future<void> setExpectedIncome(double income) =>
+      repository.setExpectedIncome(income);
 
   bool get rolloverCarryNegative => repository.getRolloverCarryNegative();
-  Future<void> setRolloverCarryNegative(bool val) => repository.setRolloverCarryNegative(val);
+  Future<void> setRolloverCarryNegative(bool val) =>
+      repository.setRolloverCarryNegative(val);
 
   Map<String, double> get budgetOverrides => repository.getAllBudgetOverrides();
-  Future<void> setBudgetOverride(String lineId, String monthKey, double amount) =>
+  Future<void> setBudgetOverride(
+          String lineId, String monthKey, double amount) =>
       repository.setBudgetOverride(lineId, monthKey, amount);
   Future<void> removeBudgetOverride(String lineId, String monthKey) =>
       repository.removeBudgetOverride(lineId, monthKey);
 
-  Future<BudgetLine> setBudgetLine(BudgetLine line) => repository.setBudgetLine(line);
+  Future<BudgetLine> setBudgetLine(BudgetLine line) =>
+      repository.setBudgetLine(line);
   Future<void> deleteBudgetLine(String id) => repository.deleteBudgetLine(id);
 
-  Map<String, BudgetGroupProgress> get50_30_20Breakdown(DateTime month, {double? expectedIncome}) {
-    final income = expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
+  Map<String, BudgetGroupProgress> get50_30_20Breakdown(DateTime month,
+      {double? expectedIncome}) {
+    final income =
+        expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
     final txs = getTransactionsForMonth(month);
     final categories = {for (var c in storage.categoryBox.values) c.id: c};
 
@@ -459,18 +507,22 @@ class FinanceController extends ChangeNotifier {
       final m = DateTime(month.year, month.month - i, 1);
       final from = DateTime(m.year, m.month, 1);
       final to = DateTime(m.year, m.month + 1, 0, 23, 59, 59);
-      sum += LedgerEngine.income(storage.transactionBox.values, from: from, to: to);
+      sum += LedgerEngine.income(storage.transactionBox.values,
+          from: from, to: to);
     }
     final avg = sum / 3.0;
     return avg > 0 ? avg : 50000.0; // Sensible default if no data
   }
 
   double getZeroBasedLeftToAssign(DateTime month, {double? expectedIncome}) {
-    final income = expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
+    final income =
+        expectedIncome ?? this.expectedIncome ?? _estimateIncome(month);
     final lines = allBudgetLines;
     final extraBuckets = <double>[];
     for (final goal in storage.goalBox.values) {
-      if (!goal.archived && goal.plannedMonthly != null && goal.plannedMonthly! > 0) {
+      if (!goal.archived &&
+          goal.plannedMonthly != null &&
+          goal.plannedMonthly! > 0) {
         extraBuckets.add(goal.plannedMonthly!);
       }
     }
@@ -485,7 +537,8 @@ class FinanceController extends ChangeNotifier {
     final now = currentDate ?? DateTime.now();
     final todayKey = DateFormat('yyyy-MM-dd').format(now);
     final monthKey = DateFormat('yyyy-MM').format(now);
-    final alertsEnabled = storage.settingsBox.get('budget_alerts_enabled', defaultValue: true);
+    final alertsEnabled =
+        storage.settingsBox.get('budget_alerts_enabled', defaultValue: true);
     if (!alertsEnabled) return;
 
     for (final line in allBudgetLines) {
@@ -506,7 +559,8 @@ class FinanceController extends ChangeNotifier {
           await NotificationService().showInstantNotification(
             id: line.id.hashCode & 0x7FFFFFFF,
             title: 'Budget Exceeded: $catName',
-            body: 'You have spent ${FormatUtils.formatMoney(spent)} of your ${FormatUtils.formatMoney(eff)} budget.',
+            body:
+                'You have spent ${FormatUtils.formatMoney(spent)} of your ${FormatUtils.formatMoney(eff)} budget.',
           );
         }
       } else if (spent >= eff * 0.8) {
@@ -517,7 +571,8 @@ class FinanceController extends ChangeNotifier {
           await NotificationService().showInstantNotification(
             id: (line.id.hashCode + 80) & 0x7FFFFFFF,
             title: 'Budget Alert: $catName',
-            body: 'You have used 80% of your ${FormatUtils.formatMoney(eff)} budget (${FormatUtils.formatMoney(spent)} spent).',
+            body:
+                'You have used 80% of your ${FormatUtils.formatMoney(eff)} budget (${FormatUtils.formatMoney(spent)} spent).',
           );
         }
       }
@@ -531,7 +586,8 @@ class FinanceController extends ChangeNotifier {
           await NotificationService().showInstantNotification(
             id: (line.id.hashCode + 999) & 0x7FFFFFFF,
             title: 'Pace Warning: $catName',
-            body: 'At your current pace, you are projected to exceed your budget by ${FormatUtils.formatMoney(over)}.',
+            body:
+                'At your current pace, you are projected to exceed your budget by ${FormatUtils.formatMoney(over)}.',
           );
         }
       }
@@ -638,7 +694,8 @@ class FinanceController extends ChangeNotifier {
   // RECURRING, BILLS & SUBSCRIPTIONS (P6)
   // ---------------------------------------------------------------------------
 
-  List<RecurringRule> get allRecurringRules => repository.getAllRecurringRules();
+  List<RecurringRule> get allRecurringRules =>
+      repository.getAllRecurringRules();
 
   List<RecurringRule> get activeRecurringRules =>
       allRecurringRules.where((r) => r.status == 'active').toList();
@@ -676,9 +733,8 @@ class FinanceController extends ChangeNotifier {
 
   List<DetectedSubscription> getDetectedSubscriptions({DateTime? currentDate}) {
     final rawDismissed = storage.settingsBox.get('dismissed_sub_suggestions');
-    final dismissed = rawDismissed is List
-        ? rawDismissed.cast<String>().toSet()
-        : <String>{};
+    final dismissed =
+        rawDismissed is List ? rawDismissed.cast<String>().toSet() : <String>{};
 
     return RecurringEngine.detectSubscriptions(
       transactions: storage.transactionBox.values,
@@ -767,7 +823,8 @@ class FinanceController extends ChangeNotifier {
     return Money.r2(total);
   }
 
-  ({PayoffComparison avalanche, PayoffComparison snowball}) comparePayoffStrategies({
+  ({PayoffComparison avalanche, PayoffComparison snowball})
+      comparePayoffStrategies({
     double? totalMonthlyBudget,
     DateTime? startDate,
   }) {
@@ -806,7 +863,8 @@ class FinanceController extends ChangeNotifier {
     );
   }
 
-  LoanSchedule getAmortizationSchedule(Account loan, {double extraPayment = 0.0}) {
+  LoanSchedule getAmortizationSchedule(Account loan,
+      {double extraPayment = 0.0}) {
     final bal = getAccountBalance(loan).abs();
     final rate = loan.annualRate ?? 10.0;
     final emi = loan.emi ??
@@ -831,111 +889,37 @@ class FinanceController extends ChangeNotifier {
   /// P8-3: Safe to spend calculation
   /// S = liquid - O - G - P - C
   SafeToSpendResult getSafeToSpend({DateTime? asOf, DateTime? horizon}) {
+    if (asOf == null && horizon == null) {
+      final snapRes = snapshot.safeToSpend;
+      if (snapRes != null) return snapRes;
+    }
+    return getSafeToSpendExplanation(asOf: asOf, horizon: horizon).result;
+  }
+
+  /// Detailed explanation with individual items, rules, and deduplication notes.
+  SafeToSpendExplanation getSafeToSpendExplanation(
+      {DateTime? asOf, DateTime? horizon}) {
     final today = asOf ?? DateTime.now();
-    final effectiveHorizon = horizon ?? DateTime(today.year, today.month + 1, 0);
-    final liquid = getLiquidBalance(asOf: today);
+    _rebuildBalancesIfNeeded();
 
-    // O: obligations in (today, horizon]
-    // Unposted active non-income recurring rules, excluding card payment transfers
-    double obligations = 0.0;
-    final cardAccountIds = creditCardAccounts.map((a) => a.id).toSet();
-    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
-
-    for (final rule in activeRules) {
-      if (rule.kind == 'income') continue;
-      if (rule.kind == 'transfer' && rule.toAccountId != null && cardAccountIds.contains(rule.toAccountId)) {
-        continue;
-      }
-      final occurrences = RecurringEngine.occurrences(
-        rule,
-        today.add(const Duration(days: 1)),
-        effectiveHorizon,
-      );
-      for (final occ in occurrences) {
-        final dateKey = DateFormat('yyyy-MM-dd').format(occ);
-        final sourceRef = 'rec:${rule.id}:$dateKey';
-        final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
-        if (!isPosted) {
-          obligations += rule.amount;
-        }
-      }
+    final categorySpent = <String, double>{};
+    for (final cat in activeCategories) {
+      categorySpent[cat.id] = getCategorySpendingForMonth(cat.id, today);
     }
 
-    // G: goals/fund contributions not yet contributed this month
-    double goalsEarmark = 0.0;
-    final monthStart = DateTime(today.year, today.month, 1);
-    final monthEnd = DateTime(today.year, today.month + 1, 0, 23, 59, 59);
-
-    for (final goal in activeGoals) {
-      final planned = goal.plannedMonthly ??
-          GoalPlannerEngine.calculateRequiredMonthly(
-            target: goal.targetAmount,
-            saved: getGoalSavedAmount(goal),
-            deadline: goal.deadline,
-            asOf: today,
-          );
-
-      final thisMonthContributions = storage.goalEntryBox.values
-          .where((e) =>
-              e.goalId == goal.id &&
-              e.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) &&
-              e.date.isBefore(monthEnd.add(const Duration(seconds: 1))))
-          .fold(0.0, (sum, e) => sum + e.amount);
-
-      final remainingGoalNeed = (planned - thisMonthContributions).clamp(0.0, double.infinity);
-      goalsEarmark += remainingGoalNeed;
-    }
-
-    // P: planned essential budget lines
-    // max(0, effective - spent - unpostedRecurringInThatCategory)
-    double plannedEssential = 0.0;
-    final budgetLines = storage.budgetLineBox.values.where((b) => b.essential);
-    for (final line in budgetLines) {
-      if (line.categoryId == null) continue;
-      final monthKey = '${today.year}-${today.month.toString().padLeft(2, '0')}';
-      final effective = getEffectiveBudget(line, monthKey);
-      final spent = getCategorySpendingForMonth(line.categoryId, today);
-
-      double unpostedCatRecurring = 0.0;
-      for (final rule in activeRules) {
-        if (rule.categoryId == line.categoryId && rule.kind != 'income') {
-          final occs = RecurringEngine.occurrences(
-            rule,
-            today.add(const Duration(days: 1)),
-            effectiveHorizon,
-          );
-          for (final occ in occs) {
-            final dateKey = DateFormat('yyyy-MM-dd').format(occ);
-            final sourceRef = 'rec:${rule.id}:$dateKey';
-            final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
-            if (!isPosted) {
-              unpostedCatRecurring += rule.amount;
-            }
-          }
-        }
-      }
-
-      final remaining = (effective - spent - unpostedCatRecurring).clamp(0.0, double.infinity);
-      plannedEssential += remaining;
-    }
-
-    // C: card statement balances falling due by horizon
-    double cardDues = 0.0;
-    for (final card in creditCardAccounts) {
-      final bal = getAccountBalance(card, asOf: today);
-      if (bal < 0) {
-        cardDues += bal.abs();
-      }
-    }
-
-    return ForecastEngine.calculateSafeToSpend(
-      liquid: liquid,
-      obligations: obligations,
-      goalsEarmark: goalsEarmark,
-      plannedEssential: plannedEssential,
-      cardDues: cardDues,
+    return SafeToSpendEngine.explain(
+      accounts: storage.accountBox.values,
+      accountBalances: _cachedBalances,
+      recurringRules: storage.recurringBox.values,
+      goals: storage.goalBox.values,
+      goalEntries: storage.goalEntryBox.values,
+      budgetLines: storage.budgetLineBox.values,
+      categorySpentThisMonth: categorySpent,
+      getEffectiveBudget: (line, monthKey) =>
+          getEffectiveBudget(line, monthKey),
+      postedSourceRefs: snapshot.postedSourceRefs,
       today: today,
-      horizon: effectiveHorizon,
+      horizon: horizon,
     );
   }
 
@@ -947,7 +931,8 @@ class FinanceController extends ChangeNotifier {
 
     // Expected income remaining
     double expectedIncomeRemaining = 0.0;
-    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
+    final activeRules =
+        storage.recurringBox.values.where((r) => r.status == 'active');
     for (final rule in activeRules) {
       if (rule.kind == 'income') {
         final occurrences = RecurringEngine.occurrences(
@@ -958,7 +943,8 @@ class FinanceController extends ChangeNotifier {
         for (final occ in occurrences) {
           final dateKey = DateFormat('yyyy-MM-dd').format(occ);
           final sourceRef = 'rec:${rule.id}:$dateKey';
-          final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+          final isPosted = storage.transactionBox.values
+              .any((t) => t.sourceRef == sourceRef);
           if (!isPosted) {
             expectedIncomeRemaining += rule.amount;
           }
@@ -993,7 +979,9 @@ class FinanceController extends ChangeNotifier {
         cat3mTotals[e.key] = (cat3mTotals[e.key] ?? 0.0) + e.value;
       }
     }
-    final cat3mAvg = {for (final e in cat3mTotals.entries) e.key: e.value / 3.0};
+    final cat3mAvg = {
+      for (final e in cat3mTotals.entries) e.key: e.value / 3.0
+    };
 
     final recurringCovered = activeRules
         .where((r) => r.categoryId != null && r.kind != 'income')
@@ -1040,22 +1028,27 @@ class FinanceController extends ChangeNotifier {
     final txs = getTransactionsForMonth(m);
     final merchantBreakdown = <String, double>{};
     for (final tx in txs) {
-      if (tx.effectiveKind == 'expense' && tx.merchant != null && tx.merchant!.isNotEmpty) {
-        merchantBreakdown[tx.merchant!] = (merchantBreakdown[tx.merchant!] ?? 0.0) + tx.amount.abs();
+      if (tx.effectiveKind == 'expense' &&
+          tx.merchant != null &&
+          tx.merchant!.isNotEmpty) {
+        merchantBreakdown[tx.merchant!] =
+            (merchantBreakdown[tx.merchant!] ?? 0.0) + tx.amount.abs();
       }
     }
 
     final horizon30 = today.add(const Duration(days: 30));
     double expectedIncomeNext30 = 0.0;
     double billsDueNext30 = 0.0;
-    final activeRules = storage.recurringBox.values.where((r) => r.status == 'active');
+    final activeRules =
+        storage.recurringBox.values.where((r) => r.status == 'active');
 
     for (final rule in activeRules) {
       final occurrences = RecurringEngine.occurrences(rule, today, horizon30);
       for (final occ in occurrences) {
         final dateKey = DateFormat('yyyy-MM-dd').format(occ);
         final sourceRef = 'rec:${rule.id}:$dateKey';
-        final isPosted = storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
+        final isPosted =
+            storage.transactionBox.values.any((t) => t.sourceRef == sourceRef);
         if (!isPosted) {
           if (rule.kind == 'income') {
             expectedIncomeNext30 += rule.amount;
@@ -1076,9 +1069,11 @@ class FinanceController extends ChangeNotifier {
         monthsCounted++;
       }
     }
-    final expectedVariableNext30 = monthsCounted > 0 ? (past3mSpending / monthsCounted) : spending;
+    final expectedVariableNext30 =
+        monthsCounted > 0 ? (past3mSpending / monthsCounted) : spending;
     final liquid = getLiquidBalance(asOf: today);
-    final remainingNext30 = liquid + expectedIncomeNext30 - billsDueNext30 - expectedVariableNext30;
+    final remainingNext30 =
+        liquid + expectedIncomeNext30 - billsDueNext30 - expectedVariableNext30;
 
     return CashFlowResult(
       income: income,
@@ -1103,7 +1098,8 @@ class FinanceController extends ChangeNotifier {
     double lastMonthBudgetOverspend = 0.0;
     for (final line in storage.budgetLineBox.values) {
       if (line.categoryId == null) continue;
-      final lastMonthKey = '${lastMonth.year}-${lastMonth.month.toString().padLeft(2, '0')}';
+      final lastMonthKey =
+          '${lastMonth.year}-${lastMonth.month.toString().padLeft(2, '0')}';
       final limit = getEffectiveBudget(line, lastMonthKey);
       final spent = getCategorySpendingForMonth(line.categoryId, lastMonth);
       lastMonthBudgetLimit += limit;
@@ -1125,10 +1121,12 @@ class FinanceController extends ChangeNotifier {
         valid3m++;
       }
     }
-    final savingsRate3m = inc3m > 0 ? ((inc3m - sp3m) / inc3m).clamp(-1.0, 1.0) : null;
+    final savingsRate3m =
+        inc3m > 0 ? ((inc3m - sp3m) / inc3m).clamp(-1.0, 1.0) : null;
 
     final monthlyDebtObligations = getTotalMonthlyEmiObligation();
-    final monthlyIncome = inc3m > 0 && valid3m > 0 ? (inc3m / valid3m) : getMonthIncome(today);
+    final monthlyIncome =
+        inc3m > 0 && valid3m > 0 ? (inc3m / valid3m) : getMonthIncome(today);
     double totalCardBalance = 0.0;
     double totalCardLimit = 0.0;
     for (final card in creditCardAccounts) {
@@ -1140,7 +1138,8 @@ class FinanceController extends ChangeNotifier {
 
     final liquid = getLiquidBalance(asOf: today);
     double essential3m = 0.0;
-    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    final essentialCatIds =
+        activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
     for (var i = 1; i <= 3; i++) {
       final m = DateTime(today.year, today.month - i);
       final breakdown = getCategoryBreakdown(m);
@@ -1150,7 +1149,8 @@ class FinanceController extends ChangeNotifier {
         }
       }
     }
-    final avgMonthlyEssential3m = valid3m > 0 ? (essential3m / valid3m) : (sp3m > 0 ? sp3m / 3 : 0.0);
+    final avgMonthlyEssential3m =
+        valid3m > 0 ? (essential3m / valid3m) : (sp3m > 0 ? sp3m / 3 : 0.0);
 
     final last6mSpend = <double>[];
     for (var i = 1; i <= 6; i++) {
@@ -1160,10 +1160,12 @@ class FinanceController extends ChangeNotifier {
     }
 
     return HealthScoreEngine.calculate(
-      lastMonthBudgetLimit: lastMonthBudgetLimit > 0 ? lastMonthBudgetLimit : null,
+      lastMonthBudgetLimit:
+          lastMonthBudgetLimit > 0 ? lastMonthBudgetLimit : null,
       lastMonthBudgetOverspend: lastMonthBudgetOverspend,
       savingsRate3m: savingsRate3m,
-      monthlyDebtObligations: monthlyDebtObligations > 0 ? monthlyDebtObligations : null,
+      monthlyDebtObligations:
+          monthlyDebtObligations > 0 ? monthlyDebtObligations : null,
       monthlyIncome: monthlyIncome > 0 ? monthlyIncome : null,
       totalCardBalance: totalCardBalance > 0 ? totalCardBalance : null,
       totalCardLimit: totalCardLimit > 0 ? totalCardLimit : null,
@@ -1180,7 +1182,8 @@ class FinanceController extends ChangeNotifier {
     final forecast = getMonthEndForecast(asOf: today);
 
     double essential3m = 0.0;
-    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    final essentialCatIds =
+        activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
     int valid3m = 0;
     for (var i = 1; i <= 3; i++) {
       final m = DateTime(today.year, today.month - i);
@@ -1192,7 +1195,8 @@ class FinanceController extends ChangeNotifier {
       }
       if (breakdown.isNotEmpty) valid3m++;
     }
-    final avgEssential = valid3m > 0 ? (essential3m / valid3m) : getMonthSpending(today);
+    final avgEssential =
+        valid3m > 0 ? (essential3m / valid3m) : getMonthSpending(today);
 
     double totalSurplus = 0.0;
     for (var i = 1; i <= 3; i++) {
@@ -1217,17 +1221,23 @@ class FinanceController extends ChangeNotifier {
     final currentMonthTxs = getTransactionsForMonth(today);
     final past3mTxs = <Transaction>[];
     for (var i = 1; i <= 3; i++) {
-      past3mTxs.addAll(getTransactionsForMonth(DateTime(today.year, today.month - i)));
+      past3mTxs.addAll(
+          getTransactionsForMonth(DateTime(today.year, today.month - i)));
     }
 
     final budgetLines = storage.budgetLineBox.values.toList();
     final budgetLineSpent = <String, double>{
       for (final b in budgetLines)
-        if (b.categoryId != null) b.id: getCategorySpendingForMonth(b.categoryId, today),
+        if (b.categoryId != null)
+          b.id: getCategorySpendingForMonth(b.categoryId, today),
     };
 
-    final savedAmounts = {for (final g in activeGoals) g.id: getGoalSavedAmount(g)};
-    final goalRates = {for (final g in activeGoals) g.id: getGoalThreeMonthRate(g)};
+    final savedAmounts = {
+      for (final g in activeGoals) g.id: getGoalSavedAmount(g)
+    };
+    final goalRates = {
+      for (final g in activeGoals) g.id: getGoalThreeMonthRate(g)
+    };
 
     final currentNetWorth = getNetWorth(asOf: today);
     final lastMonth = DateTime(today.year, today.month - 1);
@@ -1247,7 +1257,8 @@ class FinanceController extends ChangeNotifier {
     final pastSavingsRate3m = inc3m > 0 ? (inc3m - sp3m) / inc3m : 0.0;
 
     double essential3m = 0.0;
-    final essentialCatIds = activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
+    final essentialCatIds =
+        activeCategories.where((c) => c.essential).map((c) => c.id).toSet();
     for (var i = 1; i <= 3; i++) {
       final m = DateTime(today.year, today.month - i);
       final breakdown = getCategoryBreakdown(m);
@@ -1257,7 +1268,8 @@ class FinanceController extends ChangeNotifier {
         }
       }
     }
-    final avgMonthlyEssential3m = essential3m > 0 ? (essential3m / 3.0) : 10000.0;
+    final avgMonthlyEssential3m =
+        essential3m > 0 ? (essential3m / 3.0) : 10000.0;
 
     final rawDismissed = storage.settingsBox.get('dismissed_insights');
     final dismissedSet = <String>{};
@@ -1402,17 +1414,16 @@ class FinanceController extends ChangeNotifier {
   }
 
   double getGoalSavedAmount(SavingsGoal goal) {
-    final entries = storage.goalEntryBox.values.where((e) => e.goalId == goal.id);
+    final entries =
+        storage.goalEntryBox.values.where((e) => e.goalId == goal.id);
     return GoalPlannerEngine.totalSaved(entries);
   }
 
   double getGoalThreeMonthRate(SavingsGoal goal) {
     final now = DateTime.now();
     final threeMonthsAgo = DateTime(now.year, now.month - 3, now.day);
-    final entries = storage.goalEntryBox.values.where((e) => e.goalId == goal.id && e.date.isAfter(threeMonthsAgo));
+    final entries = storage.goalEntryBox.values
+        .where((e) => e.goalId == goal.id && e.date.isAfter(threeMonthsAgo));
     return GoalPlannerEngine.totalSaved(entries) / 3.0;
   }
 }
-
-
-

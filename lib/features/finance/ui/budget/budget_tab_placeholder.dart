@@ -37,12 +37,14 @@ class BudgetTabPlaceholder extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: BentoTheme.surface,
                       borderRadius: ExpressiveTokens.borderL,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.pieChart, size: 48, color: BentoTheme.accent),
+                        Icon(LucideIcons.pieChart,
+                            size: 48, color: BentoTheme.accent),
                         const SizedBox(height: 16),
                         Text(
                           'Budgeting Engine & UI',
@@ -56,7 +58,8 @@ class BudgetTabPlaceholder extends StatelessWidget {
                         Text(
                           'Phase 4 introduces rollover carryover, intelligent pace alerts, and 50/30/20 category splits.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 13),
                         ),
                       ],
                     ),

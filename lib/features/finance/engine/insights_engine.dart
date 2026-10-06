@@ -89,7 +89,9 @@ class InsightsEngine {
     // Same merchant and amount within 24 hours
     for (var i = 0; i < currentMonthTransactions.length; i++) {
       final tx1 = currentMonthTransactions[i];
-      if (tx1.effectiveKind != 'expense' || tx1.merchant == null || tx1.merchant!.isEmpty) {
+      if (tx1.effectiveKind != 'expense' ||
+          tx1.merchant == null ||
+          tx1.merchant!.isEmpty) {
         continue;
       }
       for (var j = i + 1; j < currentMonthTransactions.length; j++) {
@@ -109,7 +111,11 @@ class InsightsEngine {
                 body:
                     'Two charges of ${FormatUtils.formatMoney(tx1.amount.abs(), decimals: 0)} at ${tx1.merchant} within $diffHours hours on ${tx1.date.day}/${tx1.date.month}.',
                 deepLink: 'transactions',
-                params: {'txId1': tx1.id, 'txId2': tx2.id, 'merchant': tx1.merchant},
+                params: {
+                  'txId1': tx1.id,
+                  'txId2': tx2.id,
+                  'merchant': tx1.merchant
+                },
               ));
             }
           }
@@ -121,7 +127,9 @@ class InsightsEngine {
     final txsByCategory = <String, List<double>>{};
     for (final tx in past3MonthsTransactions) {
       if (tx.effectiveKind == 'expense' && tx.categoryId != null) {
-        txsByCategory.putIfAbsent(tx.categoryId!, () => []).add(tx.amount.abs());
+        txsByCategory
+            .putIfAbsent(tx.categoryId!, () => [])
+            .add(tx.amount.abs());
       }
     }
 
@@ -183,14 +191,16 @@ class InsightsEngine {
     final currentCatTotals = <String, double>{};
     for (final tx in currentMonthTransactions) {
       if (tx.effectiveKind == 'expense' && tx.categoryId != null) {
-        currentCatTotals[tx.categoryId!] = (currentCatTotals[tx.categoryId!] ?? 0.0) + tx.amount.abs();
+        currentCatTotals[tx.categoryId!] =
+            (currentCatTotals[tx.categoryId!] ?? 0.0) + tx.amount.abs();
       }
     }
 
     final past3mCatTotals = <String, double>{};
     for (final tx in past3MonthsTransactions) {
       if (tx.effectiveKind == 'expense' && tx.categoryId != null) {
-        past3mCatTotals[tx.categoryId!] = (past3mCatTotals[tx.categoryId!] ?? 0.0) + tx.amount.abs();
+        past3mCatTotals[tx.categoryId!] =
+            (past3mCatTotals[tx.categoryId!] ?? 0.0) + tx.amount.abs();
       }
     }
 
@@ -200,9 +210,12 @@ class InsightsEngine {
       final pastTotal = past3mCatTotals[catId] ?? 0.0;
       final avg3m = pastTotal / 3.0;
 
-      if (avg3m > 0 && currentSpent > avg3m * 1.20 && (currentSpent - avg3m) > 500.0) {
+      if (avg3m > 0 &&
+          currentSpent > avg3m * 1.20 &&
+          (currentSpent - avg3m) > 500.0) {
         final catName = catMap[catId]?.name ?? 'Category';
-        final pctUp = (((currentSpent - avg3m) / avg3m) * 100).toStringAsFixed(0);
+        final pctUp =
+            (((currentSpent - avg3m) / avg3m) * 100).toStringAsFixed(0);
         final key = 'cat_spike_${catId}_$monthKey';
         if (!dismissed.contains(key)) {
           insights.add(FinanceInsight(
@@ -213,7 +226,11 @@ class InsightsEngine {
             body:
                 'You\'ve spent ${FormatUtils.formatMoney(currentSpent, decimals: 0)} so far, exceeding your 3-month average of ${FormatUtils.formatMoney(avg3m, decimals: 0)}.',
             deepLink: 'budget',
-            params: {'categoryId': catId, 'currentSpent': currentSpent, 'avg3m': avg3m},
+            params: {
+              'categoryId': catId,
+              'currentSpent': currentSpent,
+              'avg3m': avg3m
+            },
           ));
         }
       }
@@ -229,7 +246,8 @@ class InsightsEngine {
         final daysLeft = deadline.difference(today).inDays;
         final monthsLeft = max<int>(1, (daysLeft / 30.4375).ceil());
         final projectedSaved = saved + (rate * monthsLeft);
-        if (projectedSaved < goal.targetAmount && (goal.targetAmount - projectedSaved) > 1000) {
+        if (projectedSaved < goal.targetAmount &&
+            (goal.targetAmount - projectedSaved) > 1000) {
           final key = 'goal_behind_${goal.id}_$monthKey';
           if (!dismissed.contains(key)) {
             final shortfall = goal.targetAmount - projectedSaved;
@@ -249,7 +267,9 @@ class InsightsEngine {
     }
 
     // 7. Active Subscriptions Cost Summary
-    final subs = recurringRules.where((r) => r.status == 'active' && r.kind == 'subscription').toList();
+    final subs = recurringRules
+        .where((r) => r.status == 'active' && r.kind == 'subscription')
+        .toList();
     if (subs.isNotEmpty) {
       double monthlyTotal = 0.0;
       for (final s in subs) {
@@ -289,7 +309,9 @@ class InsightsEngine {
           stableKey: key,
           severity: isPositive ? InsightSeverity.success : InsightSeverity.info,
           kind: 'net_worth_trend',
-          title: isPositive ? 'Net Worth Grew +${pct.toStringAsFixed(1)}%' : 'Net Worth Dipped ${pct.toStringAsFixed(1)}%',
+          title: isPositive
+              ? 'Net Worth Grew +${pct.toStringAsFixed(1)}%'
+              : 'Net Worth Dipped ${pct.toStringAsFixed(1)}%',
           body:
               '${isPositive ? 'Increased' : 'Decreased'} by ${FormatUtils.formatMoney(change.abs(), decimals: 0)} vs last month.',
           deepLink: 'networth',

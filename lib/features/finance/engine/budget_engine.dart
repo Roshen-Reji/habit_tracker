@@ -70,7 +70,8 @@ class BudgetEngine {
 
     // Calculate spend in previous month for this category
     final prevStart = DateTime(prevMonthDt.year, prevMonthDt.month, 1);
-    final prevEnd = DateTime(prevMonthDt.year, prevMonthDt.month + 1, 0, 23, 59, 59);
+    final prevEnd =
+        DateTime(prevMonthDt.year, prevMonthDt.month + 1, 0, 23, 59, 59);
 
     final prevSpent = line.categoryId != null
         ? LedgerEngine.spending(
@@ -188,7 +189,8 @@ class BudgetEngine {
     final expectedDaily = effectiveBudget / daysInMonth;
     final isSpendingFast = !isOverBudget && dailyPace > (expectedDaily * 1.15);
 
-    final pctSpent = effectiveBudget > 0 ? (spent / effectiveBudget) * 100 : 100.0;
+    final pctSpent =
+        effectiveBudget > 0 ? (spent / effectiveBudget) * 100 : 100.0;
 
     String copy;
     if (isOverBudget) {

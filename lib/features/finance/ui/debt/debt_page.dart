@@ -35,9 +35,8 @@ class _DebtPageState extends State<DebtPage> {
         final cards = _controller.creditCardAccounts;
         final loans = _controller.loanAccounts;
 
-        final strategies = loans.isNotEmpty
-            ? _controller.comparePayoffStrategies()
-            : null;
+        final strategies =
+            loans.isNotEmpty ? _controller.comparePayoffStrategies() : null;
 
         return Scaffold(
           backgroundColor: BentoTheme.background,
@@ -67,7 +66,8 @@ class _DebtPageState extends State<DebtPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderL,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +85,9 @@ class _DebtPageState extends State<DebtPage> {
                     Text(
                       FormatUtils.formatMoney(totalDebt),
                       style: TextStyle(
-                        color: totalDebt > 0 ? Colors.redAccent : BentoTheme.textPrimary,
+                        color: totalDebt > 0
+                            ? Colors.redAccent
+                            : BentoTheme.textPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
@@ -174,12 +176,14 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
                       'No credit cards tracked.',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 13),
                     ),
                   ),
                 ),
@@ -206,12 +210,14 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
                       'No loans or EMIs tracked.',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 13),
                     ),
                   ),
                 ),
@@ -227,9 +233,12 @@ class _DebtPageState extends State<DebtPage> {
     );
   }
 
-  Widget _buildStrategyCard(({PayoffComparison avalanche, PayoffComparison snowball}) strategies) {
+  Widget _buildStrategyCard(
+      ({PayoffComparison avalanche, PayoffComparison snowball}) strategies) {
     final active = _showSnowball ? strategies.snowball : strategies.avalanche;
-    final interestDiff = (strategies.snowball.totalInterest - strategies.avalanche.totalInterest).abs();
+    final interestDiff =
+        (strategies.snowball.totalInterest - strategies.avalanche.totalInterest)
+            .abs();
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -268,15 +277,20 @@ class _DebtPageState extends State<DebtPage> {
                       onTap: () => setState(() => _showSnowball = false),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: !_showSnowball ? BentoTheme.accent : Colors.transparent,
+                          color: !_showSnowball
+                              ? BentoTheme.accent
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Avalanche',
                           style: TextStyle(
-                            color: !_showSnowball ? Colors.black : BentoTheme.textSecondary,
+                            color: !_showSnowball
+                                ? Colors.black
+                                : BentoTheme.textSecondary,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                           ),
@@ -287,15 +301,20 @@ class _DebtPageState extends State<DebtPage> {
                       onTap: () => setState(() => _showSnowball = true),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _showSnowball ? BentoTheme.accent : Colors.transparent,
+                          color: _showSnowball
+                              ? BentoTheme.accent
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Snowball',
                           style: TextStyle(
-                            color: _showSnowball ? Colors.black : BentoTheme.textSecondary,
+                            color: _showSnowball
+                                ? Colors.black
+                                : BentoTheme.textSecondary,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                           ),
@@ -315,7 +334,6 @@ class _DebtPageState extends State<DebtPage> {
             style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
@@ -328,13 +346,22 @@ class _DebtPageState extends State<DebtPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('DEBT-FREE DATE', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('DEBT-FREE DATE',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('MMM yyyy').format(active.debtFreeDate),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
-                      Text('${active.totalMonths} months', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                      Text('${active.totalMonths} months',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -350,17 +377,27 @@ class _DebtPageState extends State<DebtPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TOTAL INTEREST', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('TOTAL INTEREST',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text(
                         FormatUtils.formatMoney(active.totalInterest),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                       Text(
                         !_showSnowball && interestDiff > 100
                             ? 'Saves ${FormatUtils.formatMoney(interestDiff)} vs Snowball'
                             : 'Order: ${active.payoffOrder.firstOrNull ?? ''}',
-                        style: TextStyle(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: const Color(0xFF10B981),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -378,7 +415,8 @@ class _DebtPageState extends State<DebtPage> {
   Widget _buildCreditCardItem(Account card) {
     final bal = _controller.getAccountBalance(card).abs();
     final limit = card.creditLimit ?? 0.0;
-    final util = LoanEngine.cardUtilisation(currentBalance: bal, creditLimit: limit);
+    final util =
+        LoanEngine.cardUtilisation(currentBalance: bal, creditLimit: limit);
     final minDue = LoanEngine.minimumDue(statementBalance: bal);
 
     return Container(
@@ -390,7 +428,9 @@ class _DebtPageState extends State<DebtPage> {
         border: Border.all(
           color: util.isDanger
               ? Colors.redAccent.withValues(alpha: 0.4)
-              : (util.isWarning ? Colors.amberAccent.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05)),
+              : (util.isWarning
+                  ? Colors.amberAccent.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.05)),
         ),
       ),
       child: Column(
@@ -401,7 +441,8 @@ class _DebtPageState extends State<DebtPage> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: Colors.purpleAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.creditCard, size: 14, color: Colors.purpleAccent),
+                child: const Icon(LucideIcons.creditCard,
+                    size: 14, color: Colors.purpleAccent),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -419,7 +460,8 @@ class _DebtPageState extends State<DebtPage> {
                     if (card.institution != null)
                       Text(
                         card.institution!,
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                   ],
                 ),
@@ -437,7 +479,8 @@ class _DebtPageState extends State<DebtPage> {
                   ),
                   Text(
                     'Limit: ${FormatUtils.formatMoney(limit)}',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
@@ -453,7 +496,11 @@ class _DebtPageState extends State<DebtPage> {
               minHeight: 6,
               backgroundColor: Colors.white12,
               valueColor: AlwaysStoppedAnimation<Color>(
-                util.isDanger ? Colors.redAccent : (util.isWarning ? Colors.amberAccent : const Color(0xFF10B981)),
+                util.isDanger
+                    ? Colors.redAccent
+                    : (util.isWarning
+                        ? Colors.amberAccent
+                        : const Color(0xFF10B981)),
               ),
             ),
           ),
@@ -468,7 +515,11 @@ class _DebtPageState extends State<DebtPage> {
                   Text(
                     '${util.utilisationPct.toStringAsFixed(0)}% utilised',
                     style: TextStyle(
-                      color: util.isDanger ? Colors.redAccent : (util.isWarning ? Colors.amberAccent : BentoTheme.textSecondary),
+                      color: util.isDanger
+                          ? Colors.redAccent
+                          : (util.isWarning
+                              ? Colors.amberAccent
+                              : BentoTheme.textSecondary),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -478,7 +529,8 @@ class _DebtPageState extends State<DebtPage> {
                     Icon(
                       LucideIcons.alertTriangle,
                       size: 13,
-                      color: util.isDanger ? Colors.redAccent : Colors.amberAccent,
+                      color:
+                          util.isDanger ? Colors.redAccent : Colors.amberAccent,
                     ),
                   ],
                 ],
@@ -486,7 +538,8 @@ class _DebtPageState extends State<DebtPage> {
               if (card.dueDay != null)
                 Text(
                   'Due Day: ${card.dueDay}',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 ),
             ],
           ),
@@ -499,8 +552,16 @@ class _DebtPageState extends State<DebtPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('MINIMUM DUE (5%)', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.bold)),
-                  Text(FormatUtils.formatMoney(minDue), style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('MINIMUM DUE (5%)',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold)),
+                  Text(FormatUtils.formatMoney(minDue),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
               ElevatedButton.icon(
@@ -515,8 +576,10 @@ class _DebtPageState extends State<DebtPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BentoTheme.accent,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -557,7 +620,8 @@ class _DebtPageState extends State<DebtPage> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.landmark, size: 14, color: Colors.redAccent),
+                child: const Icon(LucideIcons.landmark,
+                    size: 14, color: Colors.redAccent),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -574,7 +638,8 @@ class _DebtPageState extends State<DebtPage> {
                     ),
                     Text(
                       '$rate% interest • ${loan.kind.toUpperCase()}',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
@@ -592,14 +657,14 @@ class _DebtPageState extends State<DebtPage> {
                   ),
                   Text(
                     'EMI: ${FormatUtils.formatMoney(emi)}/mo',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 12),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -608,22 +673,28 @@ class _DebtPageState extends State<DebtPage> {
                     ? '$remainingMonths months remaining'
                     : 'Non-amortising!',
                 style: TextStyle(
-                  color: remainingMonths > 0 ? BentoTheme.textSecondary : Colors.redAccent,
+                  color: remainingMonths > 0
+                      ? BentoTheme.textSecondary
+                      : Colors.redAccent,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               OutlinedButton.icon(
                 onPressed: () {
-                  LoanSimulatorSheet.show(context, controller: _controller, loan: loan);
+                  LoanSimulatorSheet.show(context,
+                      controller: _controller, loan: loan);
                 },
                 icon: const Icon(LucideIcons.calculator, size: 14),
                 label: const Text('Pre-payment Simulator'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: BentoTheme.accent,
-                  side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.3)),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: BorderSide(
+                      color: BentoTheme.accent.withValues(alpha: 0.3)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],

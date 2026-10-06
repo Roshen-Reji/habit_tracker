@@ -14,27 +14,40 @@ class WearableRepository {
   factory WearableRepository() => instance;
 
   static void registerAdapters() {
-    if (!Hive.isAdapterRegistered(60)) Hive.registerAdapter(DailyActivityAdapter());
-    if (!Hive.isAdapterRegistered(61)) Hive.registerAdapter(SleepSessionAdapter());
-    if (!Hive.isAdapterRegistered(62)) Hive.registerAdapter(ExerciseSessionAdapter());
-    if (!Hive.isAdapterRegistered(63)) Hive.registerAdapter(BodyCompSampleAdapter());
-    if (!Hive.isAdapterRegistered(64)) Hive.registerAdapter(EnergyScoreDayAdapter());
-    if (!Hive.isAdapterRegistered(65)) Hive.registerAdapter(AgesSampleAdapter());
+    if (!Hive.isAdapterRegistered(60))
+      Hive.registerAdapter(DailyActivityAdapter());
+    if (!Hive.isAdapterRegistered(61))
+      Hive.registerAdapter(SleepSessionAdapter());
+    if (!Hive.isAdapterRegistered(62))
+      Hive.registerAdapter(ExerciseSessionAdapter());
+    if (!Hive.isAdapterRegistered(63))
+      Hive.registerAdapter(BodyCompSampleAdapter());
+    if (!Hive.isAdapterRegistered(64))
+      Hive.registerAdapter(EnergyScoreDayAdapter());
+    if (!Hive.isAdapterRegistered(65))
+      Hive.registerAdapter(AgesSampleAdapter());
   }
 
   static Future<void> openBoxes() async {
     registerAdapters();
-    if (!Hive.isBoxOpen(dailyBoxName)) await Hive.openBox<DailyActivity>(dailyBoxName);
-    if (!Hive.isBoxOpen(sleepBoxName)) await Hive.openBox<SleepSession>(sleepBoxName);
-    if (!Hive.isBoxOpen(exerciseBoxName)) await Hive.openBox<ExerciseSession>(exerciseBoxName);
-    if (!Hive.isBoxOpen(bodyBoxName)) await Hive.openBox<BodyCompSample>(bodyBoxName);
-    if (!Hive.isBoxOpen(energyBoxName)) await Hive.openBox<EnergyScoreDay>(energyBoxName);
-    if (!Hive.isBoxOpen(agesBoxName)) await Hive.openBox<AgesSample>(agesBoxName);
+    if (!Hive.isBoxOpen(dailyBoxName))
+      await Hive.openBox<DailyActivity>(dailyBoxName);
+    if (!Hive.isBoxOpen(sleepBoxName))
+      await Hive.openBox<SleepSession>(sleepBoxName);
+    if (!Hive.isBoxOpen(exerciseBoxName))
+      await Hive.openBox<ExerciseSession>(exerciseBoxName);
+    if (!Hive.isBoxOpen(bodyBoxName))
+      await Hive.openBox<BodyCompSample>(bodyBoxName);
+    if (!Hive.isBoxOpen(energyBoxName))
+      await Hive.openBox<EnergyScoreDay>(energyBoxName);
+    if (!Hive.isBoxOpen(agesBoxName))
+      await Hive.openBox<AgesSample>(agesBoxName);
   }
 
   Box<DailyActivity> get dailyBox => Hive.box<DailyActivity>(dailyBoxName);
   Box<SleepSession> get sleepBox => Hive.box<SleepSession>(sleepBoxName);
-  Box<ExerciseSession> get exerciseBox => Hive.box<ExerciseSession>(exerciseBoxName);
+  Box<ExerciseSession> get exerciseBox =>
+      Hive.box<ExerciseSession>(exerciseBoxName);
   Box<BodyCompSample> get bodyBox => Hive.box<BodyCompSample>(bodyBoxName);
   Box<EnergyScoreDay> get energyBox => Hive.box<EnergyScoreDay>(energyBoxName);
   Box<AgesSample> get agesBox => Hive.box<AgesSample>(agesBoxName);
@@ -54,7 +67,8 @@ class WearableRepository {
     await sleepBox.put(session.externalId, session);
   }
 
-  List<SleepSession> getSleepForDay(String dayKey, {bool includeDeleted = false}) {
+  List<SleepSession> getSleepForDay(String dayKey,
+      {bool includeDeleted = false}) {
     if (!Hive.isBoxOpen(sleepBoxName)) return [];
     return sleepBox.values
         .where((s) => s.dayKey == dayKey && (includeDeleted || !s.deleted))
@@ -73,7 +87,8 @@ class WearableRepository {
     await exerciseBox.put(session.externalId, session);
   }
 
-  List<ExerciseSession> getExercisesForDay(String dayKey, {bool includeDeleted = false}) {
+  List<ExerciseSession> getExercisesForDay(String dayKey,
+      {bool includeDeleted = false}) {
     if (!Hive.isBoxOpen(exerciseBoxName)) return [];
     return exerciseBox.values
         .where((e) => e.dayKey == dayKey && (includeDeleted || !e.deleted))

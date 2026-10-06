@@ -118,7 +118,9 @@ class GoalPlannerEngine {
       final prevEnd = DateTime(year, month - i + 1, 0, 23, 59, 59);
 
       for (final e in entries) {
-        if (!e.date.isBefore(prevStart) && !e.date.isAfter(prevEnd) && e.amount > 0) {
+        if (!e.date.isBefore(prevStart) &&
+            !e.date.isAfter(prevEnd) &&
+            e.amount > 0) {
           past3mContributions += e.amount;
         }
       }

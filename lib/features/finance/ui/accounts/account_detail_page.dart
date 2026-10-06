@@ -161,7 +161,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                     children: [
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: Color(account.colorValue).withValues(alpha: 0.2),
+                        backgroundColor:
+                            Color(account.colorValue).withValues(alpha: 0.2),
                         child: Icon(
                           _iconForKind(account.kind),
                           color: Color(account.colorValue),
@@ -192,7 +193,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                       ),
                       if (account.archived)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
@@ -238,7 +240,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                         icon: account.spendable
                             ? Icons.check_circle_outline
                             : Icons.block_outlined,
-                        label: account.spendable ? 'Spendable' : 'Non-spendable',
+                        label:
+                            account.spendable ? 'Spendable' : 'Non-spendable',
                         color: account.spendable ? Colors.green : Colors.grey,
                       ),
                       _buildChip(
@@ -248,7 +251,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                         label: account.includeInNetWorth
                             ? 'In Net Worth'
                             : 'Excluded from Net Worth',
-                        color: account.includeInNetWorth ? Colors.blue : Colors.grey,
+                        color: account.includeInNetWorth
+                            ? Colors.blue
+                            : Colors.grey,
                       ),
                     ],
                   ),
@@ -296,7 +301,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                       ),
                       Text(
                         'Month-ends',
-                        style: TextStyle(color: BentoTheme.textMuted, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 11),
                       ),
                     ],
                   ),
@@ -380,23 +386,27 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                               ? Icons.arrow_upward_rounded
                               : Icons.arrow_downward_rounded,
                           size: 18,
-                          color: isOutflow ? Colors.redAccent : Colors.greenAccent,
+                          color:
+                              isOutflow ? Colors.redAccent : Colors.greenAccent,
                         ),
                       ),
                       title: Text(
                         tx.title,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                       subtitle: Text(
                         '${tx.category} • ${DateFormat('dd MMM yyyy').format(tx.date)}',
-                        style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 12),
                       ),
                       trailing: Text(
                         '${isOutflow ? '-' : '+'}${FormatUtils.formatMoney(tx.amount.abs())}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: isOutflow ? Colors.white70 : Colors.greenAccent,
+                          color:
+                              isOutflow ? Colors.white70 : Colors.greenAccent,
                         ),
                       ),
                     ),
@@ -439,11 +449,13 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
     );
   }
 
-  Widget _buildCreditCardCard(BuildContext context, Account account, double balance) {
+  Widget _buildCreditCardCard(
+      BuildContext context, Account account, double balance) {
     final limit = account.creditLimit ?? 0.0;
     final debt = balance.abs();
     final available = limit > 0 ? (limit - debt).clamp(0.0, limit) : 0.0;
-    final utilization = limit > 0 ? ((debt / limit) * 100).clamp(0.0, 100.0) : 0.0;
+    final utilization =
+        limit > 0 ? ((debt / limit) * 100).clamp(0.0, 100.0) : 0.0;
 
     final utilColor = utilization > 70
         ? Colors.redAccent
@@ -494,15 +506,21 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Credit Limit', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                  Text(FormatUtils.formatMoney(limit), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Credit Limit',
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
+                  Text(FormatUtils.formatMoney(limit),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Available Credit', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                  Text(FormatUtils.formatMoney(available), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Available Credit',
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
+                  Text(FormatUtils.formatMoney(available),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -531,7 +549,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             label: const Text('Pay Credit Card'),
             style: ElevatedButton.styleFrom(
               backgroundColor: BentoTheme.accentColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () {
               TransactionSheet.show(
@@ -567,24 +586,33 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Principal', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                    Text(FormatUtils.formatMoney(account.principal!), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Principal',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 12)),
+                    Text(FormatUtils.formatMoney(account.principal!),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               if (account.annualRate != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text('Interest Rate', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                    Text('${account.annualRate}% p.a.', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Interest Rate',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 12)),
+                    Text('${account.annualRate}% p.a.',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               if (account.emi != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Monthly EMI', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                    Text(FormatUtils.formatMoney(account.emi!), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('Monthly EMI',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 12)),
+                    Text(FormatUtils.formatMoney(account.emi!),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
             ],
@@ -594,7 +622,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             icon: const Icon(Icons.handshake_outlined, size: 18),
             label: const Text('Make Debt Payment'),
             style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () {
               TransactionSheet.show(
@@ -648,21 +677,28 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Invested Capital', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                  Text(FormatUtils.formatMoney(invested), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Invested Capital',
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
+                  Text(FormatUtils.formatMoney(invested),
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Gain / Loss', style: TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
+                  Text('Gain / Loss',
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
                   Row(
                     children: [
                       Text(
                         '${gainLoss >= 0 ? '+' : ''}${FormatUtils.formatMoney(gainLoss)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: gainLoss >= 0 ? Colors.greenAccent : Colors.redAccent,
+                          color: gainLoss >= 0
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -671,7 +707,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: gainLoss >= 0 ? Colors.greenAccent : Colors.redAccent,
+                          color: gainLoss >= 0
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                         ),
                       ),
                     ],
@@ -685,7 +723,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             icon: const Icon(Icons.add_chart_rounded, size: 18),
             label: const Text('Log New Valuation'),
             style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => ValuationHistorySheet.show(
               context,

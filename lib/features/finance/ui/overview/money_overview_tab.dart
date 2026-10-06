@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -12,11 +13,13 @@ import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
 import 'package:habit_tracker/features/finance/ui/cashflow/cash_flow_page.dart';
 import 'package:habit_tracker/features/finance/ui/health/health_score_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
+import 'package:habit_tracker/features/finance/ui/overview/safe_to_spend_breakdown_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/what_if/what_if_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/cash_flow_chart.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/category_donut_chart.dart';
 import 'package:habit_tracker/features/finance/ui/ai/ai_privacy_page.dart';
+import 'package:habit_tracker/features/finance/ui/overview/balance_audit_screen.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/net_trend_chart.dart';
 
 class MoneyOverviewTab extends StatefulWidget {
@@ -83,23 +86,48 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
       return {
         'name': cat?.name ?? e.key,
         'value': e.value,
-        'color': cat != null && cat.colorValue != 0 ? Color(cat.colorValue) : null,
+        'color':
+            cat != null && cat.colorValue != 0 ? Color(cat.colorValue) : null,
       };
     }).toList();
   }
 
+  /// Determines the month type relative to the real current month.
+  /// Returns: 'current', 'past', or 'future'.
+  String get _monthType {
+    final now = DateTime.now();
+    final nowMonth = DateTime(now.year, now.month);
+    if (_currentMonth.year == nowMonth.year &&
+        _currentMonth.month == nowMonth.month) {
+      return 'current';
+    }
+    return _currentMonth.isBefore(nowMonth) ? 'past' : 'future';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final netWorth = _controller.getNetWorth();
-    final liquid = _controller.getLiquidBalance();
     final monthIncome = _controller.getMonthIncome(_currentMonth);
     final monthSpending = _controller.getMonthSpending(_currentMonth);
     final monthNet = monthIncome - monthSpending;
-    final savingsRate = monthIncome > 0 ? (monthNet / monthIncome).clamp(0.0, 1.0) : 0.0;
+    final savingsRate =
+        monthIncome > 0 ? (monthNet / monthIncome).clamp(0.0, 1.0) : 0.0;
 
-    final safeToSpend = _controller.getSafeToSpend(asOf: _currentMonth);
-    final healthScore = _controller.getHealthScore(asOf: _currentMonth);
-    final insights = _controller.getInsights(asOf: _currentMonth);
+    // P1-1: Fix Safe to Spend clock.
+    final now = DateTime.now();
+    final isCurrent = _monthType == 'current';
+    SafeToSpendResult? safeToSpend;
+    if (isCurrent) {
+      safeToSpend = _controller.getSafeToSpend(asOf: now);
+    }
+    final healthScore =
+        _controller.getHealthScore(asOf: isCurrent ? now : _currentMonth);
+    final insights =
+        _controller.getInsights(asOf: isCurrent ? now : _currentMonth);
+
+    final moneyLeft = _controller.getLiquidBalance();
+    final lastDayOfMonth =
+        DateTime(_currentMonth.year, _currentMonth.month + 1, 0, 23, 59, 59);
+    final closingBalance = _controller.getLiquidBalance(asOf: lastDayOfMonth);
 
     final recentTransactions = _controller.allTransactions.take(5).toList();
     final trendData = _buildTrendData();
@@ -117,12 +145,17 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
               _buildMonthBar(),
               const SizedBox(height: 12),
 
-              // Safe to Spend Hero Card
-              _buildSafeToSpendCard(safeToSpend),
-              const SizedBox(height: 12),
-
-              // Hero Balance Card (Net Worth & Liquid)
-              _buildHeroBalanceCard(netWorth, liquid, savingsRate),
+              // P1-1 / P1-3: Hero Money Left Card
+              _buildMoneyLeftHeroCard(
+                moneyLeft: moneyLeft,
+                safeToSpend: safeToSpend,
+                isCurrent: isCurrent,
+                monthIncome: monthIncome,
+                monthSpending: monthSpending,
+                monthNet: monthNet,
+                savingsRate: savingsRate,
+                closingBalance: closingBalance,
+              ),
               const SizedBox(height: 12),
 
               // Health Score & What-If Row
@@ -164,28 +197,41 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
         Row(
           children: [
             IconButton(
-              icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.textSecondary, size: 20),
+              icon: Icon(LucideIcons.chevronLeft,
+                  color: BentoTheme.textSecondary, size: 20),
               onPressed: _prevMonth,
               visualDensity: VisualDensity.compact,
             ),
-            Text(
-              DateFormat('MMMM yyyy').format(_currentMonth).toUpperCase(),
-              style: TextStyle(
-                color: BentoTheme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
+            GestureDetector(
+              onLongPress: (kDebugMode || kProfileMode)
+                  ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BalanceAuditScreen(),
+                        ),
+                      )
+                  : null,
+              child: Text(
+                DateFormat('MMMM yyyy').format(_currentMonth).toUpperCase(),
+                style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
             IconButton(
-              icon: Icon(LucideIcons.chevronRight, color: BentoTheme.textSecondary, size: 20),
+              icon: Icon(LucideIcons.chevronRight,
+                  color: BentoTheme.textSecondary, size: 20),
               onPressed: _nextMonth,
               visualDensity: VisualDensity.compact,
             ),
           ],
         ),
         IconButton(
-          icon: Icon(LucideIcons.shieldCheck, color: BentoTheme.textSecondary, size: 18),
+          icon: Icon(LucideIcons.shieldCheck,
+              color: BentoTheme.textSecondary, size: 18),
           tooltip: 'AI & Privacy',
           onPressed: () => Navigator.push(
             context,
@@ -197,223 +243,318 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
     );
   }
 
-  Widget _buildHeroBalanceCard(double netWorth, double liquid, double savingsRate) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: ExpressiveTokens.borderL,
-        onTap: () => AppNav.openNetWorth(context),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: ExpressiveTokens.borderL,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'NET WORTH',
-                        style: TextStyle(
-                          color: BentoTheme.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        LucideIcons.chevronRight,
-                        size: 14,
-                        color: BentoTheme.textSecondary,
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.cardBackground,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'Liquid: ${FormatUtils.formatMoney(liquid)}',
-                      style: TextStyle(
-                        color: BentoTheme.accent,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                FormatUtils.formatMoney(netWorth),
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  minHeight: 7,
-                  value: savingsRate,
-                  color: savingsRate >= 0.2
-                      ? const Color(0xFF22C55E)
-                      : const Color(0xFFF59E0B),
-                  backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Savings Rate',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
-                  ),
-                  Text(
-                    '${(savingsRate * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      color: savingsRate >= 0.2 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSafeToSpendCard(SafeToSpendResult s) {
+  /// P1-1 / P1-3: Combined hero card — headline is Money Left (as of now, signed),
+  /// secondary section is Safe to Spend (current month) or Month Review (other months).
+  Widget _buildMoneyLeftHeroCard({
+    required double moneyLeft,
+    required SafeToSpendResult? safeToSpend,
+    required bool isCurrent,
+    required double monthIncome,
+    required double monthSpending,
+    required double monthNet,
+    required double savingsRate,
+    required double closingBalance,
+  }) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(
-          color: s.hasShortfall
-              ? Colors.red.withValues(alpha: 0.3)
-              : BentoTheme.accent.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    s.hasShortfall ? LucideIcons.alertTriangle : LucideIcons.shieldCheck,
-                    size: 16,
-                    color: s.hasShortfall ? Colors.red : BentoTheme.accent,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'SAFE TO SPEND',
-                    style: TextStyle(
-                      color: BentoTheme.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (s.hasShortfall ? Colors.red : BentoTheme.accent)
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  s.hasShortfall
-                      ? 'Deficit: ${FormatUtils.formatMoney(s.shortfall)}'
-                      : '${FormatUtils.formatMoney(s.perDay)} / day',
+          // "MONEY LEFT" headline, tappable to SafeToSpendBreakdownSheet
+          GestureDetector(
+            onTap: () {
+              final explanation = _controller.getSafeToSpendExplanation(
+                asOf: isCurrent ? null : _currentMonth,
+              );
+              SafeToSpendBreakdownSheet.show(context, explanation);
+            },
+            child: Row(
+              children: [
+                Text(
+                  'MONEY LEFT',
                   style: TextStyle(
-                    color: s.hasShortfall ? Colors.red : BentoTheme.accent,
+                    color: BentoTheme.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Icon(
+                  LucideIcons.chevronRight,
+                  size: 14,
+                  color: BentoTheme.textSecondary,
+                ),
+                const Spacer(),
+                Text(
+                  'Why this number?',
+                  style: TextStyle(
+                    color: BentoTheme.accent.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
+          // Headline: Money Left across all spendable accounts
           Text(
-            s.hasShortfall
-                ? FormatUtils.formatCurrency(0)
-                : '${FormatUtils.formatMoney(s.safeToSpend)}',
+            FormatUtils.formatMoney(moneyLeft),
             style: TextStyle(
-              color: s.hasShortfall ? Colors.red : BentoTheme.textPrimary,
-              fontSize: 32,
+              color: moneyLeft < 0
+                  ? const Color(0xFFE07A7A)
+                  : BentoTheme.textPrimary,
+              fontSize: 34,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            s.hasShortfall
-                ? 'Projected obligations exceed liquid balance by month-end'
-                : 'Available for discretionary spending over the next ${s.daysLeft} days',
-            style: TextStyle(
-              color: BentoTheme.textSecondary,
-              fontSize: 11,
+          const SizedBox(height: 14),
+          // Savings rate bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 7,
+              value: savingsRate,
+              color: savingsRate >= 0.2
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFF59E0B),
+              backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
             ),
           ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _safeToSpendChip('Liquid', s.liquid, Colors.green),
-                const SizedBox(width: 6),
-                _safeToSpendChip('Bills', -s.obligations, Colors.red),
-                const SizedBox(width: 6),
-                _safeToSpendChip('Goals', -s.goalsEarmark, const Color(0xFFF59E0B)),
-                const SizedBox(width: 6),
-                _safeToSpendChip('Essential', -s.plannedEssential, BentoTheme.textSecondary),
-                if (s.cardDues > 0) ...[
-                  const SizedBox(width: 6),
-                  _safeToSpendChip('Cards', -s.cardDues, Colors.red),
-                ],
-              ],
-            ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Savings Rate (${DateFormat('MMM yyyy').format(_currentMonth)})',
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+              ),
+              Text(
+                '${(savingsRate * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  color: savingsRate >= 0.2
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFFF59E0B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 14),
+          // Divider before Safe to Spend / Month Review section
+          Divider(
+            color: Colors.white.withValues(alpha: 0.06),
+            height: 1,
+          ),
+          const SizedBox(height: 14),
+          // Secondary line: Safe to Spend for current month, or Month Review for other months
+          if (isCurrent)
+            _buildSafeToSpendSection(safeToSpend)
+          else
+            _buildMonthReviewSection(
+              income: monthIncome,
+              spending: monthSpending,
+              net: monthNet,
+              closingBalance: closingBalance,
+            ),
         ],
       ),
     );
   }
 
-  Widget _safeToSpendChip(String label, double val, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: BentoTheme.background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+  /// P1-1 / P1-3: Safe to Spend section inside the hero card.
+  Widget _buildSafeToSpendSection(SafeToSpendResult? s) {
+    if (s == null) {
+      return Row(
+        children: [
+          Icon(LucideIcons.shieldCheck,
+              size: 14, color: BentoTheme.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            'SAFE TO SPEND',
+            style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '—',
+            style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      );
+    }
+
+    final hasShortfall = s.hasShortfall;
+    final displayValue = hasShortfall
+        ? FormatUtils.formatMoney(s.raw)
+        : FormatUtils.formatMoney(s.safeToSpend);
+    final valueColor =
+        hasShortfall ? const Color(0xFFE07A7A) : BentoTheme.textPrimary;
+
+    return GestureDetector(
+      onTap: () {
+        final explanation = _controller.getSafeToSpendExplanation();
+        SafeToSpendBreakdownSheet.show(context, explanation);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                hasShortfall
+                    ? LucideIcons.alertTriangle
+                    : LucideIcons.shieldCheck,
+                size: 14,
+                color:
+                    hasShortfall ? const Color(0xFFE07A7A) : BentoTheme.accent,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'SAFE TO SPEND',
+                style: TextStyle(
+                  color: BentoTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  displayValue,
+                  style: TextStyle(
+                    color: valueColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (!hasShortfall)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${FormatUtils.formatMoney(s.perDay)}/day',
+                    style: TextStyle(
+                      color: BentoTheme.accent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              Icon(
+                LucideIcons.chevronRight,
+                size: 14,
+                color: BentoTheme.textSecondary,
+              ),
+            ],
+          ),
+          if (hasShortfall) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Short by ${FormatUtils.formatMoney(s.shortfall)} until month end',
+              style: const TextStyle(
+                color: Color(0xFFE07A7A),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
       ),
-      child: Text(
-        '$label: ${val >= 0 ? '' : '-'}${FormatUtils.formatMoney(val.abs())}',
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
-      ),
+    );
+  }
+
+  /// P1-1: Month review section shown for non-current months.
+  Widget _buildMonthReviewSection({
+    required double income,
+    required double spending,
+    required double net,
+    required double closingBalance,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(LucideIcons.calendarCheck,
+                size: 14, color: BentoTheme.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              'MONTH REVIEW · ${DateFormat('MMM yyyy').format(_currentMonth).toUpperCase()}',
+              style: TextStyle(
+                color: BentoTheme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildReviewStat('Income', FormatUtils.formatMoney(income),
+                const Color(0xFF22C55E)),
+            _buildReviewStat('Spending', FormatUtils.formatMoney(spending),
+                BentoTheme.textPrimary),
+            _buildReviewStat(
+              'Net',
+              (net >= 0 ? '+' : '') + FormatUtils.formatMoney(net),
+              net >= 0 ? const Color(0xFF22C55E) : const Color(0xFFE07A7A),
+            ),
+            _buildReviewStat(
+                'Closing Bal',
+                FormatUtils.formatMoney(closingBalance),
+                BentoTheme.textSecondary),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewStat(String label, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -441,7 +582,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Row(
                   children: [
@@ -451,7 +593,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                         color: scoreColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(LucideIcons.heartPulse, color: scoreColor, size: 16),
+                      child: Icon(LucideIcons.heartPulse,
+                          color: scoreColor, size: 16),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -499,7 +642,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: BentoTheme.accent.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -509,7 +653,8 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                         color: BentoTheme.accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 16),
+                      child: Icon(LucideIcons.sparkles,
+                          color: BentoTheme.accent, size: 16),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -848,7 +993,9 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: isSelected ? BentoTheme.accent.withValues(alpha: 0.2) : Colors.transparent,
+          color: isSelected
+              ? BentoTheme.accent.withValues(alpha: 0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
@@ -926,10 +1073,11 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                   child: ListTile(
                     dense: true,
                     leading: CircleAvatar(
-                      backgroundColor: (category != null && category.colorValue != 0
-                              ? Color(category.colorValue)
-                              : BentoTheme.accent)
-                          .withValues(alpha: 0.15),
+                      backgroundColor:
+                          (category != null && category.colorValue != 0
+                                  ? Color(category.colorValue)
+                                  : BentoTheme.accent)
+                              .withValues(alpha: 0.15),
                       child: Icon(
                         LucideIcons.tag,
                         size: 16,
@@ -958,7 +1106,9 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                     trailing: Text(
                       '${isIncome ? '+' : '-'}${FormatUtils.formatCurrency(tx.amount.abs())}',
                       style: TextStyle(
-                        color: isIncome ? const Color(0xFF22C55E) : BentoTheme.textPrimary,
+                        color: isIncome
+                            ? const Color(0xFF22C55E)
+                            : BentoTheme.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),

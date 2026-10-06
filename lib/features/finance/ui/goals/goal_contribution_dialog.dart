@@ -142,7 +142,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
               CircleAvatar(
                 radius: 12,
                 backgroundColor: Color(widget.goal.colorValue),
-                child: const Icon(LucideIcons.target, size: 14, color: Colors.black),
+                child: const Icon(LucideIcons.target,
+                    size: 14, color: Colors.black),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -309,8 +310,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: Row(
                     children: [
@@ -333,8 +334,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.06)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: TextField(
                     controller: _noteController,
@@ -360,16 +361,17 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
             child: ElevatedButton(
               onPressed: _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isWithdrawal
-                    ? Colors.redAccent
-                    : const Color(0xFF10B981),
+                backgroundColor:
+                    _isWithdrawal ? Colors.redAccent : const Color(0xFF10B981),
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: ExpressiveTokens.borderM,
                 ),
               ),
               child: Text(
-                _isWithdrawal ? 'Record Withdrawal' : 'Add Contribution (+20 XP)',
+                _isWithdrawal
+                    ? 'Record Withdrawal'
+                    : 'Add Contribution (+20 XP)',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,

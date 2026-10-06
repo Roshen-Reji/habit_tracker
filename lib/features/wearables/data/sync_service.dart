@@ -63,7 +63,9 @@ class SyncService {
         if (perms['all'] != true) {
           final granted = await source.requestPermissions();
           if (!granted) {
-            source = MockWearableSource();
+            statusNotifier.value = SyncStatus.error;
+            errorNotifier.value = 'Health Connect permissions not granted';
+            return false;
           }
         }
       }

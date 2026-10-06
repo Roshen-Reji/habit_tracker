@@ -24,7 +24,8 @@ class AccountsPage extends StatefulWidget {
   State<AccountsPage> createState() => _AccountsPageState();
 }
 
-class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderStateMixin {
+class _AccountsPageState extends State<AccountsPage>
+    with SingleTickerProviderStateMixin {
   late final FinanceController _controller;
   late final FinanceRepository _repository;
   late final TabController _tabController;
@@ -133,7 +134,8 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                   children: [
                     Text(
                       'Net Assets',
-                      style: TextStyle(color: BentoTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 13),
                     ),
                     Text(
                       FormatUtils.formatMoney(netWorth),
@@ -153,7 +155,8 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                         children: [
                           Text(
                             'Total Assets',
-                            style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
+                            style: TextStyle(
+                                color: BentoTheme.textMuted, fontSize: 12),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -175,7 +178,8 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                         children: [
                           Text(
                             'Total Liabilities',
-                            style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
+                            style: TextStyle(
+                                color: BentoTheme.textMuted, fontSize: 12),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -207,7 +211,8 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                 _buildAccountList(activeAssets, 'No asset accounts found.'),
 
                 // Liabilities Tab
-                _buildAccountList(activeLiabilities, 'No liability accounts found.'),
+                _buildAccountList(
+                    activeLiabilities, 'No liability accounts found.'),
 
                 // Archived Tab
                 _buildAccountList(archivedAccounts, 'No archived accounts.'),
@@ -316,7 +321,8 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: Color(account.colorValue).withValues(alpha: 0.18),
+                  backgroundColor:
+                      Color(account.colorValue).withValues(alpha: 0.18),
                   child: Icon(
                     _iconForKind(account.kind),
                     color: Color(account.colorValue),
@@ -330,12 +336,14 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                     children: [
                       Text(
                         account.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         account.institution ?? account.kind.toUpperCase(),
-                        style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 12),
                       ),
                     ],
                   ),
@@ -348,20 +356,25 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: account.isLiability ? Colors.orangeAccent : Colors.white,
+                        color: account.isLiability
+                            ? Colors.orangeAccent
+                            : Colors.white,
                       ),
                     ),
-                    if (account.isCreditCard && account.creditLimit != null) ...[
+                    if (account.isCreditCard &&
+                        account.creditLimit != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         'Limit: ${FormatUtils.formatMoney(account.creditLimit!)}',
-                        style: TextStyle(color: BentoTheme.textMuted, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 11),
                       ),
                     ],
                   ],
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 20, color: Colors.white54),
+                  icon: const Icon(Icons.more_vert,
+                      size: 20, color: Colors.white54),
                   onSelected: (val) async {
                     if (val == 'reconcile') {
                       AccountReconcileDialog.show(
@@ -406,7 +419,11 @@ class _AccountsPageState extends State<AccountsPage> with SingleTickerProviderSt
                       value: 'archive',
                       child: Row(
                         children: [
-                          Icon(account.archived ? Icons.unarchive : Icons.archive, size: 18),
+                          Icon(
+                              account.archived
+                                  ? Icons.unarchive
+                                  : Icons.archive,
+                              size: 18),
                           const SizedBox(width: 8),
                           Text(account.archived ? 'Unarchive' : 'Archive'),
                         ],

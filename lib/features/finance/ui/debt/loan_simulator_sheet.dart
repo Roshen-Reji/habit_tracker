@@ -95,7 +95,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
 
             Row(
               children: [
-                Icon(LucideIcons.calculator, color: BentoTheme.accent, size: 22),
+                Icon(LucideIcons.calculator,
+                    color: BentoTheme.accent, size: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -108,7 +109,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                  icon:
+                      const Icon(Icons.close, color: Colors.white60, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -167,14 +169,19 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(FormatUtils.formatCurrency(0), style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                      Text(FormatUtils.formatCurrency(0),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 11)),
                       Text(
                         'Base EMI: ${FormatUtils.formatMoney(emi)}/mo',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                       Text(
-                        FormatUtils.formatMoney((emi * 2).clamp(10000.0, 50000.0)),
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        FormatUtils.formatMoney(
+                            (emi * 2).clamp(10000.0, 50000.0)),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -192,7 +199,9 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF10B981).withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +235,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                     decoration: BoxDecoration(
                       color: BentoTheme.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: BentoTheme.accent.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,12 +282,18 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                     children: [
                       Text(
                         'NEW TENURE',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${sim.newMonths} months (was ${sim.baselineMonths})',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -286,12 +302,18 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                     children: [
                       Text(
                         'TOTAL INTEREST',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         FormatUtils.formatMoney(sim.newInterest),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -342,7 +364,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
             ...schedule.months.take(6).map((m) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(8),
@@ -350,10 +373,20 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Month ${m.monthIndex}', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                    Text('Principal: ${FormatUtils.formatMoney(m.principal)}', style: TextStyle(color: const Color(0xFF10B981), fontSize: 11)),
-                    Text('Interest: ${FormatUtils.formatMoney(m.interest)}', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
-                    Text('Bal: ${FormatUtils.formatMoney(m.remainingBalance)}', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                    Text('Month ${m.monthIndex}',
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                    Text('Principal: ${FormatUtils.formatMoney(m.principal)}',
+                        style: TextStyle(
+                            color: const Color(0xFF10B981), fontSize: 11)),
+                    Text('Interest: ${FormatUtils.formatMoney(m.interest)}',
+                        style:
+                            TextStyle(color: Colors.redAccent, fontSize: 11)),
+                    Text('Bal: ${FormatUtils.formatMoney(m.remainingBalance)}',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11)),
                   ],
                 ),
               );

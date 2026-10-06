@@ -35,7 +35,9 @@ class SafeToSpendCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          isShortfall ? 'DEFICIT' : '${FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0)}/day',
+          isShortfall
+              ? 'DEFICIT'
+              : '${FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0)}/day',
           style: TextStyle(
             color: isShortfall ? AppColors.error : BentoTheme.accent,
             fontSize: 11,

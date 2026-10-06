@@ -8,7 +8,8 @@ class MemberBalance {
   final String member;
   final double totalPaid;
   final double totalShare;
-  final double net; // totalPaid - totalShare. > 0 means owed money, < 0 means owes money.
+  final double
+      net; // totalPaid - totalShare. > 0 means owed money, < 0 means owes money.
 
   const MemberBalance({
     required this.member,
@@ -66,7 +67,8 @@ class SplitSettleEngine {
     final paidMap = <String, double>{for (var m in members) m: 0.0};
     final shareMap = <String, double>{for (var m in members) m: 0.0};
 
-    final activeEntries = includeSettled ? entries : entries.where((e) => !e.settled);
+    final activeEntries =
+        includeSettled ? entries : entries.where((e) => !e.settled);
 
     for (final e in activeEntries) {
       final payer = e.paidBy;
@@ -95,7 +97,8 @@ class SplitSettleEngine {
   /// Finds the minimal sequence of payments to settle all debts.
   /// Uses a greedy matching of largest debtor to largest creditor.
   /// Rounds to paise (2 decimal places) and assigns any rounding remainder deterministically.
-  static List<SettlementTransfer> calculateSettlements(List<MemberBalance> balances) {
+  static List<SettlementTransfer> calculateSettlements(
+      List<MemberBalance> balances) {
     // Separate into debtors (net < 0) and creditors (net > 0)
     final debtors = <_MutableBalance>[];
     final creditors = <_MutableBalance>[];
@@ -119,7 +122,8 @@ class SplitSettleEngine {
       final debtor = debtors.first;
       final creditor = creditors.first;
 
-      final transferAmount = Money.r2(debtor.amount < creditor.amount ? debtor.amount : creditor.amount);
+      final transferAmount = Money.r2(
+          debtor.amount < creditor.amount ? debtor.amount : creditor.amount);
 
       if (transferAmount > 0.005) {
         settlements.add(SettlementTransfer(
@@ -144,21 +148,27 @@ class SplitSettleEngine {
   }
 
   /// Generates a comprehensive Trip / Group spend and settlement report.
-  static GroupReport generateGroupReport(SplitGroup group, List<SplitEntry> entries) {
+  static GroupReport generateGroupReport(
+      SplitGroup group, List<SplitEntry> entries) {
     double totalSpent = 0.0;
-    final perPersonSpent = <String, double>{for (var m in group.members) m: 0.0};
+    final perPersonSpent = <String, double>{
+      for (var m in group.members) m: 0.0
+    };
     final perPersonPaid = <String, double>{for (var m in group.members) m: 0.0};
 
     for (final e in entries) {
       totalSpent = Money.r2(totalSpent + e.amount);
-      perPersonPaid[e.paidBy] = Money.r2((perPersonPaid[e.paidBy] ?? 0.0) + e.amount);
+      perPersonPaid[e.paidBy] =
+          Money.r2((perPersonPaid[e.paidBy] ?? 0.0) + e.amount);
 
       for (final share in e.shares.entries) {
-        perPersonSpent[share.key] = Money.r2((perPersonSpent[share.key] ?? 0.0) + share.value);
+        perPersonSpent[share.key] =
+            Money.r2((perPersonSpent[share.key] ?? 0.0) + share.value);
       }
     }
 
-    final balances = calculateBalances(members: group.members, entries: entries, includeSettled: false);
+    final balances = calculateBalances(
+        members: group.members, entries: entries, includeSettled: false);
     final settlements = calculateSettlements(balances);
 
     return GroupReport(
@@ -198,7 +208,8 @@ class SplitSettleEngine {
 
   /// Extracts owed split lines from individual transactions (P2-3).
   /// Format: [{categoryId, amount, note, isOwed: true, counterparty: "Friend"}]
-  static List<SplitEntry> extractOwedEntriesFromTransactions(List<Transaction> transactions) {
+  static List<SplitEntry> extractOwedEntriesFromTransactions(
+      List<Transaction> transactions) {
     final list = <SplitEntry>[];
 
     for (final tx in transactions) {
@@ -209,13 +220,17 @@ class SplitSettleEngine {
         if (decoded is! List) continue;
 
         for (final item in decoded) {
-          if (item is Map && (item['isOwed'] == true || item['isOwed'] == 'true')) {
-            final counterparty = (item['counterparty'] ?? 'Friend').toString().trim();
+          if (item is Map &&
+              (item['isOwed'] == true || item['isOwed'] == 'true')) {
+            final counterparty =
+                (item['counterparty'] ?? 'Friend').toString().trim();
             final amt = (item['amount'] as num?)?.toDouble() ?? 0.0;
             if (amt <= 0) continue;
 
             final note = item['note']?.toString();
-            final title = (note != null && note.isNotEmpty) ? note : (tx.title.isNotEmpty ? tx.title : 'Owed share');
+            final title = (note != null && note.isNotEmpty)
+                ? note
+                : (tx.title.isNotEmpty ? tx.title : 'Owed share');
 
             list.add(SplitEntry(
               id: 'owed_${tx.id ?? tx.key}_${counterparty.hashCode}',
@@ -249,7 +264,8 @@ class SplitSettleEngine {
     double total = 0.0;
 
     // 1. From split entries where user paid
-    for (final e in entries.where((e) => !e.settled && e.paidBy.toLowerCase() == user.toLowerCase())) {
+    for (final e in entries.where(
+        (e) => !e.settled && e.paidBy.toLowerCase() == user.toLowerCase())) {
       for (final share in e.shares.entries) {
         if (share.key.toLowerCase() != user.toLowerCase()) {
           total = Money.r2(total + share.value);
@@ -273,7 +289,8 @@ class SplitSettleEngine {
   }) {
     double total = 0.0;
 
-    for (final e in entries.where((e) => !e.settled && e.paidBy.toLowerCase() != user.toLowerCase())) {
+    for (final e in entries.where(
+        (e) => !e.settled && e.paidBy.toLowerCase() != user.toLowerCase())) {
       final userShare = e.shares[user] ?? e.shares['You'] ?? 0.0;
       total = Money.r2(total + userShare);
     }

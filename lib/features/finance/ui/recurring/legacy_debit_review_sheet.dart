@@ -48,11 +48,11 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
         if (parts.length >= 3) {
           final ruleId = parts[1];
           final monthStr = parts[2]; // yyyy-MM
-          
+
           // Find matching rec:{id}:{yyyy-MM-dd}
           final hasNewEquivalent = allTxs.any((other) {
             return other.sourceRef != null &&
-                   other.sourceRef!.startsWith('rec:$ruleId:$monthStr');
+                other.sourceRef!.startsWith('rec:$ruleId:$monthStr');
           });
 
           if (hasNewEquivalent) {
@@ -61,7 +61,9 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
             legacy.add(tx);
           }
         }
-      } else if (tx.title.startsWith('SIP · ') && tx.toAccountId == null && (tx.sourceRef == null || !tx.sourceRef!.startsWith('rec:'))) {
+      } else if (tx.title.startsWith('SIP · ') &&
+          tx.toAccountId == null &&
+          (tx.sourceRef == null || !tx.sourceRef!.startsWith('rec:'))) {
         legacy.add(tx);
       }
     }
@@ -117,9 +119,11 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.checkCircle2, size: 48, color: BentoTheme.accent),
+                    Icon(LucideIcons.checkCircle2,
+                        size: 48, color: BentoTheme.accent),
                     const SizedBox(height: 16),
-                    const Text('All clean! No legacy debits found.', style: TextStyle(color: Colors.white70)),
+                    const Text('All clean! No legacy debits found.',
+                        style: TextStyle(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -132,7 +136,10 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
                   if (_duplicates.isNotEmpty) ...[
                     const Text(
                       'Duplicates Found',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orangeAccent),
                     ),
                     const SizedBox(height: 10),
                     ..._duplicates.map((tx) => ListTile(
@@ -140,7 +147,8 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
                           subtitle: Text(FormatUtils.formatMoney(tx.amount)),
                           trailing: ElevatedButton(
                             onPressed: () => _resolveDuplicate(tx),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent),
                             child: const Text('Delete'),
                           ),
                         )),
@@ -149,13 +157,17 @@ class _LegacyDebitReviewSheetState extends State<LegacyDebitReviewSheet> {
                   if (_legacyDebits.isNotEmpty) ...[
                     const Text(
                       'Legacy Expenses',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent),
                     ),
                     const SizedBox(height: 10),
                     ..._legacyDebits.map((tx) => ListTile(
                           title: Text(tx.title),
                           subtitle: Text(FormatUtils.formatMoney(tx.amount)),
-                          trailing: const Text('Needs Fund', style: TextStyle(color: Colors.white54)),
+                          trailing: const Text('Needs Fund',
+                              style: TextStyle(color: Colors.white54)),
                         )),
                   ],
                 ],

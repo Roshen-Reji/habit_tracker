@@ -238,7 +238,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                                ExpressiveTokens.radiusSm),
                           ),
                         ),
                         icon: const Icon(LucideIcons.filePlus, size: 15),
@@ -250,7 +251,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           ),
                         ),
                         onPressed: () async {
-                          final book = await ReaderService.importPdfFromPicker();
+                          final book =
+                              await ReaderService.importPdfFromPicker();
                           if (book != null && context.mounted) {
                             await _loadBooks();
                             Navigator.push(
@@ -273,7 +275,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                                ExpressiveTokens.radiusSm),
                           ),
                         ),
                         icon: const Icon(LucideIcons.library, size: 15),

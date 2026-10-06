@@ -70,18 +70,29 @@ class TransactionQuery {
 /// - If a word is numeric (e.g. `500`), it also matches amounts within ±10%.
 class SearchParser {
   static const Map<String, int> _monthNames = {
-    'jan': 1, 'january': 1,
-    'feb': 2, 'february': 2,
-    'mar': 3, 'march': 3,
-    'apr': 4, 'april': 4,
+    'jan': 1,
+    'january': 1,
+    'feb': 2,
+    'february': 2,
+    'mar': 3,
+    'march': 3,
+    'apr': 4,
+    'april': 4,
     'may': 5,
-    'jun': 6, 'june': 6,
-    'jul': 7, 'july': 7,
-    'aug': 8, 'august': 8,
-    'sep': 9, 'september': 9,
-    'oct': 10, 'october': 10,
-    'nov': 11, 'november': 11,
-    'dec': 12, 'december': 12,
+    'jun': 6,
+    'june': 6,
+    'jul': 7,
+    'july': 7,
+    'aug': 8,
+    'august': 8,
+    'sep': 9,
+    'september': 9,
+    'oct': 10,
+    'october': 10,
+    'nov': 11,
+    'november': 11,
+    'dec': 12,
+    'december': 12,
   };
 
   static TransactionQuery parse(String raw) {
@@ -323,7 +334,9 @@ class SearchParser {
     for (final token in tokens) {
       var matched = false;
 
-      if (token.numLow != null && mag >= token.numLow! && mag <= token.numHigh!) {
+      if (token.numLow != null &&
+          mag >= token.numLow! &&
+          mag <= token.numHigh!) {
         matched = true;
       }
 
@@ -331,7 +344,8 @@ class SearchParser {
         final t = token.text;
         if (tx.title.toLowerCase().contains(t)) {
           matched = true;
-        } else if (tx.merchant != null && tx.merchant!.toLowerCase().contains(t)) {
+        } else if (tx.merchant != null &&
+            tx.merchant!.toLowerCase().contains(t)) {
           matched = true;
         } else if (tx.notes != null && tx.notes!.toLowerCase().contains(t)) {
           matched = true;
@@ -343,7 +357,8 @@ class SearchParser {
             accName ??= _resolveAccountName(tx, accounts).toLowerCase();
             if (accName.contains(t)) {
               matched = true;
-            } else if ((tx.tags ?? []).any((tag) => tag.toLowerCase().contains(t))) {
+            } else if ((tx.tags ?? [])
+                .any((tag) => tag.toLowerCase().contains(t))) {
               matched = true;
             }
           }
@@ -356,7 +371,8 @@ class SearchParser {
     return true;
   }
 
-  static String _resolveCategoryName(Transaction tx, Map<String, Category>? categories) {
+  static String _resolveCategoryName(
+      Transaction tx, Map<String, Category>? categories) {
     if (tx.categoryId != null && categories != null) {
       final cat = categories[tx.categoryId];
       if (cat != null) return cat.name;
@@ -364,7 +380,8 @@ class SearchParser {
     return tx.category;
   }
 
-  static String _resolveAccountName(Transaction tx, Map<String, Account>? accounts) {
+  static String _resolveAccountName(
+      Transaction tx, Map<String, Account>? accounts) {
     if (tx.accountId != null && accounts != null) {
       final acc = accounts[tx.accountId];
       if (acc != null) return acc.name;

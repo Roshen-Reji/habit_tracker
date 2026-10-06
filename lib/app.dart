@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -43,7 +44,9 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
     if (state == AppLifecycleState.resumed) {
       TaskResetService.checkAndResetTasks();
       WakeService.instance.rolloverMissedDays(DateTime.now());
-      RecurringRunner.run();
+      unawaited(RecurringRunner.run().catchError((e) {
+        debugPrint('RecurringRunner error on resume: $e');
+      }));
       if (WearableSettings.isEnabled && WearableSettings.autoSyncOnResume) {
         SyncService.instance.sync(days: 7);
       }
@@ -74,57 +77,56 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
         final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
 
-
-            return MaterialApp(
-              navigatorKey: globalNavigatorKey,
-              title: 'Habit Tracker',
-              themeMode: mode,
-              localizationsDelegates: const [
-                FlutterQuillLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: FlutterQuillLocalizations.supportedLocales,
-              scrollBehavior: const MaterialScrollBehavior().copyWith(
-                physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics()),
+        return MaterialApp(
+          navigatorKey: globalNavigatorKey,
+          title: 'Habit Tracker',
+          themeMode: mode,
+          localizationsDelegates: const [
+            FlutterQuillLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: FlutterQuillLocalizations.supportedLocales,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics()),
+          ),
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: BentoTheme.background,
+            fontFamily: 'Roboto',
+            colorScheme: ColorScheme.light(
+              primary: BentoTheme.accent,
+              surface: BentoTheme.background,
+            ),
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: ExpressiveTokens.borderL,
               ),
-              theme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.light,
-                scaffoldBackgroundColor: BentoTheme.background,
-                fontFamily: 'Roboto',
-                colorScheme: ColorScheme.light(
-                  primary: BentoTheme.accent,
-                  surface: BentoTheme.background,
-                ),
-                cardTheme: const CardThemeData(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: ExpressiveTokens.borderL,
-                  ),
-                ),
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: BentoTheme.background,
+            fontFamily: 'Roboto',
+            colorScheme: ColorScheme.dark(
+              primary: BentoTheme.accent,
+              surface: BentoTheme.background,
+            ),
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: ExpressiveTokens.borderL,
               ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.dark,
-                scaffoldBackgroundColor: BentoTheme.background,
-                fontFamily: 'Roboto',
-                colorScheme: ColorScheme.dark(
-                  primary: BentoTheme.accent,
-                  surface: BentoTheme.background,
-                ),
-                cardTheme: const CardThemeData(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: ExpressiveTokens.borderL,
-                  ),
-                ),
-              ),
-              home: const HomePage(),
-              debugShowCheckedModeBanner: false,
-            );
+            ),
+          ),
+          home: const HomePage(),
+          debugShowCheckedModeBanner: false,
+        );
       },
     );
   }

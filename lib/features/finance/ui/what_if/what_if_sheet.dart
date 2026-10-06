@@ -101,7 +101,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                     color: BentoTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
+                  child: Icon(LucideIcons.sparkles,
+                      color: BentoTheme.accent, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -110,11 +111,15 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                     children: [
                       Text(
                         'What-If Simulator',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                       Text(
                         'Can I safely afford this purchase?',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -130,7 +135,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             // Amount input
             TextField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -155,7 +161,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
             ),
             const SizedBox(height: 12),
@@ -163,7 +170,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             // Preset chips
             Wrap(
               spacing: 8,
-              children: [5000.0, 15000.0, 30000.0, 50000.0, 100000.0].map((val) {
+              children:
+                  [5000.0, 15000.0, 30000.0, 50000.0, 100000.0].map((val) {
                 final isSelected = (_amount - val).abs() < 1;
                 return ChoiceChip(
                   label: Text(FormatUtils.formatMoney(val, decimals: 0)),
@@ -172,12 +180,17 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                   backgroundColor: BentoTheme.background,
                   selectedColor: BentoTheme.accent.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
-                    color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? BentoTheme.accent
+                        : BentoTheme.textSecondary,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                     fontSize: 12,
                   ),
                   side: BorderSide(
-                    color: isSelected ? BentoTheme.accent : Colors.white.withValues(alpha: 0.05),
+                    color: isSelected
+                        ? BentoTheme.accent
+                        : Colors.white.withValues(alpha: 0.05),
                   ),
                 );
               }).toList(),
@@ -195,16 +208,19 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   children: [
-                    Icon(LucideIcons.calculator, color: BentoTheme.textSecondary, size: 36),
+                    Icon(LucideIcons.calculator,
+                        color: BentoTheme.textSecondary, size: 36),
                     const SizedBox(height: 12),
                     Text(
                       'Enter an expense amount above to check affordability against your forecast, upcoming bills, and emergency buffer.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -218,9 +234,11 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                 backgroundColor: BentoTheme.accent,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('Done',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -268,7 +286,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: badgeBg,
                   borderRadius: BorderRadius.circular(8),
@@ -304,7 +323,8 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
           const SizedBox(height: 6),
           Text(
             res.explanation,
-            style: TextStyle(color: BentoTheme.textSecondary, height: 1.4, fontSize: 12),
+            style: TextStyle(
+                color: BentoTheme.textSecondary, height: 1.4, fontSize: 12),
           ),
           const SizedBox(height: 10),
           Container(
@@ -356,9 +376,12 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildRow('Projected Balance (before)', FormatUtils.formatMoney(res.forecastMonthEnd), false),
+          _buildRow('Projected Balance (before)',
+              FormatUtils.formatMoney(res.forecastMonthEnd), false),
           const SizedBox(height: 8),
-          _buildRow('This Expense', '-${FormatUtils.formatMoney(res.amount, customSymbol: '')}', true, isNegative: true),
+          _buildRow('This Expense',
+              '-${FormatUtils.formatMoney(res.amount, customSymbol: '')}', true,
+              isNegative: true),
           const Divider(height: 16, color: Colors.white12),
           _buildRow(
             'Projected Balance (after)',
@@ -367,13 +390,15 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
             color: res.projectedAfter >= 0 ? Colors.green : Colors.red,
           ),
           const SizedBox(height: 8),
-          _buildRow('Target Emergency Buffer', FormatUtils.formatMoney(res.emergencyBuffer), false),
+          _buildRow('Target Emergency Buffer',
+              FormatUtils.formatMoney(res.emergencyBuffer), false),
         ],
       ),
     );
   }
 
-  Widget _buildRow(String label, String value, bool isBold, {Color? color, bool isNegative = false}) {
+  Widget _buildRow(String label, String value, bool isBold,
+      {Color? color, bool isNegative = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

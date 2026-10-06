@@ -18,7 +18,8 @@ class RecurringPage extends StatefulWidget {
   State<RecurringPage> createState() => _RecurringPageState();
 }
 
-class _RecurringPageState extends State<RecurringPage> with SingleTickerProviderStateMixin {
+class _RecurringPageState extends State<RecurringPage>
+    with SingleTickerProviderStateMixin {
   final FinanceController _controller = FinanceController();
   late TabController _tabController;
 
@@ -78,7 +79,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
 
         final bills = allRules.where((r) => r.kind == 'bill').toList();
         final subs = allRules.where((r) => r.kind == 'subscription').toList();
-        final sipsAndEmis = allRules.where((r) => r.kind == 'sip' || r.kind == 'emi').toList();
+        final sipsAndEmis =
+            allRules.where((r) => r.kind == 'sip' || r.kind == 'emi').toList();
 
         return Scaffold(
           backgroundColor: BentoTheme.background,
@@ -103,7 +105,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -113,7 +116,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: ExpressiveTokens.borderL,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.06)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -142,9 +146,11 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: BentoTheme.accent.withValues(alpha: 0.15),
+                                color:
+                                    BentoTheme.accent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -178,7 +184,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: TabBar(
                           controller: _tabController,
@@ -189,8 +196,10 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                           ),
                           labelColor: Colors.black,
                           unselectedLabelColor: BentoTheme.textSecondary,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                          labelStyle: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12),
+                          unselectedLabelStyle: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 12),
                           dividerColor: Colors.transparent,
                           tabs: const [
                             Tab(text: 'All'),
@@ -246,7 +255,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.alertCircle, color: Colors.amberAccent, size: 18),
+              const Icon(LucideIcons.alertCircle,
+                  color: Colors.amberAccent, size: 18),
               const SizedBox(width: 8),
               Text(
                 'ACTION REQUIRED: DUE BILLS',
@@ -300,23 +310,29 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                         ),
                         Text(
                           'Due: ${DateFormat('dd MMM').format(item.dueDate)} • ${FormatUtils.formatMoney(item.estimatedAmount)}',
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 11),
                         ),
                       ],
                     ),
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      MarkPaidDialog.show(context, controller: _controller, item: item);
+                      MarkPaidDialog.show(context,
+                          controller: _controller, item: item);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                       minimumSize: const Size(60, 32),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text('Paid', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: const Text('Paid',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
@@ -327,7 +343,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildDetectedSubscriptionsBanner(List<DetectedSubscription> detectedSubs) {
+  Widget _buildDetectedSubscriptionsBanner(
+      List<DetectedSubscription> detectedSubs) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -397,33 +414,42 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                     children: [
                       Text(
                         '${sub.occurrenceCount} occurrences (~${sub.cycleDays} days)',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                       if (sub.hasPriceChange) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
                             color: Colors.purpleAccent.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
                             'Price change',
-                            style: TextStyle(color: Colors.purpleAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.purpleAccent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                       if (sub.isPossiblyCancelled) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
                             color: Colors.redAccent.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
                             'Possibly cancelled',
-                            style: TextStyle(color: Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -435,13 +461,15 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                     children: [
                       TextButton(
                         onPressed: () {
-                          _controller.dismissSubscriptionSuggestion(sub.normalizedMerchant);
+                          _controller.dismissSubscriptionSuggestion(
+                              sub.normalizedMerchant);
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white60,
                           visualDensity: VisualDensity.compact,
                         ),
-                        child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
+                        child: const Text('Dismiss',
+                            style: TextStyle(fontSize: 12)),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
@@ -457,11 +485,15 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                         style: ElevatedButton.styleFrom(
                           backgroundColor: BentoTheme.accent,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           minimumSize: const Size(60, 30),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: const Text('Track', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: const Text('Track',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -482,7 +514,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(LucideIcons.repeat, size: 40, color: BentoTheme.textSecondary),
+              Icon(LucideIcons.repeat,
+                  size: 40, color: BentoTheme.textSecondary),
               const SizedBox(height: 14),
               Text(
                 'No Recurring Items',
@@ -515,7 +548,9 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
   }
 
   Widget _buildRuleCard(RecurringRule rule) {
-    final cat = rule.categoryId != null ? _controller.storage.categoryBox.get(rule.categoryId!) : null;
+    final cat = rule.categoryId != null
+        ? _controller.storage.categoryBox.get(rule.categoryId!)
+        : null;
     final isPaused = rule.status == 'paused';
 
     return Container(
@@ -542,11 +577,14 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
               children: [
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: Color(cat?.colorValue ?? 0xFF00E5FF).withValues(alpha: 0.2),
+                  backgroundColor: Color(cat?.colorValue ?? 0xFF00E5FF)
+                      .withValues(alpha: 0.2),
                   child: Icon(
                     rule.kind == 'subscription'
                         ? LucideIcons.tv
-                        : (rule.kind == 'sip' ? LucideIcons.trendingUp : LucideIcons.receipt),
+                        : (rule.kind == 'sip'
+                            ? LucideIcons.trendingUp
+                            : LucideIcons.receipt),
                     size: 14,
                     color: Color(cat?.colorValue ?? 0xFF00E5FF),
                   ),
@@ -562,7 +600,9 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                             child: Text(
                               rule.name,
                               style: TextStyle(
-                                color: isPaused ? Colors.white38 : BentoTheme.textPrimary,
+                                color: isPaused
+                                    ? Colors.white38
+                                    : BentoTheme.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
@@ -572,14 +612,18 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                           if (isPaused) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
                                 color: Colors.white12,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
                                 'PAUSED',
-                                style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -588,7 +632,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                       const SizedBox(height: 2),
                       Text(
                         '${rule.frequency.toUpperCase()} • Day ${rule.dayOfMonth ?? rule.startDate.day} • ${rule.autoPost ? 'Auto-posted' : 'Manual confirm'}',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -599,7 +644,8 @@ class _RecurringPageState extends State<RecurringPage> with SingleTickerProvider
                     Text(
                       '${rule.amountIsVariable ? '~' : ''}${FormatUtils.formatMoney(rule.amount)}',
                       style: TextStyle(
-                        color: isPaused ? Colors.white38 : BentoTheme.textPrimary,
+                        color:
+                            isPaused ? Colors.white38 : BentoTheme.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),

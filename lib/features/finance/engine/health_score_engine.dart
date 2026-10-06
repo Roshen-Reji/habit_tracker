@@ -130,7 +130,9 @@ class HealthScoreEngine {
       final descriptions = <String>[];
 
       // DTI
-      if (monthlyDebtObligations != null && monthlyIncome != null && monthlyIncome > 0) {
+      if (monthlyDebtObligations != null &&
+          monthlyIncome != null &&
+          monthlyIncome > 0) {
         final dti = (monthlyDebtObligations / monthlyIncome).clamp(0.0, 1.0);
         double dtiScore;
         if (dti <= 0.20) {
@@ -145,7 +147,9 @@ class HealthScoreEngine {
       }
 
       // Card Utilisation
-      if (totalCardBalance != null && totalCardLimit != null && totalCardLimit > 0) {
+      if (totalCardBalance != null &&
+          totalCardLimit != null &&
+          totalCardLimit > 0) {
         final util = (totalCardBalance / totalCardLimit).clamp(0.0, 1.0);
         double utilScore;
         if (util <= 0.30) {
@@ -160,7 +164,8 @@ class HealthScoreEngine {
       }
 
       if (debtParts.isNotEmpty) {
-        final avgDebtScore = debtParts.reduce((a, b) => a + b) / debtParts.length;
+        final avgDebtScore =
+            debtParts.reduce((a, b) => a + b) / debtParts.length;
         components.add(HealthScoreComponent(
           id: 'debt',
           name: 'Debt & Credit',
@@ -192,7 +197,8 @@ class HealthScoreEngine {
         score: Money.r2(score),
         baseWeight: FinanceConstants.healthWeightEmergency,
         hasData: true,
-        description: '${monthsSaved.toStringAsFixed(1)} of $targetMonths months saved',
+        description:
+            '${monthsSaved.toStringAsFixed(1)} of $targetMonths months saved',
       ));
     } else {
       final score = liquidBalance > 0 ? 100.0 : 0.0;
@@ -202,14 +208,16 @@ class HealthScoreEngine {
         score: score,
         baseWeight: FinanceConstants.healthWeightEmergency,
         hasData: liquidBalance > 0,
-        description: liquidBalance > 0 ? 'Liquid savings available' : 'No liquid buffer',
+        description:
+            liquidBalance > 0 ? 'Liquid savings available' : 'No liquid buffer',
       ));
     }
 
     // 5. Consistency (10 pts)
     // Needs >= 3 months. 100 * clamp(1 - CV6m / 0.5, 0, 1)
     if (last6MonthsSpending != null && last6MonthsSpending.length >= 3) {
-      final mean = last6MonthsSpending.reduce((a, b) => a + b) / last6MonthsSpending.length;
+      final mean = last6MonthsSpending.reduce((a, b) => a + b) /
+          last6MonthsSpending.length;
       if (mean > 0) {
         final variance = last6MonthsSpending
                 .map((v) => pow(v - mean, 2))
@@ -224,7 +232,9 @@ class HealthScoreEngine {
           score: Money.r2(score),
           baseWeight: FinanceConstants.healthWeightConsistency,
           hasData: true,
-          description: cv < 0.20 ? 'Highly predictable monthly spend' : 'Moderate spend variability',
+          description: cv < 0.20
+              ? 'Highly predictable monthly spend'
+              : 'Moderate spend variability',
         ));
       } else {
         components.add(const HealthScoreComponent(
@@ -270,12 +280,15 @@ class HealthScoreEngine {
     String nextMilestone;
     if (avgMonthlyEssential3m > 0) {
       final currentMonths = liquidBalance / avgMonthlyEssential3m;
-      final nextMonthsTarget = (currentMonths.floor() + 1).clamp(1, targetMonths);
+      final nextMonthsTarget =
+          (currentMonths.floor() + 1).clamp(1, targetMonths);
       final targetAmount = nextMonthsTarget * avgMonthlyEssential3m;
       if (currentMonths < targetMonths) {
-        nextMilestone = 'Save ${FormatUtils.formatMoney(targetAmount, decimals: 0)} to reach $nextMonthsTarget months of emergency buffer';
+        nextMilestone =
+            'Save ${FormatUtils.formatMoney(targetAmount, decimals: 0)} to reach $nextMonthsTarget months of emergency buffer';
       } else {
-        nextMilestone = 'Emergency fund fully funded ($targetMonths+ months). Next: boost investment SIPs';
+        nextMilestone =
+            'Emergency fund fully funded ($targetMonths+ months). Next: boost investment SIPs';
       }
     } else {
       nextMilestone = 'Build a 1-month essential emergency buffer';

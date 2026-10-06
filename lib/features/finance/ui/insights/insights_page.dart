@@ -58,13 +58,16 @@ class _InsightsPageState extends State<InsightsPage> {
 
     final filteredInsights = allInsights.where((ins) {
       if (_selectedFilter == 'warnings') {
-        return ins.severity == InsightSeverity.warning || ins.severity == InsightSeverity.danger;
+        return ins.severity == InsightSeverity.warning ||
+            ins.severity == InsightSeverity.danger;
       }
       if (_selectedFilter == 'spikes') {
         return ins.kind == 'category_spike' || ins.kind == 'unusual_large_tx';
       }
       if (_selectedFilter == 'trends') {
-        return ins.kind == 'net_worth_trend' || ins.kind == 'savings_rate_trend' || ins.kind == 'subscription_total';
+        return ins.kind == 'net_worth_trend' ||
+            ins.kind == 'savings_rate_trend' ||
+            ins.kind == 'subscription_total';
       }
       return true;
     }).toList();
@@ -72,7 +75,8 @@ class _InsightsPageState extends State<InsightsPage> {
     return Scaffold(
       backgroundColor: BentoTheme.background,
       appBar: AppBar(
-        title: const Text('Financial Insights', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Financial Insights',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: BentoTheme.surface,
         foregroundColor: BentoTheme.textPrimary,
         elevation: 0,
@@ -105,16 +109,22 @@ class _InsightsPageState extends State<InsightsPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.checkCheck, size: 48, color: BentoTheme.textSecondary.withValues(alpha: 0.5)),
+                        Icon(LucideIcons.checkCheck,
+                            size: 48,
+                            color: BentoTheme.textSecondary
+                                .withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
                           'All Clear!',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
+                          style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)
+                              .copyWith(color: BentoTheme.textPrimary),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'No active alerts or unusual spending detected.',
-                          style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
+                          style: const TextStyle(fontSize: 12)
+                              .copyWith(color: BentoTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -146,7 +156,9 @@ class _InsightsPageState extends State<InsightsPage> {
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: isSelected ? BentoTheme.accent : Colors.white.withValues(alpha: 0.05),
+        color: isSelected
+            ? BentoTheme.accent
+            : Colors.white.withValues(alpha: 0.05),
       ),
     );
   }
@@ -218,7 +230,8 @@ class _InsightsPageState extends State<InsightsPage> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(LucideIcons.x, size: 16, color: BentoTheme.textSecondary),
+                  icon: Icon(LucideIcons.x,
+                      size: 16, color: BentoTheme.textSecondary),
                   onPressed: () => _dismissInsight(ins),
                   tooltip: 'Dismiss',
                 ),
@@ -239,10 +252,13 @@ class _InsightsPageState extends State<InsightsPage> {
                 child: TextButton.icon(
                   onPressed: () => _handleDeepLink(ins.deepLink),
                   icon: const Icon(LucideIcons.arrowUpRight, size: 14),
-                  label: Text('Take Action', style: const TextStyle(fontSize: 12).copyWith(fontWeight: FontWeight.bold)),
+                  label: Text('Take Action',
+                      style: const TextStyle(fontSize: 12)
+                          .copyWith(fontWeight: FontWeight.bold)),
                   style: TextButton.styleFrom(
                     foregroundColor: BentoTheme.accent,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                 ),
               ),

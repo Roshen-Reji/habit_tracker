@@ -22,7 +22,8 @@ class WakeRules {
     final targetM = targetMinutes % 60;
     final h12 = targetH == 0 ? 12 : (targetH > 12 ? targetH - 12 : targetH);
     final ampm = targetH >= 12 ? 'PM' : 'AM';
-    final targetStr = '${h12.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')} $ampm';
+    final targetStr =
+        '${h12.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')} $ampm';
 
     if (direction == 'by' || direction == 'before' || direction == '<=') {
       return 'Ticked if waking by $targetStr';
@@ -39,7 +40,8 @@ class WakeRules {
     String direction = 'from',
   }) {
     final wakeMinutes = wakeAt.hour * 60 + wakeAt.minute;
-    final isBy = direction == 'by' || direction == 'before' || direction == '<=';
+    final isBy =
+        direction == 'by' || direction == 'before' || direction == '<=';
     bool onTime;
     int diff;
 
@@ -55,18 +57,21 @@ class WakeRules {
 
     final targetH = targetMinutes ~/ 60;
     final targetM = targetMinutes % 60;
-    final targetStr = '${targetH.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')}';
+    final targetStr =
+        '${targetH.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')}';
 
     final wakeH = wakeAt.hour;
     final wakeM = wakeAt.minute;
-    final wakeStr = '${wakeH.toString().padLeft(2, '0')}:${wakeM.toString().padLeft(2, '0')}';
+    final wakeStr =
+        '${wakeH.toString().padLeft(2, '0')}:${wakeM.toString().padLeft(2, '0')}';
 
     String statusText;
     if (onTime) {
       statusText = 'Woke up at $wakeStr ($ruleText) · On time ✓';
     } else {
       final absDiff = diff.abs();
-      statusText = 'Woke up at $wakeStr ($absDiff min off target $targetStr) · Missed ✕';
+      statusText =
+          'Woke up at $wakeStr ($absDiff min off target $targetStr) · Missed ✕';
     }
 
     return WakeEvaluation(

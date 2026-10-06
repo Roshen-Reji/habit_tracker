@@ -49,8 +49,10 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
   void initState() {
     super.initState();
     final norm = MerchantNormalizer.normalize(widget.initialPattern);
-    _patternController = TextEditingController(text: norm.isNotEmpty ? norm : widget.initialPattern);
-    _selectedCategoryId = widget.initialCategoryId ?? _controller.activeCategories.firstOrNull?.id;
+    _patternController = TextEditingController(
+        text: norm.isNotEmpty ? norm : widget.initialPattern);
+    _selectedCategoryId = widget.initialCategoryId ??
+        _controller.activeCategories.firstOrNull?.id;
   }
 
   @override
@@ -84,7 +86,8 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
 
         for (final tx in allTxs) {
           final norm = MerchantNormalizer.normalize(tx.merchant ?? tx.title);
-          final matches = norm.contains(pattern.toLowerCase()) || tx.title.toLowerCase().contains(pattern.toLowerCase());
+          final matches = norm.contains(pattern.toLowerCase()) ||
+              tx.title.toLowerCase().contains(pattern.toLowerCase());
 
           if (matches && tx.categoryId != _selectedCategoryId) {
             tx.categoryId = _selectedCategoryId;
@@ -99,14 +102,16 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Rule saved! "$pattern" will auto-categorize to ${_controller.getCategory(_selectedCategoryId!)?.name ?? ''}'),
+            content: Text(
+                'Rule saved! "$pattern" will auto-categorize to ${_controller.getCategory(_selectedCategoryId!)?.name ?? ''}'),
             backgroundColor: AppColors.success,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save rule: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to save rule: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -126,7 +131,8 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
               color: BentoTheme.accent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
+            child:
+                Icon(LucideIcons.sparkles, color: BentoTheme.accent, size: 20),
           ),
           const SizedBox(width: 12),
           Text(
@@ -181,17 +187,22 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
               decoration: const InputDecoration(labelText: 'Match Mode'),
               dropdownColor: BentoTheme.surface,
               items: const [
-                DropdownMenuItem(value: 'contains', child: Text('Contains (Recommended)')),
-                DropdownMenuItem(value: 'exact', child: Text('Exact match only')),
-                DropdownMenuItem(value: 'regex', child: Text('Regular Expression')),
+                DropdownMenuItem(
+                    value: 'contains', child: Text('Contains (Recommended)')),
+                DropdownMenuItem(
+                    value: 'exact', child: Text('Exact match only')),
+                DropdownMenuItem(
+                    value: 'regex', child: Text('Regular Expression')),
               ],
-              onChanged: (val) => setState(() => _matchType = val ?? 'contains'),
+              onChanged: (val) =>
+                  setState(() => _matchType = val ?? 'contains'),
             ),
             const SizedBox(height: 12),
 
             // Apply to past checkbox
             CheckboxListTile(
-              title: const Text('Apply to existing past transactions', style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text('Apply to existing past transactions',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
               value: _applyToPast,
               activeColor: BentoTheme.accent,
               contentPadding: EdgeInsets.zero,
@@ -204,18 +215,24 @@ class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
+          child:
+              Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
         ),
         ElevatedButton(
           onPressed: _isSaving ? null : _saveRule,
           style: ElevatedButton.styleFrom(
             backgroundColor: BentoTheme.accent,
             foregroundColor: Colors.black,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _isSaving
-              ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Save Rule', style: TextStyle(fontWeight: FontWeight.bold)),
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Save Rule',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );

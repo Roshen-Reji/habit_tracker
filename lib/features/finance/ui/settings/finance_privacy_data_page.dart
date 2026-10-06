@@ -29,7 +29,8 @@ class FinancePrivacyDataPage extends StatefulWidget {
 
 class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   final FinanceLockService _lockService = FinanceLockService.instance;
-  final FinanceEncryptionService _encryptionService = FinanceEncryptionService.instance;
+  final FinanceEncryptionService _encryptionService =
+      FinanceEncryptionService.instance;
   final FinanceController _controller = FinanceController();
   late final FinanceRepository _repository = _controller.repository;
 
@@ -57,7 +58,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
       final dir = await getApplicationDocumentsDirectory();
       final receiptsDir = Directory('${dir.path}/receipts');
       if (await receiptsDir.exists()) {
-        final files = receiptsDir.listSync(recursive: true).whereType<File>().toList();
+        final files =
+            receiptsDir.listSync(recursive: true).whereType<File>().toList();
         if (mounted) setState(() => _receiptCount = files.length);
       }
     } catch (_) {}
@@ -69,7 +71,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
       if (!success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Authentication required to enable app lock')),
+            const SnackBar(
+                content: Text('Authentication required to enable app lock')),
           );
         }
         return;
@@ -86,16 +89,24 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: BentoTheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Encrypt Finance Data', style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text('Encrypt Finance Data',
+            style: TextStyle(
+                color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
         content: Text(
           'This will AES-256 encrypt all your accounts, transactions, budgets and goals at rest using device secure storage.\n\nA backup copy is kept until you verify everything works.',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13, height: 1.4),
+          style: TextStyle(
+              color: BentoTheme.textSecondary, fontSize: 13, height: 1.4),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel',
+                  style: TextStyle(color: BentoTheme.textSecondary))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: BentoTheme.accent, foregroundColor: Colors.black),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: BentoTheme.accent,
+                foregroundColor: Colors.black),
             child: const Text('Encrypt Now'),
           ),
         ],
@@ -112,7 +123,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? '✓ Finance boxes successfully encrypted!' : 'Encryption migration failed. Reverted safely.'),
+          content: Text(success
+              ? '✓ Finance boxes successfully encrypted!'
+              : 'Encryption migration failed. Reverted safely.'),
           backgroundColor: success ? const Color(0xFF22C55E) : Colors.red,
         ),
       );
@@ -132,7 +145,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   Future<void> _exportJson() async {
     final jsonStr = await FinanceBackupService.exportJson();
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/finance_backup_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.json');
+    final file = File(
+        '${tempDir.path}/finance_backup_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.json');
     await file.writeAsString(jsonStr);
     await Share.shareXFiles([XFile(file.path)], text: 'Money OS JSON Export');
   }
@@ -140,9 +154,11 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   Future<void> _exportCsv() async {
     final csv = _controller.exportTransactionsToCsv();
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/transactions_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv');
+    final file = File(
+        '${tempDir.path}/transactions_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv');
     await file.writeAsString(csv);
-    await Share.shareXFiles([XFile(file.path)], text: 'Transactions CSV Export');
+    await Share.shareXFiles([XFile(file.path)],
+        text: 'Transactions CSV Export');
   }
 
   Future<void> _confirmDeleteAllFinanceData() async {
@@ -156,12 +172,18 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
 
           return AlertDialog(
             backgroundColor: BentoTheme.surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
               children: [
-                const Icon(LucideIcons.alertTriangle, color: Colors.red, size: 24),
+                const Icon(LucideIcons.alertTriangle,
+                    color: Colors.red, size: 24),
                 const SizedBox(width: 8),
-                Text('Delete All Finance Data', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+                Text('Delete All Finance Data',
+                    style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold)),
               ],
             ),
             content: Column(
@@ -170,7 +192,10 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
               children: [
                 Text(
                   'This will permanently wipe all transactions, accounts, budgets, goals, recurring rules, receipts, and settings. This action CANNOT be undone.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 13,
+                      height: 1.4),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -185,29 +210,39 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                 const SizedBox(height: 16),
                 Text(
                   'Type "DELETE" to confirm:',
-                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: inputController,
                   autofocus: true,
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     hintText: 'DELETE',
                     hintStyle: TextStyle(color: Colors.white24),
                     filled: true,
                     fillColor: BentoTheme.background,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
                   ),
                   onChanged: (_) => setDlgState(() {}),
                 ),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary))),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('Cancel',
+                      style: TextStyle(color: BentoTheme.textSecondary))),
               ElevatedButton(
                 onPressed: isMatched ? () => Navigator.pop(ctx, true) : null,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red, foregroundColor: Colors.white),
                 child: const Text('WIPE EVERYTHING'),
               ),
             ],
@@ -253,7 +288,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All finance data has been wiped.'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('All finance data has been wiped.'),
+            backgroundColor: Colors.red),
       );
       Navigator.of(context).pop();
     }
@@ -271,7 +308,10 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
         elevation: 0,
         title: Text(
           'Privacy, Security & Data',
-          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: Icon(LucideIcons.arrowLeft, color: BentoTheme.textPrimary),
@@ -294,11 +334,16 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
               children: [
                 Row(
                   children: [
-                    Icon(LucideIcons.hardDrive, color: BentoTheme.accent, size: 18),
+                    Icon(LucideIcons.hardDrive,
+                        color: BentoTheme.accent, size: 18),
                     const SizedBox(width: 8),
                     Text(
                       'LOCAL DATA FOOTPRINT',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1),
                     ),
                   ],
                 ),
@@ -330,18 +375,30 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                 SwitchListTile(
                   value: _isLockEnabled,
                   activeColor: BentoTheme.accent,
-                  title: Text('Require Biometrics / Device PIN', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Lock Money OS with fingerprint, face or passcode', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  title: Text('Require Biometrics / Device PIN',
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                      'Lock Money OS with fingerprint, face or passcode',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                   onChanged: _toggleLock,
                 ),
                 if (_isLockEnabled) ...[
                   const Divider(color: Colors.white10, height: 1),
                   ListTile(
-                    title: Text('Auto-lock timeout', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14)),
+                    title: Text('Auto-lock timeout',
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 14)),
                     trailing: DropdownButton<int>(
                       value: _timeoutMinutes,
                       dropdownColor: BentoTheme.surface,
-                      style: TextStyle(color: BentoTheme.accent, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: BentoTheme.accent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold),
                       underline: const SizedBox(),
                       items: const [
                         DropdownMenuItem(value: 0, child: Text('Immediately')),
@@ -361,7 +418,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   SwitchListTile(
                     value: _lockOnBackground,
                     activeColor: BentoTheme.accent,
-                    title: Text('Lock when app sent to background', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14)),
+                    title: Text('Lock when app sent to background',
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 14)),
                     onChanged: (val) async {
                       await _lockService.setLockOnBackground(val);
                       setState(() => _lockOnBackground = val);
@@ -393,14 +452,20 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                       children: [
                         Icon(
                           _isEncrypted ? LucideIcons.lock : LucideIcons.unlock,
-                          color: _isEncrypted ? const Color(0xFF22C55E) : Colors.orange,
+                          color: _isEncrypted
+                              ? const Color(0xFF22C55E)
+                              : Colors.orange,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isEncrypted ? 'AES-256 Encrypted' : 'Standard Hive Storage',
+                          _isEncrypted
+                              ? 'AES-256 Encrypted'
+                              : 'Standard Hive Storage',
                           style: TextStyle(
-                            color: _isEncrypted ? const Color(0xFF22C55E) : BentoTheme.textPrimary,
+                            color: _isEncrypted
+                                ? const Color(0xFF22C55E)
+                                : BentoTheme.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -413,10 +478,12 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: BentoTheme.accent,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           visualDensity: VisualDensity.compact,
                         ),
-                        child: const Text('Encrypt', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text('Encrypt',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                   ],
                 ),
@@ -425,17 +492,21 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   _isEncrypted
                       ? 'Your local database is encrypted on flash storage using a secure key in the Android Keystore.'
                       : 'Data is saved in local app storage without custom encryption.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                 ),
                 if (_hasUnencryptedBackup) ...[
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Unencrypted backup available', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                      Text('Unencrypted backup available',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12)),
                       TextButton(
                         onPressed: _handleDeleteUnencryptedBackup,
-                        child: const Text('Delete Backup', style: TextStyle(color: Colors.red, fontSize: 12)),
+                        child: const Text('Delete Backup',
+                            style: TextStyle(color: Colors.red, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -447,14 +518,24 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
 
           // AI & Privacy Link (P11-4)
           ListTile(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             tileColor: BentoTheme.surface,
             leading: Icon(LucideIcons.sparkles, color: BentoTheme.accent),
-            title: Text('AI & Privacy Controls', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-            subtitle: Text('Manage what is shared with Gemini and rewording settings', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
-            trailing: Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
+            title: Text('AI & Privacy Controls',
+                style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+            subtitle: Text(
+                'Manage what is shared with Gemini and rewording settings',
+                style:
+                    TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+            trailing: Icon(LucideIcons.chevronRight,
+                size: 16, color: BentoTheme.textSecondary),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AiPrivacyPage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AiPrivacyPage()));
             },
           ),
           const SizedBox(height: 20),
@@ -473,7 +554,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                     foregroundColor: BentoTheme.accent,
                     side: BorderSide(color: Colors.white12),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -487,7 +569,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                     foregroundColor: BentoTheme.accent,
                     side: BorderSide(color: Colors.white12),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -496,7 +579,12 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
           const SizedBox(height: 28),
 
           // Danger Zone (P13-4)
-          Text('DANGER ZONE', style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+          Text('DANGER ZONE',
+              style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1)),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(16),
@@ -510,12 +598,18 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
               children: [
                 Text(
                   'Delete All Finance Data',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Permanently clear all accounts, transactions, recurring rules, receipts, and settings. Habits and diet data are not affected.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 12,
+                      height: 1.4),
                 ),
                 const SizedBox(height: 14),
                 ElevatedButton(
@@ -523,7 +617,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('Delete All Finance Data'),
                 ),
@@ -539,9 +634,14 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
   Widget _buildStatCol(String label, String value) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(value,
+            style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+        Text(label,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
       ],
     );
   }

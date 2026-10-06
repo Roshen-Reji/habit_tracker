@@ -81,7 +81,8 @@ class CategoryProgressList extends StatelessWidget {
                   minHeight: 6,
                   value: progress,
                   color: color,
-                  backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
+                  backgroundColor:
+                      BentoTheme.textSecondary.withValues(alpha: 0.12),
                 ),
               ),
             ],

@@ -54,7 +54,8 @@ class _CashFlowPageState extends State<CashFlowPage> {
     return Scaffold(
       backgroundColor: BentoTheme.background,
       appBar: AppBar(
-        title: const Text('Cash Flow Analysis', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Cash Flow Analysis',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: BentoTheme.surface,
         foregroundColor: BentoTheme.textPrimary,
         elevation: 0,
@@ -76,18 +77,22 @@ class _CashFlowPageState extends State<CashFlowPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.textPrimary),
+                    icon: Icon(LucideIcons.chevronLeft,
+                        color: BentoTheme.textPrimary),
                     onPressed: _prevMonth,
                   ),
                   Text(
                     monthStr,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
+                    style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)
+                        .copyWith(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(LucideIcons.chevronRight, color: BentoTheme.textPrimary),
+                    icon: Icon(LucideIcons.chevronRight,
+                        color: BentoTheme.textPrimary),
                     onPressed: _nextMonth,
                   ),
                 ],
@@ -131,11 +136,15 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Net Cash Flow', style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
+                      Text('Net Cash Flow',
+                          style: const TextStyle(fontSize: 12)
+                              .copyWith(color: BentoTheme.textSecondary)),
                       const SizedBox(height: 4),
                       Text(
                         '${cashFlow.net >= 0 ? '+' : ''}${FormatUtils.formatCurrency(cashFlow.net)}',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold).copyWith(
+                        style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)
+                            .copyWith(
                           color: cashFlow.net >= 0 ? Colors.green : Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
@@ -143,7 +152,8 @@ class _CashFlowPageState extends State<CashFlowPage> {
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: BentoTheme.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
@@ -167,18 +177,22 @@ class _CashFlowPageState extends State<CashFlowPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
+                border:
+                    Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(LucideIcons.calendarClock, color: BentoTheme.accent, size: 20),
+                      Icon(LucideIcons.calendarClock,
+                          color: BentoTheme.accent, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'Next 30 Days Forecast',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(
+                        style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold)
+                            .copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
@@ -186,11 +200,20 @@ class _CashFlowPageState extends State<CashFlowPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildProjectionRow('Expected Inflow', '+${FormatUtils.formatMoney(cashFlow.expectedIncomeNext30)}', Colors.green),
+                  _buildProjectionRow(
+                      'Expected Inflow',
+                      '+${FormatUtils.formatMoney(cashFlow.expectedIncomeNext30)}',
+                      Colors.green),
                   const SizedBox(height: 8),
-                  _buildProjectionRow('Bills & Dues', '-${FormatUtils.formatMoney(cashFlow.billsDueNext30)}', Colors.red),
+                  _buildProjectionRow(
+                      'Bills & Dues',
+                      '-${FormatUtils.formatMoney(cashFlow.billsDueNext30)}',
+                      Colors.red),
                   const SizedBox(height: 8),
-                  _buildProjectionRow('Expected Variable Spend', '-${FormatUtils.formatMoney(cashFlow.expectedVariableNext30)}', BentoTheme.textSecondary),
+                  _buildProjectionRow(
+                      'Expected Variable Spend',
+                      '-${FormatUtils.formatMoney(cashFlow.expectedVariableNext30)}',
+                      BentoTheme.textSecondary),
                   const Divider(height: 20, color: Colors.white12),
                   _buildProjectionRow(
                     'Projected Net Buffer',
@@ -207,26 +230,33 @@ class _CashFlowPageState extends State<CashFlowPage> {
             if (cashFlow.merchantBreakdown.isNotEmpty) ...[
               Text(
                 'Top Spending Merchants',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                        .copyWith(color: BentoTheme.textPrimary),
               ),
               const SizedBox(height: 12),
               ...cashFlow.merchantBreakdown.entries.take(5).map((e) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          Icon(LucideIcons.store, size: 16, color: BentoTheme.textSecondary),
+                          Icon(LucideIcons.store,
+                              size: 16, color: BentoTheme.textSecondary),
                           const SizedBox(width: 10),
-                          Text(e.key, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
+                          Text(e.key,
+                              style: const TextStyle(fontSize: 14)
+                                  .copyWith(color: BentoTheme.textPrimary)),
                         ],
                       ),
                       Text(
@@ -247,7 +277,9 @@ class _CashFlowPageState extends State<CashFlowPage> {
             if (cashFlow.categoryBreakdown.isNotEmpty) ...[
               Text(
                 'Spending by Category',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                        .copyWith(color: BentoTheme.textPrimary),
               ),
               const SizedBox(height: 12),
               ...cashFlow.categoryBreakdown.entries.map((e) {
@@ -255,16 +287,20 @@ class _CashFlowPageState extends State<CashFlowPage> {
                 final catName = cat?.name ?? e.key;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(catName, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
+                      Text(catName,
+                          style: const TextStyle(fontSize: 14)
+                              .copyWith(color: BentoTheme.textPrimary)),
                       Text(
                         '${FormatUtils.formatMoney(e.value)}',
                         style: const TextStyle(fontSize: 14).copyWith(
@@ -303,13 +339,16 @@ class _CashFlowPageState extends State<CashFlowPage> {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(title, style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
+              Text(title,
+                  style: const TextStyle(fontSize: 12)
+                      .copyWith(color: BentoTheme.textSecondary)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             '${FormatUtils.formatMoney(amount)}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                .copyWith(
               color: color,
               fontWeight: FontWeight.bold,
             ),
@@ -319,7 +358,8 @@ class _CashFlowPageState extends State<CashFlowPage> {
     );
   }
 
-  Widget _buildProjectionRow(String label, String value, Color color, {bool isBold = false}) {
+  Widget _buildProjectionRow(String label, String value, Color color,
+      {bool isBold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

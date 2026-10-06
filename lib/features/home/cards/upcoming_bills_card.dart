@@ -73,11 +73,17 @@ class UpcomingBillsCard extends StatelessWidget {
                   children: [
                     Text(
                       '${item.rule.name} (${DateFormat('d MMM').format(item.dueDate)})',
-                      style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500),
                     ),
                     Text(
                       FormatUtils.formatMoney(item.rule.amount, decimals: 0),
-                      style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

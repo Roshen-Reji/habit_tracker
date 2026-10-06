@@ -114,10 +114,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
     final acc = widget.account;
 
     if (acc != null) {
-      _linkedRule = _repository.getAllRecurringRules().cast<RecurringRule?>().firstWhere(
-        (r) => r?.toAccountId == acc.id && (r?.kind == 'sip' || r?.kind == 'emi'),
-        orElse: () => null,
-      );
+      _linkedRule =
+          _repository.getAllRecurringRules().cast<RecurringRule?>().firstWhere(
+                (r) =>
+                    r?.toAccountId == acc.id &&
+                    (r?.kind == 'sip' || r?.kind == 'emi'),
+                orElse: () => null,
+              );
       if (_linkedRule != null) {
         _enableSipEmi = true;
         _sipAmountController.text = _linkedRule!.amount.toString();
@@ -164,6 +167,14 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
     } else {
       _spendable = _defaultSpendableForKind(_kind);
       _sipDayController.text = '1';
+      final allTxs = FinanceController().allTransactions;
+      if (allTxs.isNotEmpty) {
+        final earliestDate =
+            allTxs.map((t) => t.date).reduce((a, b) => a.isBefore(b) ? a : b);
+        _openingDate = earliestDate;
+      } else {
+        _openingDate = DateTime.now();
+      }
     }
   }
 
@@ -206,7 +217,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       return;
     }
 
-    final openingBal = double.tryParse(_openingBalanceController.text.trim()) ?? 0.0;
+    final openingBal =
+        double.tryParse(_openingBalanceController.text.trim()) ?? 0.0;
     final inst = _institutionController.text.trim().isEmpty
         ? null
         : _institutionController.text.trim();
@@ -269,16 +281,21 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       await _repository.addAccount(newAcc);
     }
 
-    final savedAcc = _isEditing ? widget.account! : FinanceController().activeAccounts.last;
+    final savedAcc =
+        _isEditing ? widget.account! : FinanceController().activeAccounts.last;
 
     // Handle SIP / EMI rule
-    final isInvestment = ['investment', 'gold', 'fd', 'crypto', 'other_asset'].contains(savedAcc.kind);
+    final isInvestment = ['investment', 'gold', 'fd', 'crypto', 'other_asset']
+        .contains(savedAcc.kind);
     final isLoan = savedAcc.kind == 'loan';
 
     if ((isInvestment || isLoan) && _enableSipEmi) {
       final ruleKind = isLoan ? 'emi' : 'sip';
-      final ruleName = isLoan ? 'EMI for ${savedAcc.name}' : 'SIP for ${savedAcc.name}';
-      final ruleAmt = isLoan ? (savedAcc.emi ?? 0.0) : (double.tryParse(_sipAmountController.text.trim()) ?? 0.0);
+      final ruleName =
+          isLoan ? 'EMI for ${savedAcc.name}' : 'SIP for ${savedAcc.name}';
+      final ruleAmt = isLoan
+          ? (savedAcc.emi ?? 0.0)
+          : (double.tryParse(_sipAmountController.text.trim()) ?? 0.0);
       final ruleDay = int.tryParse(_sipDayController.text.trim()) ?? 1;
 
       if (_linkedRule != null) {
@@ -380,8 +397,10 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                     controller: _nameController,
                     decoration: InputDecoration(
                       labelText: 'Account Name',
-                      hintText: 'e.g. Salary Account, Emergency Fund, HDFC Millennia',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintText:
+                          'e.g. Salary Account, Emergency Fund, HDFC Millennia',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -391,7 +410,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                     value: _kind,
                     decoration: InputDecoration(
                       labelText: 'Account Type',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     items: _accountKinds
                         .map((k) => DropdownMenuItem(
@@ -411,7 +431,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                     decoration: InputDecoration(
                       labelText: 'Institution / Bank Name',
                       hintText: 'e.g. HDFC Bank, SBI, ICICI, Zerodha, Axis',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -430,7 +451,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             labelText: 'Opening Balance',
                             hintText: '0.00',
                             prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -451,13 +473,23 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Opening Date',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: Text(DateFormat('dd MMM yyyy').format(_openingDate)),
+                            child: Text(
+                                DateFormat('dd MMM yyyy').format(_openingDate)),
                           ),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Transactions before this date are not counted',
+                    style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -473,12 +505,14 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _creditLimitController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'Credit Limit',
                         hintText: 'e.g. 150000',
                         prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -491,7 +525,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             decoration: InputDecoration(
                               labelText: 'Statement Day',
                               hintText: '1 - 31',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -503,7 +538,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             decoration: InputDecoration(
                               labelText: 'Due Day',
                               hintText: '1 - 31',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -527,11 +563,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                         Expanded(
                           child: TextField(
                             controller: _principalController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Principal Amount',
                               prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -539,11 +577,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                         Expanded(
                           child: TextField(
                             controller: _rateController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Annual Rate',
                               suffixText: '% p.a.',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -555,11 +595,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                         Expanded(
                           child: TextField(
                             controller: _emiController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: InputDecoration(
                               labelText: 'Monthly EMI',
                               prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -570,7 +612,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               labelText: 'Tenure (Months)',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
@@ -580,7 +623,9 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                   ],
 
                   // SIP or EMI Section
-                  if (['investment', 'gold', 'fd', 'crypto', 'other_asset'].contains(_kind) || isLoan) ...[
+                  if (['investment', 'gold', 'fd', 'crypto', 'other_asset']
+                          .contains(_kind) ||
+                      isLoan) ...[
                     const Divider(height: 32, color: Colors.white10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -594,7 +639,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                         ),
                         Switch(
                           value: _enableSipEmi,
-                          onChanged: (val) => setState(() => _enableSipEmi = val),
+                          onChanged: (val) =>
+                              setState(() => _enableSipEmi = val),
                         ),
                       ],
                     ),
@@ -603,11 +649,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                       if (!isLoan) ...[
                         TextField(
                           controller: _sipAmountController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           decoration: InputDecoration(
                             labelText: 'Monthly Amount',
                             prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -621,7 +669,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                               decoration: InputDecoration(
                                 labelText: 'Day of Month',
                                 hintText: '1 - 31',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12)),
                               ),
                             ),
                           ),
@@ -632,17 +681,20 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                               isExpanded: true,
                               decoration: InputDecoration(
                                 labelText: 'Pay From',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12)),
                               ),
                               items: _availableAccounts
                                   .where((a) => a.spendable)
                                   .map((a) => DropdownMenuItem(
                                         value: a.id,
-                                        child: Text(a.name, overflow: TextOverflow.ellipsis),
+                                        child: Text(a.name,
+                                            overflow: TextOverflow.ellipsis),
                                       ))
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _sipPayFrom = val);
+                                if (val != null)
+                                  setState(() => _sipPayFrom = val);
                               },
                             ),
                           ),
@@ -655,7 +707,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             context: context,
                             initialDate: _sipStartDate,
                             firstDate: DateTime(2000),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 365)),
                           );
                           if (picked != null) {
                             setState(() => _sipStartDate = picked);
@@ -664,9 +717,11 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Start Date',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text(DateFormat('dd MMM yyyy').format(_sipStartDate)),
+                          child: Text(
+                              DateFormat('dd MMM yyyy').format(_sipStartDate)),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -676,7 +731,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                   // Color Picker
                   Text(
                     'Color Accent',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -696,11 +752,17 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                                 ? Border.all(color: Colors.white, width: 3)
                                 : null,
                             boxShadow: isSelected
-                                ? [BoxShadow(color: Color(colorHex).withValues(alpha: 0.5), blurRadius: 8)]
+                                ? [
+                                    BoxShadow(
+                                        color: Color(colorHex)
+                                            .withValues(alpha: 0.5),
+                                        blurRadius: 8)
+                                  ]
                                 : null,
                           ),
                           child: isSelected
-                              ? const Icon(Icons.check, size: 20, color: Colors.white)
+                              ? const Icon(Icons.check,
+                                  size: 20, color: Colors.white)
                               : null,
                         ),
                       );
@@ -711,14 +773,17 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                   // Options Switches
                   SwitchListTile(
                     title: const Text('Include in Net Worth'),
-                    subtitle: const Text('Account balance will contribute to your net worth calculation'),
+                    subtitle: const Text(
+                        'Account balance will contribute to your net worth calculation'),
                     value: _includeInNetWorth,
-                    onChanged: (val) => setState(() => _includeInNetWorth = val),
+                    onChanged: (val) =>
+                        setState(() => _includeInNetWorth = val),
                     contentPadding: EdgeInsets.zero,
                   ),
                   SwitchListTile(
                     title: const Text('Spendable Account'),
-                    subtitle: const Text('Available for daily expenses and safe-to-spend calculations'),
+                    subtitle: const Text(
+                        'Available for daily expenses and safe-to-spend calculations'),
                     value: _spendable,
                     onChanged: (val) => setState(() => _spendable = val),
                     contentPadding: EdgeInsets.zero,
@@ -726,7 +791,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                   if (_isEditing)
                     SwitchListTile(
                       title: const Text('Archive Account'),
-                      subtitle: const Text('Hide this account from active lists without deleting transactions'),
+                      subtitle: const Text(
+                          'Hide this account from active lists without deleting transactions'),
                       value: _archived,
                       onChanged: (val) => setState(() => _archived = val),
                       contentPadding: EdgeInsets.zero,
@@ -742,7 +808,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
             onPressed: _handleSave,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(_isEditing ? 'Save Changes' : 'Create Account'),
           ),

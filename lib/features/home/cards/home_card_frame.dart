@@ -52,74 +52,77 @@ class HomeCardFrame extends StatelessWidget {
             borderRadius: borderRadius,
             // This decoration deliberately sits outside the clip below so
             // the soft shadow can extend beyond the glass panel.
-            boxShadow: isFocused ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.30),
-                blurRadius: 10,
-                spreadRadius: -2,
-                offset: const Offset(0, 4),
-              ),
-            ] : null,
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color:
+                          Colors.black.withValues(alpha: isLight ? 0.10 : 0.30),
+                      blurRadius: 10,
+                      spreadRadius: -2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      glassTop,
-                      glassBottom,
-                    ],
-                  ),
-                  borderRadius: borderRadius,
-                  border: Border.all(
-                    color: borderColor,
-                    width: 1.2,
-                  ),
-                ),
-                padding: contentPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  glassTop,
+                  glassBottom,
+                ],
+              ),
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: borderColor,
+                width: 1.2,
+              ),
+            ),
+            padding: contentPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Peek header strip
+                Row(
                   children: [
-                    // Peek header strip
-                    Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: effectiveAccent.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            icon,
-                            size: 16,
-                            color: effectiveAccent,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            title.toUpperCase(),
-                            style: TextStyle(
-                              color: BentoTheme.textPrimary,
-                              fontSize: 12,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (trailing != null) trailing!,
-                      ],
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: effectiveAccent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        icon,
+                        size: 16,
+                        color: effectiveAccent,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    child,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title.toUpperCase(),
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 12,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (trailing != null) trailing!,
                   ],
                 ),
-              ),
+                const SizedBox(height: 12),
+                child,
+              ],
+            ),
+          ),
         ),
       ),
     );

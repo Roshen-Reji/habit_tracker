@@ -384,8 +384,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 const SizedBox(width: 6),
                 Text(
                   'Earmarked in ${earmark.name}',
-                  style: TextStyle(
-                      color: BentoTheme.textSecondary, fontSize: 11),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 ),
               ],
             ),
@@ -474,7 +474,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
               style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 12),
-
             ...plan.trimSuggestions.map((trim) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -530,7 +529,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 ),
               );
             }),
-
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -668,7 +666,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(LucideIcons.trash2, size: 14, color: Colors.white38),
+            icon:
+                const Icon(LucideIcons.trash2, size: 14, color: Colors.white38),
             onPressed: () => _deleteEntry(entry),
           ),
         ],

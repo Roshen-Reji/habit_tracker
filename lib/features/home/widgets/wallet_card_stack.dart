@@ -152,7 +152,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
                 (viewportHeight + (visibleCards.length - 1) * _focusSpacing)
                     .toDouble();
             final reduceMotion = MediaQuery.of(context).disableAnimations;
-            final activeClamped = _activeIndex.clamp(0, visibleCards.length - 1);
+            final activeClamped =
+                _activeIndex.clamp(0, visibleCards.length - 1);
 
             return Stack(
               children: [
@@ -190,18 +191,19 @@ class _WalletCardStackState extends State<WalletCardStack> {
                         if ((index - activeClamped).abs() > 3) {
                           return const SizedBox.shrink();
                         }
-                        
+
                         // We wrap each card in a RepaintBoundary.
                         // For non-focused cards, we apply a dark overlay using a ColorFiltered or just an overlay inside the card?
                         // Wait, FlowDelegate can paint opacity. The dark overlay can be painted by FlowDelegate if it were simple, but Flow doesn't paint custom shapes.
                         // We can just use an overlay widget whose opacity is animated by a local animation? No, the overlay amount depends on the scroll offset which is exactly what we are optimizing.
-                        // If we use ColorFiltered, we still need to rebuild to change the color filter. 
+                        // If we use ColorFiltered, we still need to rebuild to change the color filter.
                         // Instructions: "For cards behind the focused one, use scale, fade (via FadeTransition or a colour overlay, not an Opacity widget) and a dark overlay."
                         // We'll just build it normally and use context.paintChild(..., opacity: opacity) in FlowDelegate which avoids the Opacity widget entirely.
                         // And for the dark overlay, if they don't want Opacity widget, maybe we can just let context.paintChild's opacity handle the "fade".
                         return RepaintBoundary(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: visibleCards[index].compactBuilder(context),
                           ),
                         );
@@ -239,9 +241,12 @@ class _WalletFlowDelegate extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext context) {
-    final scrollOffset = scrollController.hasClients ? math.max(0.0, scrollController.offset).toDouble() : 0.0;
+    final scrollOffset = scrollController.hasClients
+        ? math.max(0.0, scrollController.offset).toDouble()
+        : 0.0;
     final cameraPosition = scrollOffset / focusSpacing;
-    final activeIndex = cameraPosition.round().clamp(0, visibleCount - 1).toInt();
+    final activeIndex =
+        cameraPosition.round().clamp(0, visibleCount - 1).toInt();
 
     final paintOrder = List<int>.generate(visibleCount, (i) => i)
       ..remove(activeIndex)
@@ -254,7 +259,7 @@ class _WalletFlowDelegate extends FlowDelegate {
         // Wait, yes we do, or we can just ignore painting it.
         continue;
       }
-      
+
       final yTuck = index * tuckOffset;
       final yBase = index * cardSpacing;
       final isActive = index == activeIndex;
@@ -270,10 +275,10 @@ class _WalletFlowDelegate extends FlowDelegate {
                   ((-relativeDepth).clamp(0.0, 3.0) * 0.012))
               .clamp(0.89, 1.04)
               .toDouble();
-      
+
       final cameraScroll = scrollOffset * parallaxRate;
       final visualY = math.max(yTuck, yBase - cameraScroll).toDouble();
-      
+
       final yChild = visualY + scrollOffset;
       final scale = 1.0 - (depthAmount * 0.085);
       final opacity = isActive ? 1.0 : (0.68 + ((1.0 - depthAmount) * 0.18));
@@ -290,15 +295,15 @@ class _WalletFlowDelegate extends FlowDelegate {
         ..setEntry(3, 2, perspective)
         ..translate(0.0, 0.0, zOffset)
         ..rotateX(tilt);
-      
+
       if (!reduceMotion) {
-         // Apply center scaling
-         final size = context.getChildSize(index) ?? Size.zero;
-         final dx = size.width / 2;
-         final dy = 0.0;
-         transform.translate(dx, dy, 0.0);
-         transform.scale(scale, scale, 1.0);
-         transform.translate(-dx, -dy, 0.0);
+        // Apply center scaling
+        final size = context.getChildSize(index) ?? Size.zero;
+        final dx = size.width / 2;
+        final dy = 0.0;
+        transform.translate(dx, dy, 0.0);
+        transform.scale(scale, scale, 1.0);
+        transform.translate(-dx, -dy, 0.0);
       }
 
       context.paintChild(
@@ -312,7 +317,7 @@ class _WalletFlowDelegate extends FlowDelegate {
   @override
   bool shouldRepaint(covariant _WalletFlowDelegate oldDelegate) {
     return scrollController != oldDelegate.scrollController ||
-           reduceMotion != oldDelegate.reduceMotion ||
-           visibleCount != oldDelegate.visibleCount;
+        reduceMotion != oldDelegate.reduceMotion ||
+        visibleCount != oldDelegate.visibleCount;
   }
 }

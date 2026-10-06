@@ -74,8 +74,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
       _rollover = line.rollover;
       _essential = line.essential;
 
-      final override =
-          widget.controller.repository.getAllBudgetOverrides()['${line.id}_$_monthKey'];
+      final override = widget.controller.repository
+          .getAllBudgetOverrides()['${line.id}_$_monthKey'];
       if (override != null) {
         _hasOverride = true;
         _overrideAmountController = TextEditingController(
@@ -134,9 +134,11 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
 
     // Handle month override
     if (_hasOverride && _overrideAmountController.text.trim().isNotEmpty) {
-      final overrideAmt = double.tryParse(_overrideAmountController.text.trim());
+      final overrideAmt =
+          double.tryParse(_overrideAmountController.text.trim());
       if (overrideAmt != null && overrideAmt > 0) {
-        await widget.controller.setBudgetOverride(lineId, _monthKey, overrideAmt);
+        await widget.controller
+            .setBudgetOverride(lineId, _monthKey, overrideAmt);
       }
     } else if (widget.existingLine != null) {
       await widget.controller.removeBudgetOverride(lineId, _monthKey);
@@ -247,7 +249,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                       onPressed: _delete,
                     ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white60, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -283,8 +286,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor:
-                              Color(cat?.colorValue ?? 0xFF00E5FF),
+                          backgroundColor: Color(cat?.colorValue ?? 0xFF00E5FF),
                           child: const Icon(LucideIcons.tag,
                               size: 14, color: Colors.black),
                         ),
@@ -501,8 +503,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                                     color: BentoTheme.textPrimary,
                                     fontWeight: FontWeight.bold),
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Override limit for ${_monthKey}',
+                                  hintText: 'Override limit for ${_monthKey}',
                                   hintStyle:
                                       const TextStyle(color: Colors.white24),
                                   border: InputBorder.none,
@@ -634,7 +635,9 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                     ),
                   ),
                   child: Text(
-                    widget.existingLine == null ? 'Create Budget' : 'Save Changes',
+                    widget.existingLine == null
+                        ? 'Create Budget'
+                        : 'Save Changes',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),

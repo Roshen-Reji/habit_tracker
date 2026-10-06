@@ -20,7 +20,8 @@ class JournalCard extends StatelessWidget {
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
     int autoLogCount = 0;
     if (Hive.isBoxOpen(JournalService.boxName)) {
-      final dayDoc = Hive.box<JournalEntry>(JournalService.boxName).get('day_$todayKey');
+      final dayDoc =
+          Hive.box<JournalEntry>(JournalService.boxName).get('day_$todayKey');
       if (dayDoc != null) {
         autoLogCount = JournalDayRepository.instance.getAutoLogs(dayDoc).length;
       }
@@ -98,12 +99,14 @@ class JournalCard extends StatelessWidget {
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   onPressed: () async {
-                    final todayDoc = await JournalDayRepository.instance.getOrCreateDay(todayKey);
+                    final todayDoc = await JournalDayRepository.instance
+                        .getOrCreateDay(todayKey);
                     if (!context.mounted) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => JournalEditorPage(initialEntry: todayDoc),
+                        builder: (_) =>
+                            JournalEditorPage(initialEntry: todayDoc),
                       ),
                     );
                   },

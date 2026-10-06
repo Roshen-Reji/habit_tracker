@@ -6,7 +6,8 @@ import 'package:habit_tracker/features/finance/data/backup/finance_backup_servic
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 
 class FinanceEncryptionService {
-  static final FinanceEncryptionService instance = FinanceEncryptionService._internal();
+  static final FinanceEncryptionService instance =
+      FinanceEncryptionService._internal();
   factory FinanceEncryptionService() => instance;
   FinanceEncryptionService._internal();
 
@@ -20,8 +21,11 @@ class FinanceEncryptionService {
 
   Box get _settingsBox => Hive.box('finance_settings');
 
-  bool get isEncrypted => _settingsBox.get('fin_is_encrypted', defaultValue: false) as bool;
-  bool get hasUnencryptedBackup => _settingsBox.get('fin_has_unencrypted_backup', defaultValue: false) as bool;
+  bool get isEncrypted =>
+      _settingsBox.get('fin_is_encrypted', defaultValue: false) as bool;
+  bool get hasUnencryptedBackup =>
+      _settingsBox.get('fin_has_unencrypted_backup', defaultValue: false)
+          as bool;
 
   /// Retrieves or generates the 32-byte encryption key for finance boxes.
   Future<List<int>> getOrCreateEncryptionKey({List<int>? explicitKey}) async {
@@ -75,13 +79,15 @@ class FinanceEncryptionService {
 
       // Verify backup is intact
       if (backupJson.isEmpty && (txCount > 0 || accCount > 0)) {
-        throw StateError('Backup generation failed before encryption migration.');
+        throw StateError(
+            'Backup generation failed before encryption migration.');
       }
 
       // Mark as encrypted and record backup flag
       await _settingsBox.put('fin_is_encrypted', true);
       await _settingsBox.put('fin_has_unencrypted_backup', true);
-      await _settingsBox.put('fin_encryption_timestamp', DateTime.now().toIso8601String());
+      await _settingsBox.put(
+          'fin_encryption_timestamp', DateTime.now().toIso8601String());
 
       return true;
     } catch (e) {

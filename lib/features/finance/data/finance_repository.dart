@@ -134,6 +134,21 @@ class FinanceRepository {
     // Legacy compatibility: negative amount for expenses, positive for income
     final storedAmount = (effectiveKind == 'expense') ? -magnitude : magnitude;
 
+    // P1-7: Guard against double counting. Skip when sourceRef exists.
+    String? sourceRef = draft.sourceRef;
+    if (sourceRef == null && draft.recurringRuleId != null) {
+      sourceRef =
+          'rec:${draft.recurringRuleId}:${DateFormat('yyyy-MM-dd').format(draft.date)}';
+    }
+
+    if (sourceRef != null && sourceRef.isNotEmpty) {
+      for (final existing in storage.transactionBox.values) {
+        if (existing.sourceRef == sourceRef) {
+          return existing;
+        }
+      }
+    }
+
     final id = _generateId('tx');
     final tx = Transaction(
       title: draft.title.trim().isEmpty ? draft.category : draft.title.trim(),
@@ -154,7 +169,7 @@ class FinanceRepository {
       splits: draft.splits,
       receiptPaths: draft.receiptPaths,
       recurringRuleId: draft.recurringRuleId,
-      sourceRef: draft.sourceRef,
+      sourceRef: sourceRef,
       createdAt: DateTime.now(),
       goalId: draft.goalId,
       interestAmount: draft.interestAmount,

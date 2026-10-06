@@ -16,7 +16,8 @@ class MetricTaskService {
   Future<void> reconcileDay(String dayKey) async {
     if (!Hive.isBoxOpen(goalBoxName)) return;
     final box = Hive.box<Goal>(goalBoxName);
-    final metricGoals = box.values.where((g) => g.kind == 'metric' && !g.isArchived).toList();
+    final metricGoals =
+        box.values.where((g) => g.kind == 'metric' && !g.isArchived).toList();
     if (metricGoals.isEmpty) return;
 
     final view = WearableRepository.instance.dayView(dayKey);
@@ -34,7 +35,9 @@ class MetricTaskService {
           metricValue = (view.mainSleep?.durationMin ?? 0).toDouble();
           break;
         case 'workout_minutes':
-          metricValue = view.exercises.fold<int>(0, (sum, e) => sum + e.durationMin).toDouble();
+          metricValue = view.exercises
+              .fold<int>(0, (sum, e) => sum + e.durationMin)
+              .toDouble();
           break;
         case 'energy_score':
           metricValue = (view.energy?.score ?? 0).toDouble();
@@ -52,7 +55,9 @@ class MetricTaskService {
 
       final wasCompleted = goal.isCompleted;
       goal.isCompleted = completed;
-      goal.progress = target > 0 ? (metricValue / target).clamp(0.0, 1.0) : (completed ? 1.0 : 0.0);
+      goal.progress = target > 0
+          ? (metricValue / target).clamp(0.0, 1.0)
+          : (completed ? 1.0 : 0.0);
 
       if (completed) {
         if (!wasCompleted) {
