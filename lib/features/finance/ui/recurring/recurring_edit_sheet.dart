@@ -121,7 +121,7 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
     _status = r?.status ?? 'active';
 
     _selectedCategoryId = r?.categoryId ?? widget.initialCategoryId;
-    _selectedAccountId = r?.accountId;
+    _selectedAccountId = r?.accountId ?? widget.controller.primaryAccountId;
     _selectedToAccountId = r?.toAccountId;
   }
 
@@ -159,6 +159,18 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if ((_kind == 'sip' || _kind == 'emi') &&
+        (_selectedToAccountId == null || _selectedToAccountId!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('${_kind.toUpperCase()} requires a destination account.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     final amtVal = double.parse(_amountController.text.trim());
     final isNew = widget.existingRule == null;
     final id = widget.existingRule?.id ??
@@ -195,7 +207,7 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
     await widget.controller.scheduleRecurringReminders();
 
     // Post if needed
-    if (_autoPost) {
+    if (_autoPost || _kind == 'sip' || _kind == 'emi') {
       await RecurringRunner.run(force: true);
     }
 
@@ -669,6 +681,50 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   ],
                 ),
                 const SizedBox(height: 16),
+              ],
+              if (_kind == 'sip' ||
+                  _kind == 'emi' ||
+                  _kind == 'investment') ...[
+                Builder(
+                  builder: (context) {
+                    final amt =
+                        double.tryParse(_amountController.text.trim()) ?? 0.0;
+                    final fromAcc =
+                        widget.controller.getAccount(_selectedAccountId);
+                    final fromName = fromAcc?.name ?? 'Main';
+                    final toAcc =
+                        widget.controller.getAccount(_selectedToAccountId);
+                    final toName =
+                        toAcc?.name ?? (_kind == 'emi' ? 'Loan' : 'Fund');
+                    final day = _dayOfMonth;
+                    final suffix = (day == 1 || day == 21 || day == 31)
+                        ? 'st'
+                        : (day == 2 || day == 22)
+                            ? 'nd'
+                            : (day == 3 || day == 23)
+                                ? 'rd'
+                                : 'th';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: BentoTheme.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06)),
+                      ),
+                      child: Text(
+                        '${FormatUtils.formatMoney(amt)} leaves $fromName, ${FormatUtils.formatMoney(amt)} is added to $toName on the $day$suffix each month',
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
               // Auto-Post Switch Card
               Container(

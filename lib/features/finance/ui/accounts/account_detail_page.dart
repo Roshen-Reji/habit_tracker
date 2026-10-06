@@ -4,12 +4,12 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
-import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/account_edit_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/account_reconcile_dialog.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/valuation_history_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet.dart';
+import 'package:habit_tracker/features/finance/ui/recurring/recurring_edit_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/net_worth_history_chart.dart';
 
 /// Comprehensive account details screen with kind-specific analytics,
@@ -565,6 +565,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
   }
 
   Widget _buildLoanCard(BuildContext context, Account account, double balance) {
+    final loanSummary = _controller.getLoanSummary(account);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -574,11 +576,91 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Loan Schedule & Terms',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Loan Details & Schedule',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              if (loanSummary.nextDueDate != null)
+                Text(
+                  'Next: ${DateFormat('d MMM').format(loanSummary.nextDueDate!)}',
+                  style: TextStyle(
+                    color: BentoTheme.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Metrics Grid: Outstanding, Principal Paid, Interest Paid
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Outstanding',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(
+                      FormatUtils.formatMoney(loanSummary.outstanding),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Colors.orangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Principal Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(
+                      FormatUtils.formatMoney(loanSummary.principalPaid),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Colors.greenAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Interest Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textMuted, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(
+                      FormatUtils.formatMoney(loanSummary.interestPaid),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: BentoTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
+          const Divider(height: 1, thickness: 0.5),
+          const SizedBox(height: 12),
+          // Terms Row: Principal, Rate, Monthly EMI
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -586,11 +668,12 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Principal',
+                    Text('Sanctioned',
                         style: TextStyle(
-                            color: BentoTheme.textMuted, fontSize: 12)),
+                            color: BentoTheme.textMuted, fontSize: 11)),
                     Text(FormatUtils.formatMoney(account.principal!),
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
               if (account.annualRate != null)
@@ -599,9 +682,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                   children: [
                     Text('Interest Rate',
                         style: TextStyle(
-                            color: BentoTheme.textMuted, fontSize: 12)),
+                            color: BentoTheme.textMuted, fontSize: 11)),
                     Text('${account.annualRate}% p.a.',
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
               if (account.emi != null)
@@ -610,9 +694,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                   children: [
                     Text('Monthly EMI',
                         style: TextStyle(
-                            color: BentoTheme.textMuted, fontSize: 12)),
+                            color: BentoTheme.textMuted, fontSize: 11)),
                     Text(FormatUtils.formatMoney(account.emi!),
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
             ],
@@ -638,9 +723,28 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
   }
 
   Widget _buildValuedAssetCard(BuildContext context, Account account) {
-    final invested = _controller.getInvestedAmount(account);
+    final deposited = _controller.getInvestedAmount(account);
+    final currentValue = _controller.getAccountBalance(account);
     final gainLoss = _controller.getGainLoss(account);
     final returnPct = _controller.getReturnPct(account);
+
+    final linkedSipRule = _controller.allRecurringRules
+        .where((r) =>
+            (r.kind == 'sip' || r.kind == 'investment') &&
+            r.toAccountId == account.id)
+        .firstOrNull;
+
+    final allAccountTxs = _controller.getTransactionsForAccount(account.id);
+    final deposits = allAccountTxs
+        .where((tx) =>
+            tx.toAccountId == account.id &&
+            (tx.effectiveKind == 'investment' ||
+                tx.effectiveKind == 'transfer'))
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final depositCount = deposits.length;
+    final totalDepositedFromTxs =
+        deposits.fold<double>(0.0, (sum, tx) => sum + tx.amount.abs());
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -655,7 +759,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Valuation & Returns',
+                'Investment Overview',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               TextButton.icon(
@@ -670,58 +774,323 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
+          const SizedBox(height: 12),
+
+          // Top to Bottom:
+          // 1. Deposited
+          // 2. Current value
+          // 3. Gain / loss
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Deposited',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      FormatUtils.formatMoney(deposited),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Current Value',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      FormatUtils.formatMoney(currentValue),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Gain / Loss',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          '${gainLoss >= 0 ? '+' : ''}${FormatUtils.formatMoney(gainLoss)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: gainLoss >= 0
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${returnPct >= 0 ? '+' : ''}${returnPct.toStringAsFixed(1)}%)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: gainLoss >= 0
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 4. Linked SIP with Pause, Resume, Edit, Stop
+          if (linkedSipRule != null) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: BentoTheme.surface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Invested Capital',
-                      style:
-                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
-                  Text(FormatUtils.formatMoney(invested),
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Gain / Loss',
-                      style:
-                          TextStyle(color: BentoTheme.textMuted, fontSize: 12)),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${gainLoss >= 0 ? '+' : ''}${FormatUtils.formatMoney(gainLoss)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: gainLoss >= 0
-                              ? Colors.greenAccent
-                              : Colors.redAccent,
+                      Row(
+                        children: [
+                          const Icon(Icons.autorenew_rounded,
+                              size: 16, color: Colors.blueAccent),
+                          const SizedBox(width: 6),
+                          Text(
+                            linkedSipRule.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: (linkedSipRule.status == 'active'
+                                  ? Colors.green
+                                  : linkedSipRule.status == 'paused'
+                                      ? Colors.amber
+                                      : Colors.grey)
+                              .withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          linkedSipRule.status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: linkedSipRule.status == 'active'
+                                ? Colors.greenAccent
+                                : linkedSipRule.status == 'paused'
+                                    ? Colors.amberAccent
+                                    : Colors.grey,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${returnPct >= 0 ? '+' : ''}${returnPct.toStringAsFixed(1)}%)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: gainLoss >= 0
-                              ? Colors.greenAccent
-                              : Colors.redAccent,
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${FormatUtils.formatMoney(linkedSipRule.amount)}/month on day ${linkedSipRule.dayOfMonth ?? linkedSipRule.startDate.day}',
+                    style: TextStyle(
+                      color: BentoTheme.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (linkedSipRule.status == 'active')
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              minimumSize: const Size(0, 32),
+                            ),
+                            onPressed: () =>
+                                _updateSipStatus(linkedSipRule, 'paused'),
+                            child: const Text('Pause',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                        )
+                      else if (linkedSipRule.status == 'paused')
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              minimumSize: const Size(0, 32),
+                            ),
+                            onPressed: () =>
+                                _updateSipStatus(linkedSipRule, 'active'),
+                            child: const Text('Resume',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            minimumSize: const Size(0, 32),
+                          ),
+                          onPressed: () {
+                            RecurringEditSheet.show(
+                              context,
+                              controller: _controller,
+                              existingRule: linkedSipRule,
+                            );
+                          },
+                          child: const Text('Edit',
+                              style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            minimumSize: const Size(0, 32),
+                          ),
+                          onPressed: () => _confirmStopSip(linkedSipRule),
+                          child: const Text('Stop',
+                              style: TextStyle(fontSize: 12)),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // 5. Short list of the last deposits ('12 instalments, ₹12,000 deposited')
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      depositCount > 0
+                          ? '$depositCount instalment${depositCount == 1 ? '' : 's'}, ${FormatUtils.formatMoney(totalDepositedFromTxs)} deposited'
+                          : 'No deposit instalments yet',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (deposits.isNotEmpty)
+                      Text(
+                        'Recent',
+                        style: TextStyle(
+                          color: BentoTheme.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+                if (deposits.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, thickness: 0.5),
+                  const SizedBox(height: 6),
+                  ...deposits.take(3).map((tx) {
+                    final sourceAcc = tx.accountId != null
+                        ? _controller.getAccount(tx.accountId!)
+                        : null;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat('d MMM yyyy').format(tx.date),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (sourceAcc != null)
+                                Text(
+                                  'From ${sourceAcc.name}',
+                                  style: TextStyle(
+                                    color: BentoTheme.textMuted,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          Text(
+                            '+${FormatUtils.formatMoney(tx.amount.abs())}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.greenAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+
+          // 6. Existing "Update current value" action
           OutlinedButton.icon(
             icon: const Icon(Icons.add_chart_rounded, size: 18),
-            label: const Text('Log New Valuation'),
+            label: const Text('Update Current Value'),
             style: OutlinedButton.styleFrom(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -736,5 +1105,56 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _updateSipStatus(RecurringRule rule, String status) async {
+    final updated = RecurringRule(
+      id: rule.id,
+      name: rule.name,
+      kind: rule.kind,
+      amount: rule.amount,
+      amountIsVariable: rule.amountIsVariable,
+      categoryId: rule.categoryId,
+      accountId: rule.accountId,
+      toAccountId: rule.toAccountId,
+      frequency: rule.frequency,
+      interval: rule.interval,
+      anchorDate: rule.anchorDate,
+      dayOfMonth: rule.dayOfMonth,
+      startDate: rule.startDate,
+      endDate: rule.endDate,
+      autoPost: rule.autoPost,
+      reminderDaysBefore: rule.reminderDaysBefore,
+      status: status,
+      folio: rule.folio,
+      notes: rule.notes,
+      createdAt: rule.createdAt,
+    );
+    await _repository.updateRecurringRule(updated);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _confirmStopSip(RecurringRule rule) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop SIP?'),
+        content: Text('Are you sure you want to stop SIP "${rule.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('Stop SIP'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _updateSipStatus(rule, 'ended');
+    }
   }
 }

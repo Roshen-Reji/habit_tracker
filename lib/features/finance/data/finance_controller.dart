@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
@@ -50,11 +51,6 @@ class FinanceController extends ChangeNotifier {
       _isBalancesDirty = false;
     }
     return _snapshot!;
-  }
-
-  String get primaryAccountId {
-    return storage.settingsBox.get('primary_account_id',
-        defaultValue: FinanceConstants.defaultAccountId);
   }
 
   Account? get primaryAccount {
@@ -170,6 +166,28 @@ class FinanceController extends ChangeNotifier {
   /// Returns all active (non-archived) accounts.
   List<Account> get activeAccounts =>
       storage.accountBox.values.where((a) => !a.archived).toList();
+
+  /// P2-1: Primary account ID stored in settings, falling back safely.
+  String get primaryAccountId {
+    final saved = storage.settingsBox.get('primary_account_id') as String?;
+    if (saved != null && storage.accountBox.containsKey(saved)) {
+      return saved;
+    }
+    if (storage.accountBox.containsKey(FinanceConstants.defaultAccountId)) {
+      return FinanceConstants.defaultAccountId;
+    }
+    final active = activeAccounts;
+    final firstBank =
+        active.where((a) => a.kind == 'bank' || a.spendable).firstOrNull;
+    return firstBank?.id ??
+        active.firstOrNull?.id ??
+        FinanceConstants.defaultAccountId;
+  }
+
+  Future<void> setPrimaryAccountId(String id) async {
+    await storage.settingsBox.put('primary_account_id', id);
+    notifyListeners();
+  }
 
   /// Returns all active (non-archived) categories.
   List<Category> get activeCategories =>
@@ -882,6 +900,90 @@ class FinanceController extends ChangeNotifier {
     );
   }
 
+  /// P2-6: Returns loan overview with outstanding, principal paid, interest paid, and next due date.
+  LoanSummary getLoanSummary(Account loan) {
+    final outstanding = getAccountBalance(loan).abs();
+    final txs = getTransactionsForAccount(loan.id);
+
+    double interestPaid = 0.0;
+    double paymentsTotal = 0.0;
+
+    for (final tx in txs) {
+      if (tx.accountId == loan.id &&
+          (tx.category == 'Interest Expense' ||
+              (tx.sourceRef?.startsWith('emi_split_') ?? false))) {
+        interestPaid += tx.amount.abs();
+      } else if (tx.interestAmount != null && tx.interestAmount! > 0) {
+        interestPaid += tx.interestAmount!;
+      }
+
+      if (tx.toAccountId == loan.id &&
+          (tx.effectiveKind == 'transfer' ||
+              tx.effectiveKind == 'emi' ||
+              tx.effectiveKind == 'debt_payment')) {
+        paymentsTotal += tx.amount.abs();
+      } else if (tx.accountId == loan.id &&
+          tx.effectiveKind == 'debt_payment') {
+        paymentsTotal += tx.amount.abs();
+      }
+    }
+
+    double principalPaid =
+        (paymentsTotal - interestPaid).clamp(0.0, double.infinity);
+    if (principalPaid == 0.0 &&
+        loan.principal != null &&
+        loan.principal! > outstanding) {
+      principalPaid = loan.principal! - outstanding;
+    }
+
+    DateTime? nextDueDate;
+    double? nextDueAmount;
+    final now = DateTime.now();
+
+    final emiRules = allRecurringRules.where((r) =>
+        r.status == 'active' &&
+        (r.kind == 'emi' || r.kind == 'debt_payment') &&
+        (r.toAccountId == loan.id || r.accountId == loan.id));
+
+    if (emiRules.isNotEmpty) {
+      final rule = emiRules.first;
+      final occs = RecurringEngine.occurrences(
+          rule, now, now.add(const Duration(days: 60)));
+      if (occs.isNotEmpty) {
+        nextDueDate = occs.first;
+        nextDueAmount = rule.amount;
+      }
+    }
+
+    if (nextDueDate == null && loan.dueDay != null) {
+      final dueDay = loan.dueDay!;
+      final daysInThisMonth = DateTime(now.year, now.month + 1, 0).day;
+      final clampedDayThisMonth = min(dueDay, daysInThisMonth);
+      final thisMonthDue = DateTime(now.year, now.month, clampedDayThisMonth);
+      if (thisMonthDue.isAfter(now) ||
+          (thisMonthDue.year == now.year &&
+              thisMonthDue.month == now.month &&
+              thisMonthDue.day == now.day)) {
+        nextDueDate = thisMonthDue;
+      } else {
+        final nextMonth = DateTime(now.year, now.month + 1, 1);
+        final daysInNextMonth =
+            DateTime(nextMonth.year, nextMonth.month + 1, 0).day;
+        nextDueDate = DateTime(
+            nextMonth.year, nextMonth.month, min(dueDay, daysInNextMonth));
+      }
+      nextDueAmount = loan.emi;
+    }
+
+    return LoanSummary(
+      outstanding: Money.r2(outstanding),
+      principalPaid: Money.r2(principalPaid),
+      interestPaid: Money.r2(interestPaid),
+      nextDueDate: nextDueDate,
+      nextDueAmount: nextDueAmount,
+    );
+  }
+
   // ==========================================
   // PHASE 8: INTELLIGENCE & FORECAST
   // ==========================================
@@ -1426,4 +1528,20 @@ class FinanceController extends ChangeNotifier {
         .where((e) => e.goalId == goal.id && e.date.isAfter(threeMonthsAgo));
     return GoalPlannerEngine.totalSaved(entries) / 3.0;
   }
+}
+
+class LoanSummary {
+  final double outstanding;
+  final double principalPaid;
+  final double interestPaid;
+  final DateTime? nextDueDate;
+  final double? nextDueAmount;
+
+  const LoanSummary({
+    required this.outstanding,
+    required this.principalPaid,
+    required this.interestPaid,
+    this.nextDueDate,
+    this.nextDueAmount,
+  });
 }

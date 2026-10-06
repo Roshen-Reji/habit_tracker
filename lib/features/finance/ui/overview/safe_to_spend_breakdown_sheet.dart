@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/safe_to_spend_engine.dart';
 
 class SafeToSpendBreakdownSheet extends StatelessWidget {
@@ -357,17 +358,45 @@ class SafeToSpendBreakdownSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    color: item.isDeduplicated
-                        ? BentoTheme.textSecondary.withValues(alpha: 0.6)
-                        : BentoTheme.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    decoration:
-                        item.isDeduplicated ? TextDecoration.lineThrough : null,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        item.label,
+                        style: TextStyle(
+                          color: item.isDeduplicated
+                              ? BentoTheme.textSecondary.withValues(alpha: 0.6)
+                              : BentoTheme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          decoration: item.isDeduplicated
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (FinanceController().primaryAccountId == item.id) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: BentoTheme.accent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'MAIN',
+                          style: TextStyle(
+                            color: BentoTheme.accent,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (item.subtitle != null)
                   Text(

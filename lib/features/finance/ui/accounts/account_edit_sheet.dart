@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
-import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 
 /// Modal sheet for creating or editing an account.
 class AccountEditSheet extends StatefulWidget {
@@ -64,6 +64,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
   bool _includeInNetWorth = true;
   bool _spendable = true;
   bool _archived = false;
+  bool _isPrimaryAccount = false;
 
   // SIP / EMI
   RecurringRule? _linkedRule;
@@ -71,7 +72,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
   final _sipAmountController = TextEditingController();
   final _sipDayController = TextEditingController();
   DateTime _sipStartDate = DateTime.now();
-  String _sipPayFrom = 'acc_main';
+  late String _sipPayFrom;
   List<Account> _availableAccounts = [];
 
   static const List<int> _palette = [
@@ -111,9 +112,12 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
     super.initState();
     _repository = widget.repository ?? FinanceRepository();
     _availableAccounts = FinanceController().activeAccounts;
+    final primaryId = FinanceController().primaryAccountId;
+    _sipPayFrom = primaryId;
     final acc = widget.account;
 
     if (acc != null) {
+      _isPrimaryAccount = (acc.id == primaryId);
       _linkedRule =
           _repository.getAllRecurringRules().cast<RecurringRule?>().firstWhere(
                 (r) =>
@@ -126,7 +130,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
         _sipAmountController.text = _linkedRule!.amount.toString();
         _sipDayController.text = _linkedRule!.dayOfMonth.toString();
         _sipStartDate = _linkedRule!.startDate;
-        _sipPayFrom = _linkedRule!.accountId ?? 'acc_main';
+        _sipPayFrom = _linkedRule!.accountId ?? primaryId;
       } else {
         _sipDayController.text = '1';
       }
@@ -232,6 +236,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
     double? emi = double.tryParse(_emiController.text.trim());
     int? tenureMonths = int.tryParse(_tenureController.text.trim());
 
+    final Account savedAcc;
     if (_isEditing) {
       final acc = widget.account!;
       acc.name = name;
@@ -255,6 +260,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       acc.startDate = _loanStartDate;
 
       await _repository.updateAccount(acc);
+      savedAcc = acc;
     } else {
       final id = 'acc_${DateTime.now().millisecondsSinceEpoch}';
       final newAcc = Account(
@@ -279,10 +285,13 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
       );
 
       await _repository.addAccount(newAcc);
+      savedAcc = newAcc;
     }
 
-    final savedAcc =
-        _isEditing ? widget.account! : FinanceController().activeAccounts.last;
+    // P2-1: Set as primary account if switch enabled
+    if (_isPrimaryAccount) {
+      await FinanceController().setPrimaryAccountId(savedAcc.id);
+    }
 
     // Handle SIP / EMI rule
     final isInvestment = ['investment', 'gold', 'fd', 'crypto', 'other_asset']
@@ -325,6 +334,8 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
         );
         await _repository.addRecurringRule(newRule);
       }
+      // P2-3: After saving a SIP/EMI rule, post immediately if due
+      await RecurringRunner.run(force: true);
     } else if (_linkedRule != null) {
       await _repository.deleteRecurringRule(_linkedRule!.id);
     }
@@ -688,7 +699,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                                   .where((a) => a.spendable)
                                   .map((a) => DropdownMenuItem(
                                         value: a.id,
-                                        child: Text(a.name,
+                                        child: Text('${a.name} (${a.kind})',
                                             overflow: TextOverflow.ellipsis),
                                       ))
                                   .toList(),
@@ -724,6 +735,49 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                               DateFormat('dd MMM yyyy').format(_sipStartDate)),
                         ),
                       ),
+                      if (!isLoan) ...[
+                        Builder(
+                          builder: (context) {
+                            final amt = double.tryParse(
+                                    _sipAmountController.text.trim()) ??
+                                0.0;
+                            final day =
+                                int.tryParse(_sipDayController.text.trim()) ??
+                                    1;
+                            final payFromAcc = _availableAccounts
+                                .where((a) => a.id == _sipPayFrom)
+                                .firstOrNull;
+                            final payFromName = payFromAcc?.name ?? 'Main';
+                            final fundName = _nameController.text.trim().isEmpty
+                                ? 'Fund'
+                                : _nameController.text.trim();
+                            final suffix = (day == 1 || day == 21 || day == 31)
+                                ? 'st'
+                                : (day == 2 || day == 22)
+                                    ? 'nd'
+                                    : (day == 3 || day == 23)
+                                        ? 'rd'
+                                        : 'th';
+                            return Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${FormatUtils.formatMoney(amt)} leaves $payFromName, ${FormatUtils.formatMoney(amt)} is added to $fundName on the $day$suffix each month',
+                                style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 12,
+                                  height: 1.3,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 16),
                     ],
                   ],
@@ -771,6 +825,14 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                   const SizedBox(height: 16),
 
                   // Options Switches
+                  SwitchListTile(
+                    title: const Text('Make this my main account'),
+                    subtitle: const Text(
+                        'Default account used to pay expenses, SIPs, and bills'),
+                    value: _isPrimaryAccount,
+                    onChanged: (val) => setState(() => _isPrimaryAccount = val),
+                    contentPadding: EdgeInsets.zero,
+                  ),
                   SwitchListTile(
                     title: const Text('Include in Net Worth'),
                     subtitle: const Text(

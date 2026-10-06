@@ -73,6 +73,22 @@ class FinanceRepository {
   FinanceRepository({FinanceStorage? storage})
       : storage = storage ?? FinanceStorage();
 
+  String get primaryAccountId {
+    final saved = storage.settingsBox.get('primary_account_id') as String?;
+    if (saved != null && storage.accountBox.containsKey(saved)) {
+      return saved;
+    }
+    if (storage.accountBox.containsKey(FinanceConstants.defaultAccountId)) {
+      return FinanceConstants.defaultAccountId;
+    }
+    final accounts = storage.accountBox.values.where((a) => !a.archived);
+    final firstBank =
+        accounts.where((a) => a.kind == 'bank' || a.spendable).firstOrNull;
+    return firstBank?.id ??
+        accounts.firstOrNull?.id ??
+        FinanceConstants.defaultAccountId;
+  }
+
   void _notify() {
     changes.value++;
   }
@@ -604,8 +620,7 @@ class FinanceRepository {
     final allowOverdraw = storage.settingsBox
             .get('allow_autopost_overdraw', defaultValue: false) ==
         true;
-    final defaultMainAccId = storage.settingsBox.get('primary_account_id',
-        defaultValue: FinanceConstants.defaultAccountId);
+    final defaultMainAccId = primaryAccountId;
 
     for (final rule in rules) {
       try {
@@ -613,10 +628,15 @@ class FinanceRepository {
             .get('rule_policy:${rule.id}', defaultValue: 'start_today');
         DateTime effectiveStartDate = rule.startDate;
         if (policy == 'start_today') {
-          final createdDay = DateTime(
-              rule.createdAt.year, rule.createdAt.month, rule.createdAt.day);
-          if (createdDay.isAfter(effectiveStartDate)) {
-            effectiveStartDate = createdDay;
+          // Q9: If due day is today or earlier in this month, allow this month's occurrence (never earlier months)
+          final currentMonthStart = DateTime(clock.year, clock.month, 1);
+          final ruleStartDay = DateTime(
+              rule.startDate.year, rule.startDate.month, rule.startDate.day);
+          if (ruleStartDay.isBefore(currentMonthStart)) {
+            effectiveStartDate = currentMonthStart;
+          } else {
+            effectiveStartDate =
+                DateTime(ruleStartDay.year, ruleStartDay.month, 1);
           }
         }
 
@@ -863,7 +883,7 @@ class FinanceRepository {
     final rule = item.rule;
     final effDate = paidDate ?? item.dueDate;
     final finalAmt = amount ?? item.estimatedAmount;
-    final finalAccId = accountId ?? rule.accountId ?? 'acc_main';
+    final finalAccId = accountId ?? rule.accountId ?? primaryAccountId;
 
     final isIncome = rule.kind == 'income';
     final isTransfer = rule.kind == 'transfer';

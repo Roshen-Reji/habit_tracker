@@ -334,10 +334,38 @@ class _AccountsPageState extends State<AccountsPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        account.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              account.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 15),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (account.id == _controller.primaryAccountId) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color:
+                                    BentoTheme.accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'MAIN',
+                                style: TextStyle(
+                                  color: BentoTheme.accent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(

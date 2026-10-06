@@ -10,9 +10,7 @@ import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
 import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
 import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
-import 'package:habit_tracker/features/finance/ui/cashflow/cash_flow_page.dart';
 import 'package:habit_tracker/features/finance/ui/health/health_score_sheet.dart';
-import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/overview/safe_to_spend_breakdown_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet.dart';
 import 'package:habit_tracker/features/finance/ui/what_if/what_if_sheet.dart';
@@ -21,6 +19,9 @@ import 'package:habit_tracker/features/finance/ui/widgets/charts/category_donut_
 import 'package:habit_tracker/features/finance/ui/ai/ai_privacy_page.dart';
 import 'package:habit_tracker/features/finance/ui/overview/balance_audit_screen.dart';
 import 'package:habit_tracker/features/finance/ui/widgets/charts/net_trend_chart.dart';
+import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/account_detail_page.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 
 class MoneyOverviewTab extends StatefulWidget {
   final VoidCallback onSeeAllTransactions;
@@ -157,6 +158,9 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
                 closingBalance: closingBalance,
               ),
               const SizedBox(height: 12),
+
+              // P2-4: Investments Card
+              _buildInvestmentsCard(),
 
               // Health Score & What-If Row
               _buildHealthAndWhatIfRow(healthScore),
@@ -555,6 +559,291 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
           ),
         ),
       ],
+    );
+  }
+
+  /// P2-4: Investments card between the hero card and health score row.
+  Widget _buildInvestmentsCard() {
+    final funds = _controller.activeAccounts
+        .where((a) => a.kind == 'investment' || a.isValuedAsset)
+        .toList();
+    if (funds.isEmpty) return const SizedBox.shrink();
+
+    double totalDeposited = 0.0;
+    double totalCurrentValue = 0.0;
+    for (final f in funds) {
+      totalDeposited += _controller.getInvestedAmount(f);
+      totalCurrentValue += _controller.getAccountBalance(f);
+    }
+    final totalGainLoss = totalCurrentValue - totalDeposited;
+    final totalReturnPct =
+        totalDeposited > 0 ? (totalGainLoss / totalDeposited) * 100 : 0.0;
+
+    final now = DateTime.now();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: BentoTheme.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    LucideIcons.trendingUp,
+                    size: 16,
+                    color: BentoTheme.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'INVESTMENTS',
+                    style: TextStyle(
+                      color: BentoTheme.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AccountsPage(controller: _controller),
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 30),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'See all',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      LucideIcons.chevronRight,
+                      size: 14,
+                      color: BentoTheme.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Summary Metrics
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Deposited',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      FormatUtils.formatMoney(totalDeposited),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Value',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      FormatUtils.formatMoney(totalCurrentValue),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Gain / Loss',
+                      style: TextStyle(
+                        color: BentoTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${totalGainLoss >= 0 ? '+' : ''}${FormatUtils.formatMoney(totalGainLoss)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: totalGainLoss >= 0
+                            ? Colors.greenAccent
+                            : Colors.redAccent,
+                      ),
+                    ),
+                    Text(
+                      '(${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toStringAsFixed(1)}%)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: totalGainLoss >= 0
+                            ? Colors.greenAccent
+                            : Colors.redAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, thickness: 0.5),
+          const SizedBox(height: 10),
+          // Fund rows (up to 4)
+          ...funds.take(4).map((fund) {
+            final deposited = _controller.getInvestedAmount(fund);
+            final currentVal = _controller.getAccountBalance(fund);
+
+            final sipRule = _controller.allRecurringRules
+                .where((r) =>
+                    r.status == 'active' &&
+                    (r.kind == 'sip' || r.kind == 'investment') &&
+                    r.toAccountId == fund.id)
+                .firstOrNull;
+
+            String? sipInfo;
+            if (sipRule != null) {
+              final occs = RecurringEngine.occurrences(
+                  sipRule, now, now.add(const Duration(days: 60)));
+              if (occs.isNotEmpty) {
+                sipInfo =
+                    'Next SIP: ${DateFormat('d MMM').format(occs.first)} · ${FormatUtils.formatMoney(sipRule.amount)}';
+              } else {
+                sipInfo = 'SIP: ${FormatUtils.formatMoney(sipRule.amount)}';
+              }
+            }
+
+            return InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AccountDetailPage(accountId: fund.id),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor:
+                          Color(fund.colorValue).withValues(alpha: 0.15),
+                      child: Icon(
+                        LucideIcons.trendingUp,
+                        size: 16,
+                        color: Color(fund.colorValue),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            fund.name,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (sipInfo != null)
+                            Text(
+                              sipInfo,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: BentoTheme.textMuted,
+                              ),
+                            )
+                          else
+                            Text(
+                              'Deposited: ${FormatUtils.formatMoney(deposited)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: BentoTheme.textMuted,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          FormatUtils.formatMoney(currentVal),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (sipInfo != null)
+                          Text(
+                            'Dep: ${FormatUtils.formatMoney(deposited)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: BentoTheme.textMuted,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 

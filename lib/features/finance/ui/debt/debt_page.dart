@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -590,7 +589,8 @@ class _DebtPageState extends State<DebtPage> {
   }
 
   Widget _buildLoanItem(Account loan) {
-    final bal = _controller.getAccountBalance(loan).abs();
+    final summary = _controller.getLoanSummary(loan);
+    final bal = summary.outstanding;
     final rate = loan.annualRate ?? 10.0;
     final emi = loan.emi ??
         LoanEngine.calculateEmi(
@@ -604,102 +604,180 @@ class _DebtPageState extends State<DebtPage> {
       emi: emi,
     );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.landmark,
-                    size: 14, color: Colors.redAccent),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AccountDetailPage(accountId: loan.id),
+          ),
+        );
+      },
+      borderRadius: ExpressiveTokens.borderM,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: BentoTheme.surface,
+          borderRadius: ExpressiveTokens.borderM,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
+                  child: const Icon(LucideIcons.landmark,
+                      size: 14, color: Colors.redAccent),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loan.name,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '$rate% interest • ${loan.kind.toUpperCase()}',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      loan.name,
+                      FormatUtils.formatMoney(bal),
                       style: TextStyle(
                         color: BentoTheme.textPrimary,
-                        fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                     Text(
-                      '$rate% interest • ${loan.kind.toUpperCase()}',
+                      'EMI: ${FormatUtils.formatMoney(emi)}/mo',
                       style: TextStyle(
                           color: BentoTheme.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    FormatUtils.formatMoney(bal),
-                    style: TextStyle(
-                      color: BentoTheme.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Loan Metrics: Principal Paid, Interest Paid, Next Due Date
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Principal Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        FormatUtils.formatMoney(summary.principalPaid),
+                        style: const TextStyle(
+                          color: Colors.greenAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'EMI: ${FormatUtils.formatMoney(emi)}/mo',
-                    style: TextStyle(
-                        color: BentoTheme.textSecondary, fontSize: 11),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Interest Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        FormatUtils.formatMoney(summary.interestPaid),
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                remainingMonths > 0
-                    ? '$remainingMonths months remaining'
-                    : 'Non-amortising!',
-                style: TextStyle(
-                  color: remainingMonths > 0
-                      ? BentoTheme.textSecondary
-                      : Colors.redAccent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  LoanSimulatorSheet.show(context,
-                      controller: _controller, loan: loan);
-                },
-                icon: const Icon(LucideIcons.calculator, size: 14),
-                label: const Text('Pre-payment Simulator'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: BentoTheme.accent,
-                  side: BorderSide(
-                      color: BentoTheme.accent.withValues(alpha: 0.3)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Next Due',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        summary.nextDueDate != null
+                            ? DateFormat('d MMM').format(summary.nextDueDate!)
+                            : 'N/A',
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  remainingMonths > 0
+                      ? '$remainingMonths months remaining'
+                      : 'Non-amortising!',
+                  style: TextStyle(
+                    color: remainingMonths > 0
+                        ? BentoTheme.textSecondary
+                        : Colors.redAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    LoanSimulatorSheet.show(context,
+                        controller: _controller, loan: loan);
+                  },
+                  icon: const Icon(LucideIcons.calculator, size: 14),
+                  label: const Text('Pre-payment Simulator'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: BentoTheme.accent,
+                    side: BorderSide(
+                        color: BentoTheme.accent.withValues(alpha: 0.3)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
