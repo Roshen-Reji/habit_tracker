@@ -19,7 +19,7 @@ class GalaxyWatchCard extends StatelessWidget {
     if (!WearableSettings.isEnabled) {
       return HomeCardFrame(
         icon: LucideIcons.watch,
-        title: 'Galaxy Watch 7',
+        title: 'Activity',
         onTap: () {
           Navigator.push(
             context,
@@ -46,7 +46,6 @@ class GalaxyWatchCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Row(
             children: [
@@ -214,10 +213,6 @@ class GalaxyWatchCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.15),
-          width: 1,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

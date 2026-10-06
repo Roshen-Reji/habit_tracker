@@ -58,8 +58,8 @@ class ScoreDeltaCard extends StatelessWidget {
     final isPos = delta > 0;
     final isNeg = delta < 0;
     final color = isPos
-        ? Colors.greenAccent
-        : (isNeg ? Colors.redAccent : BentoTheme.textSecondary);
+        ? BentoTheme.positive
+        : (isNeg ? BentoTheme.negative : BentoTheme.textSecondary);
     final sign = isPos ? '+' : '';
 
     return Container(
@@ -83,8 +83,8 @@ class ScoreDeltaCard extends StatelessWidget {
     final isPos = delta > 0;
     final isNeg = delta < 0;
     final color = isPos
-        ? Colors.greenAccent
-        : (isNeg ? Colors.redAccent : BentoTheme.textSecondary);
+        ? BentoTheme.positive
+        : (isNeg ? BentoTheme.negative : BentoTheme.textSecondary);
     final sign = isPos ? '+' : '';
 
     return Column(

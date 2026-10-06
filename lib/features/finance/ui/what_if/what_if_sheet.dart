@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/what_if_engine.dart';
@@ -81,12 +80,6 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -187,11 +180,7 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                         isSelected ? FontWeight.w600 : FontWeight.normal,
                     fontSize: 12,
                   ),
-                  side: BorderSide(
-                    color: isSelected
-                        ? BentoTheme.accent
-                        : Colors.white.withValues(alpha: 0.05),
-                  ),
+                  side: BorderSide.none,
                 );
               }).toList(),
             ),
@@ -208,8 +197,6 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   children: [
@@ -254,20 +241,20 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
 
     switch (res.status) {
       case AffordabilityStatus.comfortable:
-        badgeBg = Colors.green.withValues(alpha: 0.15);
-        badgeColor = Colors.green;
+        badgeBg = BentoTheme.positive.withValues(alpha: 0.15);
+        badgeColor = BentoTheme.positive;
         badgeIcon = LucideIcons.checkCircle;
         badgeText = 'COMFORTABLE';
         break;
       case AffordabilityStatus.tight:
-        badgeBg = Colors.orange.withValues(alpha: 0.15);
-        badgeColor = Colors.orange;
+        badgeBg = BentoTheme.warning.withValues(alpha: 0.15);
+        badgeColor = BentoTheme.warning;
         badgeIcon = LucideIcons.alertTriangle;
         badgeText = 'TIGHT BUFFER';
         break;
       case AffordabilityStatus.notNow:
-        badgeBg = Colors.red.withValues(alpha: 0.15);
-        badgeColor = Colors.red;
+        badgeBg = BentoTheme.negative.withValues(alpha: 0.15);
+        badgeColor = BentoTheme.negative;
         badgeIcon = LucideIcons.xCircle;
         badgeText = 'NOT RECOMMENDED NOW';
         break;
@@ -278,7 +265,6 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +348,6 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,12 +367,14 @@ class _WhatIfSheetState extends State<WhatIfSheet> {
           _buildRow('This Expense',
               '-${FormatUtils.formatMoney(res.amount, customSymbol: '')}', true,
               isNegative: true),
-          const Divider(height: 16, color: Colors.white12),
+          Divider(height: 16, color: BentoTheme.divider),
           _buildRow(
             'Projected Balance (after)',
             FormatUtils.formatMoney(res.projectedAfter),
             true,
-            color: res.projectedAfter >= 0 ? Colors.green : Colors.red,
+            color: res.projectedAfter >= 0
+                ? BentoTheme.positive
+                : BentoTheme.negative,
           ),
           const SizedBox(height: 8),
           _buildRow('Target Emergency Buffer',

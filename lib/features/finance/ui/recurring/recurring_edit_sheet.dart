@@ -1,6 +1,5 @@
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -133,28 +132,7 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
     super.dispose();
   }
 
-  Future<void> _pickStartDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: BentoTheme.accent,
-              surface: BentoTheme.surface,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => _startDate = picked);
-    }
-  }
+
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -278,7 +256,6 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -404,8 +381,6 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                   decoration: BoxDecoration(
                     color: BentoTheme.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: BentoTheme.accent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -711,8 +686,6 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                       decoration: BoxDecoration(
                         color: BentoTheme.background,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06)),
                       ),
                       child: Text(
                         '${FormatUtils.formatMoney(amt)} leaves $fromName, ${FormatUtils.formatMoney(amt)} is added to $toName on the $day$suffix each month',
@@ -732,8 +705,6 @@ class _RecurringEditSheetState extends State<RecurringEditSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [

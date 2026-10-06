@@ -561,6 +561,9 @@ class SmsTransactionParser {
     final clean = body.replaceAll('\n', ' ');
     final date = receivedDate ?? DateTime.now();
 
+    final accMatch = _accountPattern.firstMatch(clean);
+    final accSuffix = accMatch != null ? ' (A/c ...${accMatch.group(1)})' : '';
+
     // Check Debit
     final debitMatch = _debitPattern.firstMatch(clean);
     if (debitMatch != null) {
@@ -576,7 +579,7 @@ class SmsTransactionParser {
           merchant: normMerchant.isNotEmpty ? normMerchant : null,
           kind: 'expense',
           paymentMethod: 'UPI',
-          notes: 'Auto-parsed from SMS',
+          notes: 'Auto-parsed from SMS$accSuffix',
         );
       }
     }

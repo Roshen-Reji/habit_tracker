@@ -96,8 +96,6 @@ class _GoalsTabState extends State<GoalsTab>
                           decoration: BoxDecoration(
                             color: BentoTheme.surface,
                             borderRadius: ExpressiveTokens.borderL,
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.06)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,8 +162,6 @@ class _GoalsTabState extends State<GoalsTab>
                           decoration: BoxDecoration(
                             color: BentoTheme.surface,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.05)),
                           ),
                           child: TabBar(
                             controller: _tabController,
@@ -311,7 +307,6 @@ class _GoalsTabState extends State<GoalsTab>
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,

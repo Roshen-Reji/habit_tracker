@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/insights_engine.dart';
 
@@ -155,11 +154,7 @@ class _InsightsPageState extends State<InsightsPage> {
         color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
-      side: BorderSide(
-        color: isSelected
-            ? BentoTheme.accent
-            : Colors.white.withValues(alpha: 0.05),
-      ),
+      side: BorderSide.none,
     );
   }
 
@@ -168,15 +163,15 @@ class _InsightsPageState extends State<InsightsPage> {
     IconData icon;
     switch (ins.severity) {
       case InsightSeverity.danger:
-        iconColor = Colors.red;
+        iconColor = BentoTheme.negative;
         icon = LucideIcons.alertOctagon;
         break;
       case InsightSeverity.warning:
-        iconColor = Colors.orange;
+        iconColor = BentoTheme.warning;
         icon = LucideIcons.alertTriangle;
         break;
       case InsightSeverity.success:
-        iconColor = Colors.green;
+        iconColor = BentoTheme.positive;
         icon = LucideIcons.trendingUp;
         break;
       case InsightSeverity.info:
@@ -192,10 +187,10 @@ class _InsightsPageState extends State<InsightsPage> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.2),
+          color: BentoTheme.negative.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(LucideIcons.trash2, color: Colors.red),
+        child: Icon(LucideIcons.trash2, color: BentoTheme.negative),
       ),
       onDismissed: (_) => _dismissInsight(ins),
       child: Container(
@@ -204,7 +199,6 @@ class _InsightsPageState extends State<InsightsPage> {
         decoration: BoxDecoration(
           color: BentoTheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: iconColor.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

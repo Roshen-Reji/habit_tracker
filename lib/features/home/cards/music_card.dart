@@ -248,7 +248,7 @@ class MusicCard extends StatelessWidget {
                     ProgressBarX(
                       value: track.progressRatio,
                       height: 3,
-                      color: BentoTheme.accent,
+                      color: BentoTheme.mediaAccent,
                     ),
                   ],
                 ],

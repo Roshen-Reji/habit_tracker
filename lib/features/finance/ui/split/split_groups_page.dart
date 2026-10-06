@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -210,7 +209,6 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white10),
             ),
             child: Row(
               children: [
@@ -363,7 +361,6 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderM,
-                  border: Border.all(color: Colors.white10),
                 ),
                 child: ListTile(
                   contentPadding:

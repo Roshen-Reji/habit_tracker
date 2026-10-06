@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
 import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';

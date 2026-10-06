@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
 
 enum CalendarEventType {
   income,
@@ -38,20 +36,20 @@ class CalendarEvent {
   Color get color {
     switch (type) {
       case CalendarEventType.income:
-        return const Color(0xFF10B981);
+        return BentoTheme.positive;
       case CalendarEventType.bill:
-        return Colors.orangeAccent;
+        return BentoTheme.warning;
       case CalendarEventType.subscription:
-        return Colors.purpleAccent;
+        return const Color(0xFFA78BFA);
       case CalendarEventType.sip:
-        return const Color(0xFF00E5FF);
+        return const Color(0xFF38BDF8);
       case CalendarEventType.emi:
       case CalendarEventType.cardDue:
-        return Colors.redAccent;
+        return BentoTheme.negative;
       case CalendarEventType.goal:
-        return Colors.amberAccent;
+        return const Color(0xFFFBBF24);
       case CalendarEventType.transaction:
-        return Colors.white54;
+        return BentoTheme.textSecondary;
     }
   }
 }
@@ -229,9 +227,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
-                  borderRadius: ExpressiveTokens.borderL,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   children: [
@@ -266,7 +262,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                     'In: +${FormatUtils.formatMoney(dayInflow)}  •  Out: -${FormatUtils.formatMoney(dayOutflow)}',
                     style: TextStyle(
                       color: dayInflow > 0
-                          ? const Color(0xFF10B981)
+                          ? BentoTheme.positive
                           : BentoTheme.textSecondary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -282,9 +278,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
-                    borderRadius: ExpressiveTokens.borderM,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
                     child: Text(
@@ -312,7 +306,6 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -406,17 +399,9 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
               color: isSelected
                   ? BentoTheme.accent.withValues(alpha: 0.25)
                   : (isToday
-                      ? Colors.white.withValues(alpha: 0.05)
+                      ? Colors.white.withValues(alpha: 0.08)
                       : Colors.transparent),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected
-                    ? BentoTheme.accent
-                    : (isToday
-                        ? BentoTheme.accent.withValues(alpha: 0.5)
-                        : Colors.transparent),
-                width: 1.5,
-              ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -467,17 +452,17 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildLegendItem('Income', const Color(0xFF10B981)),
+          _buildLegendItem('Income', BentoTheme.positive),
           const SizedBox(width: 12),
-          _buildLegendItem('Bills', Colors.orangeAccent),
+          _buildLegendItem('Bills', BentoTheme.warning),
           const SizedBox(width: 12),
-          _buildLegendItem('Subs', Colors.purpleAccent),
+          _buildLegendItem('Subs', const Color(0xFFA78BFA)),
           const SizedBox(width: 12),
-          _buildLegendItem('SIP / Inv', const Color(0xFF00E5FF)),
+          _buildLegendItem('SIP / Inv', const Color(0xFF38BDF8)),
           const SizedBox(width: 12),
-          _buildLegendItem('EMI / Cards', Colors.redAccent),
+          _buildLegendItem('EMI / Cards', BentoTheme.negative),
           const SizedBox(width: 12),
-          _buildLegendItem('Goals', Colors.amberAccent),
+          _buildLegendItem('Goals', const Color(0xFFFBBF24)),
         ],
       ),
     );
@@ -507,8 +492,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -546,8 +530,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
             Text(
               '${isIncome ? '+' : '-'}${FormatUtils.formatMoney(event.amount)}',
               style: TextStyle(
-                color:
-                    isIncome ? const Color(0xFF10B981) : BentoTheme.textPrimary,
+                color: isIncome ? BentoTheme.positive : BentoTheme.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

@@ -2,7 +2,6 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
@@ -323,7 +322,6 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                 color: AppColors.background.withValues(alpha: 0.95),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: accent.withValues(alpha: 0.15)),
               ),
               child: Column(
                 children: [
@@ -576,9 +574,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.06),
+          color: accent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accent.withValues(alpha: 0.15)),
         ),
         child: Text(
           text,

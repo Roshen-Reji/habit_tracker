@@ -790,11 +790,6 @@ class _TransactionSheetState extends State<TransactionSheet> {
                         ? BentoTheme.accent.withValues(alpha: 0.2)
                         : BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color:
-                          isSelected ? BentoTheme.accent : Colors.transparent,
-                      width: 1.5,
-                    ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -912,7 +907,6 @@ class _TransactionSheetState extends State<TransactionSheet> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
             ),
             child: Row(
               children: [
@@ -940,7 +934,6 @@ class _TransactionSheetState extends State<TransactionSheet> {
             decoration: BoxDecoration(
               color: Colors.orange.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
             child: const Row(
               children: [
@@ -1264,7 +1257,6 @@ class _TransactionSheetState extends State<TransactionSheet> {
                       decoration: BoxDecoration(
                         color: BentoTheme.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white10),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: file.existsSync()

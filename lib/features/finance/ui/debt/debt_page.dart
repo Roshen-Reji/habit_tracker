@@ -66,8 +66,6 @@ class _DebtPageState extends State<DebtPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderL,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +84,7 @@ class _DebtPageState extends State<DebtPage> {
                       FormatUtils.formatMoney(totalDebt),
                       style: TextStyle(
                         color: totalDebt > 0
-                            ? Colors.redAccent
+                            ? BentoTheme.negative
                             : BentoTheme.textPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -176,8 +174,6 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
@@ -210,8 +206,6 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
@@ -245,7 +239,6 @@ class _DebtPageState extends State<DebtPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,13 +418,6 @@ class _DebtPageState extends State<DebtPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: util.isDanger
-              ? Colors.redAccent.withValues(alpha: 0.4)
-              : (util.isWarning
-                  ? Colors.amberAccent.withValues(alpha: 0.4)
-                  : Colors.white.withValues(alpha: 0.05)),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,9 +426,9 @@ class _DebtPageState extends State<DebtPage> {
             children: [
               CircleAvatar(
                 radius: 14,
-                backgroundColor: Colors.purpleAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.creditCard,
-                    size: 14, color: Colors.purpleAccent),
+                backgroundColor: BentoTheme.accent.withValues(alpha: 0.15),
+                child: Icon(LucideIcons.creditCard,
+                    size: 14, color: BentoTheme.accent),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -498,7 +484,7 @@ class _DebtPageState extends State<DebtPage> {
                     ? ProgressSemantic.warn
                     : ProgressSemantic.neutral),
             customColor: (!util.isDanger && !util.isWarning)
-                ? const Color(0xFF10B981)
+                ? BentoTheme.positive
                 : null,
           ),
           const SizedBox(height: 10),
@@ -513,9 +499,9 @@ class _DebtPageState extends State<DebtPage> {
                     '${util.utilisationPct.toStringAsFixed(0)}% utilised',
                     style: TextStyle(
                       color: util.isDanger
-                          ? Colors.redAccent
+                          ? BentoTheme.negative
                           : (util.isWarning
-                              ? Colors.amberAccent
+                              ? BentoTheme.warning
                               : BentoTheme.textSecondary),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
@@ -527,7 +513,7 @@ class _DebtPageState extends State<DebtPage> {
                       LucideIcons.alertTriangle,
                       size: 13,
                       color:
-                          util.isDanger ? Colors.redAccent : Colors.amberAccent,
+                          util.isDanger ? BentoTheme.negative : BentoTheme.warning,
                     ),
                   ],
                 ],
@@ -617,7 +603,6 @@ class _DebtPageState extends State<DebtPage> {
         decoration: BoxDecoration(
           color: BentoTheme.surface,
           borderRadius: ExpressiveTokens.borderM,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,9 +611,9 @@ class _DebtPageState extends State<DebtPage> {
               children: [
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                  child: const Icon(LucideIcons.landmark,
-                      size: 14, color: Colors.redAccent),
+                  backgroundColor: BentoTheme.negative.withValues(alpha: 0.2),
+                  child: Icon(LucideIcons.landmark,
+                      size: 14, color: BentoTheme.negative),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -686,8 +671,8 @@ class _DebtPageState extends State<DebtPage> {
                       ),
                       Text(
                         FormatUtils.formatMoney(summary.principalPaid),
-                        style: const TextStyle(
-                          color: Colors.greenAccent,
+                        style: TextStyle(
+                          color: BentoTheme.positive,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -750,7 +735,7 @@ class _DebtPageState extends State<DebtPage> {
                   style: TextStyle(
                     color: remainingMonths > 0
                         ? BentoTheme.textSecondary
-                        : Colors.redAccent,
+                        : BentoTheme.negative,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),

@@ -151,9 +151,6 @@ class BrainstormCard extends StatelessWidget {
                       color: BentoTheme.surfaceElevated,
                       borderRadius:
                           BorderRadius.circular(ExpressiveTokens.radiusSm),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
-                      ),
                     ),
                     child: Row(
                       children: [

@@ -74,7 +74,6 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -134,7 +133,8 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all( // allowed: input focus
+                  color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               children: [
@@ -180,7 +180,6 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [
@@ -223,7 +222,6 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [

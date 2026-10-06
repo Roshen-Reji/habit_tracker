@@ -161,7 +161,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -223,7 +222,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -350,7 +348,6 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,7 +467,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -706,7 +702,6 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [
@@ -784,7 +779,6 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
             ),
             child: Row(
               children: [
@@ -824,7 +818,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -955,18 +948,11 @@ class _BudgetTabState extends State<BudgetTab> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: isBalanced
-                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                  ? BentoTheme.positive.withValues(alpha: 0.15)
                   : (isUnder
-                      ? Colors.amberAccent.withValues(alpha: 0.15)
-                      : Colors.redAccent.withValues(alpha: 0.15)),
+                      ? BentoTheme.warning.withValues(alpha: 0.15)
+                      : BentoTheme.negative.withValues(alpha: 0.15)),
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(
-                color: isBalanced
-                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                    : (isUnder
-                        ? Colors.amberAccent.withValues(alpha: 0.4)
-                        : Colors.redAccent.withValues(alpha: 0.4)),
-              ),
             ),
             child: Row(
               children: [
@@ -978,8 +964,8 @@ class _BudgetTabState extends State<BudgetTab> {
                           : LucideIcons.alertTriangle),
                   size: 32,
                   color: isBalanced
-                      ? const Color(0xFF10B981)
-                      : (isUnder ? Colors.amberAccent : Colors.redAccent),
+                      ? BentoTheme.positive
+                      : (isUnder ? BentoTheme.warning : BentoTheme.negative),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -994,10 +980,10 @@ class _BudgetTabState extends State<BudgetTab> {
                                 : 'Over-assigned by ${FormatUtils.formatMoney(leftToAssign.abs())}'),
                         style: TextStyle(
                           color: isBalanced
-                              ? const Color(0xFF10B981)
+                              ? BentoTheme.positive
                               : (isUnder
-                                  ? Colors.amberAccent
-                                  : Colors.redAccent),
+                                  ? BentoTheme.warning
+                                  : BentoTheme.negative),
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1045,7 +1031,6 @@ class _BudgetTabState extends State<BudgetTab> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 children: [
@@ -1108,8 +1093,6 @@ class _BudgetTabState extends State<BudgetTab> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderM,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Row(
                   children: [

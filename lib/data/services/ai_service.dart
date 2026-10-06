@@ -1516,12 +1516,12 @@ class AiService {
     final monthlySip = sips.fold<double>(0, (sum, rule) => sum + rule.amount);
 
     final details = sips.map((rule) {
-      return ': /mo';
+      return '${rule.name}: ${FormatUtils.formatMoney(rule.amount)}/mo';
     }).join(', ');
 
     final msg = StringBuffer(
-        'Your current SIP commitment is /month.');
-    if (details.isNotEmpty) msg.write(' .');
+        'Your current SIP commitment is ${FormatUtils.formatMoney(monthlySip)}/month.');
+    if (details.isNotEmpty) msg.write(' ($details).');
 
     return AiResponse(message: msg.toString(), intent: 'general_chat');
   }

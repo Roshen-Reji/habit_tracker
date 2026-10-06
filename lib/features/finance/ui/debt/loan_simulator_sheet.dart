@@ -68,7 +68,6 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -128,7 +127,6 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
               decoration: BoxDecoration(
                 color: BentoTheme.background,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,11 +195,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      color: BentoTheme.positive.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color:
-                              const Color(0xFF10B981).withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +204,7 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                         Text(
                           'INTEREST SAVED',
                           style: TextStyle(
-                            color: const Color(0xFF10B981),
+                            color: BentoTheme.positive,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
@@ -218,8 +213,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                         const SizedBox(height: 4),
                         Text(
                           FormatUtils.formatMoney(sim.interestSaved),
-                          style: const TextStyle(
-                            color: Color(0xFF10B981),
+                          style: TextStyle(
+                            color: BentoTheme.positive,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -233,10 +228,8 @@ class _LoanSimulatorSheetState extends State<LoanSimulatorSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: BentoTheme.accent.withValues(alpha: 0.15),
+                      color: BentoTheme.cardBackground,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: BentoTheme.accent.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

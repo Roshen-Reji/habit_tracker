@@ -127,7 +127,9 @@ class _NetWorthPageState extends State<NetWorthPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: (changeAmt >= 0 ? Colors.green : Colors.red)
+                          color: (changeAmt >= 0
+                                  ? BentoTheme.positive
+                                  : BentoTheme.negative)
                               .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -140,8 +142,8 @@ class _NetWorthPageState extends State<NetWorthPage> {
                                   : Icons.arrow_downward_rounded,
                               size: 14,
                               color: changeAmt >= 0
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
+                                  ? BentoTheme.positive
+                                  : BentoTheme.negative,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -150,8 +152,8 @@ class _NetWorthPageState extends State<NetWorthPage> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: changeAmt >= 0
-                                    ? Colors.greenAccent
-                                    : Colors.redAccent,
+                                    ? BentoTheme.positive
+                                    : BentoTheme.negative,
                               ),
                             ),
                           ],
@@ -211,26 +213,24 @@ class _NetWorthPageState extends State<NetWorthPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.12),
+                  color: BentoTheme.cardBackground,
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: Colors.blue.withValues(alpha: 0.25)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.handshake_outlined,
-                        color: Colors.blueAccent),
+                    Icon(Icons.handshake_outlined,
+                        color: BentoTheme.accent),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Unsettled Receivables',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent,
+                              color: BentoTheme.textPrimary,
                             ),
                           ),
                           Text(
@@ -243,10 +243,10 @@ class _NetWorthPageState extends State<NetWorthPage> {
                     ),
                     Text(
                       '+${FormatUtils.formatMoney(receivables)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.blueAccent,
+                        color: BentoTheme.positive,
                       ),
                     ),
                   ],
@@ -307,10 +307,10 @@ class _NetWorthPageState extends State<NetWorthPage> {
                       ),
                       Text(
                         FormatUtils.formatMoney(totalAssets),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Colors.greenAccent,
+                          color: BentoTheme.positive,
                         ),
                       ),
                     ],
@@ -377,10 +377,10 @@ class _NetWorthPageState extends State<NetWorthPage> {
                       ),
                       Text(
                         FormatUtils.formatMoney(totalLiabilities),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Colors.orangeAccent,
+                          color: BentoTheme.warning,
                         ),
                       ),
                     ],
@@ -413,10 +413,10 @@ class _NetWorthPageState extends State<NetWorthPage> {
                             ),
                             Text(
                               FormatUtils.formatMoney(bal.abs()),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.orangeAccent,
+                                color: BentoTheme.warning,
                               ),
                             ),
                           ],

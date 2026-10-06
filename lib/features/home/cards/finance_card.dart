@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
@@ -58,14 +57,14 @@ class FinanceCard extends StatelessWidget {
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: (isPositiveNet ? Colors.green : Colors.redAccent)
+              color: (isPositiveNet ? BentoTheme.positive : BentoTheme.negative)
                   .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               netFormatted,
               style: TextStyle(
-                color: isPositiveNet ? Colors.greenAccent : Colors.redAccent,
+                color: isPositiveNet ? BentoTheme.positive : BentoTheme.negative,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),

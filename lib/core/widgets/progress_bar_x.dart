@@ -43,11 +43,12 @@ class ProgressBarX extends StatelessWidget {
     required this.value,
     this.height = 6.0,
     this.semantic = ProgressSemantic.neutral,
-    this.customColor,
+    Color? color,
+    Color? customColor,
     this.customTrackColor,
     this.duration = const Duration(milliseconds: 400),
     this.curve = Curves.easeOutCubic,
-  });
+  }) : customColor = color ?? customColor;
 
   @override
   Widget build(BuildContext context) {

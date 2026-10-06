@@ -6,7 +6,6 @@ import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
-import 'package:habit_tracker/features/finance/models/valuation.dart';
 
 /// Bottom sheet displaying valuation history and allowing new valuation logging
 /// for valued assets (stocks, mutual funds, gold, property, etc.).
@@ -248,7 +247,7 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: gainLoss >= 0 ? Colors.green : Colors.red,
+                            color: gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -256,7 +255,7 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: (gainLoss >= 0 ? Colors.green : Colors.red)
+                            color: (gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative)
                                 .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -265,7 +264,7 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: gainLoss >= 0 ? Colors.green : Colors.red,
+                              color: gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative,
                             ),
                           ),
                         ),
@@ -285,7 +284,6 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -415,8 +413,8 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                               color: BentoTheme.textMuted, fontSize: 12),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              size: 20, color: Colors.redAccent),
+                          icon: Icon(Icons.delete_outline,
+                              size: 20, color: BentoTheme.negative),
                           onPressed: () async {
                             await _repository.deleteValuation(val.id);
                             setState(() {});

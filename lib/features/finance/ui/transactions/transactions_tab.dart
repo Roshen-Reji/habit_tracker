@@ -497,7 +497,7 @@ class _TransactionsTabState extends State<TransactionsTab> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(
+                border: Border.all( // allowed: input focus
                   color: BentoTheme.textSecondary.withValues(alpha: 0.12),
                 ),
               ),
@@ -722,11 +722,6 @@ class _TransactionsTabState extends State<TransactionsTab> {
             ? BentoTheme.accent.withValues(alpha: 0.15)
             : BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: isSelected
-              ? BentoTheme.accent
-              : Colors.white.withValues(alpha: 0.04),
-        ),
       ),
       child: InkWell(
         onTap: () {

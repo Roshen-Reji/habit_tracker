@@ -803,7 +803,7 @@ class _AccountEditSheetState extends State<AccountEditSheet> {
                             color: Color(colorHex),
                             shape: BoxShape.circle,
                             border: isSelected
-                                ? Border.all(color: Colors.white, width: 3)
+                                ? Border.all(color: Colors.white, width: 3) // allowed: input focus
                                 : null,
                             boxShadow: isSelected
                                 ? [

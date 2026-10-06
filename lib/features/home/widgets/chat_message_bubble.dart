@@ -265,8 +265,6 @@ class _ActionConfirmCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                          color: AppColors.error.withValues(alpha: 0.3)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -575,8 +573,6 @@ class _ActionConfirmCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.warning.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     '🔥 $streak days',
@@ -727,9 +723,8 @@ class _ActionConfirmCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
+              color: AppColors.surfaceLight.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: AppColors.textTertiary.withValues(alpha: 0.3)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -783,9 +778,8 @@ class _ActionConfirmCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(text,
           style: TextStyle(

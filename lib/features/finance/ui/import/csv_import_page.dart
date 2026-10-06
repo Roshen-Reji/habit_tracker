@@ -4,12 +4,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
 
 class CsvImportPage extends StatefulWidget {
   const CsvImportPage({super.key});
@@ -210,8 +208,6 @@ class _CsvImportPageState extends State<CsvImportPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
@@ -253,8 +249,6 @@ class _CsvImportPageState extends State<CsvImportPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +325,8 @@ class _CsvImportPageState extends State<CsvImportPage> {
               // Summary stats row
               Row(
                 children: [
-                  Expanded(child: _summaryBadge('New', newCount, Colors.green)),
+                  Expanded(
+                      child: _summaryBadge('New', newCount, BentoTheme.positive)),
                   const SizedBox(width: 8),
                   Expanded(
                       child: _summaryBadge(
@@ -359,20 +354,15 @@ class _CsvImportPageState extends State<CsvImportPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: d.isDuplicate
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : (d.isSuggestedTransfer
-                              ? BentoTheme.accent.withValues(alpha: 0.3)
-                              : Colors.white.withValues(alpha: 0.1)),
-                    ),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: (d.amount >= 0 ? Colors.green : Colors.red)
+                          color: (d.amount >= 0
+                                  ? BentoTheme.positive
+                                  : BentoTheme.negative)
                               .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -380,7 +370,9 @@ class _CsvImportPageState extends State<CsvImportPage> {
                           d.amount >= 0
                               ? LucideIcons.arrowDownLeft
                               : LucideIcons.arrowUpRight,
-                          color: d.amount >= 0 ? Colors.green : Colors.red,
+                          color: d.amount >= 0
+                              ? BentoTheme.positive
+                              : BentoTheme.negative,
                           size: 14,
                         ),
                       ),
@@ -417,8 +409,9 @@ class _CsvImportPageState extends State<CsvImportPage> {
                           Text(
                             '${d.amount >= 0 ? '+' : ''}${FormatUtils.formatMoney(d.amount.abs())}',
                             style: TextStyle(
-                              color:
-                                  d.amount >= 0 ? Colors.green : Colors.white,
+                              color: d.amount >= 0
+                                  ? BentoTheme.positive
+                                  : BentoTheme.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -488,7 +481,6 @@ class _CsvImportPageState extends State<CsvImportPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [

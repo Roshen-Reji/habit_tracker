@@ -105,12 +105,6 @@ class _MomentumCardState extends State<MomentumCard> {
                             .withValues(alpha: isToday ? 0.9 : 0.25)
                         : Colors.white.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: hasWork
-                          ? BentoTheme.accent.withValues(alpha: 0.6)
-                          : Colors.white.withValues(alpha: 0.06),
-                      width: 1,
-                    ),
                   ),
                   alignment: Alignment.center,
                   child: hasWork

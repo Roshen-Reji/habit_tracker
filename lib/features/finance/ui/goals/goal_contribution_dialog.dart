@@ -114,7 +114,6 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -220,7 +219,7 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: _isWithdrawal
-                            ? Colors.redAccent.withValues(alpha: 0.25)
+                            ? BentoTheme.negative.withValues(alpha: 0.25)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -232,7 +231,7 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                             LucideIcons.arrowUpRight,
                             size: 16,
                             color: _isWithdrawal
-                                ? Colors.redAccent
+                                ? BentoTheme.negative
                                 : BentoTheme.textSecondary,
                           ),
                           const SizedBox(width: 6),
@@ -240,7 +239,7 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                             'Withdrawal',
                             style: TextStyle(
                               color: _isWithdrawal
-                                  ? Colors.redAccent
+                                  ? BentoTheme.negative
                                   : BentoTheme.textSecondary,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -262,7 +261,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all( // allowed: input focus
+                  color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               children: [
@@ -310,8 +310,6 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: Row(
                     children: [
@@ -334,8 +332,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                    border: Border.all( // allowed: input focus
+                        color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: TextField(
                     controller: _noteController,
@@ -362,7 +360,7 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
               onPressed: _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor:
-                    _isWithdrawal ? Colors.redAccent : const Color(0xFF10B981),
+                    _isWithdrawal ? BentoTheme.negative : BentoTheme.positive,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: ExpressiveTokens.borderM,

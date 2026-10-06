@@ -116,8 +116,6 @@ class _RecurringPageState extends State<RecurringPage>
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: ExpressiveTokens.borderL,
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.06)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -184,8 +182,6 @@ class _RecurringPageState extends State<RecurringPage>
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: TabBar(
                           controller: _tabController,
@@ -246,22 +242,21 @@ class _RecurringPageState extends State<RecurringPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amberAccent.withValues(alpha: 0.12),
+        color: BentoTheme.warning.withValues(alpha: 0.12),
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(LucideIcons.alertCircle,
-                  color: Colors.amberAccent, size: 18),
+              Icon(LucideIcons.alertCircle,
+                  color: BentoTheme.warning, size: 18),
               const SizedBox(width: 8),
               Text(
                 'ACTION REQUIRED: DUE BILLS',
-                style: const TextStyle(
-                  color: Colors.amberAccent,
+                style: TextStyle(
+                  color: BentoTheme.warning,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.1,
@@ -350,7 +345,6 @@ class _RecurringPageState extends State<RecurringPage>
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +377,6 @@ class _RecurringPageState extends State<RecurringPage>
               decoration: BoxDecoration(
                 color: BentoTheme.background,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,7 +551,6 @@ class _RecurringPageState extends State<RecurringPage>
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,

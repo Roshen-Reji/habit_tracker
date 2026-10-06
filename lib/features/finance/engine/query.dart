@@ -419,7 +419,7 @@ class FinanceQueryExecutor {
               );
           if (cat != null) return cat.name;
         }
-        return tx.category ?? 'Other';
+        return tx.category.isNotEmpty ? tx.category : 'Other';
       case QueryGroupBy.account:
         if (tx.accountId != null) {
           final acc = accounts.cast<Account?>().firstWhere(
@@ -491,7 +491,7 @@ class FinanceQueryExecutor {
 
       // Category filter
       if (categoryFilter != null && categoryFilter.isNotEmpty) {
-        String cName = (tx.category ?? '').toLowerCase();
+        String cName = tx.category.toLowerCase();
         if (tx.categoryId != null && catMap.containsKey(tx.categoryId)) {
           cName = catMap[tx.categoryId]!;
         }

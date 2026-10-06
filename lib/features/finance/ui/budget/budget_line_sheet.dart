@@ -203,7 +203,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -244,8 +243,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                   const Spacer(),
                   if (widget.existingLine != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.trash2,
-                          color: Colors.redAccent, size: 20),
+                      icon: Icon(LucideIcons.trash2,
+                          color: BentoTheme.negative, size: 20),
                       onPressed: _delete,
                     ),
                   IconButton(
@@ -279,8 +278,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                     decoration: BoxDecoration(
                       color: BentoTheme.background,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
@@ -383,8 +380,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all( // allowed: input focus
+                      color: Colors.white.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   children: [
@@ -432,8 +429,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,7 +477,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
+                          border: Border.all( // allowed: input focus
                               color: BentoTheme.accent.withValues(alpha: 0.3)),
                         ),
                         child: Row(
@@ -525,8 +520,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -576,8 +569,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -588,7 +579,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                           Row(
                             children: [
                               Icon(LucideIcons.shieldAlert,
-                                  size: 15, color: Colors.amberAccent),
+                                  size: 15, color: BentoTheme.warning),
                               const SizedBox(width: 6),
                               Text(
                                 'Essential Expense (Needs)',

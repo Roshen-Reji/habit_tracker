@@ -215,7 +215,6 @@ class MoreTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Material(
         color: Colors.transparent,

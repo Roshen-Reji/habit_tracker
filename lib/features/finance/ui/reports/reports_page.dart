@@ -5,10 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/engine/report_engine.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -268,11 +266,11 @@ class _ReportsPageState extends State<ReportsPage>
           Row(
             children: [
               Expanded(
-                  child: _metricCard('Income', rep.income, Colors.green,
+                  child: _metricCard('Income', rep.income, BentoTheme.positive,
                       LucideIcons.arrowDownLeft)),
               const SizedBox(width: 12),
               Expanded(
-                  child: _metricCard('Spending', rep.spending, Colors.red,
+                  child: _metricCard('Spending', rep.spending, BentoTheme.negative,
                       LucideIcons.arrowUpRight)),
             ],
           ),
@@ -283,12 +281,12 @@ class _ReportsPageState extends State<ReportsPage>
                   child: _metricCard(
                       'Net Cash Flow',
                       rep.net,
-                      rep.net >= 0 ? BentoTheme.accent : Colors.red,
+                      rep.net >= 0 ? BentoTheme.accent : BentoTheme.negative,
                       LucideIcons.wallet)),
               const SizedBox(width: 12),
               Expanded(
                   child: _metricCard('Total Saved & Invested', rep.saved,
-                      const Color(0xFFF59E0B), LucideIcons.piggyBank)),
+                      BentoTheme.warning, LucideIcons.piggyBank)),
             ],
           ),
           const SizedBox(height: 16),
@@ -299,7 +297,6 @@ class _ReportsPageState extends State<ReportsPage>
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +314,7 @@ class _ReportsPageState extends State<ReportsPage>
                               fontSize: 16, fontWeight: FontWeight.bold)
                           .copyWith(
                         color:
-                            rep.netWorthChange >= 0 ? Colors.green : Colors.red,
+                            rep.netWorthChange >= 0 ? BentoTheme.positive : BentoTheme.negative,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -365,7 +362,6 @@ class _ReportsPageState extends State<ReportsPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -402,7 +398,7 @@ class _ReportsPageState extends State<ReportsPage>
                       '${isUp ? '+' : ''}${item.changePct.toStringAsFixed(1)}% vs last mo',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isUp ? Colors.orange : Colors.green,
+                        color: isUp ? BentoTheme.warning : BentoTheme.positive,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -438,7 +434,6 @@ class _ReportsPageState extends State<ReportsPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -493,7 +488,6 @@ class _ReportsPageState extends State<ReportsPage>
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
               children: [
@@ -537,7 +531,6 @@ class _ReportsPageState extends State<ReportsPage>
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,7 +550,7 @@ class _ReportsPageState extends State<ReportsPage>
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isIncrease ? Colors.red : Colors.green,
+                          color: isIncrease ? BentoTheme.negative : BentoTheme.positive,
                         ),
                       ),
                     ],
@@ -599,7 +592,6 @@ class _ReportsPageState extends State<ReportsPage>
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -633,7 +625,7 @@ class _ReportsPageState extends State<ReportsPage>
                         'Net: ${p.net >= 0 ? '+' : ''}${FormatUtils.formatMoney(p.net, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: p.net >= 0 ? Colors.green : Colors.red,
+                          color: p.net >= 0 ? BentoTheme.positive : BentoTheme.negative,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -654,7 +646,6 @@ class _ReportsPageState extends State<ReportsPage>
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +696,7 @@ class _ReportsPageState extends State<ReportsPage>
             style: TextStyle(color: BentoTheme.textSecondary)),
         Text('${FormatUtils.formatMoney(val2, decimals: 0)}',
             style: TextStyle(
-                color: isExpense ? Colors.red : Colors.green,
+                color: isExpense ? BentoTheme.negative : BentoTheme.positive,
                 fontWeight: FontWeight.bold)),
       ],
     );

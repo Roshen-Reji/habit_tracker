@@ -191,10 +191,6 @@ class WeightCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: BentoTheme.surfaceElevated,
         borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
-        border: highlightColor != null
-            ? Border.all(
-                color: highlightColor.withValues(alpha: 0.25), width: 1)
-            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

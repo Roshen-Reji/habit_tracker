@@ -150,10 +150,6 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.cardBackground,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Color(account.colorValue).withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,13 +193,13 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
+                            color: BentoTheme.warning.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Archived',
                             style: TextStyle(
-                              color: Colors.amber,
+                              color: BentoTheme.warning,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -226,7 +222,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: account.isLiability
-                          ? Colors.orangeAccent
+                          ? BentoTheme.warning
                           : Colors.white,
                     ),
                   ),
@@ -243,7 +239,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             : Icons.block_outlined,
                         label:
                             account.spendable ? 'Spendable' : 'Non-spendable',
-                        color: account.spendable ? Colors.green : Colors.grey,
+                        color: account.spendable
+                            ? BentoTheme.positive
+                            : Colors.grey,
                       ),
                       _buildChip(
                         icon: account.includeInNetWorth
@@ -253,7 +251,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             ? 'In Net Worth'
                             : 'Excluded from Net Worth',
                         color: account.includeInNetWorth
-                            ? Colors.blue
+                            ? BentoTheme.accent
                             : Colors.grey,
                       ),
                     ],
@@ -388,7 +386,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                               : Icons.arrow_downward_rounded,
                           size: 18,
                           color:
-                              isOutflow ? Colors.redAccent : Colors.greenAccent,
+                              isOutflow ? BentoTheme.negative : BentoTheme.positive,
                         ),
                       ),
                       title: Text(
@@ -407,7 +405,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color:
-                              isOutflow ? Colors.white70 : Colors.greenAccent,
+                              isOutflow ? BentoTheme.textPrimary : BentoTheme.positive,
                         ),
                       ),
                     ),
@@ -459,10 +457,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
         limit > 0 ? ((debt / limit) * 100).clamp(0.0, 100.0) : 0.0;
 
     final utilColor = utilization > 70
-        ? Colors.redAccent
+        ? BentoTheme.negative
         : utilization > 30
-            ? Colors.orangeAccent
-            : Colors.greenAccent;
+            ? BentoTheme.warning
+            : BentoTheme.positive;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -605,10 +603,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                     const SizedBox(height: 2),
                     Text(
                       FormatUtils.formatMoney(loanSummary.outstanding),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: Colors.orangeAccent,
+                        color: BentoTheme.warning,
                       ),
                     ),
                   ],
@@ -624,10 +622,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                     const SizedBox(height: 2),
                     Text(
                       FormatUtils.formatMoney(loanSummary.principalPaid),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: Colors.greenAccent,
+                        color: BentoTheme.positive,
                       ),
                     ),
                   ],
@@ -846,8 +844,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                             color: gainLoss >= 0
-                                ? Colors.greenAccent
-                                : Colors.redAccent,
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -857,8 +855,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: gainLoss >= 0
-                                ? Colors.greenAccent
-                                : Colors.redAccent,
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                           ),
                         ),
                       ],
@@ -886,8 +884,8 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.autorenew_rounded,
-                              size: 16, color: Colors.blueAccent),
+                          Icon(Icons.autorenew_rounded,
+                              size: 16, color: BentoTheme.accent),
                           const SizedBox(width: 6),
                           Text(
                             linkedSipRule.name,
@@ -903,9 +901,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: (linkedSipRule.status == 'active'
-                                  ? Colors.green
+                                  ? BentoTheme.positive
                                   : linkedSipRule.status == 'paused'
-                                      ? Colors.amber
+                                      ? BentoTheme.warning
                                       : Colors.grey)
                               .withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(6),
@@ -916,9 +914,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: linkedSipRule.status == 'active'
-                                ? Colors.greenAccent
+                                ? BentoTheme.positive
                                 : linkedSipRule.status == 'paused'
-                                    ? Colors.amberAccent
+                                    ? BentoTheme.warning
                                     : Colors.grey,
                           ),
                         ),
@@ -984,7 +982,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                       Expanded(
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
+                            foregroundColor: BentoTheme.negative,
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             minimumSize: const Size(0, 32),
                           ),
@@ -1068,10 +1066,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                           ),
                           Text(
                             '+${FormatUtils.formatMoney(tx.amount.abs())}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.greenAccent,
+                              color: BentoTheme.positive,
                             ),
                           ),
                         ],
@@ -1144,7 +1142,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: BentoTheme.negative),
             child: const Text('Stop SIP'),
           ),
         ],

@@ -217,11 +217,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                     ? BentoTheme.accent.withValues(alpha: 0.2)
                                     : BentoTheme.surface,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? BentoTheme.accent
-                                      : Colors.transparent,
-                                ),
                               ),
                               child: Icon(
                                 _iconForKey(key),
@@ -264,7 +259,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                 color: Color(c),
                                 shape: BoxShape.circle,
                                 border: isSelected
-                                    ? Border.all(
+                                    ? Border.all( // allowed: input focus
                                         color: Colors.white, width: 2.5)
                                     : null,
                               ),
@@ -535,11 +530,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: cat.archived
-              ? Colors.white10
-              : BentoTheme.textSecondary.withValues(alpha: 0.1),
-        ),
       ),
       child: Row(
         children: [

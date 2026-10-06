@@ -166,15 +166,12 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: BentoTheme.surface,
+              color: isBalanced
+                  ? BentoTheme.positive.withValues(alpha: 0.12)
+                  : isOver
+                      ? BentoTheme.negative.withValues(alpha: 0.12)
+                      : BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(
-                color: isBalanced
-                    ? const Color(0xFF22C55E).withValues(alpha: 0.5)
-                    : isOver
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.5)
-                        : BentoTheme.accent.withValues(alpha: 0.3),
-              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -306,9 +303,6 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: BentoTheme.textSecondary.withValues(alpha: 0.1),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,14 +343,9 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: line.isOwed
-                            ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
-                            : Colors.transparent,
+                            ? BentoTheme.warning.withValues(alpha: 0.2)
+                            : BentoTheme.surfaceElevated,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: line.isOwed
-                              ? const Color(0xFFF59E0B)
-                              : BentoTheme.textSecondary.withValues(alpha: 0.3),
-                        ),
                       ),
                       child: Row(
                         children: [

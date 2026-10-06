@@ -212,11 +212,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
             ? BentoTheme.accent.withValues(alpha: 0.12)
             : BentoTheme.background,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: isSelected
-              ? BentoTheme.accent.withValues(alpha: 0.4)
-              : Colors.white.withValues(alpha: 0.04),
-        ),
       ),
       child: ListTile(
         leading: Icon(
@@ -328,7 +323,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Row(
         children: [
@@ -392,7 +386,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,7 +399,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               child: Row(
                 children: [
                   Icon(LucideIcons.clock,
-                      size: 18, color: BentoTheme.textSecondary),
+                       size: 18, color: BentoTheme.textSecondary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -450,7 +443,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               ),
             ),
           ),
-          const Divider(height: 24, color: Colors.white12),
+          Divider(height: 24, color: BentoTheme.divider),
 
           // Days in advance
           Text(
@@ -491,11 +484,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
-                    side: BorderSide(
-                      color: isSelected
-                          ? BentoTheme.accent
-                          : Colors.white.withValues(alpha: 0.06),
-                    ),
+                    side: BorderSide.none,
                     onSelected: (selected) {
                       if (selected) {
                         setState(() => _daysBefore = days);
@@ -517,7 +506,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         children: [
@@ -650,7 +638,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Row(
         children: [
@@ -698,7 +685,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,8 +714,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
                   label: const Text('Test Notification'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: BentoTheme.textPrimary,
-                    side:
-                        BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    side: BorderSide(color: BentoTheme.divider),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -787,7 +772,6 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         children: [
@@ -800,7 +784,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               _checkPermissions();
             },
           ),
-          const Divider(height: 20, color: Colors.white10),
+          Divider(height: 20, color: BentoTheme.divider),
           _permissionRow(
             title: 'Exact Alarms',
             subtitle: 'Required for to-the-minute alarms and lockscreen alerts',
@@ -810,14 +794,14 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               _checkPermissions();
             },
           ),
-          const Divider(height: 20, color: Colors.white10),
+          Divider(height: 20, color: BentoTheme.divider),
           _permissionRow(
             title: 'Full-Screen Intent',
             subtitle: 'Displays alarm over lockscreen when phone is sleeping',
             isGranted: true, // Configured in Android manifest
             isInfoOnly: true,
           ),
-          const Divider(height: 20, color: Colors.white10),
+          Divider(height: 20, color: BentoTheme.divider),
           _permissionRow(
             title: 'Battery Optimization',
             subtitle: 'Avoid OS killing scheduled alarms during deep doze mode',
@@ -835,7 +819,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               label: const Text('Open System App Settings'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: BentoTheme.textSecondary,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                side: BorderSide(color: BentoTheme.divider),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -856,7 +840,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
     VoidCallback? onFix,
   }) {
     final statusColor =
-        isGranted ? const Color(0xFF6BB58A) : const Color(0xFFE07A7A);
+        isGranted ? BentoTheme.positive : BentoTheme.negative;
     final statusText = isGranted ? 'Granted' : 'Denied';
 
     return Row(

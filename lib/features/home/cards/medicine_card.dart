@@ -86,7 +86,7 @@ class _MedicineCardState extends State<MedicineCard> {
                   trailingText,
                   style: TextStyle(
                     color: stats.complianceRate >= 1.0 && stats.hasDosesToday
-                        ? Colors.greenAccent
+                        ? BentoTheme.positive
                         : accent,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -105,15 +105,11 @@ class _MedicineCardState extends State<MedicineCard> {
                       decoration: BoxDecoration(
                         color: Colors.amber.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(LucideIcons.alertTriangle,
-                              color: Colors.amberAccent, size: 14),
+                          Icon(LucideIcons.alertTriangle,
+                              color: BentoTheme.warning, size: 14),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -137,10 +133,6 @@ class _MedicineCardState extends State<MedicineCard> {
                         color: BentoTheme.surfaceElevated,
                         borderRadius:
                             BorderRadius.circular(ExpressiveTokens.radiusSm),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          width: 1,
-                        ),
                       ),
                       child: Row(
                         children: [
@@ -203,7 +195,7 @@ class _MedicineCardState extends State<MedicineCard> {
                                 ? LucideIcons.checkCircle2
                                 : LucideIcons.plusCircle,
                             color: hasMeds
-                                ? Colors.greenAccent
+                                ? BentoTheme.positive
                                 : BentoTheme.textSecondary,
                             size: 20,
                           ),

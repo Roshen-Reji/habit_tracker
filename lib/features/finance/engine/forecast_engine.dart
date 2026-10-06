@@ -1,7 +1,6 @@
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:math';
 import 'package:habit_tracker/features/finance/engine/money.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
 
 enum ForecastConfidence {
   high,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
@@ -204,8 +203,6 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,8 +221,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                           '${_parsedDraft!.amount >= 0 ? '+' : ''}${FormatUtils.formatMoney(_parsedDraft!.amount.abs())}',
                           style: TextStyle(
                             color: _parsedDraft!.amount >= 0
-                                ? Colors.green
-                                : Colors.red,
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

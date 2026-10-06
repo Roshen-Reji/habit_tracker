@@ -449,7 +449,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white10),
           ),
           child: ListTile(
             contentPadding:
@@ -514,7 +513,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderM,
-            border: Border.all(color: Colors.white10),
           ),
           child: Column(
             children: report.balances.map((b) {
@@ -590,10 +588,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(
-                    color: involvesYou
-                        ? BentoTheme.accent.withValues(alpha: 0.3)
-                        : Colors.white10),
               ),
               child: Row(
                 children: [
@@ -667,7 +661,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderL,
-            border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -713,7 +706,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderM,
-            border: Border.all(color: Colors.white10),
           ),
           child: Column(
             children: widget.group.members.map((m) {

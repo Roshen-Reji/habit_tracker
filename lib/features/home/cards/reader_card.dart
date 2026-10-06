@@ -44,7 +44,7 @@ class _ReaderCardState extends State<ReaderCard> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF38BDF8); // Sky blue accent
+    final accent = BentoTheme.accent;
 
     return ValueListenableBuilder(
       valueListenable:
@@ -75,7 +75,7 @@ class _ReaderCardState extends State<ReaderCard> {
             ),
             child: Text(
               '${_books.length} files',
-              style: const TextStyle(
+              style: TextStyle(
                 color: accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -86,7 +86,7 @@ class _ReaderCardState extends State<ReaderCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_isLoading) ...[
-                const SizedBox(
+                SizedBox(
                   height: 140,
                   child: Center(
                     child: CircularProgressIndicator(
@@ -120,10 +120,6 @@ class _ReaderCardState extends State<ReaderCard> {
                                 color: Colors.white.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(
                                   ExpressiveTokens.radiusSm,
-                                ),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.04),
-                                  style: BorderStyle.solid,
                                 ),
                               ),
                               child: Center(
@@ -164,14 +160,10 @@ class _ReaderCardState extends State<ReaderCard> {
                           color: accent.withValues(alpha: 0.1),
                           borderRadius:
                               BorderRadius.circular(ExpressiveTokens.radiusSm),
-                          border: Border.all(
-                            color: accent.withValues(alpha: 0.25),
-                            width: 1.0,
-                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               LucideIcons.playCircle,
                               color: accent,
                               size: 16,
@@ -204,7 +196,7 @@ class _ReaderCardState extends State<ReaderCard> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(
+                            Icon(
                               LucideIcons.chevronRight,
                               color: accent,
                               size: 14,
@@ -363,9 +355,6 @@ class _ReaderCardState extends State<ReaderCard> {
           decoration: BoxDecoration(
             color: BentoTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),

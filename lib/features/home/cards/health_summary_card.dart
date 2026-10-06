@@ -51,11 +51,11 @@ class HealthSummaryCard extends StatelessWidget {
                             );
 
                             final score = summary.compositeScore.round();
-                            Color scoreColor = Colors.greenAccent;
+                            Color scoreColor = BentoTheme.positive;
                             if (score < 50) {
-                              scoreColor = Colors.redAccent;
+                              scoreColor = BentoTheme.negative;
                             } else if (score < 80) {
-                              scoreColor = Colors.amberAccent;
+                              scoreColor = BentoTheme.warning;
                             }
 
                             return HomeCardFrame(

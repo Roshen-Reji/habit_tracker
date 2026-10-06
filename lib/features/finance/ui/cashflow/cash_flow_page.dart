@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
 
 class CashFlowPage extends StatefulWidget {
   const CashFlowPage({super.key});
@@ -71,7 +69,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,7 +104,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   child: _buildMetricTile(
                     title: 'Inflow',
                     amount: cashFlow.income,
-                    color: Colors.green,
+                    color: BentoTheme.positive,
                     icon: LucideIcons.arrowDownLeft,
                   ),
                 ),
@@ -116,7 +113,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   child: _buildMetricTile(
                     title: 'Outflow',
                     amount: cashFlow.spending,
-                    color: Colors.red,
+                    color: BentoTheme.negative,
                     icon: LucideIcons.arrowUpRight,
                   ),
                 ),
@@ -128,7 +125,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,7 +141,9 @@ class _CashFlowPageState extends State<CashFlowPage> {
                         style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold)
                             .copyWith(
-                          color: cashFlow.net >= 0 ? Colors.green : Colors.red,
+                          color: cashFlow.net >= 0
+                              ? BentoTheme.positive
+                              : BentoTheme.negative,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -177,8 +175,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,22 +199,24 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   _buildProjectionRow(
                       'Expected Inflow',
                       '+${FormatUtils.formatMoney(cashFlow.expectedIncomeNext30)}',
-                      Colors.green),
+                      BentoTheme.positive),
                   const SizedBox(height: 8),
                   _buildProjectionRow(
                       'Bills & Dues',
                       '-${FormatUtils.formatMoney(cashFlow.billsDueNext30)}',
-                      Colors.red),
+                      BentoTheme.negative),
                   const SizedBox(height: 8),
                   _buildProjectionRow(
                       'Expected Variable Spend',
                       '-${FormatUtils.formatMoney(cashFlow.expectedVariableNext30)}',
                       BentoTheme.textSecondary),
-                  const Divider(height: 20, color: Colors.white12),
+                  Divider(height: 20, color: BentoTheme.divider),
                   _buildProjectionRow(
                     'Projected Net Buffer',
                     '${FormatUtils.formatMoney(cashFlow.remainingNext30)}',
-                    cashFlow.remainingNext30 >= 0 ? Colors.green : Colors.red,
+                    cashFlow.remainingNext30 >= 0
+                        ? BentoTheme.positive
+                        : BentoTheme.negative,
                     isBold: true,
                   ),
                 ],
@@ -243,8 +241,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -292,8 +288,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -330,7 +324,6 @@ class _CashFlowPageState extends State<CashFlowPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

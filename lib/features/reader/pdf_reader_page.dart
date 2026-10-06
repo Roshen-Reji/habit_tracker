@@ -285,8 +285,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF38BDF8),
-              foregroundColor: Colors.black,
+              backgroundColor: _accent,
+              foregroundColor: BentoTheme.background,
             ),
             child: const Text('Save Bookmark'),
             onPressed: () async {
@@ -320,8 +320,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
               children: [
                 Row(
                   children: [
-                    const Icon(LucideIcons.bookmarkCheck,
-                        color: Color(0xFF38BDF8), size: 18),
+                    Icon(LucideIcons.bookmarkCheck,
+                        color: _accent, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       'BOOKMARKS (${bookmarks.length})',
@@ -334,8 +334,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(LucideIcons.plus,
-                          color: Color(0xFF38BDF8)),
+                      icon: Icon(LucideIcons.plus,
+                          color: _accent),
                       tooltip: 'Bookmark Current Page',
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -375,15 +375,14 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF38BDF8)
-                                  .withValues(alpha: 0.15),
+                              color: _accent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             alignment: Alignment.center,
                             child: Text(
                               '$pageNum',
-                              style: const TextStyle(
-                                color: Color(0xFF38BDF8),
+                              style: TextStyle(
+                                color: _accent,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -485,8 +484,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF38BDF8),
-              foregroundColor: Colors.black,
+              backgroundColor: _accent,
+              foregroundColor: BentoTheme.background,
             ),
             child: const Text('Save'),
             onPressed: () async {
@@ -519,8 +518,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           children: [
             Row(
               children: [
-                const Icon(LucideIcons.listTree,
-                    color: Color(0xFF38BDF8), size: 18),
+                Icon(LucideIcons.listTree,
+                    color: _accent, size: 18),
                 const SizedBox(width: 10),
                 Text(
                   'TABLE OF CONTENTS',
@@ -902,11 +901,9 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color:
-                  isSelected ? _accent : Colors.white.withValues(alpha: 0.15),
-              width: isSelected ? 2 : 1,
-            ),
+            border: isSelected
+                ? Border.all(color: _accent, width: 2) // allowed: input focus
+                : null,
           ),
           child: Center(
             child: Text(
@@ -951,11 +948,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 ? _accent.withValues(alpha: 0.15)
                 : BentoTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color:
-                  isSelected ? _accent : Colors.white.withValues(alpha: 0.08),
-              width: 1.5,
-            ),
           ),
           child: Column(
             children: [
@@ -998,8 +990,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           children: [
             Row(
               children: [
-                const Icon(LucideIcons.timer,
-                    color: Color(0xFF38BDF8), size: 18),
+                Icon(LucideIcons.timer,
+                    color: _accent, size: 18),
                 const SizedBox(width: 10),
                 Text(
                   'READING STATS & TIMER',
@@ -1040,14 +1032,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   }
 
   Widget _buildStatCard(String label, String value, IconData icon) {
-    const accent = Color(0xFF38BDF8);
+    final accent = _accent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: BentoTheme.surfaceElevated,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -1523,10 +1514,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         color:
                             BentoTheme.surfaceElevated.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: _accent.withValues(alpha: 0.4),
-                          width: 1.2,
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.35),
@@ -1802,9 +1789,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             decoration: BoxDecoration(
                               color: BentoTheme.surfaceElevated,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
-                              ),
                             ),
                             child: Row(
                               children: [

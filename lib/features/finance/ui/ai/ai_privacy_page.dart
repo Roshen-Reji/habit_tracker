@@ -69,8 +69,6 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderM,
-              border:
-                  Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,37 +158,36 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: Colors.white10),
             ),
             child: Column(
               children: [
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
-                  color: const Color(0xFF22C55E),
+                  color: BentoTheme.positive,
                   title: 'Raw transactions never leave your device',
                   desc:
                       'Dates, notes, payees, and receipt images are strictly kept in local storage.',
                 ),
-                const Divider(color: Colors.white10, height: 20),
+                Divider(color: BentoTheme.divider, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
-                  color: const Color(0xFF22C55E),
+                  color: BentoTheme.positive,
                   title: 'Calculations run 100% locally',
                   desc:
                       'Safe-to-Spend, net worth, budgets, and what-if simulators run pure Dart on-device.',
                 ),
-                const Divider(color: Colors.white10, height: 20),
+                Divider(color: BentoTheme.divider, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
-                  color: const Color(0xFF22C55E),
+                  color: BentoTheme.positive,
                   title: 'Aggregated context only',
                   desc:
                       'When AI chat is used, only monthly totals (income and expense) are supplied to assist responses.',
                 ),
-                const Divider(color: Colors.white10, height: 20),
+                Divider(color: BentoTheme.divider, height: 20),
                 _buildPrivacyCheckItem(
                   icon: LucideIcons.check,
-                  color: const Color(0xFF22C55E),
+                  color: BentoTheme.positive,
                   title: 'Zero auto-posting',
                   desc:
                       'AI can only propose draft actions. Every single change requires your explicit confirmation.',
@@ -234,7 +231,6 @@ class _AiPrivacyPageState extends State<AiPrivacyPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white10),
       ),
       child: Row(
         children: [

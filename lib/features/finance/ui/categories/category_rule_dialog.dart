@@ -3,7 +3,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
@@ -37,7 +36,6 @@ class CategoryRuleDialog extends StatefulWidget {
 
 class _CategoryRuleDialogState extends State<CategoryRuleDialog> {
   final FinanceController _controller = FinanceController();
-  final FinanceRepository _repository = FinanceRepository();
 
   late TextEditingController _patternController;
   String? _selectedCategoryId;

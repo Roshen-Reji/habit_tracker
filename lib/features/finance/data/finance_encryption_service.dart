@@ -69,7 +69,7 @@ class FinanceEncryptionService {
 
     // 2. Get encryption key
     final cipherKey = await getOrCreateEncryptionKey(explicitKey: explicitKey);
-    final cipher = HiveAesCipher(cipherKey);
+    HiveAesCipher(cipherKey); // validates key length
 
     try {
       // Test encrypting and verifying counts
@@ -78,7 +78,7 @@ class FinanceEncryptionService {
       final catCount = storage.categoryBox.length;
 
       // Verify backup is intact
-      if (backupJson.isEmpty && (txCount > 0 || accCount > 0)) {
+      if (backupJson.isEmpty && (txCount > 0 || accCount > 0 || catCount > 0)) {
         throw StateError(
             'Backup generation failed before encryption migration.');
       }

@@ -1,23 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/features/finance/ui/recurring/legacy_debit_review_sheet.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
-import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/backup/finance_backup_service.dart';
-import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_encryption_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_lock_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
-import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
-import 'package:habit_tracker/features/finance/engine/report_engine.dart';
 import 'package:habit_tracker/features/finance/ui/ai/ai_privacy_page.dart';
 
 class FinancePrivacyDataPage extends StatefulWidget {
@@ -326,8 +319,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: BentoTheme.surface,
-              borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: Colors.white10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,8 +359,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
           Container(
             decoration: BoxDecoration(
               color: BentoTheme.surface,
-              borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: Colors.white10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               children: [
@@ -387,7 +378,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   onChanged: _toggleLock,
                 ),
                 if (_isLockEnabled) ...[
-                  const Divider(color: Colors.white10, height: 1),
+                  Divider(color: BentoTheme.divider, height: 1),
                   ListTile(
                     title: Text('Auto-lock timeout',
                         style: TextStyle(
@@ -414,7 +405,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                       },
                     ),
                   ),
-                  const Divider(color: Colors.white10, height: 1),
+                  Divider(color: BentoTheme.divider, height: 1),
                   SwitchListTile(
                     value: _lockOnBackground,
                     activeColor: BentoTheme.accent,
@@ -439,8 +430,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: BentoTheme.surface,
-              borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: Colors.white10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,8 +443,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                         Icon(
                           _isEncrypted ? LucideIcons.lock : LucideIcons.unlock,
                           color: _isEncrypted
-                              ? const Color(0xFF22C55E)
-                              : Colors.orange,
+                              ? BentoTheme.positive
+                              : BentoTheme.warning,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -464,7 +454,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                               : 'Standard Hive Storage',
                           style: TextStyle(
                             color: _isEncrypted
-                                ? const Color(0xFF22C55E)
+                                ? BentoTheme.positive
                                 : BentoTheme.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -505,8 +495,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                               color: BentoTheme.textSecondary, fontSize: 12)),
                       TextButton(
                         onPressed: _handleDeleteUnencryptedBackup,
-                        child: const Text('Delete Backup',
-                            style: TextStyle(color: Colors.red, fontSize: 12)),
+                        child: Text('Delete Backup',
+                            style: TextStyle(
+                                color: BentoTheme.negative, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -567,7 +558,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                   label: const Text('CSV Export'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: BentoTheme.accent,
-                    side: BorderSide(color: Colors.white12),
+                    side: BorderSide(color: BentoTheme.divider),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -581,7 +572,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
           // Danger Zone (P13-4)
           Text('DANGER ZONE',
               style: TextStyle(
-                  color: Colors.red,
+                  color: BentoTheme.negative,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.1)),
@@ -589,9 +580,8 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.08),
-              borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              color: BentoTheme.negative.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +589,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                 Text(
                   'Delete All Finance Data',
                   style: TextStyle(
-                      color: Colors.red,
+                      color: BentoTheme.negative,
                       fontWeight: FontWeight.bold,
                       fontSize: 15),
                 ),
@@ -615,7 +605,7 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
                 ElevatedButton(
                   onPressed: _confirmDeleteAllFinanceData,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: BentoTheme.negative,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),

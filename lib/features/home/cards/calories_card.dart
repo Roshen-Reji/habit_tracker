@@ -46,14 +46,14 @@ class CaloriesCard extends StatelessWidget {
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: (isOver ? Colors.redAccent : Colors.greenAccent)
+              color: (isOver ? BentoTheme.negative : BentoTheme.positive)
                   .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               badgeText,
               style: TextStyle(
-                color: isOver ? Colors.redAccent : Colors.greenAccent,
+                color: isOver ? BentoTheme.negative : BentoTheme.positive,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
@@ -89,7 +89,7 @@ class CaloriesCard extends StatelessWidget {
                   Text(
                     '${(progress * 100).toInt()}%',
                     style: TextStyle(
-                      color: isOver ? Colors.redAccent : BentoTheme.accent,
+                      color: isOver ? BentoTheme.negative : BentoTheme.accent,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -100,7 +100,7 @@ class CaloriesCard extends StatelessWidget {
               ProgressBarX(
                 value: progress.toDouble(),
                 height: 6,
-                color: isOver ? Colors.redAccent : BentoTheme.accent,
+                color: isOver ? BentoTheme.negative : BentoTheme.accent,
               ),
               const SizedBox(height: 12),
               Row(
