@@ -211,7 +211,7 @@ class _TransactionsTabState extends State<TransactionsTab> {
       backgroundColor: BentoTheme.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
@@ -221,7 +221,7 @@ class _TransactionsTabState extends State<TransactionsTab> {
 
             return Container(
               padding: EdgeInsets.only(
-                top: 20,
+                top: 14,
                 left: 20,
                 right: 20,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 24,
@@ -230,6 +230,17 @@ class _TransactionsTabState extends State<TransactionsTab> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -462,7 +473,7 @@ class _TransactionsTabState extends State<TransactionsTab> {
                           _buildDayList(grouped[dayKey]!),
                         ],
                         const SliverToBoxAdapter(
-                          child: SizedBox(height: 80),
+                          child: SizedBox(height: 100),
                         ),
                       ],
                     ),

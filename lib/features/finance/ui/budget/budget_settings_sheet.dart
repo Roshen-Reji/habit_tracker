@@ -1,6 +1,5 @@
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -73,7 +72,7 @@ class _BudgetSettingsSheetState extends State<BudgetSettingsSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         top: 20,

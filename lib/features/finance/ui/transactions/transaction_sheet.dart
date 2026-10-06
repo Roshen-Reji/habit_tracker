@@ -393,7 +393,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -405,9 +405,20 @@ class _TransactionSheetState extends State<TransactionSheet> {
         key: _formKey,
         child: Column(
           children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             // Top handle & header bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
               child: Row(
                 children: [
                   Text(

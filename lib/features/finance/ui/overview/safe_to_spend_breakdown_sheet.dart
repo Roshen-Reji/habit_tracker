@@ -33,7 +33,7 @@ class SafeToSpendBreakdownSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surfaceElevated,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         left: 20,

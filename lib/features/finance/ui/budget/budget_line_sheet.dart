@@ -202,7 +202,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -498,7 +498,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                                     color: BentoTheme.textPrimary,
                                     fontWeight: FontWeight.bold),
                                 decoration: InputDecoration(
-                                  hintText: 'Override limit for ${_monthKey}',
+                                  hintText: 'Override limit for $_monthKey',
                                   hintStyle:
                                       const TextStyle(color: Colors.white24),
                                   border: InputBorder.none,

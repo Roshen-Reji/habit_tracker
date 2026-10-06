@@ -291,7 +291,7 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         top: 20,

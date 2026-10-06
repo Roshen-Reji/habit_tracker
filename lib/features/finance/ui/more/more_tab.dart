@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/backup/finance_backup_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
@@ -181,7 +180,7 @@ class MoreTab extends StatelessWidget {
                   if (onNavigate != null) onNavigate!('privacy');
                 },
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -214,11 +213,11 @@ class MoreTab extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: ExpressiveTokens.borderM,
+        borderRadius: BorderRadius.circular(16),
         child: ListTile(
           leading: Container(
             width: 38,

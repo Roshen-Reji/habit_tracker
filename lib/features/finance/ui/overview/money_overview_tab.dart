@@ -187,7 +187,7 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
 
               // Recent Transactions Header & List
               _buildRecentTransactionsSection(recentTransactions),
-              const SizedBox(height: 80),
+              const SizedBox(height: 100),
             ],
           ),
         ),

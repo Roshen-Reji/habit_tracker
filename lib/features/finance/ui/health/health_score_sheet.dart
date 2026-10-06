@@ -43,11 +43,22 @@ class HealthScoreSheet extends StatelessWidget {
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 24),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           Row(
             children: [
               Container(
@@ -273,7 +284,7 @@ class HealthScoreSheet extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '${comp.score.toStringAsFixed(0)}',
+                    comp.score.toStringAsFixed(0),
                     style: TextStyle(
                       color: barColor,
                       fontWeight: FontWeight.bold,
