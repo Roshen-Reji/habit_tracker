@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -30,8 +31,8 @@ class PdfReaderPage extends StatefulWidget {
 }
 
 class _PdfReaderPageState extends State<PdfReaderPage> {
-  late final PdfViewerController _pdfController;
-  late final PdfTextSearcher _textSearcher;
+  late PdfViewerController _pdfController;
+  PdfTextSearcher? _textSearcher;
 
   int _currentPage = 1;
   int _totalPages = 1;
@@ -54,6 +55,25 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   String? _resolvedPath;
   Uint8List? _pdfBytes;
   bool _isAttemptingFallback = false;
+  bool _isDocumentResolved = false;
+
+  Color get _accent => BentoTheme.accent;
+
+  void _withController(void Function(PdfViewerController c) action) {
+    if (_pdfController.isReady) {
+      action(_pdfController);
+    }
+  }
+
+  void _recreateController() {
+    _pdfController = PdfViewerController();
+    _textSearcher?.dispose();
+    _textSearcher = null;
+  }
+
+  void _onSearchChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -85,10 +105,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     }
 
     _pdfController = PdfViewerController();
-    _textSearcher = PdfTextSearcher(_pdfController);
-    _textSearcher.addListener(() {
-      if (mounted) setState(() {});
-    });
 
     // Start session timer for reading statistics
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -99,14 +115,21 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
   Future<void> _resolveDocument() async {
     try {
       await ReaderService.ensurePdfrxInitialized();
-      final resolved = await ReaderService.ensureFileInSandbox(widget.book.path);
-      if (mounted && resolved != _resolvedPath) {
+      final resolved =
+          await ReaderService.ensureFileInSandbox(widget.book.path);
+      if (mounted) {
         setState(() {
           _resolvedPath = resolved;
+          _isDocumentResolved = true;
         });
       }
     } catch (e) {
       debugPrint('Error resolving document: $e');
+      if (mounted) {
+        setState(() {
+          _isDocumentResolved = true;
+        });
+      }
     }
   }
 
@@ -122,6 +145,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
         if (mounted) {
           setState(() {
             _pdfBytes = bytes;
+            _recreateController();
             _isAttemptingFallback = false;
           });
           return;
@@ -154,7 +178,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     if (_isFullscreen) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
-    _textSearcher.dispose();
+    _textSearcher?.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -188,7 +212,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     if (_positionHistory.isNotEmpty) {
       final targetPage = _positionHistory.removeLast();
       setState(() {});
-      _pdfController.goToPage(pageNumber: targetPage);
+      _withController((c) => c.goToPage(pageNumber: targetPage));
     }
   }
 
@@ -414,7 +438,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                           onTap: () {
                             Navigator.pop(ctx);
                             _recordJump(_currentPage);
-                            _pdfController.goToPage(pageNumber: pageNum);
+                            _withController(
+                                (c) => c.goToPage(pageNumber: pageNum));
                           },
                         );
                       },
@@ -551,7 +576,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             node.children.isNotEmpty
                 ? LucideIcons.folderClosed
                 : LucideIcons.fileText,
-            color: const Color(0xFF38BDF8),
+            color: _accent,
             size: 16,
           ),
           title: Text(
@@ -585,7 +610,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             if (node.dest != null) {
               Navigator.pop(context);
               _recordJump(_currentPage);
-              _pdfController.goToDest(node.dest);
+              _withController((c) => c.goToDest(node.dest));
             }
           },
         ),
@@ -664,7 +689,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 value: sliderVal.clamp(1.0, _totalPages.toDouble()),
                 min: 1.0,
                 max: _totalPages > 1 ? _totalPages.toDouble() : 1.0,
-                activeColor: const Color(0xFF38BDF8),
+                activeColor: _accent,
                 onChanged: (val) {
                   setDialogState(() {
                     sliderVal = val;
@@ -681,7 +706,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF38BDF8),
+                backgroundColor: _accent,
                 foregroundColor: Colors.black,
               ),
               child: const Text('Go'),
@@ -690,7 +715,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 final safePage = target.clamp(1, _totalPages);
                 Navigator.pop(ctx);
                 _recordJump(_currentPage);
-                _pdfController.goToPage(pageNumber: safePage);
+                _withController((c) => c.goToPage(pageNumber: safePage));
               },
             ),
           ],
@@ -814,10 +839,9 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
-                          if (_pdfController.isReady) {
-                            _pdfController.setZoom(
-                                Offset.zero, _pdfController.coverScale);
-                          }
+                          _withController((c) {
+                            c.setZoom(Offset.zero, c.coverScale);
+                          });
                         },
                       ),
                     ),
@@ -833,11 +857,11 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
-                          if (_pdfController.isReady &&
-                              _pdfController.alternativeFitScale != null) {
-                            _pdfController.setZoom(Offset.zero,
-                                _pdfController.alternativeFitScale!);
-                          }
+                          _withController((c) {
+                            if (c.alternativeFitScale != null) {
+                              c.setZoom(Offset.zero, c.alternativeFitScale!);
+                            }
+                          });
                         },
                       ),
                     ),
@@ -860,7 +884,6 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     StateSetter setSheetState,
   ) {
     final isSelected = _themeMode == mode;
-    const accent = Color(0xFF38BDF8);
 
     return Expanded(
       child: GestureDetector(
@@ -880,7 +903,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             color: bgColor,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? accent : Colors.white.withValues(alpha: 0.15),
+              color:
+                  isSelected ? _accent : Colors.white.withValues(alpha: 0.15),
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -906,13 +930,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
     StateSetter setSheetState,
   ) {
     final isSelected = _viewMode == mode;
-    const accent = Color(0xFF38BDF8);
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
             _viewMode = mode;
+            _recreateController();
             final modeStr = mode == ReaderViewMode.horizontal
                 ? 'horizontal'
                 : (mode == ReaderViewMode.single ? 'single' : 'continuous');
@@ -924,24 +948,25 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? accent.withValues(alpha: 0.15)
+                ? _accent.withValues(alpha: 0.15)
                 : BentoTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? accent : Colors.white.withValues(alpha: 0.08),
+              color:
+                  isSelected ? _accent : Colors.white.withValues(alpha: 0.08),
               width: 1.5,
             ),
           ),
           child: Column(
             children: [
               Icon(icon,
-                  color: isSelected ? accent : BentoTheme.textSecondary,
+                  color: isSelected ? _accent : BentoTheme.textSecondary,
                   size: 18),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? accent : BentoTheme.textPrimary,
+                  color: isSelected ? _accent : BentoTheme.textPrimary,
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -1147,7 +1172,24 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF38BDF8); // Sky blue accent
+    if (!_isDocumentResolved) {
+      return Scaffold(
+        backgroundColor: _currentBackgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: _accent),
+              const SizedBox(height: 16),
+              Text(
+                'Loading document...',
+                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final activePath = _resolvedPath ?? widget.book.path;
     final file = File(activePath);
@@ -1172,7 +1214,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(LucideIcons.fileX, color: Colors.orangeAccent, size: 54),
+                const Icon(LucideIcons.fileX,
+                    color: Colors.orangeAccent, size: 54),
                 const SizedBox(height: 16),
                 Text(
                   'Document Not Found',
@@ -1186,7 +1229,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 Text(
                   'The file at "${widget.book.path}" could not be opened. It may have been moved or storage permission might be required.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 24),
                 Wrap(
@@ -1196,7 +1240,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                   children: [
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
+                        backgroundColor: _accent,
                         foregroundColor: Colors.black,
                       ),
                       icon: const Icon(LucideIcons.keyRound, size: 16),
@@ -1214,11 +1258,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                       icon: const Icon(LucideIcons.folderInput, size: 16),
                       label: const Text('Locate / Re-import'),
                       onPressed: () async {
-                        final newBook = await ReaderService.importPdfFromPicker();
+                        final newBook =
+                            await ReaderService.importPdfFromPicker();
                         if (newBook != null && mounted) {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (_) => PdfReaderPage(book: newBook)),
+                            MaterialPageRoute(
+                                builder: (_) => PdfReaderPage(book: newBook)),
                           );
                         }
                       },
@@ -1226,7 +1272,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: BentoTheme.textSecondary,
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                        side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.2)),
                       ),
                       icon: const Icon(LucideIcons.arrowLeft, size: 16),
                       label: const Text('Back to Library'),
@@ -1248,11 +1295,16 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
         if (doc.pages.isEmpty) return 1;
         return _currentPage.clamp(1, doc.pages.length);
       },
+      onViewerReady: (doc, controller) {
+        _textSearcher?.dispose();
+        _textSearcher = PdfTextSearcher(controller);
+        _textSearcher!.addListener(_onSearchChanged);
+      },
       loadingBannerBuilder: (context, bytesDownloaded, totalBytes) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(color: accent),
+            CircularProgressIndicator(color: _accent),
             const SizedBox(height: 16),
             Text(
               'Loading document...',
@@ -1267,10 +1319,11 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(LucideIcons.alertTriangle, color: Colors.redAccent, size: 48),
+              const Icon(LucideIcons.alertTriangle,
+                  color: Colors.redAccent, size: 48),
               const SizedBox(height: 16),
               Text(
-                'Failed to Render PDF',
+                "This PDF can't be opened",
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 16,
@@ -1278,11 +1331,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                '$error',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-              ),
+              if (!kReleaseMode)
+                Text(
+                  '$error',
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                ),
               const SizedBox(height: 20),
               Wrap(
                 spacing: 10,
@@ -1291,11 +1346,11 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 children: [
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
+                      backgroundColor: _accent,
                       foregroundColor: Colors.black,
                     ),
                     icon: const Icon(LucideIcons.refreshCw, size: 16),
-                    label: const Text('Retry Memory Stream'),
+                    label: const Text('Try again'),
                     onPressed: () async {
                       await _attemptMemoryFallback();
                     },
@@ -1303,11 +1358,34 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: BentoTheme.textPrimary,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.2)),
                     ),
-                    icon: const Icon(LucideIcons.arrowLeft, size: 16),
-                    label: const Text('Back'),
-                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(LucideIcons.fileSearch, size: 16),
+                    label: const Text('Open from files'),
+                    onPressed: () async {
+                      final newBook = await ReaderService.importPdfFromPicker();
+                      if (newBook != null && mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => PdfReaderPage(book: newBook)),
+                        );
+                      }
+                    },
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: BorderSide(
+                          color: Colors.redAccent.withValues(alpha: 0.4)),
+                    ),
+                    icon: const Icon(LucideIcons.trash2, size: 16),
+                    label: const Text('Remove from library'),
+                    onPressed: () async {
+                      await ReaderService.removeFile(widget.book.path);
+                      if (mounted) Navigator.pop(context);
+                    },
                   ),
                 ],
               ),
@@ -1316,13 +1394,13 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
         ),
       ),
       pagePaintCallbacks: [
-        _textSearcher.pageTextMatchPaintCallback,
+        if (_textSearcher != null) _textSearcher!.pageTextMatchPaintCallback,
       ],
       linkHandlerParams: PdfLinkHandlerParams(
         onLinkTap: (link) {
           if (link.dest != null) {
             _recordJump(_currentPage);
-            _pdfController.goToDest(link.dest);
+            _withController((c) => c.goToDest(link.dest));
           }
         },
       ),
@@ -1354,14 +1432,12 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             sourceName: widget.book.name,
             key: ValueKey('${_viewMode.name}_data_${_pdfBytes!.length}'),
             controller: _pdfController,
-            initialPageNumber: _currentPage,
             params: viewerParams,
           )
         : PdfViewer.file(
             activePath,
             key: ValueKey('${_viewMode.name}_$activePath'),
             controller: _pdfController,
-            initialPageNumber: _currentPage,
             params: viewerParams,
           );
 
@@ -1381,7 +1457,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
             onTap: () {
               if (_isSearchActive) {
                 setState(() => _isSearchActive = false);
-                _textSearcher.resetTextSearch();
+                _textSearcher?.resetTextSearch();
               } else {
                 setState(() => _showControls = !_showControls);
               }
@@ -1401,7 +1477,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
                   if (_currentPage > 1) {
-                    _pdfController.goToPage(pageNumber: _currentPage - 1);
+                    _withController(
+                        (c) => c.goToPage(pageNumber: _currentPage - 1));
                   }
                 },
               ),
@@ -1416,7 +1493,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
                   if (_currentPage < _totalPages) {
-                    _pdfController.goToPage(pageNumber: _currentPage + 1);
+                    _withController(
+                        (c) => c.goToPage(pageNumber: _currentPage + 1));
                   }
                 },
               ),
@@ -1446,7 +1524,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             BentoTheme.surfaceElevated.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: accent.withValues(alpha: 0.4),
+                          color: _accent.withValues(alpha: 0.4),
                           width: 1.2,
                         ),
                         boxShadow: [
@@ -1460,13 +1538,12 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(LucideIcons.arrowLeft,
-                              color: accent, size: 15),
+                          Icon(LucideIcons.arrowLeft, color: _accent, size: 15),
                           const SizedBox(width: 6),
                           Text(
                             'Back to p. ${_positionHistory.last}',
-                            style: const TextStyle(
-                              color: accent,
+                            style: TextStyle(
+                              color: _accent,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1563,7 +1640,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             ? LucideIcons.bookmarkCheck
                             : LucideIcons.bookmark,
                         color:
-                            _isBookmarked ? accent : BentoTheme.textSecondary,
+                            _isBookmarked ? _accent : BentoTheme.textSecondary,
                         size: 19,
                       ),
                       tooltip: 'Toggle Bookmark',
@@ -1624,8 +1701,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                             color:
                                 BentoTheme.textSecondary.withValues(alpha: 0.6),
                           ),
-                          prefixIcon: const Icon(LucideIcons.search,
-                              color: accent, size: 17),
+                          prefixIcon: Icon(LucideIcons.search,
+                              color: _accent, size: 17),
                           isDense: true,
                           filled: true,
                           fillColor: BentoTheme.surfaceElevated,
@@ -1638,7 +1715,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         ),
                         onSubmitted: (query) {
                           if (query.trim().isNotEmpty) {
-                            _textSearcher.startTextSearch(
+                            _textSearcher?.startTextSearch(
                               query.trim(),
                               caseInsensitive: true,
                               goToFirstMatch: true,
@@ -1649,11 +1726,11 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                     ),
                     const SizedBox(width: 8),
                     // Match counter
-                    if (_textSearcher.matches.isNotEmpty) ...[
+                    if ((_textSearcher?.matches.isNotEmpty ?? false)) ...[
                       Text(
-                        '${(_textSearcher.currentIndex ?? 0) + 1}/${_textSearcher.matches.length}',
-                        style: const TextStyle(
-                          color: accent,
+                        '${((_textSearcher?.currentIndex ?? 0) + 1)}/${_textSearcher?.matches.length ?? 0}',
+                        style: TextStyle(
+                          color: _accent,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1664,7 +1741,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         color: BentoTheme.textSecondary,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: () => _textSearcher.goToPrevMatch(),
+                        onPressed: () => _textSearcher?.goToPrevMatch(),
                       ),
                       const SizedBox(width: 4),
                       IconButton(
@@ -1672,7 +1749,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         color: BentoTheme.textSecondary,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: () => _textSearcher.goToNextMatch(),
+                        onPressed: () => _textSearcher?.goToNextMatch(),
                       ),
                     ],
                     IconButton(
@@ -1680,7 +1757,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                       color: BentoTheme.textSecondary,
                       onPressed: () {
                         setState(() => _isSearchActive = false);
-                        _textSearcher.resetTextSearch();
+                        _textSearcher?.resetTextSearch();
                       },
                     ),
                   ],
@@ -1740,8 +1817,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(LucideIcons.chevronsUpDown,
-                                    size: 11, color: accent),
+                                Icon(LucideIcons.chevronsUpDown,
+                                    size: 11, color: _accent),
                               ],
                             ),
                           ),
@@ -1750,10 +1827,10 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         Expanded(
                           child: SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: accent,
+                              activeTrackColor: _accent,
                               inactiveTrackColor:
                                   Colors.white.withValues(alpha: 0.12),
-                              thumbColor: accent,
+                              thumbColor: _accent,
                               trackHeight: 3,
                               thumbShape: const RoundSliderThumbShape(
                                   enabledThumbRadius: 6),
@@ -1771,8 +1848,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                               onChanged: (val) {
                                 final targetPage = val.round();
                                 if (targetPage != _currentPage) {
-                                  _pdfController.goToPage(
-                                      pageNumber: targetPage);
+                                  _withController((c) =>
+                                      c.goToPage(pageNumber: targetPage));
                                 }
                               },
                             ),
@@ -1805,20 +1882,20 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                               ? BentoTheme.textPrimary
                               : BentoTheme.textSecondary.withValues(alpha: 0.3),
                           onPressed: _currentPage > 1
-                              ? () => _pdfController.goToPage(
-                                  pageNumber: _currentPage - 1)
+                              ? () => _withController((c) =>
+                                  c.goToPage(pageNumber: _currentPage - 1))
                               : null,
                         ),
                         // Zoom Out
                         IconButton(
                           icon: const Icon(LucideIcons.zoomOut, size: 18),
                           color: BentoTheme.textSecondary,
-                          onPressed: () => _pdfController.zoomDown(),
+                          onPressed: () => _withController((c) => c.zoomDown()),
                         ),
                         // Bookmarks view
                         TextButton.icon(
-                          icon: const Icon(LucideIcons.bookmarkCheck,
-                              size: 14, color: accent),
+                          icon: Icon(LucideIcons.bookmarkCheck,
+                              size: 14, color: _accent),
                           label: Text(
                             'Bookmarks',
                             style: TextStyle(
@@ -1832,7 +1909,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                         IconButton(
                           icon: const Icon(LucideIcons.zoomIn, size: 18),
                           color: BentoTheme.textSecondary,
-                          onPressed: () => _pdfController.zoomUp(),
+                          onPressed: () => _withController((c) => c.zoomUp()),
                         ),
                         // Next page
                         IconButton(
@@ -1841,8 +1918,8 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                               ? BentoTheme.textPrimary
                               : BentoTheme.textSecondary.withValues(alpha: 0.3),
                           onPressed: _currentPage < _totalPages
-                              ? () => _pdfController.goToPage(
-                                  pageNumber: _currentPage + 1)
+                              ? () => _withController((c) =>
+                                  c.goToPage(pageNumber: _currentPage + 1))
                               : null,
                         ),
                       ],
