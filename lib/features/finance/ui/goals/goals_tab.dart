@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 import 'package:habit_tracker/features/finance/ui/goals/goal_contribution_dialog.dart';
@@ -148,15 +149,10 @@ class _GoalsTabState extends State<GoalsTab>
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: LinearProgressIndicator(
-                                  value: overallPct,
-                                  minHeight: 8,
-                                  backgroundColor: Colors.white12,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      BentoTheme.accent),
-                                ),
+                              ProgressBarX(
+                                value: overallPct,
+                                height: 8,
+                                semantic: ProgressSemantic.neutral,
                               ),
                             ],
                           ),
@@ -394,16 +390,11 @@ class _GoalsTabState extends State<GoalsTab>
                 const SizedBox(height: 12),
 
                 // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
+                ProgressBarX(
+                  value: pct,
+                  height: 6,
+                  customColor:
                       isDone ? const Color(0xFF10B981) : Color(goal.colorValue),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 12),
 

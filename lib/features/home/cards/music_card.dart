@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/home/widgets/expanded_player_sheet.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
@@ -244,15 +245,10 @@ class MusicCard extends StatelessWidget {
                   ),
                   if (track.durationMs > 0) ...[
                     const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: track.progressRatio,
-                        minHeight: 3,
-                        backgroundColor: Colors.white12,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(BentoTheme.accent),
-                      ),
+                    ProgressBarX(
+                      value: track.progressRatio,
+                      height: 3,
+                      color: BentoTheme.accent,
                     ),
                   ],
                 ],

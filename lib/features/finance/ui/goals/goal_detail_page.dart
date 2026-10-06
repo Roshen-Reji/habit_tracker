@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -330,16 +331,11 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           const SizedBox(height: 14),
 
           // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 10,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
+          ProgressBarX(
+            value: pct,
+            height: 10,
+            customColor:
                 isDone ? const Color(0xFF10B981) : Color(goal.colorValue),
-              ),
-            ),
           ),
           const SizedBox(height: 16),
 

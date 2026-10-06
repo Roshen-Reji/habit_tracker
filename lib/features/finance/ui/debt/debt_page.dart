@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -488,20 +489,17 @@ class _DebtPageState extends State<DebtPage> {
           const SizedBox(height: 12),
 
           // Utilisation Progress Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: limit > 0 ? (bal / limit).clamp(0.0, 1.0) : 0.0,
-              minHeight: 6,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                util.isDanger
-                    ? Colors.redAccent
-                    : (util.isWarning
-                        ? Colors.amberAccent
-                        : const Color(0xFF10B981)),
-              ),
-            ),
+          ProgressBarX(
+            value: ProgressMath.ratio(bal, limit),
+            height: 6,
+            semantic: util.isDanger
+                ? ProgressSemantic.over
+                : (util.isWarning
+                    ? ProgressSemantic.warn
+                    : ProgressSemantic.neutral),
+            customColor: (!util.isDanger && !util.isWarning)
+                ? const Color(0xFF10B981)
+                : null,
           ),
           const SizedBox(height: 10),
 

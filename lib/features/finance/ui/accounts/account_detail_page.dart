@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -490,14 +491,10 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             ],
           ),
           const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: utilization / 100,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(utilColor),
-              minHeight: 8,
-            ),
+          ProgressBarX(
+            value: ProgressMath.ratio(utilization, 100),
+            height: 8,
+            customColor: utilColor,
           ),
           const SizedBox(height: 14),
           Row(

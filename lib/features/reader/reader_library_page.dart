@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
@@ -736,20 +737,28 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: accent,
                                         foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 12),
                                       ),
-                                      icon: const Icon(LucideIcons.filePlus, size: 18),
-                                      label: const Text('Open PDF File', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      icon: const Icon(LucideIcons.filePlus,
+                                          size: 18),
+                                      label: const Text('Open PDF File',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold)),
                                       onPressed: _openSinglePdf,
                                     ),
                                     const SizedBox(height: 12),
                                     OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: BentoTheme.textPrimary,
-                                        side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                        side: BorderSide(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.15)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 18, vertical: 12),
                                       ),
-                                      icon: const Icon(LucideIcons.folderPlus, size: 18),
+                                      icon: const Icon(LucideIcons.folderPlus,
+                                          size: 18),
                                       label: const Text('Add PDF Folder'),
                                       onPressed: _pickFolder,
                                     ),
@@ -800,7 +809,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
         backgroundColor: accent,
         foregroundColor: Colors.black,
         icon: const Icon(LucideIcons.filePlus, size: 18),
-        label: const Text('Open PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Open PDF',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: _openSinglePdf,
       ),
     );
@@ -903,14 +913,10 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                 ),
                 const SizedBox(height: 4),
                 // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: book.progressFraction,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    valueColor: const AlwaysStoppedAnimation<Color>(accent),
-                    minHeight: 3,
-                  ),
+                ProgressBarX(
+                  value: book.progressFraction,
+                  height: 3,
+                  color: accent,
                 ),
                 const SizedBox(height: 4),
                 // Details info (page & size)
@@ -1017,15 +1023,10 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: book.progressFraction,
-                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                          valueColor:
-                              const AlwaysStoppedAnimation<Color>(accent),
-                          minHeight: 4,
-                        ),
+                      ProgressBarX(
+                        value: book.progressFraction,
+                        height: 4,
+                        color: accent,
                       ),
                       const SizedBox(height: 4),
                       Row(

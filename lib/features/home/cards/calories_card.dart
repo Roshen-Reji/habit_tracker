@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
@@ -96,14 +97,10 @@ class CaloriesCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              LinearProgressIndicator(
+              ProgressBarX(
                 value: progress.toDouble(),
-                minHeight: 6,
-                borderRadius: BorderRadius.circular(6),
-                backgroundColor: Colors.white12,
-                valueColor: AlwaysStoppedAnimation(
-                  isOver ? Colors.redAccent : BentoTheme.accent,
-                ),
+                height: 6,
+                color: isOver ? Colors.redAccent : BentoTheme.accent,
               ),
               const SizedBox(height: 12),
               Row(

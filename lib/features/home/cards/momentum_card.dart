@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
@@ -60,12 +61,19 @@ class _MomentumCardState extends State<MomentumCard> {
               ],
             ),
           ),
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeInOutCubic,
-            child: _isExpanded
-                ? _buildExpandedGraph(xpHistory)
-                : _buildCompactStrip(xpHistory),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const XpProgressBar(height: 5),
+              const SizedBox(height: 12),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOutCubic,
+                child: _isExpanded
+                    ? _buildExpandedGraph(xpHistory)
+                    : _buildCompactStrip(xpHistory),
+              ),
+            ],
           ),
         );
       },

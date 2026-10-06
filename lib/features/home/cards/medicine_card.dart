@@ -6,6 +6,7 @@ import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -228,20 +229,13 @@ class _MedicineCardState extends State<MedicineCard> {
                   Row(
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: stats.totalDosesToday > 0
-                                ? (stats.takenDosesToday /
-                                        stats.totalDosesToday)
-                                    .clamp(0.0, 1.0)
-                                : 0.0,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.08),
-                            valueColor:
-                                const AlwaysStoppedAnimation<Color>(accent),
-                            minHeight: 6,
+                        child: ProgressBarX(
+                          value: ProgressMath.ratio(
+                            stats.takenDosesToday,
+                            stats.totalDosesToday,
                           ),
+                          color: accent,
+                          height: 6,
                         ),
                       ),
                       const SizedBox(width: 12),

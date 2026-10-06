@@ -23,6 +23,7 @@ import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_cleanup_service.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 import 'package:habit_tracker/data/services/reminder_scheduler.dart';
+import 'package:habit_tracker/core/progression/progression_service.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -135,6 +136,9 @@ void main() async {
     await Hive.openBox<Goal>('mission_box_v4');
     await Hive.openBox<SpeechModel>('speech_vault');
     await Hive.openBox('xp_history');
+
+    // Initialize unified progression system (P5-2)
+    ProgressionService.init();
 
     // Register default home cards
     HomeCardRegistry.registerDefaults();

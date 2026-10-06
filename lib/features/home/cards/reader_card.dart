@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
@@ -401,14 +402,10 @@ class _ReaderCardState extends State<ReaderCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: book.progressFraction,
-                        minHeight: 2.5,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(accent),
-                      ),
+                    ProgressBarX(
+                      value: book.progressFraction,
+                      height: 3,
+                      color: accent,
                     ),
                   ],
                 ),

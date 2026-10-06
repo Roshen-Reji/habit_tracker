@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:habit_tracker/core/utils/format_utils.dart';
-import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
 import 'package:habit_tracker/data/services/reminder_scheduler.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
@@ -237,6 +237,9 @@ class FinanceRepository {
       }
     }
 
+    final dayKey = DateFormat('yyyy-MM-dd').format(tx.date);
+    await XpLedger.set(dayKey, 'fin_log_day', 5);
+
     _notify();
     return tx;
   }
@@ -359,6 +362,12 @@ class FinanceRepository {
       );
       _lastDeletedKey = targetKey;
       await target.delete();
+      final dayKey = DateFormat('yyyy-MM-dd').format(target.date);
+      final hasRemaining = storage.transactionBox.values
+          .any((t) => DateFormat('yyyy-MM-dd').format(t.date) == dayKey);
+      if (!hasRemaining) {
+        await XpLedger.set(dayKey, 'fin_log_day', 0);
+      }
       _notify();
     }
   }
@@ -374,6 +383,10 @@ class FinanceRepository {
     }
     _lastDeletedTx = null;
     _lastDeletedKey = null;
+
+    final dayKey = DateFormat('yyyy-MM-dd').format(restored.date);
+    await XpLedger.set(dayKey, 'fin_log_day', 5);
+
     _notify();
     return restored;
   }
@@ -438,7 +451,6 @@ class FinanceRepository {
 
   Future<Account> addAccount(Account account) async {
     await storage.accountBox.put(account.id, account);
-    GlobalXPService.addXP(15);
     _notify();
     return account;
   }
@@ -987,7 +999,8 @@ class FinanceRepository {
       note: note,
     );
     await storage.goalEntryBox.put(entry.id, entry);
-    GlobalXPService.addXP(20);
+    final dayKey = DateFormat('yyyy-MM-dd').format(entry.date);
+    await XpLedger.set(dayKey, 'fin_goal_contrib_day', 10);
     _notify();
     return entry;
   }
@@ -1007,18 +1020,31 @@ class FinanceRepository {
   Future<void> deleteGoal(String id) async {
     await storage.goalBox.delete(id);
     // Delete associated entries
-    final entries = storage.goalEntryBox.values
-        .where((e) => e.goalId == id)
-        .map((e) => e.id)
-        .toList();
-    for (final eid in entries) {
-      await storage.goalEntryBox.delete(eid);
+    final entries =
+        storage.goalEntryBox.values.where((e) => e.goalId == id).toList();
+    for (final entry in entries) {
+      await storage.goalEntryBox.delete(entry.id);
+      final dayKey = DateFormat('yyyy-MM-dd').format(entry.date);
+      final hasRemaining = storage.goalEntryBox.values
+          .any((e) => DateFormat('yyyy-MM-dd').format(e.date) == dayKey);
+      if (!hasRemaining) {
+        await XpLedger.set(dayKey, 'fin_goal_contrib_day', 0);
+      }
     }
     _notify();
   }
 
   Future<void> deleteGoalEntry(String id) async {
+    final entry = storage.goalEntryBox.get(id);
     await storage.goalEntryBox.delete(id);
+    if (entry != null) {
+      final dayKey = DateFormat('yyyy-MM-dd').format(entry.date);
+      final hasRemaining = storage.goalEntryBox.values
+          .any((e) => DateFormat('yyyy-MM-dd').format(e.date) == dayKey);
+      if (!hasRemaining) {
+        await XpLedger.set(dayKey, 'fin_goal_contrib_day', 0);
+      }
+    }
     _notify();
   }
 

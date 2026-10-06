@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -402,20 +403,14 @@ class _BudgetTabState extends State<BudgetTab> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: totalPct,
-                    minHeight: 8,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      totalSpent > totalBudget
-                          ? Colors.redAccent
-                          : (totalPct > 0.8
-                              ? Colors.amberAccent
-                              : BentoTheme.accent),
-                    ),
-                  ),
+                ProgressBarX(
+                  value: totalPct,
+                  height: 8,
+                  semantic: totalSpent > totalBudget
+                      ? ProgressSemantic.over
+                      : (totalPct > 0.8
+                          ? ProgressSemantic.warn
+                          : ProgressSemantic.neutral),
                 ),
               ],
             ),
@@ -623,22 +618,14 @@ class _BudgetTabState extends State<BudgetTab> {
                 const SizedBox(height: 12),
 
                 // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      status.isOverBudget
-                          ? Colors.redAccent
-                          : (status.isProjectedOver
-                              ? Colors.amberAccent
-                              : (pct > 0.8
-                                  ? Colors.amberAccent
-                                  : BentoTheme.accent)),
-                    ),
-                  ),
+                ProgressBarX(
+                  value: pct,
+                  height: 6,
+                  semantic: status.isOverBudget
+                      ? ProgressSemantic.over
+                      : ((status.isProjectedOver || pct > 0.8)
+                          ? ProgressSemantic.warn
+                          : ProgressSemantic.neutral),
                 ),
                 const SizedBox(height: 10),
 
@@ -897,20 +884,17 @@ class _BudgetTabState extends State<BudgetTab> {
             ],
           ),
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isSavings
-                    ? (progress.actual >= progress.target
-                        ? const Color(0xFF10B981)
-                        : color)
-                    : (isExceeded ? Colors.redAccent : color),
-              ),
-            ),
+          ProgressBarX(
+            value: pct,
+            height: 8,
+            semantic: (!isSavings && isExceeded)
+                ? ProgressSemantic.over
+                : ProgressSemantic.neutral,
+            customColor: isSavings
+                ? (progress.actual >= progress.target
+                    ? const Color(0xFF10B981)
+                    : color)
+                : (isExceeded ? Colors.redAccent : color),
           ),
           const SizedBox(height: 8),
           Row(

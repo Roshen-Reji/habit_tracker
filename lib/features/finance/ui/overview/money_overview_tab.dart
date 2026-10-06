@@ -6,6 +6,7 @@ import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
 import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
@@ -321,16 +322,12 @@ class _MoneyOverviewTabState extends State<MoneyOverviewTab> {
           ),
           const SizedBox(height: 14),
           // Savings rate bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: savingsRate,
-              color: savingsRate >= 0.2
-                  ? const Color(0xFF22C55E)
-                  : const Color(0xFFF59E0B),
-              backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
-            ),
+          ProgressBarX(
+            height: 7,
+            value: savingsRate,
+            customColor: savingsRate >= 0.2
+                ? const Color(0xFF22C55E)
+                : const Color(0xFFF59E0B),
           ),
           const SizedBox(height: 6),
           Row(

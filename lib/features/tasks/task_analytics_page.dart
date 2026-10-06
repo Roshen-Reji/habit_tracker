@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 
@@ -243,15 +244,10 @@ class TaskAnalyticsPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: percent,
-                          backgroundColor: AppColors.surfaceLight,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              _getCategoryColor(cat)),
-                          minHeight: 4,
-                        ),
+                      ProgressBarX(
+                        value: percent,
+                        color: _getCategoryColor(cat),
+                        height: 4,
                       ),
                     ],
                   ),

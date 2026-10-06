@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
 
@@ -300,14 +301,10 @@ class HealthScoreSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (comp.score / 100.0).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              valueColor: AlwaysStoppedAnimation<Color>(barColor),
-            ),
+          ProgressBarX(
+            value: ProgressMath.ratio(comp.score, 100),
+            height: 6,
+            customColor: barColor,
           ),
           const SizedBox(height: 8),
           Row(

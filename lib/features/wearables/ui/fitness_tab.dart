@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/wearables/data/sync_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
@@ -590,15 +591,10 @@ class _FitnessTabState extends State<FitnessTab> {
           const SizedBox(height: 18),
 
           // Contributing Factors Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: (score / 100.0).clamp(0.0, 1.0),
-              minHeight: 8,
-              backgroundColor: Colors.white12,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
+          ProgressBarX(
+            value: (score / 100.0).clamp(0.0, 1.0),
+            height: 8,
+            color: AppColors.primary,
           ),
           const SizedBox(height: 16),
 
@@ -765,15 +761,10 @@ class _FitnessTabState extends State<FitnessTab> {
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.white12,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.fitness),
-            ),
+          ProgressBarX(
+            value: progress,
+            height: 8,
+            color: AppColors.fitness,
           ),
           const SizedBox(height: 16),
           Row(

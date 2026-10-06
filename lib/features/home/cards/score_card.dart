@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/services/score_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/tasks/task_analytics_page.dart';
@@ -49,22 +50,29 @@ class ScoreCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildXPColumn('WEEK', '$week XP', 'Past 7 days'),
-              Container(
-                width: 1,
-                height: 38,
-                color: Colors.white.withValues(alpha: 0.08),
+              const XpProgressBar(height: 5),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildXPColumn('WEEK', '$week XP', 'Past 7 days'),
+                  Container(
+                    width: 1,
+                    height: 38,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  _buildXPColumn('MONTH', '$month XP', 'Past 30 days'),
+                  Container(
+                    width: 1,
+                    height: 38,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  _buildXPColumn('YEAR', '$year XP', 'Past 365 days'),
+                ],
               ),
-              _buildXPColumn('MONTH', '$month XP', 'Past 30 days'),
-              Container(
-                width: 1,
-                height: 38,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-              _buildXPColumn('YEAR', '$year XP', 'Past 365 days'),
             ],
           ),
         );
