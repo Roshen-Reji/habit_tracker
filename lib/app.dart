@@ -14,6 +14,7 @@ import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 import 'package:habit_tracker/data/services/reminder_scheduler.dart';
+import 'package:habit_tracker/features/money/data/plan_runner.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -46,6 +47,9 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
       WakeService.instance.rolloverMissedDays(DateTime.now());
       unawaited(RecurringRunner.run().catchError((e) {
         debugPrint('RecurringRunner error on resume: $e');
+      }));
+      unawaited(PlanRunner().runDuePlans().catchError((e) {
+        debugPrint('PlanRunner error on resume: $e');
       }));
       unawaited(ReminderScheduler.syncIfThrottleElapsed().catchError((e) {
         debugPrint('ReminderScheduler error on resume: $e');
