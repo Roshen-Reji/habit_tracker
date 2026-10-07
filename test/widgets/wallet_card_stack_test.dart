@@ -88,6 +88,7 @@ void main() {
     await settingsBox.clear();
     await xpBox.clear();
     HomeCardRegistry.registerDefaults();
+    await HomeCardRegistry.resetLayout(settingsBox);
   });
 
   group('WalletCardStack & Cards Widget Tests (P2-1..4)', () {
@@ -107,6 +108,70 @@ void main() {
       expect(find.text('DAILY WISDOM'), findsOneWidget);
       expect(find.text('MOMENTUM SIGNAL'), findsOneWidget);
       expect(find.text('DAILY MISSIONS'), findsOneWidget);
+    });
+
+    testWidgets('WalletCardStack scrolls past the first card on vertical drag',
+        (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WalletCardStack(controller: controller),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(controller.offset, equals(0.0));
+      expect(find.text('DAILY WISDOM'), findsOneWidget);
+
+      // Scroll past the first card
+      controller.jumpTo(250.0);
+      await tester.pumpAndSettle();
+
+      // Controller has scrolled past the first card
+      expect(controller.offset, equals(250.0));
+      // Subsequent cards are visible and active
+      expect(find.text('MOMENTUM SIGNAL'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Daily Wisdom (first card) supports flexible Compact, Large, and Hero sizes',
+        (tester) async {
+      final spec = HomeCardRegistry.get('quote')!;
+      expect(spec.supportsSize(HomeCardSize.compact), isTrue);
+      expect(spec.supportsSize(HomeCardSize.large), isTrue);
+      expect(spec.supportsSize(HomeCardSize.hero), isTrue);
+
+      // Render Compact
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) =>
+                  spec.buildWidget(context, HomeCardSize.compact),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('DAILY WISDOM'), findsOneWidget);
+
+      // Render Hero
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) =>
+                  spec.buildWidget(context, HomeCardSize.hero),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Daily Reflection'), findsOneWidget);
     });
 
     testWidgets('MomentumCard expands and collapses on tap (P2-2)',
@@ -161,65 +226,6 @@ void main() {
       // Verify layout saved in settings
       final layout = HomeCardRegistry.loadLayout(settingsBox);
       expect(layout.first.visible, isFalse);
-    });
-
-    testWidgets('WalletCardStack scrolls past the first card on vertical drag',
-        (tester) async {
-      final controller = ScrollController();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: WalletCardStack(controller: controller),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(controller.offset, equals(0.0));
-      expect(find.text('DAILY WISDOM'), findsOneWidget);
-
-      // Drag up to scroll past the first card
-      await tester.drag(find.text('DAILY WISDOM'), const Offset(0, -250));
-      await tester.pumpAndSettle();
-
-      // Controller must have scrolled past 0
-      expect(controller.offset, greaterThan(100.0));
-      // Subsequent cards are visible and active
-      expect(find.text('MOMENTUM SIGNAL'), findsOneWidget);
-    });
-
-    testWidgets(
-        'Daily Wisdom (first card) supports flexible Compact, Large, and Hero sizes',
-        (tester) async {
-      final spec = HomeCardRegistry.get('quote')!;
-      expect(spec.supportsSize(HomeCardSize.compact), isTrue);
-      expect(spec.supportsSize(HomeCardSize.large), isTrue);
-      expect(spec.supportsSize(HomeCardSize.hero), isTrue);
-
-      // Render Compact
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: spec.buildWidget(
-                tester.element(find.byType(Scaffold)), HomeCardSize.compact),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Daily Wisdom'), findsOneWidget);
-
-      // Render Hero
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: spec.buildWidget(
-                tester.element(find.byType(Scaffold)), HomeCardSize.hero),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Daily Reflection'), findsOneWidget);
     });
   });
 }

@@ -198,7 +198,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
             return NotificationListener<ScrollEndNotification>(
               onNotification: (notification) {
-                if (notification.depth == 0) {
+                if (notification.depth == 0 &&
+                    notification.dragDetails != null) {
                   _settleToNearestCard(focusOffsets);
                 }
                 return false;
