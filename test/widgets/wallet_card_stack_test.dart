@@ -157,6 +157,30 @@ void main() {
       expect(find.byType(Transform), findsWidgets);
     });
 
+    testWidgets('WalletCardStack allows scrolling all the way to final cards',
+        (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WalletCardStack(controller: controller),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final maxScroll = controller.position.maxScrollExtent;
+      expect(maxScroll, greaterThan(300.0));
+
+      // Scroll to the end of the stack
+      controller.jumpTo(maxScroll);
+      await tester.pumpAndSettle();
+
+      expect(controller.offset, equals(maxScroll));
+    });
+
     testWidgets(
         'Daily Wisdom (first card) supports flexible Compact, Large, and Hero sizes',
         (tester) async {

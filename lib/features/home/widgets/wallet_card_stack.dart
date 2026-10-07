@@ -6,11 +6,13 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/widgets/home_card_size_sheet.dart';
 
-/// A sleek 3D spatial card stack for the home screen.
+/// A sleek 3D spatial card stack for the home screen inspired by Apple iOS.
 ///
-/// Features depth blur, 3D perspective tilt, depth zOffset, horizontal parallax,
-/// and wallet-style layering while supporting flexible card heights (compact, large, hero)
-/// and full vertical scrolling past any card.
+/// Features:
+/// - Active card rests in the vertical middle of the screen (sharp, interactive).
+/// - Previous and next cards are visible above and below it, with optical depth blur.
+/// - Silky smooth iOS-style merge/replace transitions as cards cycle into focal center.
+/// - Full scroll range ensuring all cards (including the final cards) pop up to become active.
 class WalletCardStack extends StatefulWidget {
   final ScrollController? controller;
 
@@ -32,7 +34,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
   static const double _perspective = 0.00135;
 
-  static double _cardSpacingFor(HomeCardSize size, double viewportHeight) {
+  static double _cardHeightFor(HomeCardSize size, double viewportHeight) {
     switch (size) {
       case HomeCardSize.compact:
         return 145.0;
@@ -40,6 +42,17 @@ class _WalletCardStackState extends State<WalletCardStack> {
         return 245.0;
       case HomeCardSize.hero:
         return math.max(320.0, viewportHeight * 0.46);
+    }
+  }
+
+  static double _cardSpacingFor(HomeCardSize size, double viewportHeight) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return 160.0;
+      case HomeCardSize.large:
+        return 255.0;
+      case HomeCardSize.hero:
+        return math.max(330.0, viewportHeight * 0.48);
     }
   }
 
@@ -178,7 +191,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final viewportHeight =
-                constraints.maxHeight.isFinite ? constraints.maxHeight : 600.0;
+                constraints.maxHeight.isFinite ? constraints.maxHeight : 650.0;
 
             final cardSizes = visibleCards
                 .map((s) => HomeCardRegistry.getCardSize(settingsBox, s.id))
@@ -193,23 +206,23 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
             _focusOffsets = focusOffsets;
 
-            final lastCardSize = cardSizes.last;
-            final lastCardHeight =
-                _cardSpacingFor(lastCardSize, viewportHeight);
+            // Full scroll extent ensuring even the last cards can scroll to center
             final totalScrollHeight =
-                focusOffsets.last + lastCardHeight + 120.0;
+                focusOffsets.last + viewportHeight + 120.0;
 
             final reduceMotion = MediaQuery.of(context).disableAnimations;
             final activeClamped =
                 _activeIndex.clamp(0, visibleCards.length - 1);
+            final currentScroll =
+                _scrollController.hasClients ? _scrollController.offset : 0.0;
 
-            // Layer ordering: cards furthest from active are painted first (deepest in stack),
-            // active card is painted last (at the very top of the stack).
+            // Layer ordering: cards furthest from current scroll position are painted
+            // first (deepest in stack), closest card is painted last (on top, iOS style).
             final paintOrder =
                 List<int>.generate(visibleCards.length, (i) => i);
             paintOrder.sort((a, b) {
-              final distA = (a - activeClamped).abs();
-              final distB = (b - activeClamped).abs();
+              final distA = (focusOffsets[a] - currentScroll).abs();
+              final distB = (focusOffsets[b] - currentScroll).abs();
               if (distA != distB) {
                 return distB.compareTo(distA);
               }
@@ -290,9 +303,15 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
                           final cardSpec = visibleCards[index];
                           final cardSize = cardSizes[index];
-                          final cardTop = focusOffsets[index];
+                          final cardHeight =
+                              _cardHeightFor(cardSize, viewportHeight);
                           final cardStep =
                               _cardSpacingFor(cardSize, viewportHeight);
+
+                          // Position card so it centers vertically on screen when active
+                          final focalCenterY = math.max(
+                              24.0, (viewportHeight - cardHeight) / 2.0);
+                          final cardTop = focusOffsets[index] + focalCenterY;
 
                           return Positioned(
                             top: cardTop,
@@ -330,52 +349,43 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                       _scrollController.hasClients
                                           ? _scrollController.offset
                                           : 0.0;
-                                  final delta = cardTop - scrollOffset;
-                                  final relativeDepth = delta / cardStep;
-                                  final isCardActive = (index == activeClamped);
+                                  final delta =
+                                      focusOffsets[index] - scrollOffset;
+                                  final normalized = delta / cardStep;
+                                  final absNormalized = normalized.abs();
 
-                                  // Depth amount: 0.0 when active, up to 1.0 when receding
-                                  final depthAmount = isCardActive
-                                      ? 0.0
-                                      : relativeDepth.abs().clamp(0.0, 2.2) /
-                                          2.2;
+                                  // Depth amount: 0.0 at active center, smoothly increases as card recedes
+                                  final depthAmount =
+                                      absNormalized.clamp(0.0, 1.8) / 1.8;
 
-                                  // Vertical tuck parallax
+                                  // Vertical tuck compression:
+                                  // Upcoming cards tucked closer from below; previous cards tucked gently above
                                   final double yParallax;
                                   if (delta > 0) {
-                                    // Peeking cards below tuck closer into the stack
                                     yParallax =
-                                        -(delta * 0.15).clamp(0.0, 45.0);
+                                        -(normalized.clamp(0.0, 2.5) * 26.0);
                                   } else {
-                                    // Past cards glide up with slight inertia lag,
-                                    // never stuck, freely exiting off the top
                                     yParallax =
-                                        ((-delta) * 0.10).clamp(0.0, 32.0);
+                                        ((-normalized).clamp(0.0, 2.5) * 24.0);
                                   }
 
                                   // 3D Spatial Transforms
-                                  final horizontalParallax = isCardActive
-                                      ? 0.0
-                                      : relativeDepth.clamp(-2.0, 2.0) * 1.8;
+                                  final horizontalParallax =
+                                      normalized.clamp(-2.0, 2.0) * 1.5;
 
-                                  final zOffset =
-                                      isCardActive ? 0.0 : -depthAmount * 34.0;
+                                  final zOffset = -depthAmount * 32.0;
 
-                                  final tilt = isCardActive
-                                      ? 0.0
-                                      : relativeDepth.clamp(-1.0, 1.0) * 0.045;
+                                  final tilt =
+                                      normalized.clamp(-1.0, 1.0) * 0.042;
 
                                   final scale = (1.0 - (depthAmount * 0.085))
                                       .clamp(0.90, 1.0);
 
-                                  final opacity = isCardActive
-                                      ? 1.0
-                                      : (0.72 + ((1.0 - depthAmount) * 0.20))
-                                          .clamp(0.70, 1.0);
+                                  final opacity = (1.0 - (depthAmount * 0.20))
+                                      .clamp(0.72, 1.0);
 
-                                  final blurSigma = isCardActive
-                                      ? 0.0
-                                      : (depthAmount * 3.4).clamp(0.0, 4.0);
+                                  final blurSigma =
+                                      (depthAmount * 3.6).clamp(0.0, 4.2);
 
                                   final transform = Matrix4.identity()
                                     ..setEntry(3, 2, _perspective)
@@ -386,11 +396,11 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                     offset:
                                         Offset(horizontalParallax, yParallax),
                                     child: Transform(
-                                      alignment: Alignment.topCenter,
+                                      alignment: Alignment.center,
                                       transform: transform,
                                       child: Transform.scale(
                                         scale: scale,
-                                        alignment: Alignment.topCenter,
+                                        alignment: Alignment.center,
                                         child: Opacity(
                                           opacity: opacity,
                                           child: ClipRRect(
