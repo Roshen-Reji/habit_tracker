@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
@@ -18,6 +19,17 @@ class UpcomingBillsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Hive.isBoxOpen('fin_recurring')) {
+      return HomeCardFrame(
+        icon: LucideIcons.calendarClock,
+        title: 'Upcoming Bills',
+        child: Text(
+          'No bills data available',
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+        ),
+      );
+    }
+
     final controller = FinanceController();
     final dueItems = controller.getUnpostedDueItems();
     final totalDue = dueItems.fold(0.0, (sum, i) => sum + i.rule.amount);

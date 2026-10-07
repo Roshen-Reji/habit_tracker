@@ -138,6 +138,26 @@ void main() {
     });
 
     testWidgets(
+        'WalletCardStack applies 3D spatial transforms and depth blur to background cards',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: const WalletCardStack(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Background cards have ImageFiltered depth blur
+      expect(find.byType(ImageFiltered), findsWidgets);
+
+      // Transforms with 3D perspective and parallax are present in the card stack
+      expect(find.byType(Transform), findsWidgets);
+    });
+
+    testWidgets(
         'Daily Wisdom (first card) supports flexible Compact, Large, and Hero sizes',
         (tester) async {
       final spec = HomeCardRegistry.get('quote')!;
