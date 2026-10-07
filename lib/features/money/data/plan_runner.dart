@@ -27,10 +27,11 @@ class PlanRunner {
   MoneyState _state;
   bool _isRunning = false;
 
-  /// Runs all due automatic plans up to [clock].
-  Future<void> runDuePlans({DateTime? clock}) async {
-    if (_isRunning) return;
+  /// Runs all due automatic plans up to [clock]. Returns the count of posted occurrences.
+  Future<int> runDuePlans({DateTime? clock}) async {
+    if (_isRunning) return 0;
     _isRunning = true;
+    int postedCount = 0;
 
     try {
       final now = clock ?? DateTime.now();
@@ -45,7 +46,6 @@ class PlanRunner {
         }
       }
 
-      int postedCount = 0;
       final needsFundsPlans = <PlanOccurrence>[];
 
       for (final plan in plans) {
@@ -166,5 +166,6 @@ class PlanRunner {
     } finally {
       _isRunning = false;
     }
+    return postedCount;
   }
 }

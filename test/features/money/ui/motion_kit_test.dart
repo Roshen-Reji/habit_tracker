@@ -10,6 +10,8 @@ import 'package:habit_tracker/features/money/ui/widgets/money_progress_bar.dart'
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 import 'package:habit_tracker/features/money/ui/today/today_tab.dart';
 import 'package:habit_tracker/features/money/ui/activity/activity_tab.dart';
+import 'package:habit_tracker/features/money/ui/plans/plans_tab.dart';
+import 'package:habit_tracker/features/money/ui/accounts/accounts_tab.dart';
 import 'package:habit_tracker/features/money/ui/shell/money_shell.dart';
 
 void main() {
@@ -197,13 +199,13 @@ void main() {
       await tester.tap(find.text('Plans'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Plans Tab'), findsOneWidget);
+      expect(find.byType(PlansTab), findsOneWidget);
 
       // Tap Accounts tab
       await tester.tap(find.text('Accounts'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Accounts Tab'), findsOneWidget);
+      expect(find.byType(AccountsTab), findsOneWidget);
     });
 
     testWidgets('MoneyShell deep-linking opens requested tab on start',
@@ -215,7 +217,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      expect(find.text('Plans Tab'), findsOneWidget);
+      expect(find.byType(PlansTab), findsOneWidget);
     });
   });
 }
