@@ -83,10 +83,6 @@ class _ExpandedPlayerSheetState extends State<ExpandedPlayerSheet> {
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1,
-            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

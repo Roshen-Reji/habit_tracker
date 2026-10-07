@@ -167,22 +167,23 @@ class _HomeLayoutSettingsPageState extends State<HomeLayoutSettingsPage> {
                     final title = spec?.title ?? item.id;
                     final icon = spec?.icon ?? LucideIcons.layoutGrid;
 
+                    final currentSize =
+                        HomeCardRegistry.getCardSize(box, item.id);
+                    final supportedSizes =
+                        spec?.supportedSizes ?? [HomeCardSize.compact];
+
                     return Container(
                       key: ValueKey(item.id),
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: BentoTheme.surface,
+                        color: BentoTheme.surfaceRaised,
                         borderRadius:
                             BorderRadius.circular(ExpressiveTokens.radiusM),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.06),
-                          width: 1.0,
-                        ),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 4,
+                          vertical: 6,
                         ),
                         leading: Container(
                           width: 36,
@@ -209,6 +210,48 @@ class _HomeLayoutSettingsPageState extends State<HomeLayoutSettingsPage> {
                             fontSize: 15,
                           ),
                         ),
+                        subtitle: supportedSizes.length > 1
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Wrap(
+                                  spacing: 6,
+                                  children: supportedSizes.map((s) {
+                                    final isSelected = currentSize == s;
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        await HomeCardRegistry.setCardSize(
+                                            box, item.id, s);
+                                        setState(() {});
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? BentoTheme.accent
+                                                  .withValues(alpha: 0.16)
+                                              : BentoTheme.surfaceElevated,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          s.name.toUpperCase(),
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? BentoTheme.accent
+                                                : BentoTheme.textSecondary,
+                                            fontSize: 10,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              )
+                            : null,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

@@ -6,6 +6,8 @@ import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -13,7 +15,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MedicineCard extends StatefulWidget {
-  const MedicineCard({super.key});
+  final HomeCardSize size;
+
+  const MedicineCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<MedicineCard> createState() => _MedicineCardState();
@@ -85,7 +92,7 @@ class _MedicineCardState extends State<MedicineCard> {
                   trailingText,
                   style: TextStyle(
                     color: stats.complianceRate >= 1.0 && stats.hasDosesToday
-                        ? Colors.greenAccent
+                        ? BentoTheme.positive
                         : accent,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -104,15 +111,11 @@ class _MedicineCardState extends State<MedicineCard> {
                       decoration: BoxDecoration(
                         color: Colors.amber.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(LucideIcons.alertTriangle,
-                              color: Colors.amberAccent, size: 14),
+                          Icon(LucideIcons.alertTriangle,
+                              color: BentoTheme.warning, size: 14),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -136,10 +139,6 @@ class _MedicineCardState extends State<MedicineCard> {
                         color: BentoTheme.surfaceElevated,
                         borderRadius:
                             BorderRadius.circular(ExpressiveTokens.radiusSm),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          width: 1,
-                        ),
                       ),
                       child: Row(
                         children: [
@@ -202,7 +201,7 @@ class _MedicineCardState extends State<MedicineCard> {
                                 ? LucideIcons.checkCircle2
                                 : LucideIcons.plusCircle,
                             color: hasMeds
-                                ? Colors.greenAccent
+                                ? BentoTheme.positive
                                 : BentoTheme.textSecondary,
                             size: 20,
                           ),
@@ -224,24 +223,68 @@ class _MedicineCardState extends State<MedicineCard> {
                     const SizedBox(height: 12),
                   ],
 
+                  if (widget.size == HomeCardSize.large &&
+                      medBox.values.where((m) => m.active).isNotEmpty) ...[
+                    Text(
+                      'ACTIVE MEDICATIONS',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...medBox.values.where((m) => m.active).take(3).map((m) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: accent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                m.name,
+                                style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              m.doseLabel,
+                              style: TextStyle(
+                                color: BentoTheme.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                  ],
+
                   // Daily progress bar
                   Row(
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: stats.totalDosesToday > 0
-                                ? (stats.takenDosesToday /
-                                        stats.totalDosesToday)
-                                    .clamp(0.0, 1.0)
-                                : 0.0,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.08),
-                            valueColor:
-                                const AlwaysStoppedAnimation<Color>(accent),
-                            minHeight: 6,
+                        child: ProgressBarX(
+                          value: ProgressMath.ratio(
+                            stats.takenDosesToday,
+                            stats.totalDosesToday,
                           ),
+                          color: accent,
+                          height: 6,
                         ),
                       ),
                       const SizedBox(width: 12),

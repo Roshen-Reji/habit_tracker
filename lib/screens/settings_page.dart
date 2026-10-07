@@ -9,6 +9,10 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_layout_settings_page.dart';
 import 'package:habit_tracker/features/wearables/ui/wearables_settings_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
+import 'package:habit_tracker/core/progression/progression_service.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/data/models/user_rank.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,108 +24,33 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = true;
 
-  // Rank Ladder
-  final List<String> _ranks = [
-    "RECRUIT",
-    "OPERATIVE",
-    "SPECIALIST",
-    "VETERAN",
-    "LEADER",
-    "LEGEND"
-  ];
-
-  /// Calculates Rank, Level, and the user's specific "Position" based on category focus
-  Map<String, dynamic> _calculateServiceRecord(List<Goal> goals) {
-    double totalXp = 0;
-    Map<GoalCategory, int> categoryPoints = {};
-
-    for (var goal in goals) {
-      // Priority weighting for XP
-      double weight = goal.type == GoalType.monthly
-          ? 50.0
-          : (goal.type == GoalType.weekly ? 20.0 : 5.0);
-
-      if (goal.isCompleted) {
-        totalXp += weight;
-        categoryPoints[goal.category] =
-            (categoryPoints[goal.category] ?? 0) + weight.toInt();
-      }
-      totalXp += (goal.streakCount * (weight * 0.1));
-    }
-
-    // Determine "Position" (Specialization) based on max points in a category
-    String position = "UNASSIGNED";
-    if (categoryPoints.isNotEmpty) {
-      final bestCategory = categoryPoints.entries
-          .reduce((a, b) => a.value > b.value ? a : b)
-          .key;
-      switch (bestCategory) {
-        case GoalCategory.learning:
-          position = "LEAD RESEARCHER";
-          break;
-        case GoalCategory.fitness:
-          position = "TACTICAL ATHLETE";
-          break;
-        case GoalCategory.productivity:
-          position = "OPERATIONS CHIEF";
-          break;
-        case GoalCategory.health:
-          position = "BIO-SECURITY OFFICER";
-          break;
-        case GoalCategory.hobby:
-          position = "CREATIVE DIRECTOR";
-          break;
-      }
-    }
-
-    int level = (totalXp / 100).floor();
-    int rankIndex = level.clamp(0, _ranks.length - 1);
-    double progressToNext = (totalXp % 100) / 100;
-
-    return {
-      "title": _ranks[rankIndex],
-      "position": position,
-      "level": level + 1,
-      "progress": progressToNext,
-      "xp": totalXp.toInt()
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BentoTheme.background,
-      body: ValueListenableBuilder(
-          valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-          builder: (context, Box<Goal> missionBox, _) {
-            final goals = missionBox.values.toList();
-            final record = _calculateServiceRecord(goals);
-
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildAppBar(),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 20),
-                    child: Column(
-                      children: [
-                        _buildProfileSection(record),
-                        const SizedBox(height: 32),
-                        _buildSystemConfigGroup(),
-                        const SizedBox(height: 24),
-                        _buildAiConfigGroup(),
-                        const SizedBox(height: 24),
-                        _buildDataManagementGroup(),
-                        const SizedBox(height: 120),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildAppBar(),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                children: [
+                  _buildProfileSection(),
+                  const SizedBox(height: 32),
+                  _buildSystemConfigGroup(),
+                  const SizedBox(height: 24),
+                  _buildAiConfigGroup(),
+                  const SizedBox(height: 24),
+                  _buildDataManagementGroup(),
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -143,92 +72,62 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildProfileSection(Map<String, dynamic> record) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(),
-      builder: (context, Box settings, _) {
-        final String name = settings.get('username', defaultValue: 'USER');
+  Widget _buildProfileSection() {
+    return ValueListenableBuilder<UserRank>(
+      valueListenable: ProgressionService.rankListenable,
+      builder: (context, rank, _) {
+        return ValueListenableBuilder(
+          valueListenable: Hive.box('settings').listenable(keys: ['username']),
+          builder: (context, Box settings, _) {
+            final String name = settings.get('username', defaultValue: 'USER');
 
-        return BentoContainer(
-          borderRadius: ExpressiveTokens.radiusXL,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                      radius: 30,
-                      backgroundColor: BentoTheme.accent,
-                      child: Icon(LucideIcons.user,
-                          size: 35, color: Colors.black)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(name,
-                            style: TextStyle(
-                                color: BentoTheme.textPrimary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold)),
-                        Text(record['position'],
-                            style: TextStyle(
-                                color: BentoTheme.accent,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5)),
-                        Text(
-                            "RANK: ${record['title']} (LVL ${record['level']})",
-                            style: TextStyle(
-                                color: BentoTheme.textSecondary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                      icon: Icon(LucideIcons.edit,
-                          color: BentoTheme.textSecondary, size: 18),
-                      onPressed: () => _editUsername(settings)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            return BentoContainer(
+              borderRadius: ExpressiveTokens.radiusXL,
+              child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("EVOLUTION PROGRESS",
-                          style: TextStyle(
-                              color: BentoTheme.textSecondary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold)),
-                      Text("${record['xp']} XP",
-                          style: TextStyle(
-                              color: BentoTheme.textSecondary, fontSize: 10)),
+                      CircleAvatar(
+                          radius: 30,
+                          backgroundColor: BentoTheme.accent,
+                          child: Icon(LucideIcons.user,
+                              size: 35, color: Colors.black)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name,
+                                style: TextStyle(
+                                    color: BentoTheme.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold)),
+                            Text(rank.position,
+                                style: TextStyle(
+                                    color: BentoTheme.accent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5)),
+                            Text("RANK: ${rank.title} (LVL ${rank.level})",
+                                style: TextStyle(
+                                    color: BentoTheme.textSecondary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                          icon: Icon(LucideIcons.edit,
+                              color: BentoTheme.textSecondary, size: 18),
+                          onPressed: () => _editUsername(settings)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: record['progress']),
-                        duration: const Duration(milliseconds: 1500),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, _) {
-                          return LinearProgressIndicator(
-                            value: value,
-                            backgroundColor:
-                                BentoTheme.textPrimary.withValues(alpha: 0.1),
-                            color: BentoTheme.accent,
-                            minHeight: 6,
-                          );
-                        }),
-                  ),
+                  const SizedBox(height: 20),
+                  const XpProgressBar(height: 8),
                 ],
-              )
-            ],
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -285,6 +184,15 @@ class _SettingsPageState extends State<SettingsPage> {
             }),
             _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
                 () => _editCurrency(settings)),
+            _buildActionTile(LucideIcons.bellRing, "Finance Reminders & Alarms",
+                "Schedules, styles, permissions & test", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RemindersSettingsPage(),
+                ),
+              );
+            }),
             _buildActionTile(
                 LucideIcons.layoutGrid, "Home Layout", "Reorder & toggle cards",
                 () {
@@ -295,9 +203,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               );
             }),
-            _buildActionTile(
-                LucideIcons.watch,
-                "Galaxy Watch & Wearables",
+            _buildActionTile(LucideIcons.watch, "Galaxy Watch & Wearables",
                 "Samsung Health sync, AGEs index & sleep", () {
               Navigator.push(
                 context,

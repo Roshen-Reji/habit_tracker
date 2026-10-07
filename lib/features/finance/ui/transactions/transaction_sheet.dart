@@ -100,7 +100,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
 
     _kind = tx?.effectiveKind ?? widget.initialKind ?? 'expense';
     _amountController = TextEditingController(
-      text: tx != null ? tx.amount.abs().toStringAsFixed(tx.amount.abs().truncateToDouble() == tx.amount.abs() ? 0 : 2) : '',
+      text: tx != null
+          ? tx.amount.abs().toStringAsFixed(
+              tx.amount.abs().truncateToDouble() == tx.amount.abs() ? 0 : 2)
+          : '',
     );
     _titleController = TextEditingController(text: tx?.title ?? '');
     _merchantController = TextEditingController(text: tx?.merchant ?? '');
@@ -138,7 +141,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
     final accounts = _controller.activeAccounts;
     if (accounts.isEmpty) return;
 
-    if (_selectedAccountId == null || !accounts.any((a) => a.id == _selectedAccountId)) {
+    if (_selectedAccountId == null ||
+        !accounts.any((a) => a.id == _selectedAccountId)) {
       _selectedAccountId = accounts.first.id;
     }
 
@@ -167,7 +171,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
       _kind == 'transfer' || _kind == 'investment' || _kind == 'debt_payment';
 
   bool get _needsCategory =>
-      _kind == 'expense' || _kind == 'income' || _kind == 'refund' || _kind == 'investment';
+      _kind == 'expense' ||
+      _kind == 'income' ||
+      _kind == 'refund' ||
+      _kind == 'investment';
 
   List<Category> get _filteredCategories {
     final all = _controller.activeCategories;
@@ -227,7 +234,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an amount before splitting')),
+        const SnackBar(
+            content: Text('Please enter an amount before splitting')),
       );
       return;
     }
@@ -265,7 +273,9 @@ class _TransactionSheetState extends State<TransactionSheet> {
     if (_needsDestinationAccount) {
       if (_selectedAccountId == _selectedToAccountId) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Source and destination accounts must be different')),
+          const SnackBar(
+              content:
+                  Text('Source and destination accounts must be different')),
         );
         return;
       }
@@ -306,9 +316,13 @@ class _TransactionSheetState extends State<TransactionSheet> {
         categoryId: _selectedCategoryId,
         category: category?.name ?? 'Other',
         date: combinedDateTime,
-        merchant: _merchantController.text.trim().isNotEmpty ? _merchantController.text.trim() : null,
+        merchant: _merchantController.text.trim().isNotEmpty
+            ? _merchantController.text.trim()
+            : null,
         paymentMethod: _selectedPaymentMethod,
-        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
         tags: tags.isNotEmpty ? tags : null,
         splits: _splitsJson,
         interestAmount: interestAmount,
@@ -318,7 +332,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
 
       if (widget.existingTransaction != null) {
         await _repository.updateTransaction(
-          widget.existingTransaction!.id ?? widget.existingTransaction!.key.toString(),
+          widget.existingTransaction!.id ??
+              widget.existingTransaction!.key.toString(),
           draft,
         );
       } else {
@@ -378,7 +393,7 @@ class _TransactionSheetState extends State<TransactionSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -390,9 +405,20 @@ class _TransactionSheetState extends State<TransactionSheet> {
         key: _formKey,
         child: Column(
           children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             // Top handle & header bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
               child: Row(
                 children: [
                   Text(
@@ -410,7 +436,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
                     TextButton.icon(
                       onPressed: _repeatLast,
                       icon: const Icon(LucideIcons.repeat, size: 14),
-                      label: const Text('Repeat Last', style: TextStyle(fontSize: 12)),
+                      label: const Text('Repeat Last',
+                          style: TextStyle(fontSize: 12)),
                       style: TextButton.styleFrom(
                         foregroundColor: BentoTheme.accent,
                         visualDensity: VisualDensity.compact,
@@ -418,7 +445,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
                     ),
                   if (widget.existingTransaction != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.trash2, size: 18, color: Colors.redAccent),
+                      icon: const Icon(LucideIcons.trash2,
+                          size: 18, color: Colors.redAccent),
                       onPressed: _delete,
                     ),
                   IconButton(
@@ -433,7 +461,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
             // Scrollable fields
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -509,7 +538,9 @@ class _TransactionSheetState extends State<TransactionSheet> {
                           ),
                         )
                       : Text(
-                          widget.existingTransaction != null ? 'Update' : 'Save Transaction',
+                          widget.existingTransaction != null
+                              ? 'Update'
+                              : 'Save Transaction',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -567,15 +598,24 @@ class _TransactionSheetState extends State<TransactionSheet> {
 
   String _kindLabel(String k) {
     switch (k) {
-      case 'expense': return 'Expense';
-      case 'income': return 'Income';
-      case 'transfer': return 'Transfer';
-      case 'refund': return 'Refund';
-      case 'investment': return 'Investment';
-      case 'debt_payment': return 'Debt Payment';
-      case 'adjustment': return 'Adjustment';
-      case 'reimbursement': return 'Reimbursement';
-      default: return k;
+      case 'expense':
+        return 'Expense';
+      case 'income':
+        return 'Income';
+      case 'transfer':
+        return 'Transfer';
+      case 'refund':
+        return 'Refund';
+      case 'investment':
+        return 'Investment';
+      case 'debt_payment':
+        return 'Debt Payment';
+      case 'adjustment':
+        return 'Adjustment';
+      case 'reimbursement':
+        return 'Reimbursement';
+      default:
+        return k;
     }
   }
 
@@ -601,7 +641,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
             child: TextFormField(
               controller: _amountController,
               autofocus: widget.existingTransaction == null,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontSize: 32,
@@ -616,7 +657,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
               validator: (v) {
                 final num = double.tryParse(v ?? '');
                 if (num == null) return 'Enter a valid amount';
-                if (num <= 0 && _kind != 'adjustment') return 'Amount must be > 0';
+                if (num <= 0 && _kind != 'adjustment')
+                  return 'Amount must be > 0';
                 return null;
               },
             ),
@@ -640,8 +682,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
                 dropdownColor: BentoTheme.surface,
                 style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                 decoration: InputDecoration(
-                  labelText: _needsDestinationAccount ? 'From Account' : 'Account',
-                  labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  labelText:
+                      _needsDestinationAccount ? 'From Account' : 'Account',
+                  labelStyle:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                   filled: true,
                   fillColor: BentoTheme.surface,
                   border: OutlineInputBorder(
@@ -672,7 +716,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
                   style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     labelText: 'To Account',
-                    labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    labelStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                     filled: true,
                     fillColor: BentoTheme.surface,
                     border: OutlineInputBorder(
@@ -680,7 +725,9 @@ class _TransactionSheetState extends State<TransactionSheet> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  items: accounts.where((a) => a.id != _selectedAccountId).map((a) {
+                  items: accounts
+                      .where((a) => a.id != _selectedAccountId)
+                      .map((a) {
                     return DropdownMenuItem<String>(
                       value: a.id,
                       child: Text(a.name, overflow: TextOverflow.ellipsis),
@@ -698,7 +745,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
                             _kind = 'debt_payment';
                           }
                           _ensureValidCategory();
-                        } catch (_) {}
+                        } catch (e) {
+                          debugPrint(
+                              'TransactionSheet account kind lookup error: $e');
+                        }
                       }
                     });
                   },
@@ -747,16 +797,13 @@ class _TransactionSheetState extends State<TransactionSheet> {
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: 75,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? BentoTheme.accent.withValues(alpha: 0.2)
                         : BentoTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? BentoTheme.accent : Colors.transparent,
-                      width: 1.5,
-                    ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -764,7 +811,9 @@ class _TransactionSheetState extends State<TransactionSheet> {
                       Icon(
                         _iconForCategory(cat.iconKey),
                         size: 20,
-                        color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
+                        color: isSelected
+                            ? BentoTheme.accent
+                            : BentoTheme.textSecondary,
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -773,9 +822,12 @@ class _TransactionSheetState extends State<TransactionSheet> {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isSelected ? BentoTheme.textPrimary : BentoTheme.textSecondary,
+                          color: isSelected
+                              ? BentoTheme.textPrimary
+                              : BentoTheme.textSecondary,
                           fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -791,24 +843,42 @@ class _TransactionSheetState extends State<TransactionSheet> {
 
   IconData _iconForCategory(String? key) {
     switch (key) {
-      case 'utensils': return LucideIcons.utensils;
-      case 'shopping_cart': return LucideIcons.shoppingCart;
-      case 'car': return LucideIcons.car;
-      case 'bolt': return LucideIcons.zap;
-      case 'heart_pulse': return LucideIcons.heartPulse;
-      case 'film': return LucideIcons.film;
-      case 'tv': return LucideIcons.tv;
-      case 'apple': return LucideIcons.apple;
-      case 'credit_card': return LucideIcons.creditCard;
-      case 'home': return LucideIcons.home;
-      case 'graduation_cap': return LucideIcons.graduationCap;
-      case 'plane': return LucideIcons.plane;
-      case 'repeat': return LucideIcons.repeat;
-      case 'shield': return LucideIcons.shield;
-      case 'gift': return LucideIcons.gift;
-      case 'sparkles': return LucideIcons.sparkles;
-      case 'banknote': return LucideIcons.banknote;
-      default: return LucideIcons.tag;
+      case 'utensils':
+        return LucideIcons.utensils;
+      case 'shopping_cart':
+        return LucideIcons.shoppingCart;
+      case 'car':
+        return LucideIcons.car;
+      case 'bolt':
+        return LucideIcons.zap;
+      case 'heart_pulse':
+        return LucideIcons.heartPulse;
+      case 'film':
+        return LucideIcons.film;
+      case 'tv':
+        return LucideIcons.tv;
+      case 'apple':
+        return LucideIcons.apple;
+      case 'credit_card':
+        return LucideIcons.creditCard;
+      case 'home':
+        return LucideIcons.home;
+      case 'graduation_cap':
+        return LucideIcons.graduationCap;
+      case 'plane':
+        return LucideIcons.plane;
+      case 'repeat':
+        return LucideIcons.repeat;
+      case 'shield':
+        return LucideIcons.shield;
+      case 'gift':
+        return LucideIcons.gift;
+      case 'sparkles':
+        return LucideIcons.sparkles;
+      case 'banknote':
+        return LucideIcons.banknote;
+      default:
+        return LucideIcons.tag;
     }
   }
 
@@ -832,34 +902,73 @@ class _TransactionSheetState extends State<TransactionSheet> {
     );
   }
 
+  bool get _isDatedBeforeAccountOpening {
+    if (_selectedAccountId == null) return false;
+    final acc = _controller.getAccount(_selectedAccountId);
+    if (acc == null) return false;
+    return _selectedDate.isBefore(acc.openingDate);
+  }
+
   Widget _buildDateTimePicker(String formatted) {
-    return InkWell(
-      onTap: _pickDateTime,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: BentoTheme.surface,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: _pickDateTime,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Row(
-          children: [
-            Icon(LucideIcons.calendar, size: 16, color: BentoTheme.accent),
-            const SizedBox(width: 10),
-            Text(
-              formatted,
-              style: TextStyle(
-                color: BentoTheme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const Spacer(),
-            Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
-          ],
+            child: Row(
+              children: [
+                Icon(LucideIcons.calendar, size: 16, color: BentoTheme.accent),
+                const SizedBox(width: 10),
+                Text(
+                  formatted,
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Icon(LucideIcons.chevronRight,
+                    size: 16, color: BentoTheme.textSecondary),
+              ],
+            ),
+          ),
         ),
-      ),
+        if (_isDatedBeforeAccountOpening) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(LucideIcons.alertTriangle,
+                    size: 14, color: Colors.orangeAccent),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Before this account\'s opening date, it will not count',
+                    style: TextStyle(
+                      color: Colors.orangeAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -896,13 +1005,15 @@ class _TransactionSheetState extends State<TransactionSheet> {
                   backgroundColor: BentoTheme.surface,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.black : BentoTheme.textSecondary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 12,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: BorderSide(
-                      color: isSelected ? BentoTheme.accent : Colors.transparent,
+                      color:
+                          isSelected ? BentoTheme.accent : Colors.transparent,
                     ),
                   ),
                 ),
@@ -947,7 +1058,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
                   color: BentoTheme.textSecondary.withValues(alpha: 0.4),
                   fontSize: 12,
                 ),
-                labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                labelStyle:
+                    TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                 filled: true,
                 fillColor: BentoTheme.surface,
                 border: OutlineInputBorder(
@@ -971,7 +1083,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
           style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
           decoration: InputDecoration(
             labelText: 'Notes (optional)',
-            labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+            labelStyle:
+                TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
             filled: true,
             fillColor: BentoTheme.surface,
             border: OutlineInputBorder(
@@ -991,7 +1104,8 @@ class _TransactionSheetState extends State<TransactionSheet> {
               color: BentoTheme.textSecondary.withValues(alpha: 0.4),
               fontSize: 12,
             ),
-            labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+            labelStyle:
+                TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
             filled: true,
             fillColor: BentoTheme.surface,
             border: OutlineInputBorder(
@@ -1020,12 +1134,14 @@ class _TransactionSheetState extends State<TransactionSheet> {
             children: [
               ListTile(
                 leading: Icon(LucideIcons.camera, color: BentoTheme.accent),
-                title: Text('Take Photo', style: TextStyle(color: BentoTheme.textPrimary)),
+                title: Text('Take Photo',
+                    style: TextStyle(color: BentoTheme.textPrimary)),
                 onTap: () => Navigator.pop(ctx, ImageSource.camera),
               ),
               ListTile(
                 leading: Icon(LucideIcons.image, color: BentoTheme.accent),
-                title: Text('Choose from Gallery', style: TextStyle(color: BentoTheme.textPrimary)),
+                title: Text('Choose from Gallery',
+                    style: TextStyle(color: BentoTheme.textPrimary)),
                 onTap: () => Navigator.pop(ctx, ImageSource.gallery),
               ),
             ],
@@ -1038,8 +1154,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
     try {
       final picked = await picker.pickImage(source: source);
       if (picked != null) {
-        final txId = widget.existingTransaction?.id ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
-        final savedPath = await ReceiptManager.saveReceipt(txId: txId, sourceFile: File(picked.path));
+        final txId = widget.existingTransaction?.id ??
+            'temp_${DateTime.now().millisecondsSinceEpoch}';
+        final savedPath = await ReceiptManager.saveReceipt(
+            txId: txId, sourceFile: File(picked.path));
         setState(() {
           _receiptPaths.add(savedPath);
         });
@@ -1069,19 +1187,23 @@ class _TransactionSheetState extends State<TransactionSheet> {
                 icon: Icon(
                   hasSplits ? LucideIcons.checkCheck : LucideIcons.split,
                   size: 16,
-                  color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
+                  color:
+                      hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
                 ),
                 label: Text(
                   hasSplits ? 'Splits Added' : 'Split Expense',
                   style: TextStyle(
-                    color: hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
+                    color:
+                        hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: (hasSplits ? const Color(0xFF22C55E) : BentoTheme.accent)
+                    color: (hasSplits
+                            ? const Color(0xFF22C55E)
+                            : BentoTheme.accent)
                         .withValues(alpha: 0.5),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1099,20 +1221,27 @@ class _TransactionSheetState extends State<TransactionSheet> {
                 icon: Icon(
                   hasReceipts ? LucideIcons.paperclip : LucideIcons.camera,
                   size: 16,
-                  color: hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.textSecondary,
+                  color: hasReceipts
+                      ? const Color(0xFF38BDF8)
+                      : BentoTheme.textSecondary,
                 ),
                 label: Text(
-                  hasReceipts ? 'Receipts (${_receiptPaths.length})' : 'Add Receipt',
+                  hasReceipts
+                      ? 'Receipts (${_receiptPaths.length})'
+                      : 'Add Receipt',
                   style: TextStyle(
-                    color: hasReceipts ? const Color(0xFF38BDF8) : BentoTheme.textSecondary,
+                    color: hasReceipts
+                        ? const Color(0xFF38BDF8)
+                        : BentoTheme.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: (hasReceipts ? const Color(0xFF38BDF8) : Colors.white12)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (hasReceipts ? const Color(0xFF38BDF8) : Colors.white12)
+                            .withValues(alpha: 0.5),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -1142,7 +1271,6 @@ class _TransactionSheetState extends State<TransactionSheet> {
                       decoration: BoxDecoration(
                         color: BentoTheme.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white10),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: file.existsSync()

@@ -61,7 +61,8 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<DailyActivity>> fetchDailyActivity(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readDailyActivity', {'days': days});
+      final res = await _channel
+          .invokeListMethod<Map>('readDailyActivity', {'days': days});
       if (res == null) return [];
       return res.map((m) {
         return DailyActivity(
@@ -83,7 +84,8 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<SleepSession>> fetchSleepSessions(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readSleep', {'days': days});
+      final res =
+          await _channel.invokeListMethod<Map>('readSleep', {'days': days});
       if (res == null) return [];
       return res.map((m) {
         final startMs = (m['startTime'] as num).toInt();
@@ -93,7 +95,8 @@ class SamsungHealthSource implements WearableSource {
           dayKey: m['dayKey'].toString(),
           start: DateTime.fromMillisecondsSinceEpoch(startMs),
           end: DateTime.fromMillisecondsSinceEpoch(endMs),
-          durationMin: (m['totalMinutes'] as num?)?.toInt() ?? ((endMs - startMs) ~/ 60000),
+          durationMin: (m['totalMinutes'] as num?)?.toInt() ??
+              ((endMs - startMs) ~/ 60000),
           awakeMin: (m['wakeMinutes'] as num?)?.toInt(),
           lightMin: (m['lightMinutes'] as num?)?.toInt(),
           deepMin: (m['deepMinutes'] as num?)?.toInt(),
@@ -112,7 +115,8 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<ExerciseSession>> fetchExercises(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readExercises', {'days': days});
+      final res =
+          await _channel.invokeListMethod<Map>('readExercises', {'days': days});
       if (res == null) return [];
       return res.map((m) {
         final startMs = (m['startTime'] as num).toInt();
@@ -122,7 +126,9 @@ class SamsungHealthSource implements WearableSource {
           externalId: m['id']?.toString() ?? 'shealth_workout_$startMs',
           dayKey: m['dayKey'].toString(),
           type: m['exerciseType']?.toString() ?? 'Workout',
-          title: m['title']?.toString() ?? m['exerciseType']?.toString() ?? 'Workout',
+          title: m['title']?.toString() ??
+              m['exerciseType']?.toString() ??
+              'Workout',
           start: DateTime.fromMillisecondsSinceEpoch(startMs),
           end: DateTime.fromMillisecondsSinceEpoch(endMs),
           durationMin: durMin,
@@ -143,10 +149,12 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<BodyCompSample>> fetchBodyComposition(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readBodyComposition', {'days': days});
+      final res = await _channel
+          .invokeListMethod<Map>('readBodyComposition', {'days': days});
       if (res == null) return [];
       return res.map((m) {
-        final ts = (m['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+        final ts = (m['timestamp'] as num?)?.toInt() ??
+            DateTime.now().millisecondsSinceEpoch;
         return BodyCompSample(
           externalId: m['id']?.toString() ?? 'shealth_bcomp_$ts',
           timestamp: DateTime.fromMillisecondsSinceEpoch(ts),
@@ -169,7 +177,8 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<EnergyScoreDay>> fetchEnergyScores(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readEnergyScore', {'days': days});
+      final res = await _channel
+          .invokeListMethod<Map>('readEnergyScore', {'days': days});
       if (res == null) return [];
       final list = <EnergyScoreDay>[];
       for (final m in res) {
@@ -194,13 +203,15 @@ class SamsungHealthSource implements WearableSource {
   @override
   Future<List<AgesSample>> fetchAgesSamples(int days) async {
     try {
-      final res = await _channel.invokeListMethod<Map>('readAgesIndex', {'days': days});
+      final res =
+          await _channel.invokeListMethod<Map>('readAgesIndex', {'days': days});
       if (res == null) return [];
       final list = <AgesSample>[];
       for (final m in res) {
         final rawScore = m['score'];
         if (rawScore is num) {
-          final ts = (m['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+          final ts = (m['timestamp'] as num?)?.toInt() ??
+              DateTime.now().millisecondsSinceEpoch;
           list.add(
             AgesSample(
               id: m['id']?.toString() ?? 'shealth_ages_$ts',

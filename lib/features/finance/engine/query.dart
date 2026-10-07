@@ -72,11 +72,18 @@ class QueryFilters {
       category: json['category']?.toString(),
       tag: json['tag']?.toString(),
       account: json['account']?.toString(),
-      amountMin: json['amountMin'] != null ? (json['amountMin'] as num).toDouble() : null,
-      amountMax: json['amountMax'] != null ? (json['amountMax'] as num).toDouble() : null,
+      amountMin: json['amountMin'] != null
+          ? (json['amountMin'] as num).toDouble()
+          : null,
+      amountMax: json['amountMax'] != null
+          ? (json['amountMax'] as num).toDouble()
+          : null,
       period: p,
-      startDate: json['startDate'] != null ? DateTime.tryParse(json['startDate']) : null,
-      endDate: json['endDate'] != null ? DateTime.tryParse(json['endDate']) : null,
+      startDate: json['startDate'] != null
+          ? DateTime.tryParse(json['startDate'])
+          : null,
+      endDate:
+          json['endDate'] != null ? DateTime.tryParse(json['endDate']) : null,
     );
   }
 }
@@ -143,7 +150,9 @@ class FinanceQuery {
       filters: QueryFilters.fromJson(filtersJson),
       groupBy: groupBy,
       compareTo: compareTo,
-      topN: json['topN'] is int ? json['topN'] : int.tryParse(json['topN']?.toString() ?? '5') ?? 5,
+      topN: json['topN'] is int
+          ? json['topN']
+          : int.tryParse(json['topN']?.toString() ?? '5') ?? 5,
     );
   }
 }
@@ -178,7 +187,8 @@ class FinanceQueryExecutor {
     // 1. Balance and Net Worth shortcuts
     if (query.subject == QuerySubject.networth) {
       final nw = _calculateNetWorth(accounts, transactions, today);
-      final ans = 'Your current net worth is ${FormatUtils.formatMoney(nw, decimals: 2)}.';
+      final ans =
+          'Your current net worth is ${FormatUtils.formatMoney(nw, decimals: 2)}.';
       return FinanceQueryResult(value: nw, count: 1, formattedAnswer: ans);
     }
 
@@ -192,13 +202,18 @@ class FinanceQueryExecutor {
       for (final a in targetAccounts) {
         bal += LedgerEngine.balance(a, transactions, const [], asOf: today);
       }
-      final accountDesc = accFilter != null ? targetAccounts.map((a) => a.name).join(', ') : 'spendable accounts';
-      final ans = 'The total balance for $accountDesc as of today is ${FormatUtils.formatMoney(bal, decimals: 2)}.';
-      return FinanceQueryResult(value: bal, count: targetAccounts.length, formattedAnswer: ans);
+      final accountDesc = accFilter != null
+          ? targetAccounts.map((a) => a.name).join(', ')
+          : 'spendable accounts';
+      final ans =
+          'The total balance for $accountDesc as of today is ${FormatUtils.formatMoney(bal, decimals: 2)}.';
+      return FinanceQueryResult(
+          value: bal, count: targetAccounts.length, formattedAnswer: ans);
     }
 
     // 2. Filter transactions by period, subject and criteria
-    final dateRange = _resolveDateRange(query.filters.period, query.filters.startDate, query.filters.endDate, today);
+    final dateRange = _resolveDateRange(query.filters.period,
+        query.filters.startDate, query.filters.endDate, today);
     final filteredTxs = _filterTransactions(
       transactions: transactions,
       subject: query.subject,
@@ -227,24 +242,35 @@ class FinanceQueryExecutor {
     if (query.groupBy != QueryGroupBy.none || query.metric == QueryMetric.top) {
       final Map<String, double> groupMap = {};
       for (final tx in filteredTxs) {
-        final key = _extractGroupKey(tx, query.groupBy != QueryGroupBy.none ? query.groupBy : QueryGroupBy.merchant, categories, accounts);
+        final key = _extractGroupKey(
+            tx,
+            query.groupBy != QueryGroupBy.none
+                ? query.groupBy
+                : QueryGroupBy.merchant,
+            categories,
+            accounts);
         final amt = _effectiveAmountForSubject(tx, query.subject);
         groupMap[key] = (groupMap[key] ?? 0.0) + amt;
       }
 
       // Sort descending
-      final sortedEntries = groupMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      final sortedEntries = groupMap.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
       final Map<String, double> topGroups = {};
-      final limit = query.metric == QueryMetric.top ? query.topN : sortedEntries.length;
+      final limit =
+          query.metric == QueryMetric.top ? query.topN : sortedEntries.length;
       for (var i = 0; i < sortedEntries.length && i < limit; i++) {
         topGroups[sortedEntries[i].key] = sortedEntries[i].value;
       }
 
-      final totalSum = _computeMetricValue(QueryMetric.sum, query.subject, filteredTxs);
+      final totalSum =
+          _computeMetricValue(QueryMetric.sum, query.subject, filteredTxs);
       final buffer = StringBuffer();
-      buffer.writeln('Found ${filteredTxs.length} transactions totaling ${FormatUtils.formatMoney(totalSum, decimals: 2)}:');
+      buffer.writeln(
+          'Found ${filteredTxs.length} transactions totaling ${FormatUtils.formatMoney(totalSum, decimals: 2)}:');
       for (final entry in topGroups.entries) {
-        buffer.writeln('• ${entry.key}: ${FormatUtils.formatMoney(entry.value, decimals: 2)}');
+        buffer.writeln(
+            '• ${entry.key}: ${FormatUtils.formatMoney(entry.value, decimals: 2)}');
       }
 
       return FinanceQueryResult(
@@ -258,11 +284,14 @@ class FinanceQueryExecutor {
     }
 
     // 5. Standard aggregate metric
-    final computedValue = _computeMetricValue(query.metric, query.subject, filteredTxs);
+    final computedValue =
+        _computeMetricValue(query.metric, query.subject, filteredTxs);
     final count = filteredTxs.length;
 
     String answer;
-    final subjectName = query.subject == QuerySubject.spending ? 'spending' : (query.subject == QuerySubject.income ? 'income' : 'net amount');
+    final subjectName = query.subject == QuerySubject.spending
+        ? 'spending'
+        : (query.subject == QuerySubject.income ? 'income' : 'net amount');
     final periodDesc = _describePeriod(query.filters.period);
 
     switch (query.metric) {
@@ -270,26 +299,37 @@ class FinanceQueryExecutor {
         answer = 'There are $count $subjectName transactions $periodDesc.';
         break;
       case QueryMetric.avg:
-        answer = 'Average $subjectName transaction $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)} (across $count transactions).';
+        answer =
+            'Average $subjectName transaction $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)} (across $count transactions).';
         break;
       case QueryMetric.list:
-        final preview = filteredTxs.take(5).map((t) => '${t.title}: ${FormatUtils.formatMoney(t.amount.abs(), decimals: 2)}').join(', ');
-        answer = 'Found $count transactions totaling ${FormatUtils.formatMoney(computedValue, decimals: 2)}. $preview${count > 5 ? '...' : ''}';
+        final preview = filteredTxs
+            .take(5)
+            .map((t) =>
+                '${t.title}: ${FormatUtils.formatMoney(t.amount.abs(), decimals: 2)}')
+            .join(', ');
+        answer =
+            'Found $count transactions totaling ${FormatUtils.formatMoney(computedValue, decimals: 2)}. $preview${count > 5 ? '...' : ''}';
         break;
       case QueryMetric.sum:
       default:
         if (query.filters.merchant != null) {
-          answer = 'You spent ${FormatUtils.formatMoney(computedValue, decimals: 2)} at ${query.filters.merchant} $periodDesc.';
+          answer =
+              'You spent ${FormatUtils.formatMoney(computedValue, decimals: 2)} at ${query.filters.merchant} $periodDesc.';
         } else if (query.filters.category != null) {
-          answer = 'Total $subjectName on ${query.filters.category} $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
+          answer =
+              'Total $subjectName on ${query.filters.category} $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
         } else {
-          answer = 'Total $subjectName $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
+          answer =
+              'Total $subjectName $periodDesc is ${FormatUtils.formatMoney(computedValue, decimals: 2)}.';
         }
         if (compValue != null) {
           final diff = computedValue - compValue;
-          final pct = compValue > 0 ? (diff / compValue * 100).toStringAsFixed(1) : '0';
+          final pct =
+              compValue > 0 ? (diff / compValue * 100).toStringAsFixed(1) : '0';
           final dir = diff >= 0 ? 'up' : 'down';
-          answer += ' (Compared to ${compValue.toStringAsFixed(2)}, $dir $pct%).';
+          answer +=
+              ' (Compared to ${compValue.toStringAsFixed(2)}, $dir $pct%).';
         }
         break;
     }
@@ -303,7 +343,8 @@ class FinanceQueryExecutor {
     );
   }
 
-  static double _calculateNetWorth(List<Account> accounts, List<Transaction> transactions, DateTime today) {
+  static double _calculateNetWorth(
+      List<Account> accounts, List<Transaction> transactions, DateTime today) {
     double total = 0.0;
     for (final a in accounts) {
       if (!a.includeInNetWorth || a.archived) continue;
@@ -317,7 +358,8 @@ class FinanceQueryExecutor {
     return total;
   }
 
-  static double _computeMetricValue(QueryMetric metric, QuerySubject subject, List<Transaction> txs) {
+  static double _computeMetricValue(
+      QueryMetric metric, QuerySubject subject, List<Transaction> txs) {
     if (txs.isEmpty) return 0.0;
     if (metric == QueryMetric.count) return txs.length.toDouble();
 
@@ -332,7 +374,8 @@ class FinanceQueryExecutor {
     return sum;
   }
 
-  static double _effectiveAmountForSubject(Transaction tx, QuerySubject subject) {
+  static double _effectiveAmountForSubject(
+      Transaction tx, QuerySubject subject) {
     final kind = tx.effectiveKind;
     final amt = tx.amount.abs();
 
@@ -376,7 +419,7 @@ class FinanceQueryExecutor {
               );
           if (cat != null) return cat.name;
         }
-        return tx.category ?? 'Other';
+        return tx.category.isNotEmpty ? tx.category : 'Other';
       case QueryGroupBy.account:
         if (tx.accountId != null) {
           final acc = accounts.cast<Account?>().firstWhere(
@@ -448,7 +491,7 @@ class FinanceQueryExecutor {
 
       // Category filter
       if (categoryFilter != null && categoryFilter.isNotEmpty) {
-        String cName = (tx.category ?? '').toLowerCase();
+        String cName = tx.category.toLowerCase();
         if (tx.categoryId != null && catMap.containsKey(tx.categoryId)) {
           cName = catMap[tx.categoryId]!;
         }
@@ -480,7 +523,8 @@ class FinanceQueryExecutor {
     switch (period) {
       case QueryPeriod.today:
         final start = DateTime(today.year, today.month, today.day);
-        final end = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
+        final end =
+            DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
         return _DateRange(start, end);
       case QueryPeriod.yesterday:
         final y = today.subtract(const Duration(days: 1));
@@ -489,12 +533,15 @@ class FinanceQueryExecutor {
         return _DateRange(start, end);
       case QueryPeriod.thisWeek:
         final weekday = today.weekday; // 1 = Monday
-        final start = DateTime(today.year, today.month, today.day).subtract(Duration(days: weekday - 1));
-        final end = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
+        final start = DateTime(today.year, today.month, today.day)
+            .subtract(Duration(days: weekday - 1));
+        final end =
+            DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
         return _DateRange(start, end);
       case QueryPeriod.lastWeek:
         final weekday = today.weekday;
-        final thisMonday = DateTime(today.year, today.month, today.day).subtract(Duration(days: weekday - 1));
+        final thisMonday = DateTime(today.year, today.month, today.day)
+            .subtract(Duration(days: weekday - 1));
         final lastMonday = thisMonday.subtract(const Duration(days: 7));
         final lastSunday = thisMonday.subtract(const Duration(milliseconds: 1));
         return _DateRange(lastMonday, lastSunday);
@@ -526,16 +573,26 @@ class FinanceQueryExecutor {
 
   static String _describePeriod(QueryPeriod period) {
     switch (period) {
-      case QueryPeriod.today: return 'today';
-      case QueryPeriod.yesterday: return 'yesterday';
-      case QueryPeriod.thisWeek: return 'this week';
-      case QueryPeriod.lastWeek: return 'last week';
-      case QueryPeriod.thisMonth: return 'this month';
-      case QueryPeriod.lastMonth: return 'last month';
-      case QueryPeriod.thisYear: return 'this year';
-      case QueryPeriod.lastYear: return 'last year';
-      case QueryPeriod.custom: return 'in the selected period';
-      case QueryPeriod.all: return 'overall';
+      case QueryPeriod.today:
+        return 'today';
+      case QueryPeriod.yesterday:
+        return 'yesterday';
+      case QueryPeriod.thisWeek:
+        return 'this week';
+      case QueryPeriod.lastWeek:
+        return 'last week';
+      case QueryPeriod.thisMonth:
+        return 'this month';
+      case QueryPeriod.lastMonth:
+        return 'last month';
+      case QueryPeriod.thisYear:
+        return 'this year';
+      case QueryPeriod.lastYear:
+        return 'last year';
+      case QueryPeriod.custom:
+        return 'in the selected period';
+      case QueryPeriod.all:
+        return 'overall';
     }
   }
 }

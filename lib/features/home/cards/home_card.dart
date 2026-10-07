@@ -20,12 +20,22 @@ import 'package:habit_tracker/features/home/cards/upcoming_bills_card.dart';
 import 'package:habit_tracker/features/home/cards/galaxy_watch_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+/// Card sizes for wallet stack cards in MVP 5.
+enum HomeCardSize {
+  compact,
+  large,
+  hero,
+}
+
 /// Specification for a card in the wallet-stack home screen.
 class HomeCardSpec {
   final String id;
   final String title;
   final IconData icon;
   final Widget Function(BuildContext context) compactBuilder;
+  final Widget Function(BuildContext context)? largeBuilder;
+  final Widget Function(BuildContext context)? heroBuilder;
+  final HomeCardSize defaultSize;
   final void Function(BuildContext context)? onTap;
   final int defaultOrder;
   final bool defaultVisible;
@@ -35,10 +45,42 @@ class HomeCardSpec {
     required this.title,
     required this.icon,
     required this.compactBuilder,
+    this.largeBuilder,
+    this.heroBuilder,
+    this.defaultSize = HomeCardSize.compact,
     this.onTap,
     required this.defaultOrder,
     this.defaultVisible = true,
   });
+
+  Widget buildWidget(BuildContext context, HomeCardSize size) {
+    if (size == HomeCardSize.hero && heroBuilder != null) {
+      return heroBuilder!(context);
+    }
+    if ((size == HomeCardSize.large || size == HomeCardSize.hero) &&
+        largeBuilder != null) {
+      return largeBuilder!(context);
+    }
+    return compactBuilder(context);
+  }
+
+  bool supportsSize(HomeCardSize size) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return true;
+      case HomeCardSize.large:
+        return largeBuilder != null;
+      case HomeCardSize.hero:
+        return heroBuilder != null;
+    }
+  }
+
+  List<HomeCardSize> get supportedSizes {
+    final list = [HomeCardSize.compact];
+    if (largeBuilder != null) list.add(HomeCardSize.large);
+    if (heroBuilder != null) list.add(HomeCardSize.hero);
+    return list;
+  }
 }
 
 /// Represents the persisted order and visibility of a card in the home layout.
@@ -84,7 +126,9 @@ class HomeCardRegistry {
       id: 'quote',
       title: 'Daily Wisdom',
       icon: LucideIcons.quote,
-      compactBuilder: (context) => const QuoteCard(),
+      compactBuilder: (context) => const QuoteCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const QuoteCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const QuoteCard(size: HomeCardSize.hero),
       defaultOrder: 0,
       defaultVisible: true,
     ));
@@ -92,7 +136,9 @@ class HomeCardRegistry {
       id: 'momentum',
       title: 'Momentum Signal',
       icon: LucideIcons.activity,
-      compactBuilder: (context) => const MomentumCard(),
+      compactBuilder: (context) =>
+          const MomentumCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const MomentumCard(size: HomeCardSize.large),
       defaultOrder: 1,
       defaultVisible: true,
     ));
@@ -100,7 +146,9 @@ class HomeCardRegistry {
       id: 'missions',
       title: 'Daily Missions',
       icon: LucideIcons.checkSquare,
-      compactBuilder: (context) => const MissionsCard(),
+      compactBuilder: (context) =>
+          const MissionsCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const MissionsCard(size: HomeCardSize.large),
       defaultOrder: 2,
       defaultVisible: true,
     ));
@@ -108,7 +156,11 @@ class HomeCardRegistry {
       id: 'finance',
       title: 'Finance Summary',
       icon: LucideIcons.wallet,
-      compactBuilder: (context) => const FinanceCard(),
+      defaultSize: HomeCardSize.large,
+      compactBuilder: (context) =>
+          const FinanceCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const FinanceCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const FinanceCard(size: HomeCardSize.hero),
       defaultOrder: 3,
       defaultVisible: true,
     ));
@@ -116,7 +168,10 @@ class HomeCardRegistry {
       id: 'calories',
       title: 'Diet & Calories',
       icon: LucideIcons.utensils,
-      compactBuilder: (context) => const CaloriesCard(),
+      compactBuilder: (context) =>
+          const CaloriesCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const CaloriesCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const CaloriesCard(size: HomeCardSize.hero),
       defaultOrder: 4,
       defaultVisible: true,
     ));
@@ -124,7 +179,8 @@ class HomeCardRegistry {
       id: 'score',
       title: 'XP Totals',
       icon: LucideIcons.trophy,
-      compactBuilder: (context) => const ScoreCard(),
+      compactBuilder: (context) => const ScoreCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const ScoreCard(size: HomeCardSize.large),
       defaultOrder: 5,
       defaultVisible: true,
     ));
@@ -132,7 +188,9 @@ class HomeCardRegistry {
       id: 'score_delta',
       title: 'XP Velocity',
       icon: LucideIcons.trendingUp,
-      compactBuilder: (context) => const ScoreDeltaCard(),
+      compactBuilder: (context) =>
+          const ScoreDeltaCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const ScoreDeltaCard(size: HomeCardSize.large),
       defaultOrder: 6,
       defaultVisible: true,
     ));
@@ -140,7 +198,9 @@ class HomeCardRegistry {
       id: 'music',
       title: 'Music Controller',
       icon: LucideIcons.music,
-      compactBuilder: (context) => const MusicCard(),
+      compactBuilder: (context) => const MusicCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const MusicCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const MusicCard(size: HomeCardSize.hero),
       defaultOrder: 7,
       defaultVisible: true,
     ));
@@ -148,7 +208,9 @@ class HomeCardRegistry {
       id: 'medicine',
       title: 'Medicine Reminder',
       icon: LucideIcons.pill,
-      compactBuilder: (context) => const MedicineCard(),
+      compactBuilder: (context) =>
+          const MedicineCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const MedicineCard(size: HomeCardSize.large),
       defaultOrder: 8,
       defaultVisible: true,
     ));
@@ -156,7 +218,8 @@ class HomeCardRegistry {
       id: 'weight',
       title: 'Weight Journey',
       icon: LucideIcons.scale,
-      compactBuilder: (context) => const WeightCard(),
+      compactBuilder: (context) => const WeightCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const WeightCard(size: HomeCardSize.large),
       defaultOrder: 9,
       defaultVisible: true,
     ));
@@ -164,7 +227,12 @@ class HomeCardRegistry {
       id: 'health',
       title: 'Health Summary',
       icon: LucideIcons.heartPulse,
-      compactBuilder: (context) => const HealthSummaryCard(),
+      compactBuilder: (context) =>
+          const HealthSummaryCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const HealthSummaryCard(size: HomeCardSize.large),
+      heroBuilder: (context) =>
+          const HealthSummaryCard(size: HomeCardSize.hero),
       defaultOrder: 10,
       defaultVisible: true,
     ));
@@ -172,7 +240,9 @@ class HomeCardRegistry {
       id: 'journal',
       title: 'Private Journal',
       icon: LucideIcons.bookLock,
-      compactBuilder: (context) => const JournalCard(),
+      compactBuilder: (context) =>
+          const JournalCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const JournalCard(size: HomeCardSize.large),
       defaultOrder: 11,
       defaultVisible: true,
     ));
@@ -180,7 +250,9 @@ class HomeCardRegistry {
       id: 'brainstorm',
       title: 'Brainstorm',
       icon: LucideIcons.lightbulb,
-      compactBuilder: (context) => const BrainstormCard(),
+      compactBuilder: (context) =>
+          const BrainstormCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const BrainstormCard(size: HomeCardSize.large),
       defaultOrder: 12,
       defaultVisible: true,
     ));
@@ -188,7 +260,8 @@ class HomeCardRegistry {
       id: 'reader',
       title: 'Document Reader',
       icon: LucideIcons.bookOpen,
-      compactBuilder: (context) => const ReaderCard(),
+      compactBuilder: (context) => const ReaderCard(size: HomeCardSize.compact),
+      largeBuilder: (context) => const ReaderCard(size: HomeCardSize.large),
       defaultOrder: 13,
       defaultVisible: true,
     ));
@@ -196,7 +269,11 @@ class HomeCardRegistry {
       id: 'safe_to_spend',
       title: 'Safe to Spend',
       icon: LucideIcons.shieldCheck,
-      compactBuilder: (context) => const SafeToSpendCard(),
+      compactBuilder: (context) =>
+          const SafeToSpendCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const SafeToSpendCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const SafeToSpendCard(size: HomeCardSize.hero),
       defaultOrder: 14,
       defaultVisible: true,
     ));
@@ -204,7 +281,11 @@ class HomeCardRegistry {
       id: 'net_worth',
       title: 'Net Worth',
       icon: LucideIcons.lineChart,
-      compactBuilder: (context) => const NetWorthHomeCard(),
+      compactBuilder: (context) =>
+          const NetWorthHomeCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const NetWorthHomeCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const NetWorthHomeCard(size: HomeCardSize.hero),
       defaultOrder: 15,
       defaultVisible: true,
     ));
@@ -212,15 +293,22 @@ class HomeCardRegistry {
       id: 'upcoming_bills',
       title: 'Upcoming Bills',
       icon: LucideIcons.calendarClock,
-      compactBuilder: (context) => const UpcomingBillsCard(),
+      compactBuilder: (context) =>
+          const UpcomingBillsCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const UpcomingBillsCard(size: HomeCardSize.large),
       defaultOrder: 16,
       defaultVisible: true,
     ));
     register(HomeCardSpec(
       id: 'galaxy_watch',
-      title: 'Galaxy Watch 7',
+      title: 'Activity',
       icon: LucideIcons.watch,
-      compactBuilder: (context) => const GalaxyWatchCard(),
+      compactBuilder: (context) =>
+          const GalaxyWatchCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const GalaxyWatchCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const GalaxyWatchCard(size: HomeCardSize.hero),
       defaultOrder: 17,
       defaultVisible: true,
     ));
@@ -298,5 +386,37 @@ class HomeCardRegistry {
             ))
         .toList();
     await saveLayout(settingsBox, defaultLayout);
+  }
+
+  /// Retrieves persisted size for [id], falling back to defaults per P8-4:
+  /// - New installs: 'finance' is large, everything else compact.
+  /// - Existing installs (with home_layout but no home_card_sizes): compact for all.
+  static HomeCardSize getCardSize(Box settingsBox, String id) {
+    final raw = settingsBox.get('home_card_sizes');
+    if (raw is Map && raw.containsKey(id)) {
+      final str = raw[id]?.toString();
+      if (str == 'hero') return HomeCardSize.hero;
+      if (str == 'large') return HomeCardSize.large;
+      return HomeCardSize.compact;
+    }
+
+    final bool isExistingInstall = settingsBox.containsKey('home_layout') &&
+        !settingsBox.containsKey('home_card_sizes');
+    if (isExistingInstall) {
+      return HomeCardSize.compact;
+    }
+
+    final spec = get(id);
+    return spec?.defaultSize ?? HomeCardSize.compact;
+  }
+
+  /// Persists card size for [id] in settings box.
+  static Future<void> setCardSize(
+      Box settingsBox, String id, HomeCardSize size) async {
+    final raw = settingsBox.get('home_card_sizes');
+    final map =
+        raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    map[id] = size.name;
+    await settingsBox.put('home_card_sizes', map);
   }
 }

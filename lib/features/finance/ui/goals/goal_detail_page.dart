@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -86,7 +86,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: BentoTheme.negative),
             child: const Text('Delete'),
           ),
         ],
@@ -233,8 +233,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
@@ -273,7 +271,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,16 +327,11 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           const SizedBox(height: 14),
 
           // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 10,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
+          ProgressBarX(
+            value: pct,
+            height: 10,
+            customColor:
                 isDone ? const Color(0xFF10B981) : Color(goal.colorValue),
-              ),
-            ),
           ),
           const SizedBox(height: 16),
 
@@ -384,8 +376,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 const SizedBox(width: 6),
                 Text(
                   'Earmarked in ${earmark.name}',
-                  style: TextStyle(
-                      color: BentoTheme.textSecondary, fontSize: 11),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 ),
               ],
             ),
@@ -401,7 +393,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,8 +438,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       : 'None! 🎉',
                   plan.shortfall > 0 ? 'monthly gap' : 'on track',
                   color: plan.shortfall > 0
-                      ? Colors.amberAccent
-                      : const Color(0xFF10B981),
+                      ? BentoTheme.warning
+                      : BentoTheme.positive,
                 ),
               ),
             ],
@@ -474,7 +465,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
               style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 12),
-
             ...plan.trimSuggestions.map((trim) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -483,8 +473,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Row(
                   children: [
@@ -513,8 +501,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       children: [
                         Text(
                           '-${FormatUtils.formatMoney(trim.suggestedTrim)}',
-                          style: const TextStyle(
-                            color: Colors.amberAccent,
+                          style: TextStyle(
+                            color: BentoTheme.warning,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -530,7 +518,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 ),
               );
             }),
-
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -555,19 +542,18 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.amberAccent.withValues(alpha: 0.1),
+                color: BentoTheme.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.alertTriangle,
-                      size: 16, color: Colors.amberAccent),
+                  Icon(LucideIcons.alertTriangle,
+                      size: 16, color: BentoTheme.warning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Shortfall exceeds 20% safe trims on non-essentials. Consider extending the deadline or adding fresh income.',
-                      style: const TextStyle(
-                          color: Colors.amberAccent, fontSize: 11),
+                      style: TextStyle(color: BentoTheme.warning, fontSize: 11),
                     ),
                   ),
                 ],
@@ -622,19 +608,18 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 14,
             backgroundColor: isDeposit
-                ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                : Colors.redAccent.withValues(alpha: 0.2),
+                ? BentoTheme.positive.withValues(alpha: 0.2)
+                : BentoTheme.negative.withValues(alpha: 0.2),
             child: Icon(
               isDeposit ? LucideIcons.arrowDownLeft : LucideIcons.arrowUpRight,
               size: 14,
-              color: isDeposit ? const Color(0xFF10B981) : Colors.redAccent,
+              color: isDeposit ? BentoTheme.positive : BentoTheme.negative,
             ),
           ),
           const SizedBox(width: 12),
@@ -661,14 +646,15 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           Text(
             '${isDeposit ? '+' : ''}${FormatUtils.formatMoney(entry.amount)}',
             style: TextStyle(
-              color: isDeposit ? const Color(0xFF10B981) : Colors.redAccent,
+              color: isDeposit ? BentoTheme.positive : BentoTheme.negative,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(LucideIcons.trash2, size: 14, color: Colors.white38),
+            icon:
+                const Icon(LucideIcons.trash2, size: 14, color: Colors.white38),
             onPressed: () => _deleteEntry(entry),
           ),
         ],

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -49,10 +47,12 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: BentoTheme.surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text(
               'Create Split Group',
-              style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: BentoTheme.textPrimary, fontWeight: FontWeight.bold),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -67,24 +67,32 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: kind,
                     dropdownColor: BentoTheme.surface,
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                    style:
+                        TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
                     decoration: InputDecoration(
                       labelText: 'Type',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'trip', child: Text('Trip / Vacation')),
-                      DropdownMenuItem(value: 'household', child: Text('Household / Flatmates')),
+                      DropdownMenuItem(
+                          value: 'trip', child: Text('Trip / Vacation')),
+                      DropdownMenuItem(
+                          value: 'household',
+                          child: Text('Household / Flatmates')),
                       DropdownMenuItem(value: 'other', child: Text('Other')),
                     ],
                     onChanged: (val) {
@@ -101,7 +109,9 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                   ),
                 ],
@@ -110,7 +120,8 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
+                child: Text('Cancel',
+                    style: TextStyle(color: BentoTheme.textSecondary)),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -140,7 +151,8 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BentoTheme.accent,
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Create'),
               ),
@@ -196,7 +208,6 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white10),
             ),
             child: Row(
               children: [
@@ -206,7 +217,8 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(LucideIcons.arrowDownLeft, color: const Color(0xFF22C55E), size: 16),
+                          Icon(LucideIcons.arrowDownLeft,
+                              color: const Color(0xFF22C55E), size: 16),
                           const SizedBox(width: 6),
                           Text(
                             'YOU ARE OWED',
@@ -240,7 +252,8 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                       children: [
                         Row(
                           children: [
-                            Icon(LucideIcons.arrowUpRight, color: const Color(0xFFEF4444), size: 16),
+                            Icon(LucideIcons.arrowUpRight,
+                                color: const Color(0xFFEF4444), size: 16),
                             const SizedBox(width: 6),
                             Text(
                               'YOU OWE',
@@ -291,17 +304,24 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
               ),
               child: Column(
                 children: [
-                  Icon(LucideIcons.users, size: 40, color: BentoTheme.textSecondary),
+                  Icon(LucideIcons.users,
+                      size: 40, color: BentoTheme.textSecondary),
                   const SizedBox(height: 12),
                   Text(
                     'No split groups yet',
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Create a group for trips, flatmates, or dinners to track shared costs and settle with minimal payments.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12, height: 1.4),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 12,
+                        height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -311,7 +331,8 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: BentoTheme.accent,
                       foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
@@ -319,12 +340,16 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
             )
           else
             ...groups.map((g) {
-              final groupEntries = allEntries.where((e) => e.groupId == g.id).toList();
+              final groupEntries =
+                  allEntries.where((e) => e.groupId == g.id).toList();
               final balances = SplitSettleEngine.calculateBalances(
                 members: g.members,
                 entries: groupEntries,
               );
-              final userBalance = balances.firstWhere((b) => b.member.toLowerCase() == 'you', orElse: () => MemberBalance(member: 'You', totalPaid: 0, totalShare: 0, net: 0));
+              final userBalance = balances.firstWhere(
+                  (b) => b.member.toLowerCase() == 'you',
+                  orElse: () => MemberBalance(
+                      member: 'You', totalPaid: 0, totalShare: 0, net: 0));
 
               IconData icon = LucideIcons.users;
               if (g.kind == 'trip') icon = LucideIcons.plane;
@@ -335,10 +360,10 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderM,
-                  border: Border.all(color: Colors.white10),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -349,11 +374,15 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                   ),
                   title: Text(
                     g.name,
-                    style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15),
                   ),
                   subtitle: Text(
                     '${g.members.length} members • ${groupEntries.length} expenses',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -362,25 +391,34 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                       if (userBalance.net > 0.01)
                         Text(
                           '+${FormatUtils.formatMoney(userBalance.net, decimals: 0)}',
-                          style: const TextStyle(color: Color(0xFF22C55E), fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              color: Color(0xFF22C55E),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
                         )
                       else if (userBalance.net < -0.01)
                         Text(
                           '-${FormatUtils.formatMoney(userBalance.net.abs(), decimals: 0)}',
-                          style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
                         )
                       else
                         Text(
                           'Settled',
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 12),
                         ),
-                      Icon(LucideIcons.chevronRight, size: 14, color: BentoTheme.textSecondary),
+                      Icon(LucideIcons.chevronRight,
+                          size: 14, color: BentoTheme.textSecondary),
                     ],
                   ),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => SplitGroupDetailPage(group: g)),
+                      MaterialPageRoute(
+                          builder: (_) => SplitGroupDetailPage(group: g)),
                     );
                   },
                 ),

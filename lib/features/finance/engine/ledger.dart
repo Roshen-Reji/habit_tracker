@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
@@ -27,15 +28,35 @@ class LedgerEngine {
         currentBalance = relevantValuations.first.value;
         // Treat valuation as end-of-day, flows on that day are included in the valuation
         final vDate = relevantValuations.first.date;
-        valuationDate = DateTime(vDate.year, vDate.month, vDate.day, 23, 59, 59, 999);
+        valuationDate =
+            DateTime(vDate.year, vDate.month, vDate.day, 23, 59, 59, 999);
       }
     }
 
-    for (final tx in transactions) {
-      if (tx.date.isAfter(cutoff)) continue;
-      if (tx.date.isBefore(account.openingDate)) continue;
-      if (valuationDate != null && !tx.date.isAfter(valuationDate)) continue;
+    final sortedTransactions = transactions
+        .where((tx) =>
+            !tx.date.isAfter(cutoff) &&
+            !tx.date.isBefore(account.openingDate) &&
+            (valuationDate == null || tx.date.isAfter(valuationDate)) &&
+            (tx.accountId == account.id || tx.toAccountId == account.id))
+        .toList()
+      ..sort((a, b) {
+        final d = a.date.compareTo(b.date);
+        if (d != 0) return d;
+        final ca = a.createdAt;
+        final cb = b.createdAt;
+        if (ca != null && cb != null) {
+          final cd = ca.compareTo(cb);
+          if (cd != 0) return cd;
+        } else if (ca != null) {
+          return 1;
+        } else if (cb != null) {
+          return -1;
+        }
+        return (a.id ?? '').compareTo(b.id ?? '');
+      });
 
+    for (final tx in sortedTransactions) {
       final absAmount = tx.amount.abs();
       final kind = tx.effectiveKind;
 
@@ -88,7 +109,8 @@ class LedgerEngine {
           case 'debt_payment':
             // Principal part reduces liability / increases balance towards zero
             final rate = account.annualRate ?? 0.0;
-            final interest = tx.interestAmount ?? (rate / 1200.0 * currentBalance.abs());
+            final interest =
+                tx.interestAmount ?? (rate / 1200.0 * currentBalance.abs());
             final principal = (absAmount - interest).clamp(0.0, absAmount);
             currentBalance += principal;
             break;
@@ -274,7 +296,9 @@ class LedgerEngine {
             }
           }
           continue;
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('LedgerEngine.spendingByCategory split parse error: $e');
+        }
       }
 
       final cat = tx.categoryId ?? tx.category;
@@ -298,7 +322,9 @@ class LedgerEngine {
             total += Money.asDouble(item['amount']);
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('LedgerEngine.receivablesFromSplits split parse error: $e');
+      }
     }
 
     return Money.r2(total);
@@ -382,9 +408,11 @@ class LedgerEngine {
       final kind = tx.effectiveKind;
       final absAmount = tx.amount.abs();
 
-      if (tx.toAccountId == account.id && (kind == 'investment' || kind == 'transfer')) {
+      if (tx.toAccountId == account.id &&
+          (kind == 'investment' || kind == 'transfer')) {
         total += absAmount;
-      } else if (tx.accountId == account.id && (kind == 'investment' || kind == 'transfer')) {
+      } else if (tx.accountId == account.id &&
+          (kind == 'investment' || kind == 'transfer')) {
         total -= absAmount;
       }
     }

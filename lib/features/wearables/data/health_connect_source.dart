@@ -78,12 +78,13 @@ class HealthConnectSource implements WearableSource {
       final day = now.subtract(Duration(days: i));
       final midnight = DateTime(day.year, day.month, day.day);
       final nextMidnight = midnight.add(const Duration(days: 1));
-      
-      final steps = await _health.getTotalStepsInInterval(midnight, nextMidnight);
-      
+
+      final steps =
+          await _health.getTotalStepsInInterval(midnight, nextMidnight);
+
       final healthData = await _health.getHealthDataFromTypes(
-        startTime: midnight, 
-        endTime: nextMidnight, 
+        startTime: midnight,
+        endTime: nextMidnight,
         types: [
           HealthDataType.DISTANCE_DELTA,
           HealthDataType.ACTIVE_ENERGY_BURNED,
@@ -96,7 +97,8 @@ class HealthConnectSource implements WearableSource {
         if (d.type == HealthDataType.DISTANCE_DELTA) {
           distance += (d.value as NumericHealthValue).numericValue.toDouble();
         } else if (d.type == HealthDataType.ACTIVE_ENERGY_BURNED) {
-          activeEnergy += (d.value as NumericHealthValue).numericValue.toDouble();
+          activeEnergy +=
+              (d.value as NumericHealthValue).numericValue.toDouble();
         }
       }
 
@@ -115,18 +117,19 @@ class HealthConnectSource implements WearableSource {
   Future<List<SleepSession>> fetchSleepSessions(int days) async {
     final now = DateTime.now();
     final start = now.subtract(Duration(days: days));
-    
+
     final healthData = await _health.getHealthDataFromTypes(
-      startTime: start, 
-      endTime: now, 
+      startTime: start,
+      endTime: now,
       types: [HealthDataType.SLEEP_SESSION],
     );
 
     final List<SleepSession> list = [];
     for (final d in healthData) {
       final duration = d.dateTo.difference(d.dateFrom).inMinutes;
-      final dayKey = DateFormat('yyyy-MM-dd').format(d.dateTo); // Day is local date of session end
-      
+      final dayKey = DateFormat('yyyy-MM-dd')
+          .format(d.dateTo); // Day is local date of session end
+
       list.add(SleepSession(
         externalId: d.uuid,
         dayKey: dayKey,
@@ -145,10 +148,10 @@ class HealthConnectSource implements WearableSource {
   Future<List<ExerciseSession>> fetchExercises(int days) async {
     final now = DateTime.now();
     final start = now.subtract(Duration(days: days));
-    
+
     final healthData = await _health.getHealthDataFromTypes(
-      startTime: start, 
-      endTime: now, 
+      startTime: start,
+      endTime: now,
       types: [HealthDataType.WORKOUT],
     );
 
@@ -156,15 +159,18 @@ class HealthConnectSource implements WearableSource {
     for (final d in healthData) {
       final duration = d.dateTo.difference(d.dateFrom).inMinutes;
       final dayKey = DateFormat('yyyy-MM-dd').format(d.dateFrom);
-      
+
       double? activeKcal;
       double? distance;
       // Health Connect exercise session might contain these if we query the session details,
       // but in flutter_health, the value might be a WorkoutHealthValue
       if (d.value is WorkoutHealthValue) {
         final wv = d.value as WorkoutHealthValue;
-        activeKcal = wv.totalEnergyBurned != null ? wv.totalEnergyBurned!.toDouble() : null;
-        distance = wv.totalDistance != null ? wv.totalDistance!.toDouble() : null;
+        activeKcal = wv.totalEnergyBurned != null
+            ? wv.totalEnergyBurned!.toDouble()
+            : null;
+        distance =
+            wv.totalDistance != null ? wv.totalDistance!.toDouble() : null;
       }
 
       list.add(ExerciseSession(
@@ -187,31 +193,34 @@ class HealthConnectSource implements WearableSource {
   Future<List<BodyCompSample>> fetchBodyComposition(int days) async {
     final now = DateTime.now();
     final start = now.subtract(Duration(days: days));
-    
+
     final healthData = await _health.getHealthDataFromTypes(
-      startTime: start, 
-      endTime: now, 
+      startTime: start,
+      endTime: now,
       types: [HealthDataType.WEIGHT, HealthDataType.BODY_FAT_PERCENTAGE],
     );
 
     final byDay = <String, BodyCompSample>{};
     for (final d in healthData) {
       final dayKey = DateFormat('yyyy-MM-dd').format(d.dateFrom);
-      final existing = byDay[dayKey] ?? BodyCompSample(
-        externalId: d.uuid,
-        timestamp: d.dateFrom,
-        sourceDevice: d.sourceId,
-      );
+      final existing = byDay[dayKey] ??
+          BodyCompSample(
+            externalId: d.uuid,
+            timestamp: d.dateFrom,
+            sourceDevice: d.sourceId,
+          );
 
       if (d.type == HealthDataType.WEIGHT) {
-        existing.weightKg = (d.value as NumericHealthValue).numericValue.toDouble();
+        existing.weightKg =
+            (d.value as NumericHealthValue).numericValue.toDouble();
       } else if (d.type == HealthDataType.BODY_FAT_PERCENTAGE) {
-        existing.bodyFatPct = (d.value as NumericHealthValue).numericValue.toDouble();
+        existing.bodyFatPct =
+            (d.value as NumericHealthValue).numericValue.toDouble();
       }
-      
+
       byDay[dayKey] = existing;
     }
-    
+
     return byDay.values.toList();
   }
 }

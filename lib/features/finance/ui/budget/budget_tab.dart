@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/budget_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -20,7 +21,8 @@ class BudgetTab extends StatefulWidget {
 
 class _BudgetTabState extends State<BudgetTab> {
   final FinanceController _controller = FinanceController();
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _selectedMonth =
+      DateTime(DateTime.now().year, DateTime.now().month, 1);
 
   @override
   void initState() {
@@ -33,14 +35,16 @@ class _BudgetTabState extends State<BudgetTab> {
 
   void _prevMonth() {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+      _selectedMonth =
+          DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
     });
     HapticFeedback.selectionClick();
   }
 
   void _nextMonth() {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+      _selectedMonth =
+          DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
     });
     HapticFeedback.selectionClick();
   }
@@ -157,7 +161,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -184,7 +187,8 @@ class _BudgetTabState extends State<BudgetTab> {
                   onTap: _resetToCurrentMonth,
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: BentoTheme.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -218,7 +222,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -278,7 +281,8 @@ class _BudgetTabState extends State<BudgetTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(LucideIcons.walletCards, size: 48, color: BentoTheme.textSecondary),
+                Icon(LucideIcons.walletCards,
+                    size: 48, color: BentoTheme.textSecondary),
                 const SizedBox(height: 16),
                 Text(
                   'No Budgets Set',
@@ -292,7 +296,8 @@ class _BudgetTabState extends State<BudgetTab> {
                 Text(
                   'Set monthly limits on your categories with optional rollover carryover.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
@@ -323,13 +328,15 @@ class _BudgetTabState extends State<BudgetTab> {
 
     for (final line in lines) {
       final eff = _controller.getEffectiveBudget(line, monthKey);
-      final spent = _controller.getCategoryMonthSpent(line.categoryId ?? '', _selectedMonth);
+      final spent = _controller.getCategoryMonthSpent(
+          line.categoryId ?? '', _selectedMonth);
       totalBudget += eff;
       totalSpent += spent;
     }
 
     final totalRemaining = totalBudget - totalSpent;
-    final totalPct = totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
+    final totalPct =
+        totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
 
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -341,7 +348,6 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,7 +369,9 @@ class _BudgetTabState extends State<BudgetTab> {
                           ? '${FormatUtils.formatMoney(totalRemaining)} left'
                           : '${FormatUtils.formatMoney(totalRemaining.abs())} over',
                       style: TextStyle(
-                        color: totalRemaining >= 0 ? const Color(0xFF10B981) : Colors.redAccent,
+                        color: totalRemaining >= 0
+                            ? const Color(0xFF10B981)
+                            : Colors.redAccent,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -386,23 +394,20 @@ class _BudgetTabState extends State<BudgetTab> {
                     const SizedBox(width: 6),
                     Text(
                       'of ${FormatUtils.formatMoney(totalBudget)}',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 15),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 15),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: totalPct,
-                    minHeight: 8,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      totalSpent > totalBudget
-                          ? Colors.redAccent
-                          : (totalPct > 0.8 ? Colors.amberAccent : BentoTheme.accent),
-                    ),
-                  ),
+                ProgressBarX(
+                  value: totalPct,
+                  height: 8,
+                  semantic: totalSpent > totalBudget
+                      ? ProgressSemantic.over
+                      : (totalPct > 0.8
+                          ? ProgressSemantic.warn
+                          : ProgressSemantic.neutral),
                 ),
               ],
             ),
@@ -433,10 +438,14 @@ class _BudgetTabState extends State<BudgetTab> {
         : null;
 
     final eff = _controller.getEffectiveBudget(line, monthKey);
-    final spent = _controller.getCategoryMonthSpent(line.categoryId ?? '', _selectedMonth);
+    final spent = _controller.getCategoryMonthSpent(
+        line.categoryId ?? '', _selectedMonth);
     final now = DateTime.now();
-    final evalDate = _isCurrentMonth ? now : DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
-    final proj = _controller.getCategoryProjectedSpend(line.categoryId ?? '', evalDate);
+    final evalDate = _isCurrentMonth
+        ? now
+        : DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    final proj =
+        _controller.getCategoryProjectedSpend(line.categoryId ?? '', evalDate);
     final status = BudgetEngine.evaluateStatus(
       effectiveBudget: eff,
       spent: spent,
@@ -447,7 +456,8 @@ class _BudgetTabState extends State<BudgetTab> {
     final cut = _controller.getRecommendedWeeklyCut(proj, eff, evalDate);
     final overrides = _controller.budgetOverrides;
     final hasOverride = overrides.containsKey('${line.id}_$monthKey');
-    final carry = eff - (hasOverride ? overrides['${line.id}_$monthKey']! : line.amount);
+    final carry =
+        eff - (hasOverride ? overrides['${line.id}_$monthKey']! : line.amount);
 
     final pct = eff > 0 ? (spent / eff).clamp(0.0, 1.0) : 0.0;
     final catColor = Color(category?.colorValue ?? 0xFF00E5FF);
@@ -457,7 +467,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -509,9 +518,11 @@ class _BudgetTabState extends State<BudgetTab> {
                               if (line.essential) ...[
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 1),
                                   decoration: BoxDecoration(
-                                    color: Colors.amberAccent.withValues(alpha: 0.15),
+                                    color: Colors.amberAccent
+                                        .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: const Text(
@@ -529,7 +540,8 @@ class _BudgetTabState extends State<BudgetTab> {
                           const SizedBox(height: 2),
                           Text(
                             '${FormatUtils.formatMoney(spent)} of ${FormatUtils.formatMoney(eff)}',
-                            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                            style: TextStyle(
+                                color: BentoTheme.textSecondary, fontSize: 13),
                           ),
                         ],
                       ),
@@ -540,10 +552,12 @@ class _BudgetTabState extends State<BudgetTab> {
                       children: [
                         if (line.rollover && carry.abs() > 0.01)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: carry > 0
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                  ? const Color(0xFF10B981)
+                                      .withValues(alpha: 0.15)
                                   : Colors.redAccent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
@@ -553,7 +567,9 @@ class _BudgetTabState extends State<BudgetTab> {
                                 Icon(
                                   LucideIcons.repeat,
                                   size: 10,
-                                  color: carry > 0 ? const Color(0xFF10B981) : Colors.redAccent,
+                                  color: carry > 0
+                                      ? const Color(0xFF10B981)
+                                      : Colors.redAccent,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -561,7 +577,9 @@ class _BudgetTabState extends State<BudgetTab> {
                                       ? '+${FormatUtils.formatMoney(carry)}'
                                       : '-${FormatUtils.formatMoney(carry.abs())}',
                                   style: TextStyle(
-                                    color: carry > 0 ? const Color(0xFF10B981) : Colors.redAccent,
+                                    color: carry > 0
+                                        ? const Color(0xFF10B981)
+                                        : Colors.redAccent,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -572,9 +590,11 @@ class _BudgetTabState extends State<BudgetTab> {
                         if (hasOverride) ...[
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.purpleAccent.withValues(alpha: 0.15),
+                              color:
+                                  Colors.purpleAccent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
@@ -594,20 +614,14 @@ class _BudgetTabState extends State<BudgetTab> {
                 const SizedBox(height: 12),
 
                 // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      status.isOverBudget
-                          ? Colors.redAccent
-                          : (status.isProjectedOver
-                              ? Colors.amberAccent
-                              : (pct > 0.8 ? Colors.amberAccent : BentoTheme.accent)),
-                    ),
-                  ),
+                ProgressBarX(
+                  value: pct,
+                  height: 6,
+                  semantic: status.isOverBudget
+                      ? ProgressSemantic.over
+                      : ((status.isProjectedOver || pct > 0.8)
+                          ? ProgressSemantic.warn
+                          : ProgressSemantic.neutral),
                 ),
                 const SizedBox(height: 10),
 
@@ -623,7 +637,9 @@ class _BudgetTabState extends State<BudgetTab> {
                       size: 13,
                       color: status.isOverBudget
                           ? Colors.redAccent
-                          : (status.isProjectedOver ? Colors.amberAccent : const Color(0xFF10B981)),
+                          : (status.isProjectedOver
+                              ? Colors.amberAccent
+                              : const Color(0xFF10B981)),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -642,7 +658,8 @@ class _BudgetTabState extends State<BudgetTab> {
                     ),
                     if (cut > 0 && !status.isOverBudget) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.amberAccent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
@@ -685,7 +702,6 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [
@@ -763,16 +779,17 @@ class _BudgetTabState extends State<BudgetTab> {
             decoration: BoxDecoration(
               color: BentoTheme.surface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
             ),
             child: Row(
               children: [
-                Icon(LucideIcons.info, size: 18, color: BentoTheme.textSecondary),
+                Icon(LucideIcons.info,
+                    size: 18, color: BentoTheme.textSecondary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'The 50/30/20 framework splits take-home income into Essentials (50%), Lifestyle (30%), and Future Wealth (20%).',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                   ),
                 ),
               ],
@@ -791,7 +808,9 @@ class _BudgetTabState extends State<BudgetTab> {
     required BudgetGroupProgress progress,
     bool isSavings = false,
   }) {
-    final pct = progress.target > 0 ? (progress.actual / progress.target).clamp(0.0, 1.0) : 0.0;
+    final pct = progress.target > 0
+        ? (progress.actual / progress.target).clamp(0.0, 1.0)
+        : 0.0;
     final isExceeded = progress.actual > progress.target;
 
     return Container(
@@ -799,7 +818,6 @@ class _BudgetTabState extends State<BudgetTab> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,7 +848,8 @@ class _BudgetTabState extends State<BudgetTab> {
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -850,31 +869,27 @@ class _BudgetTabState extends State<BudgetTab> {
                   ),
                   Text(
                     'Target: ${FormatUtils.formatMoney(progress.target)}',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 12),
-
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isSavings
-                    ? (progress.actual >= progress.target
-                        ? const Color(0xFF10B981)
-                        : color)
-                    : (isExceeded ? Colors.redAccent : color),
-              ),
-            ),
+          ProgressBarX(
+            value: pct,
+            height: 8,
+            semantic: (!isSavings && isExceeded)
+                ? ProgressSemantic.over
+                : ProgressSemantic.neutral,
+            customColor: isSavings
+                ? (progress.actual >= progress.target
+                    ? const Color(0xFF10B981)
+                    : color)
+                : (isExceeded ? Colors.redAccent : color),
           ),
           const SizedBox(height: 8),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -895,7 +910,9 @@ class _BudgetTabState extends State<BudgetTab> {
                       ? (progress.actual >= progress.target
                           ? const Color(0xFF10B981)
                           : BentoTheme.textSecondary)
-                      : (isExceeded ? Colors.redAccent : const Color(0xFF10B981)),
+                      : (isExceeded
+                          ? Colors.redAccent
+                          : const Color(0xFF10B981)),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -915,7 +932,8 @@ class _BudgetTabState extends State<BudgetTab> {
     final leftToAssign = _controller.getZeroBasedLeftToAssign(_selectedMonth);
     final lines = _controller.allBudgetLines;
     final goals = _controller.storage.goalBox.values
-        .where((g) => !g.archived && g.plannedMonthly != null && g.plannedMonthly! > 0)
+        .where((g) =>
+            !g.archived && g.plannedMonthly != null && g.plannedMonthly! > 0)
         .toList();
 
     final isBalanced = leftToAssign.abs() < 0.01;
@@ -930,29 +948,24 @@ class _BudgetTabState extends State<BudgetTab> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: isBalanced
-                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                  ? BentoTheme.positive.withValues(alpha: 0.15)
                   : (isUnder
-                      ? Colors.amberAccent.withValues(alpha: 0.15)
-                      : Colors.redAccent.withValues(alpha: 0.15)),
+                      ? BentoTheme.warning.withValues(alpha: 0.15)
+                      : BentoTheme.negative.withValues(alpha: 0.15)),
               borderRadius: ExpressiveTokens.borderL,
-              border: Border.all(
-                color: isBalanced
-                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                    : (isUnder
-                        ? Colors.amberAccent.withValues(alpha: 0.4)
-                        : Colors.redAccent.withValues(alpha: 0.4)),
-              ),
             ),
             child: Row(
               children: [
                 Icon(
                   isBalanced
                       ? LucideIcons.checkCircle2
-                      : (isUnder ? LucideIcons.alertCircle : LucideIcons.alertTriangle),
+                      : (isUnder
+                          ? LucideIcons.alertCircle
+                          : LucideIcons.alertTriangle),
                   size: 32,
                   color: isBalanced
-                      ? const Color(0xFF10B981)
-                      : (isUnder ? Colors.amberAccent : Colors.redAccent),
+                      ? BentoTheme.positive
+                      : (isUnder ? BentoTheme.warning : BentoTheme.negative),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -967,8 +980,10 @@ class _BudgetTabState extends State<BudgetTab> {
                                 : 'Over-assigned by ${FormatUtils.formatMoney(leftToAssign.abs())}'),
                         style: TextStyle(
                           color: isBalanced
-                              ? const Color(0xFF10B981)
-                              : (isUnder ? Colors.amberAccent : Colors.redAccent),
+                              ? BentoTheme.positive
+                              : (isUnder
+                                  ? BentoTheme.warning
+                                  : BentoTheme.negative),
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -980,7 +995,8 @@ class _BudgetTabState extends State<BudgetTab> {
                             : (isUnder
                                 ? 'Allocate remaining income to categories or savings buckets.'
                                 : 'Reduce category envelopes or goal reserves to reach zero.'),
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -1015,14 +1031,14 @@ class _BudgetTabState extends State<BudgetTab> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: Color(cat?.colorValue ?? 0xFF00E5FF),
-                    child: const Icon(LucideIcons.tag, size: 12, color: Colors.black),
+                    child: const Icon(LucideIcons.tag,
+                        size: 12, color: Colors.black),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1048,7 +1064,8 @@ class _BudgetTabState extends State<BudgetTab> {
                       ),
                       Text(
                         'Spent: ${FormatUtils.formatMoney(spent)}',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -1069,7 +1086,6 @@ class _BudgetTabState extends State<BudgetTab> {
               ),
             ),
             const SizedBox(height: 10),
-
             ...goals.map((g) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1077,14 +1093,14 @@ class _BudgetTabState extends State<BudgetTab> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderM,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 12,
                       backgroundColor: Color(g.colorValue),
-                      child: const Icon(LucideIcons.target, size: 12, color: Colors.black),
+                      child: const Icon(LucideIcons.target,
+                          size: 12, color: Colors.black),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

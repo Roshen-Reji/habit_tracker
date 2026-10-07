@@ -39,7 +39,8 @@ class WearableCleanupService {
         backupFolder.createSync(recursive: true);
       }
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final backupFile = File(p.join(backupFolder.path, 'mvp4_1_purge_$timestamp.json'));
+      final backupFile =
+          File(p.join(backupFolder.path, 'mvp4_1_purge_$timestamp.json'));
 
       final backupData = <String, dynamic>{
         'timestamp': DateTime.now().toIso8601String(),
@@ -89,7 +90,8 @@ class WearableCleanupService {
           // Clear supersededBy on any entries that were superseded by shealth_
           for (final b in dayLog.burnEntries) {
             if (b.supersededBy != null &&
-                (b.supersededBy!.startsWith('shealth_') || b.supersededBy!.startsWith('wear_'))) {
+                (b.supersededBy!.startsWith('shealth_') ||
+                    b.supersededBy!.startsWith('wear_'))) {
               b.supersededBy = null;
             }
           }
@@ -110,10 +112,12 @@ class WearableCleanupService {
           if (entry.autoLogJson != null && entry.autoLogJson!.isNotEmpty) {
             final events = JournalDayRepository.instance.getAutoLogs(entry);
             final initialLen = events.length;
-            events.removeWhere((e) => e.source == 'samsung_health' || e.source == 'wearable');
+            events.removeWhere(
+                (e) => e.source == 'samsung_health' || e.source == 'wearable');
             if (events.length != initialLen) {
               jCount += (initialLen - events.length);
-              entry.autoLogJson = jsonEncode(events.map((e) => e.toJson()).toList());
+              entry.autoLogJson =
+                  jsonEncode(events.map((e) => e.toJson()).toList());
               await entry.save();
             }
           }

@@ -3,12 +3,18 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/features/brainstorm/brainstorm_page.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class BrainstormCard extends StatelessWidget {
-  const BrainstormCard({super.key});
+  final HomeCardSize size;
+
+  const BrainstormCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   void _showAddIdeaDialog(BuildContext context) {
     final titleController = TextEditingController();
@@ -108,8 +114,8 @@ class BrainstormCard extends StatelessWidget {
       valueListenable: Hive.box<Idea>('ideas').listenable(),
       builder: (context, Box<Idea> box, _) {
         final ideas = box.values.toList();
-        ideas.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        final topIdeas = ideas.take(2).toList();
+        final count = size == HomeCardSize.large ? 4 : 2;
+        final topIdeas = ideas.take(count).toList();
 
         return HomeCardFrame(
           icon: LucideIcons.lightbulb,
@@ -151,9 +157,6 @@ class BrainstormCard extends StatelessWidget {
                       color: BentoTheme.surfaceElevated,
                       borderRadius:
                           BorderRadius.circular(ExpressiveTokens.radiusSm),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
-                      ),
                     ),
                     child: Row(
                       children: [

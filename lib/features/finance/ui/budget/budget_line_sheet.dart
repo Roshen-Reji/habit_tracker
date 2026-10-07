@@ -74,8 +74,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
       _rollover = line.rollover;
       _essential = line.essential;
 
-      final override =
-          widget.controller.repository.getAllBudgetOverrides()['${line.id}_$_monthKey'];
+      final override = widget.controller.repository
+          .getAllBudgetOverrides()['${line.id}_$_monthKey'];
       if (override != null) {
         _hasOverride = true;
         _overrideAmountController = TextEditingController(
@@ -134,9 +134,11 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
 
     // Handle month override
     if (_hasOverride && _overrideAmountController.text.trim().isNotEmpty) {
-      final overrideAmt = double.tryParse(_overrideAmountController.text.trim());
+      final overrideAmt =
+          double.tryParse(_overrideAmountController.text.trim());
       if (overrideAmt != null && overrideAmt > 0) {
-        await widget.controller.setBudgetOverride(lineId, _monthKey, overrideAmt);
+        await widget.controller
+            .setBudgetOverride(lineId, _monthKey, overrideAmt);
       }
     } else if (widget.existingLine != null) {
       await widget.controller.removeBudgetOverride(lineId, _monthKey);
@@ -200,8 +202,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -242,12 +243,13 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                   const Spacer(),
                   if (widget.existingLine != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.trash2,
-                          color: Colors.redAccent, size: 20),
+                      icon: Icon(LucideIcons.trash2,
+                          color: BentoTheme.negative, size: 20),
                       onPressed: _delete,
                     ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white60, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -276,15 +278,12 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                     decoration: BoxDecoration(
                       color: BentoTheme.background,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor:
-                              Color(cat?.colorValue ?? 0xFF00E5FF),
+                          backgroundColor: Color(cat?.colorValue ?? 0xFF00E5FF),
                           child: const Icon(LucideIcons.tag,
                               size: 14, color: Colors.black),
                         ),
@@ -381,8 +380,9 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all(
+                      // allowed: input focus
+                      color: Colors.white.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   children: [
@@ -430,8 +430,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,6 +479,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                           color: BentoTheme.surface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
+                              // allowed: input focus
                               color: BentoTheme.accent.withValues(alpha: 0.3)),
                         ),
                         child: Row(
@@ -501,8 +500,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                                     color: BentoTheme.textPrimary,
                                     fontWeight: FontWeight.bold),
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Override limit for ${_monthKey}',
+                                  hintText: 'Override limit for $_monthKey',
                                   hintStyle:
                                       const TextStyle(color: Colors.white24),
                                   border: InputBorder.none,
@@ -524,8 +522,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -575,8 +571,6 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -587,7 +581,7 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                           Row(
                             children: [
                               Icon(LucideIcons.shieldAlert,
-                                  size: 15, color: Colors.amberAccent),
+                                  size: 15, color: BentoTheme.warning),
                               const SizedBox(width: 6),
                               Text(
                                 'Essential Expense (Needs)',
@@ -634,7 +628,9 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                     ),
                   ),
                   child: Text(
-                    widget.existingLine == null ? 'Create Budget' : 'Save Changes',
+                    widget.existingLine == null
+                        ? 'Create Budget'
+                        : 'Save Changes',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),

@@ -13,6 +13,12 @@ class WearableXpRules {
   static const String ruleActiveTime = 'active_time_goal';
   static const String ruleSleepGoal = 'sleep_goal';
 
+  // Finance rules (P5-4)
+  static const String ruleFinLogDay = 'fin_log_day';
+  static const int finLogDayAward = 5;
+  static const String ruleFinGoalContribDay = 'fin_goal_contrib_day';
+  static const int finGoalContribDayAward = 10;
+
   /// Evaluates awards for a day's metrics and returns a map of ruleKey -> raw XP award,
   /// plus a scaled/clamped map that respects the 40 XP daily cap.
   static Map<String, int> computeAwards({
@@ -41,7 +47,7 @@ class WearableXpRules {
 
     // 3. Workouts
     for (final id in workoutIds) {
-      raw['workout:'] = workoutAwardPerSession;
+      raw['workout:$id'] = workoutAwardPerSession;
     }
 
     // 4. Sleep duration

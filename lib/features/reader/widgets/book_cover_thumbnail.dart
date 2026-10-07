@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -24,7 +25,7 @@ class BookCoverThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
     final effectiveRadius =
         borderRadius ?? BorderRadius.circular(ExpressiveTokens.radiusSm);
 
@@ -109,13 +110,9 @@ class BookCoverThumbnail extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: book.isFinished
-                            ? const Color(0xFF10B981).withValues(alpha: 0.9)
+                            ? BentoTheme.positive.withValues(alpha: 0.9)
                             : Colors.black.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          width: 0.8,
-                        ),
                       ),
                       child: Text(
                         book.isFinished

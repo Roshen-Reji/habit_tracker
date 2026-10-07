@@ -5,10 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/engine/report_engine.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -17,7 +15,8 @@ class ReportsPage extends StatefulWidget {
   State<ReportsPage> createState() => _ReportsPageState();
 }
 
-class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStateMixin {
+class _ReportsPageState extends State<ReportsPage>
+    with SingleTickerProviderStateMixin {
   final FinanceController _controller = FinanceController();
   late TabController _tabController;
 
@@ -71,42 +70,64 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
               children: [
                 Text(
                   'Export Financial Data (CSV)',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary),
+                  style:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                          .copyWith(color: BentoTheme.textPrimary),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: Icon(LucideIcons.fileSpreadsheet, color: BentoTheme.accent),
-                  title: const Text('Export All Transactions', style: TextStyle(color: Colors.white)),
-                  subtitle: Text('${_controller.allTransactions.length} records with accounts & categories', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  leading: Icon(LucideIcons.fileSpreadsheet,
+                      color: BentoTheme.accent),
+                  title: const Text('Export All Transactions',
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                      '${_controller.allTransactions.length} records with accounts & categories',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                   onTap: () {
                     Navigator.of(ctx).pop();
                     _doExport(
-                      filename: 'transactions_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
+                      filename:
+                          'transactions_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
                       content: _controller.exportTransactionsToCsv(),
                     );
                   },
                 ),
                 ListTile(
-                  leading: const Icon(LucideIcons.calendar, color: Colors.green),
-                  title: const Text('Export 12-Month Summary', style: TextStyle(color: Colors.white)),
-                  subtitle: Text('Income, spending, savings & net worth changes', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  leading:
+                      const Icon(LucideIcons.calendar, color: Colors.green),
+                  title: const Text('Export 12-Month Summary',
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                      'Income, spending, savings & net worth changes',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                   onTap: () {
                     Navigator.of(ctx).pop();
                     _doExport(
-                      filename: 'monthly_summary_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
-                      content: _controller.exportMonthlyReportToCsv(monthsBack: 12),
+                      filename:
+                          'monthly_summary_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
+                      content:
+                          _controller.exportMonthlyReportToCsv(monthsBack: 12),
                     );
                   },
                 ),
                 ListTile(
-                  leading: const Icon(LucideIcons.pieChart, color: Color(0xFFF59E0B)),
-                  title: Text('Export ${DateFormat('MMM yyyy').format(_currentMonth)} Categories', style: const TextStyle(color: Colors.white)),
-                  subtitle: Text('Category spending breakdown & deltas', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                  leading: const Icon(LucideIcons.pieChart,
+                      color: Color(0xFFF59E0B)),
+                  title: Text(
+                      'Export ${DateFormat('MMM yyyy').format(_currentMonth)} Categories',
+                      style: const TextStyle(color: Colors.white)),
+                  subtitle: Text('Category spending breakdown & deltas',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12)),
                   onTap: () {
                     Navigator.of(ctx).pop();
                     _doExport(
-                      filename: 'category_report_${DateFormat('yyyyMM').format(_currentMonth)}.csv',
-                      content: _controller.exportCategoryReportToCsv(_currentMonth),
+                      filename:
+                          'category_report_${DateFormat('yyyyMM').format(_currentMonth)}.csv',
+                      content:
+                          _controller.exportCategoryReportToCsv(_currentMonth),
                     );
                   },
                 ),
@@ -118,7 +139,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
     );
   }
 
-  Future<void> _doExport({required String filename, required String content}) async {
+  Future<void> _doExport(
+      {required String filename, required String content}) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final exportDir = Directory('${dir.path}/exports');
@@ -155,7 +177,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
     return Scaffold(
       backgroundColor: BentoTheme.background,
       appBar: AppBar(
-        title: const Text('Financial Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Financial Reports',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: BentoTheme.surface,
         foregroundColor: BentoTheme.textPrimary,
         elevation: 0,
@@ -191,18 +214,22 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: Icon(LucideIcons.chevronLeft, color: BentoTheme.textPrimary, size: 20),
+                  icon: Icon(LucideIcons.chevronLeft,
+                      color: BentoTheme.textPrimary, size: 20),
                   onPressed: _prevMonth,
                 ),
                 Text(
                   monthStr,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(
+                  style:
+                      const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                          .copyWith(
                     color: BentoTheme.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 IconButton(
-                  icon: Icon(LucideIcons.chevronRight, color: BentoTheme.textPrimary, size: 20),
+                  icon: Icon(LucideIcons.chevronRight,
+                      color: BentoTheme.textPrimary, size: 20),
                   onPressed: _nextMonth,
                 ),
               ],
@@ -238,17 +265,28 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
           // Key metrics grid
           Row(
             children: [
-              Expanded(child: _metricCard('Income', rep.income, Colors.green, LucideIcons.arrowDownLeft)),
+              Expanded(
+                  child: _metricCard('Income', rep.income, BentoTheme.positive,
+                      LucideIcons.arrowDownLeft)),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard('Spending', rep.spending, Colors.red, LucideIcons.arrowUpRight)),
+              Expanded(
+                  child: _metricCard('Spending', rep.spending,
+                      BentoTheme.negative, LucideIcons.arrowUpRight)),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _metricCard('Net Cash Flow', rep.net, rep.net >= 0 ? BentoTheme.accent : Colors.red, LucideIcons.wallet)),
+              Expanded(
+                  child: _metricCard(
+                      'Net Cash Flow',
+                      rep.net,
+                      rep.net >= 0 ? BentoTheme.accent : BentoTheme.negative,
+                      LucideIcons.wallet)),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard('Total Saved & Invested', rep.saved, const Color(0xFFF59E0B), LucideIcons.piggyBank)),
+              Expanded(
+                  child: _metricCard('Total Saved & Invested', rep.saved,
+                      BentoTheme.warning, LucideIcons.piggyBank)),
             ],
           ),
           const SizedBox(height: 16),
@@ -259,7 +297,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,22 +304,32 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Net Worth Delta', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary)),
+                    Text('Net Worth Delta',
+                        style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold)
+                            .copyWith(color: BentoTheme.textPrimary)),
                     Text(
                       '${rep.netWorthChange >= 0 ? '+' : ''}${FormatUtils.formatCurrency(rep.netWorthChange)}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(
-                        color: rep.netWorthChange >= 0 ? Colors.green : Colors.red,
+                      style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)
+                          .copyWith(
+                        color: rep.netWorthChange >= 0
+                            ? BentoTheme.positive
+                            : BentoTheme.negative,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _rowText('Starting Net Worth', '${FormatUtils.formatCurrency(rep.netWorthStart)}'),
+                _rowText('Starting Net Worth',
+                    '${FormatUtils.formatCurrency(rep.netWorthStart)}'),
                 const SizedBox(height: 6),
-                _rowText('Ending Net Worth', '${FormatUtils.formatCurrency(rep.netWorthEnd)}'),
+                _rowText('Ending Net Worth',
+                    '${FormatUtils.formatCurrency(rep.netWorthEnd)}'),
                 const SizedBox(height: 6),
-                _rowText('Savings Rate', '${(rep.savingsRate * 100).toStringAsFixed(1)}%'),
+                _rowText('Savings Rate',
+                    '${(rep.savingsRate * 100).toStringAsFixed(1)}%'),
               ],
             ),
           ),
@@ -297,7 +344,9 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
 
     if (items.isEmpty) {
       return Center(
-        child: Text('No spending recorded for this month', style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
+        child: Text('No spending recorded for this month',
+            style: const TextStyle(fontSize: 12)
+                .copyWith(color: BentoTheme.textSecondary)),
       );
     }
 
@@ -314,7 +363,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: [
@@ -343,14 +391,15 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                 children: [
                   Text(
                     '${item.percentage.toStringAsFixed(1)}% of total',
-                    style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
+                    style: const TextStyle(fontSize: 12)
+                        .copyWith(color: BentoTheme.textSecondary),
                   ),
                   if (item.lastMonthAmount > 0)
                     Text(
                       '${isUp ? '+' : ''}${item.changePct.toStringAsFixed(1)}% vs last mo',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isUp ? Colors.orange : Colors.green,
+                        color: isUp ? BentoTheme.warning : BentoTheme.positive,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -369,7 +418,9 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
 
     if (items.isEmpty) {
       return Center(
-        child: Text('No merchant records for this month', style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
+        child: Text('No merchant records for this month',
+            style: const TextStyle(fontSize: 12)
+                .copyWith(color: BentoTheme.textSecondary)),
       );
     }
 
@@ -384,7 +435,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -402,7 +452,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   const SizedBox(height: 4),
                   Text(
                     '${item.transactionCount} txn${item.transactionCount > 1 ? 's' : ''} · Avg ${FormatUtils.formatMoney(item.avgAmount, decimals: 0)}',
-                    style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
+                    style: const TextStyle(fontSize: 12)
+                        .copyWith(color: BentoTheme.textSecondary),
                   ),
                 ],
               ),
@@ -438,32 +489,41 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
             decoration: BoxDecoration(
               color: BentoTheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Metric', style: TextStyle(color: BentoTheme.textSecondary, fontWeight: FontWeight.bold)),
-                    Text(m1Label, style: TextStyle(color: BentoTheme.textSecondary, fontWeight: FontWeight.bold)),
-                    Text(m2Label, style: TextStyle(color: BentoTheme.accent, fontWeight: FontWeight.bold)),
+                    Text('Metric',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontWeight: FontWeight.bold)),
+                    Text(m1Label,
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontWeight: FontWeight.bold)),
+                    Text(m2Label,
+                        style: TextStyle(
+                            color: BentoTheme.accent,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const Divider(height: 20, color: Colors.white12),
                 _compRow('Income', comp.month1Income, comp.month2Income),
                 const SizedBox(height: 8),
-                _compRow('Spending', comp.month1Spending, comp.month2Spending, isExpense: true),
+                _compRow('Spending', comp.month1Spending, comp.month2Spending,
+                    isExpense: true),
                 const SizedBox(height: 8),
                 _compRow('Net', comp.month1Net, comp.month2Net),
               ],
             ),
           ),
           const SizedBox(height: 16),
-
-          Text('Category Deltas', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary)),
+          Text('Category Deltas',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                  .copyWith(color: BentoTheme.textPrimary)),
           const SizedBox(height: 12),
-
           ...comp.categoryComparisons.map((c) {
             final isIncrease = c.difference > 0;
             return Container(
@@ -472,22 +532,28 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(c.categoryName, style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.textPrimary)),
+                  Text(c.categoryName,
+                      style: const TextStyle(fontSize: 14)
+                          .copyWith(color: BentoTheme.textPrimary)),
                   Row(
                     children: [
-                      Text('${FormatUtils.formatCurrency(c.month2Amount)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      Text('${FormatUtils.formatCurrency(c.month2Amount)}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       Text(
                         '${isIncrease ? '+' : ''}${FormatUtils.formatMoney(c.difference, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isIncrease ? Colors.red : Colors.green,
+                          color: isIncrease
+                              ? BentoTheme.negative
+                              : BentoTheme.positive,
                         ),
                       ),
                     ],
@@ -503,7 +569,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
 
   // 5. Multi-Month Trends Tab
   Widget _buildTrendsTab() {
-    final points = _controller.getTrendReport(_trendMonths, currentMonth: _currentMonth);
+    final points =
+        _controller.getTrendReport(_trendMonths, currentMonth: _currentMonth);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -521,7 +588,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
             ],
           ),
           const SizedBox(height: 12),
-
           ...points.reversed.map((p) {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -529,7 +595,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -537,11 +602,15 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold).copyWith(color: BentoTheme.textPrimary)),
+                      Text(p.label,
+                          style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold)
+                              .copyWith(color: BentoTheme.textPrimary)),
                       const SizedBox(height: 4),
                       Text(
                         'In: ${FormatUtils.formatMoney(p.income, decimals: 0)} · Out: ${FormatUtils.formatMoney(p.spending, decimals: 0)}',
-                        style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary),
+                        style: const TextStyle(fontSize: 12)
+                            .copyWith(color: BentoTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -550,14 +619,18 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     children: [
                       Text(
                         'NW: ${FormatUtils.formatMoney(p.netWorth, decimals: 0)}',
-                        style: const TextStyle(fontSize: 14).copyWith(color: BentoTheme.accent, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 14).copyWith(
+                            color: BentoTheme.accent,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Net: ${p.net >= 0 ? '+' : ''}${FormatUtils.formatMoney(p.net, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: p.net >= 0 ? Colors.green : Colors.red,
+                          color: p.net >= 0
+                              ? BentoTheme.positive
+                              : BentoTheme.negative,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -578,7 +651,6 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,13 +659,16 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(title, style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
+              Text(title,
+                  style: const TextStyle(fontSize: 12)
+                      .copyWith(color: BentoTheme.textSecondary)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             '${FormatUtils.formatCurrency(amount)}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold).copyWith(color: color, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                .copyWith(color: color, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -604,19 +679,30 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textSecondary)),
-        Text(value, style: const TextStyle(fontSize: 12).copyWith(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: const TextStyle(fontSize: 12)
+                .copyWith(color: BentoTheme.textSecondary)),
+        Text(value,
+            style: const TextStyle(fontSize: 12).copyWith(
+                color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  Widget _compRow(String title, double val1, double val2, {bool isExpense = false}) {
+  Widget _compRow(String title, double val1, double val2,
+      {bool isExpense = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        Text('${FormatUtils.formatMoney(val1, decimals: 0)}', style: TextStyle(color: BentoTheme.textSecondary)),
-        Text('${FormatUtils.formatMoney(val2, decimals: 0)}', style: TextStyle(color: isExpense ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
+        Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w500)),
+        Text('${FormatUtils.formatMoney(val1, decimals: 0)}',
+            style: TextStyle(color: BentoTheme.textSecondary)),
+        Text('${FormatUtils.formatMoney(val2, decimals: 0)}',
+            style: TextStyle(
+                color: isExpense ? BentoTheme.negative : BentoTheme.positive,
+                fontWeight: FontWeight.bold)),
       ],
     );
   }

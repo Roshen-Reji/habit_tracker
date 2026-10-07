@@ -6,7 +6,6 @@ import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
-import 'package:habit_tracker/features/finance/models/valuation.dart';
 
 /// Bottom sheet displaying valuation history and allowing new valuation logging
 /// for valued assets (stocks, mutual funds, gold, property, etc.).
@@ -204,7 +203,8 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                   children: [
                     Text(
                       'Current Value',
-                      style: TextStyle(color: BentoTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 13),
                     ),
                     Text(
                       FormatUtils.formatMoney(currentVal),
@@ -221,11 +221,13 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                   children: [
                     Text(
                       'Invested Capital',
-                      style: TextStyle(color: BentoTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 13),
                     ),
                     Text(
                       FormatUtils.formatMoney(invested),
-                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w500, fontSize: 14),
                     ),
                   ],
                 ),
@@ -235,7 +237,8 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                   children: [
                     Text(
                       'Gain / Loss',
-                      style: TextStyle(color: BentoTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 13),
                     ),
                     Row(
                       children: [
@@ -244,14 +247,19 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: gainLoss >= 0 ? Colors.green : Colors.red,
+                            color: gainLoss >= 0
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: (gainLoss >= 0 ? Colors.green : Colors.red)
+                            color: (gainLoss >= 0
+                                    ? BentoTheme.positive
+                                    : BentoTheme.negative)
                                 .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -260,7 +268,9 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: gainLoss >= 0 ? Colors.green : Colors.red,
+                              color: gainLoss >= 0
+                                  ? BentoTheme.positive
+                                  : BentoTheme.negative,
                             ),
                           ),
                         ),
@@ -280,7 +290,6 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,11 +306,13 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                       Expanded(
                         child: TextField(
                           controller: _unitsController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           decoration: InputDecoration(
                             labelText: 'Units (optional)',
                             hintText: 'e.g. 50.25',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
@@ -309,11 +320,13 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                       Expanded(
                         child: TextField(
                           controller: _priceController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           decoration: InputDecoration(
                             labelText: 'Unit Price (optional)',
                             hintText: 'e.g. 210.50',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
@@ -322,30 +335,36 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _valueController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
                       labelText: 'Total Valuation Value',
                       hintText: 'e.g. 10577.62',
                       prefixText: '${FormatUtils.getCurrencySymbol()} ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       OutlinedButton.icon(
-                        icon: const Icon(Icons.calendar_today_rounded, size: 16),
-                        label: Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+                        icon:
+                            const Icon(Icons.calendar_today_rounded, size: 16),
+                        label: Text(
+                            DateFormat('dd MMM yyyy').format(_selectedDate)),
                         onPressed: _pickDate,
                         style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                       const Spacer(),
                       ElevatedButton(
                         onPressed: _handleSaveValuation,
                         style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                         child: const Text('Save Valuation'),
                       ),
@@ -371,7 +390,8 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                     child: Text(
                       'No manual valuations logged yet.\nCurrent balance reflects cumulative net invested capital.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: BentoTheme.textMuted, fontSize: 13),
+                      style:
+                          TextStyle(color: BentoTheme.textMuted, fontSize: 13),
                     ),
                   )
                 : ListView.separated(
@@ -384,7 +404,8 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                         leading: CircleAvatar(
                           radius: 16,
                           backgroundColor: Colors.white10,
-                          child: const Icon(Icons.assessment_outlined, size: 16, color: Colors.white70),
+                          child: const Icon(Icons.assessment_outlined,
+                              size: 16, color: Colors.white70),
                         ),
                         title: Text(
                           FormatUtils.formatMoney(val.value),
@@ -394,10 +415,12 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           val.units != null && val.unitPrice != null
                               ? '${val.units} units @ ${FormatUtils.getCurrencySymbol()}${val.unitPrice} • ${DateFormat('dd MMM yyyy').format(val.date)}'
                               : DateFormat('dd MMM yyyy').format(val.date),
-                          style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
+                          style: TextStyle(
+                              color: BentoTheme.textMuted, fontSize: 12),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+                          icon: Icon(Icons.delete_outline,
+                              size: 20, color: BentoTheme.negative),
                           onPressed: () async {
                             await _repository.deleteValuation(val.id);
                             setState(() {});

@@ -128,7 +128,8 @@ class _AccountReconcileDialogState extends State<AccountReconcileDialog> {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Color(widget.account.colorValue).withValues(alpha: 0.2),
+                    backgroundColor:
+                        Color(widget.account.colorValue).withValues(alpha: 0.2),
                     radius: 20,
                     child: Icon(
                       Icons.tune_rounded,
@@ -277,7 +278,8 @@ class _AccountReconcileDialogState extends State<AccountReconcileDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _isSaving ? null : () => Navigator.of(context).pop(),
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),

@@ -4,7 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/features/home/widgets/home_card_size_sheet.dart';
 
+/// A sleek 3D spatial card stack for the home screen inspired by Apple iOS.
+///
+/// Features:
+/// - Active card rests in the vertical middle of the screen (sharp, interactive).
+/// - Previous and next cards are visible above and below it, with optical depth blur.
+/// - Silky smooth iOS-style merge/replace transitions as cards cycle into focal center.
+/// - Full scroll range ensuring all cards (including the final cards) pop up to become active.
 class WalletCardStack extends StatefulWidget {
   final ScrollController? controller;
 
@@ -22,11 +30,31 @@ class _WalletCardStackState extends State<WalletCardStack> {
   bool _internalController = false;
   bool _isSettling = false;
   int _activeIndex = 0;
+  List<double> _focusOffsets = const [0.0];
 
-  static const double _cardSpacing = 135.0;
-  static const double _tuckOffset = 10.0;
-  static const double _focusSpacing = _cardSpacing - _tuckOffset;
   static const double _perspective = 0.00135;
+
+  static double _cardHeightFor(HomeCardSize size, double viewportHeight) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return 145.0;
+      case HomeCardSize.large:
+        return 245.0;
+      case HomeCardSize.hero:
+        return math.max(320.0, viewportHeight * 0.46);
+    }
+  }
+
+  static double _cardSpacingFor(HomeCardSize size, double viewportHeight) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return 160.0;
+      case HomeCardSize.large:
+        return 255.0;
+      case HomeCardSize.hero:
+        return math.max(330.0, viewportHeight * 0.48);
+    }
+  }
 
   @override
   void initState() {
@@ -41,15 +69,28 @@ class _WalletCardStackState extends State<WalletCardStack> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients || _focusOffsets.isEmpty) return;
     final scrollOffset = math.max(0.0, _scrollController.offset).toDouble();
-    final cameraPosition = scrollOffset / _focusSpacing;
-    final newActiveIndex = cameraPosition.round();
+    final newActiveIndex = _findActiveIndex(scrollOffset, _focusOffsets);
     if (newActiveIndex != _activeIndex) {
       setState(() {
         _activeIndex = newActiveIndex;
       });
     }
+  }
+
+  int _findActiveIndex(double scrollOffset, List<double> offsets) {
+    if (offsets.isEmpty) return 0;
+    int closest = 0;
+    double minDiff = (scrollOffset - offsets[0]).abs();
+    for (int i = 1; i < offsets.length; i++) {
+      final diff = (scrollOffset - offsets[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = i;
+      }
+    }
+    return closest;
   }
 
   @override
@@ -61,16 +102,18 @@ class _WalletCardStackState extends State<WalletCardStack> {
     super.dispose();
   }
 
-  void _settleToNearestCard(int cardCount) {
+  void _settleToNearestCard(List<double> offsets) {
     if (_isSettling ||
         !_scrollController.hasClients ||
+        offsets.length < 2 ||
         MediaQuery.of(context).disableAnimations) {
       return;
     }
 
     final position = _scrollController.position;
     final current = position.pixels;
-    final target = (current / _focusSpacing).round() * _focusSpacing;
+    final activeIndex = _findActiveIndex(current, offsets);
+    final target = offsets[activeIndex];
     final clampedTarget = target
         .clamp(
           position.minScrollExtent,
@@ -78,13 +121,13 @@ class _WalletCardStackState extends State<WalletCardStack> {
         )
         .toDouble();
 
-    if ((current - clampedTarget).abs() < 2.0 || cardCount < 2) return;
+    if ((current - clampedTarget).abs() < 4.0) return;
 
     _isSettling = true;
     _scrollController
         .animateTo(
       clampedTarget,
-      duration: const Duration(milliseconds: 460),
+      duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutBack,
     )
         .whenComplete(() {
@@ -95,7 +138,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(keys: ['home_layout']),
+      valueListenable: Hive.box('settings')
+          .listenable(keys: ['home_layout', 'home_card_sizes']),
       builder: (context, Box settingsBox, _) {
         final layout = HomeCardRegistry.loadLayout(settingsBox);
         final visibleCards = <HomeCardSpec>[];
@@ -147,65 +191,243 @@ class _WalletCardStackState extends State<WalletCardStack> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final viewportHeight =
-                constraints.maxHeight.isFinite ? constraints.maxHeight : 600.0;
+                constraints.maxHeight.isFinite ? constraints.maxHeight : 650.0;
+
+            final cardSizes = visibleCards
+                .map((s) => HomeCardRegistry.getCardSize(settingsBox, s.id))
+                .toList();
+
+            final focusOffsets = <double>[0.0];
+            for (int i = 1; i < visibleCards.length; i++) {
+              final prevSize = cardSizes[i - 1];
+              final sp = _cardSpacingFor(prevSize, viewportHeight);
+              focusOffsets.add(focusOffsets[i - 1] + sp);
+            }
+
+            _focusOffsets = focusOffsets;
+
+            // Full scroll extent ensuring even the last cards can scroll to center
             final totalScrollHeight =
-                (viewportHeight + (visibleCards.length - 1) * _focusSpacing)
-                    .toDouble();
+                focusOffsets.last + viewportHeight + 120.0;
+
             final reduceMotion = MediaQuery.of(context).disableAnimations;
-            final activeClamped = _activeIndex.clamp(0, visibleCards.length - 1);
+            final activeClamped =
+                _activeIndex.clamp(0, visibleCards.length - 1);
+            final currentScroll =
+                _scrollController.hasClients ? _scrollController.offset : 0.0;
+
+            // Layer ordering: cards furthest from current scroll position are painted
+            // first (deepest in stack), closest card is painted last (on top, iOS style).
+            final paintOrder =
+                List<int>.generate(visibleCards.length, (i) => i);
+            paintOrder.sort((a, b) {
+              final distA = (focusOffsets[a] - currentScroll).abs();
+              final distB = (focusOffsets[b] - currentScroll).abs();
+              if (distA != distB) {
+                return distB.compareTo(distA);
+              }
+              return a.compareTo(b);
+            });
 
             return Stack(
               children: [
+                // Ambient backdrop depth lens
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ClipRect(
+                      child: AnimatedBuilder(
+                        animation: _scrollController,
+                        builder: (context, _) {
+                          final scrollOffset = _scrollController.hasClients
+                              ? math
+                                  .max(0.0, _scrollController.offset)
+                                  .toDouble()
+                              : 0.0;
+                          final currentStep = focusOffsets.length > 1
+                              ? (focusOffsets[1] - focusOffsets[0])
+                                  .clamp(100.0, 400.0)
+                              : 145.0;
+                          final travel = scrollOffset / currentStep;
+                          final betweenCards = (travel - travel.round()).abs();
+                          final lensBlur =
+                              reduceMotion ? 0.0 : 8.0 + (betweenCards * 4.0);
+
+                          return BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: lensBlur,
+                              sigmaY: lensBlur,
+                            ),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: BentoTheme.background
+                                    .withValues(alpha: 0.08),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Card stack scroll container
                 NotificationListener<ScrollEndNotification>(
                   onNotification: (notification) {
-                    if (notification.depth == 0) {
-                      _settleToNearestCard(visibleCards.length);
+                    if (notification.depth == 0 &&
+                        notification.dragDetails != null) {
+                      _settleToNearestCard(focusOffsets);
                     }
                     return false;
                   },
                   child: SingleChildScrollView(
                     controller: _scrollController,
-                    physics: const BouncingScrollPhysics(
-                        decelerationRate: ScrollDecelerationRate.normal),
+                    physics: reduceMotion
+                        ? const ClampingScrollPhysics()
+                        : const BouncingScrollPhysics(
+                            decelerationRate: ScrollDecelerationRate.normal,
+                          ),
                     child: SizedBox(
                       height: totalScrollHeight,
                       width: double.infinity,
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    ignoring: false,
-                    child: Flow(
-                      delegate: _WalletFlowDelegate(
-                        scrollController: _scrollController,
-                        reduceMotion: reduceMotion,
-                        focusSpacing: _focusSpacing,
-                        tuckOffset: _tuckOffset,
-                        cardSpacing: _cardSpacing,
-                        perspective: _perspective,
-                        visibleCount: visibleCards.length,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: paintOrder.map((index) {
+                          if ((index - activeClamped).abs() > 3) {
+                            return Positioned(
+                              top: focusOffsets[index],
+                              left: 16,
+                              right: 16,
+                              child: const SizedBox.shrink(),
+                            );
+                          }
+
+                          final cardSpec = visibleCards[index];
+                          final cardSize = cardSizes[index];
+                          final cardHeight =
+                              _cardHeightFor(cardSize, viewportHeight);
+                          final cardStep =
+                              _cardSpacingFor(cardSize, viewportHeight);
+
+                          // Position card so it centers vertically on screen when active
+                          final focalCenterY = math.max(
+                              24.0, (viewportHeight - cardHeight) / 2.0);
+                          final cardTop = focusOffsets[index] + focalCenterY;
+
+                          return Positioned(
+                            top: cardTop,
+                            left: 16,
+                            right: 16,
+                            child: RepaintBoundary(
+                              child: AnimatedBuilder(
+                                animation: _scrollController,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: index == activeClamped
+                                      ? null
+                                      : () {
+                                          _scrollController.animateTo(
+                                            focusOffsets[index],
+                                            duration: const Duration(
+                                                milliseconds: 380),
+                                            curve: Curves.easeOutCubic,
+                                          );
+                                        },
+                                  onLongPress: () =>
+                                      HomeCardSizeSheet.show(context, cardSpec),
+                                  child: IgnorePointer(
+                                    ignoring: index != activeClamped,
+                                    child:
+                                        cardSpec.buildWidget(context, cardSize),
+                                  ),
+                                ),
+                                builder: (context, child) {
+                                  if (reduceMotion) {
+                                    return child!;
+                                  }
+
+                                  final scrollOffset =
+                                      _scrollController.hasClients
+                                          ? _scrollController.offset
+                                          : 0.0;
+                                  final delta =
+                                      focusOffsets[index] - scrollOffset;
+                                  final normalized = delta / cardStep;
+                                  final absNormalized = normalized.abs();
+
+                                  // Depth amount: 0.0 at active center, smoothly increases as card recedes
+                                  final depthAmount =
+                                      absNormalized.clamp(0.0, 1.8) / 1.8;
+
+                                  // Vertical tuck compression:
+                                  // Upcoming cards tucked closer from below; previous cards tucked gently above
+                                  final double yParallax;
+                                  if (delta > 0) {
+                                    yParallax =
+                                        -(normalized.clamp(0.0, 2.5) * 26.0);
+                                  } else {
+                                    yParallax =
+                                        ((-normalized).clamp(0.0, 2.5) * 24.0);
+                                  }
+
+                                  // 3D Spatial Transforms
+                                  final horizontalParallax =
+                                      normalized.clamp(-2.0, 2.0) * 1.5;
+
+                                  final zOffset = -depthAmount * 32.0;
+
+                                  final tilt =
+                                      normalized.clamp(-1.0, 1.0) * 0.042;
+
+                                  final scale = (1.0 - (depthAmount * 0.085))
+                                      .clamp(0.90, 1.0);
+
+                                  final opacity = (1.0 - (depthAmount * 0.20))
+                                      .clamp(0.72, 1.0);
+
+                                  final blurSigma =
+                                      (depthAmount * 3.6).clamp(0.0, 4.2);
+
+                                  final transform = Matrix4.identity()
+                                    ..setEntry(3, 2, _perspective)
+                                    ..translate(0.0, 0.0, zOffset)
+                                    ..rotateX(tilt);
+
+                                  return Transform.translate(
+                                    offset:
+                                        Offset(horizontalParallax, yParallax),
+                                    child: Transform(
+                                      alignment: Alignment.center,
+                                      transform: transform,
+                                      child: Transform.scale(
+                                        scale: scale,
+                                        alignment: Alignment.center,
+                                        child: Opacity(
+                                          opacity: opacity,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            child: blurSigma > 0.1
+                                                ? ImageFiltered(
+                                                    imageFilter:
+                                                        ImageFilter.blur(
+                                                      sigmaX: blurSigma,
+                                                      sigmaY: blurSigma,
+                                                      tileMode: TileMode.decal,
+                                                    ),
+                                                    child: child!,
+                                                  )
+                                                : child!,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      children: List.generate(visibleCards.length, (index) {
-                        if ((index - activeClamped).abs() > 3) {
-                          return const SizedBox.shrink();
-                        }
-                        
-                        // We wrap each card in a RepaintBoundary.
-                        // For non-focused cards, we apply a dark overlay using a ColorFiltered or just an overlay inside the card?
-                        // Wait, FlowDelegate can paint opacity. The dark overlay can be painted by FlowDelegate if it were simple, but Flow doesn't paint custom shapes.
-                        // We can just use an overlay widget whose opacity is animated by a local animation? No, the overlay amount depends on the scroll offset which is exactly what we are optimizing.
-                        // If we use ColorFiltered, we still need to rebuild to change the color filter. 
-                        // Instructions: "For cards behind the focused one, use scale, fade (via FadeTransition or a colour overlay, not an Opacity widget) and a dark overlay."
-                        // We'll just build it normally and use context.paintChild(..., opacity: opacity) in FlowDelegate which avoids the Opacity widget entirely.
-                        // And for the dark overlay, if they don't want Opacity widget, maybe we can just let context.paintChild's opacity handle the "fade".
-                        return RepaintBoundary(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: visibleCards[index].compactBuilder(context),
-                          ),
-                        );
-                      }),
                     ),
                   ),
                 ),
@@ -215,104 +437,5 @@ class _WalletCardStackState extends State<WalletCardStack> {
         );
       },
     );
-  }
-}
-
-class _WalletFlowDelegate extends FlowDelegate {
-  final ScrollController scrollController;
-  final bool reduceMotion;
-  final double focusSpacing;
-  final double tuckOffset;
-  final double cardSpacing;
-  final double perspective;
-  final int visibleCount;
-
-  _WalletFlowDelegate({
-    required this.scrollController,
-    required this.reduceMotion,
-    required this.focusSpacing,
-    required this.tuckOffset,
-    required this.cardSpacing,
-    required this.perspective,
-    required this.visibleCount,
-  }) : super(repaint: scrollController);
-
-  @override
-  void paintChildren(FlowPaintingContext context) {
-    final scrollOffset = scrollController.hasClients ? math.max(0.0, scrollController.offset).toDouble() : 0.0;
-    final cameraPosition = scrollOffset / focusSpacing;
-    final activeIndex = cameraPosition.round().clamp(0, visibleCount - 1).toInt();
-
-    final paintOrder = List<int>.generate(visibleCount, (i) => i)
-      ..remove(activeIndex)
-      ..add(activeIndex);
-
-    for (final index in paintOrder) {
-      if ((index - activeIndex).abs() > 3) {
-        // We still must call paintChild to satisfy the Flow children index, but it will be a SizedBox.shrink()
-        // so it does nothing. But actually, we don't even need to paint it if it's out of bounds.
-        // Wait, yes we do, or we can just ignore painting it.
-        continue;
-      }
-      
-      final yTuck = index * tuckOffset;
-      final yBase = index * cardSpacing;
-      final isActive = index == activeIndex;
-
-      final relativeDepth = index - cameraPosition;
-      final depthAmount = isActive
-          ? 0.0
-          : (index - activeIndex).abs().clamp(0.0, 2.4).toDouble() / 2.4;
-      final parallaxRate = reduceMotion
-          ? 1.0
-          : (1.0 -
-                  (relativeDepth.clamp(0.0, 3.0) * 0.035) +
-                  ((-relativeDepth).clamp(0.0, 3.0) * 0.012))
-              .clamp(0.89, 1.04)
-              .toDouble();
-      
-      final cameraScroll = scrollOffset * parallaxRate;
-      final visualY = math.max(yTuck, yBase - cameraScroll).toDouble();
-      
-      final yChild = visualY + scrollOffset;
-      final scale = 1.0 - (depthAmount * 0.085);
-      final opacity = isActive ? 1.0 : (0.68 + ((1.0 - depthAmount) * 0.18));
-      final tilt = reduceMotion || isActive
-          ? 0.0
-          : relativeDepth.clamp(-1.0, 1.0).toDouble() * 0.045;
-      final zOffset = reduceMotion || isActive ? 0.0 : -depthAmount * 34.0;
-      final horizontalParallax = reduceMotion || isActive
-          ? 0.0
-          : relativeDepth.clamp(-2.0, 2.0).toDouble() * 1.6;
-
-      final transform = Matrix4.identity()
-        ..translate(horizontalParallax, yChild, 0.0)
-        ..setEntry(3, 2, perspective)
-        ..translate(0.0, 0.0, zOffset)
-        ..rotateX(tilt);
-      
-      if (!reduceMotion) {
-         // Apply center scaling
-         final size = context.getChildSize(index) ?? Size.zero;
-         final dx = size.width / 2;
-         final dy = 0.0;
-         transform.translate(dx, dy, 0.0);
-         transform.scale(scale, scale, 1.0);
-         transform.translate(-dx, -dy, 0.0);
-      }
-
-      context.paintChild(
-        index,
-        transform: transform,
-        opacity: reduceMotion ? 1.0 : opacity,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WalletFlowDelegate oldDelegate) {
-    return scrollController != oldDelegate.scrollController ||
-           reduceMotion != oldDelegate.reduceMotion ||
-           visibleCount != oldDelegate.visibleCount;
   }
 }

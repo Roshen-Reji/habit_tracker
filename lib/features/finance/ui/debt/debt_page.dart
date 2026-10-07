@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
@@ -35,9 +35,8 @@ class _DebtPageState extends State<DebtPage> {
         final cards = _controller.creditCardAccounts;
         final loans = _controller.loanAccounts;
 
-        final strategies = loans.isNotEmpty
-            ? _controller.comparePayoffStrategies()
-            : null;
+        final strategies =
+            loans.isNotEmpty ? _controller.comparePayoffStrategies() : null;
 
         return Scaffold(
           backgroundColor: BentoTheme.background,
@@ -67,7 +66,6 @@ class _DebtPageState extends State<DebtPage> {
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
                   borderRadius: ExpressiveTokens.borderL,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +83,9 @@ class _DebtPageState extends State<DebtPage> {
                     Text(
                       FormatUtils.formatMoney(totalDebt),
                       style: TextStyle(
-                        color: totalDebt > 0 ? Colors.redAccent : BentoTheme.textPrimary,
+                        color: totalDebt > 0
+                            ? BentoTheme.negative
+                            : BentoTheme.textPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
@@ -174,12 +174,12 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
                       'No credit cards tracked.',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 13),
                     ),
                   ),
                 ),
@@ -206,12 +206,12 @@ class _DebtPageState extends State<DebtPage> {
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
                     borderRadius: ExpressiveTokens.borderM,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
                   child: Center(
                     child: Text(
                       'No loans or EMIs tracked.',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 13),
                     ),
                   ),
                 ),
@@ -227,16 +227,18 @@ class _DebtPageState extends State<DebtPage> {
     );
   }
 
-  Widget _buildStrategyCard(({PayoffComparison avalanche, PayoffComparison snowball}) strategies) {
+  Widget _buildStrategyCard(
+      ({PayoffComparison avalanche, PayoffComparison snowball}) strategies) {
     final active = _showSnowball ? strategies.snowball : strategies.avalanche;
-    final interestDiff = (strategies.snowball.totalInterest - strategies.avalanche.totalInterest).abs();
+    final interestDiff =
+        (strategies.snowball.totalInterest - strategies.avalanche.totalInterest)
+            .abs();
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderL,
-        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,15 +270,20 @@ class _DebtPageState extends State<DebtPage> {
                       onTap: () => setState(() => _showSnowball = false),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: !_showSnowball ? BentoTheme.accent : Colors.transparent,
+                          color: !_showSnowball
+                              ? BentoTheme.accent
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Avalanche',
                           style: TextStyle(
-                            color: !_showSnowball ? Colors.black : BentoTheme.textSecondary,
+                            color: !_showSnowball
+                                ? Colors.black
+                                : BentoTheme.textSecondary,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                           ),
@@ -287,15 +294,20 @@ class _DebtPageState extends State<DebtPage> {
                       onTap: () => setState(() => _showSnowball = true),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _showSnowball ? BentoTheme.accent : Colors.transparent,
+                          color: _showSnowball
+                              ? BentoTheme.accent
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Snowball',
                           style: TextStyle(
-                            color: _showSnowball ? Colors.black : BentoTheme.textSecondary,
+                            color: _showSnowball
+                                ? Colors.black
+                                : BentoTheme.textSecondary,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                           ),
@@ -315,7 +327,6 @@ class _DebtPageState extends State<DebtPage> {
             style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
@@ -328,13 +339,22 @@ class _DebtPageState extends State<DebtPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('DEBT-FREE DATE', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('DEBT-FREE DATE',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('MMM yyyy').format(active.debtFreeDate),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
-                      Text('${active.totalMonths} months', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                      Text('${active.totalMonths} months',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -350,17 +370,27 @@ class _DebtPageState extends State<DebtPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TOTAL INTEREST', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text('TOTAL INTEREST',
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text(
                         FormatUtils.formatMoney(active.totalInterest),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                       Text(
                         !_showSnowball && interestDiff > 100
                             ? 'Saves ${FormatUtils.formatMoney(interestDiff)} vs Snowball'
                             : 'Order: ${active.payoffOrder.firstOrNull ?? ''}',
-                        style: TextStyle(color: const Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: const Color(0xFF10B981),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -378,7 +408,8 @@ class _DebtPageState extends State<DebtPage> {
   Widget _buildCreditCardItem(Account card) {
     final bal = _controller.getAccountBalance(card).abs();
     final limit = card.creditLimit ?? 0.0;
-    final util = LoanEngine.cardUtilisation(currentBalance: bal, creditLimit: limit);
+    final util =
+        LoanEngine.cardUtilisation(currentBalance: bal, creditLimit: limit);
     final minDue = LoanEngine.minimumDue(statementBalance: bal);
 
     return Container(
@@ -387,11 +418,6 @@ class _DebtPageState extends State<DebtPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: util.isDanger
-              ? Colors.redAccent.withValues(alpha: 0.4)
-              : (util.isWarning ? Colors.amberAccent.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05)),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,8 +426,9 @@ class _DebtPageState extends State<DebtPage> {
             children: [
               CircleAvatar(
                 radius: 14,
-                backgroundColor: Colors.purpleAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.creditCard, size: 14, color: Colors.purpleAccent),
+                backgroundColor: BentoTheme.accent.withValues(alpha: 0.15),
+                child: Icon(LucideIcons.creditCard,
+                    size: 14, color: BentoTheme.accent),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -419,7 +446,8 @@ class _DebtPageState extends State<DebtPage> {
                     if (card.institution != null)
                       Text(
                         card.institution!,
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                   ],
                 ),
@@ -437,7 +465,8 @@ class _DebtPageState extends State<DebtPage> {
                   ),
                   Text(
                     'Limit: ${FormatUtils.formatMoney(limit)}',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
@@ -446,16 +475,17 @@ class _DebtPageState extends State<DebtPage> {
           const SizedBox(height: 12),
 
           // Utilisation Progress Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: limit > 0 ? (bal / limit).clamp(0.0, 1.0) : 0.0,
-              minHeight: 6,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                util.isDanger ? Colors.redAccent : (util.isWarning ? Colors.amberAccent : const Color(0xFF10B981)),
-              ),
-            ),
+          ProgressBarX(
+            value: ProgressMath.ratio(bal, limit),
+            height: 6,
+            semantic: util.isDanger
+                ? ProgressSemantic.over
+                : (util.isWarning
+                    ? ProgressSemantic.warn
+                    : ProgressSemantic.neutral),
+            customColor: (!util.isDanger && !util.isWarning)
+                ? BentoTheme.positive
+                : null,
           ),
           const SizedBox(height: 10),
 
@@ -468,7 +498,11 @@ class _DebtPageState extends State<DebtPage> {
                   Text(
                     '${util.utilisationPct.toStringAsFixed(0)}% utilised',
                     style: TextStyle(
-                      color: util.isDanger ? Colors.redAccent : (util.isWarning ? Colors.amberAccent : BentoTheme.textSecondary),
+                      color: util.isDanger
+                          ? BentoTheme.negative
+                          : (util.isWarning
+                              ? BentoTheme.warning
+                              : BentoTheme.textSecondary),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -478,7 +512,9 @@ class _DebtPageState extends State<DebtPage> {
                     Icon(
                       LucideIcons.alertTriangle,
                       size: 13,
-                      color: util.isDanger ? Colors.redAccent : Colors.amberAccent,
+                      color: util.isDanger
+                          ? BentoTheme.negative
+                          : BentoTheme.warning,
                     ),
                   ],
                 ],
@@ -486,7 +522,8 @@ class _DebtPageState extends State<DebtPage> {
               if (card.dueDay != null)
                 Text(
                   'Due Day: ${card.dueDay}',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
                 ),
             ],
           ),
@@ -499,8 +536,16 @@ class _DebtPageState extends State<DebtPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('MINIMUM DUE (5%)', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.bold)),
-                  Text(FormatUtils.formatMoney(minDue), style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('MINIMUM DUE (5%)',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold)),
+                  Text(FormatUtils.formatMoney(minDue),
+                      style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
               ElevatedButton.icon(
@@ -515,8 +560,10 @@ class _DebtPageState extends State<DebtPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BentoTheme.accent,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -527,7 +574,8 @@ class _DebtPageState extends State<DebtPage> {
   }
 
   Widget _buildLoanItem(Account loan) {
-    final bal = _controller.getAccountBalance(loan).abs();
+    final summary = _controller.getLoanSummary(loan);
+    final bal = summary.outstanding;
     final rate = loan.annualRate ?? 10.0;
     final emi = loan.emi ??
         LoanEngine.calculateEmi(
@@ -541,94 +589,179 @@ class _DebtPageState extends State<DebtPage> {
       emi: emi,
     );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                child: const Icon(LucideIcons.landmark, size: 14, color: Colors.redAccent),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AccountDetailPage(accountId: loan.id),
+          ),
+        );
+      },
+      borderRadius: ExpressiveTokens.borderM,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: BentoTheme.surface,
+          borderRadius: ExpressiveTokens.borderM,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: BentoTheme.negative.withValues(alpha: 0.2),
+                  child: Icon(LucideIcons.landmark,
+                      size: 14, color: BentoTheme.negative),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loan.name,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '$rate% interest • ${loan.kind.toUpperCase()}',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      loan.name,
+                      FormatUtils.formatMoney(bal),
                       style: TextStyle(
                         color: BentoTheme.textPrimary,
-                        fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                     Text(
-                      '$rate% interest • ${loan.kind.toUpperCase()}',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                      'EMI: ${FormatUtils.formatMoney(emi)}/mo',
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    FormatUtils.formatMoney(bal),
-                    style: TextStyle(
-                      color: BentoTheme.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Loan Metrics: Principal Paid, Interest Paid, Next Due Date
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Principal Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        FormatUtils.formatMoney(summary.principalPaid),
+                        style: TextStyle(
+                          color: BentoTheme.positive,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'EMI: ${FormatUtils.formatMoney(emi)}/mo',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Interest Paid',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        FormatUtils.formatMoney(summary.interestPaid),
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                remainingMonths > 0
-                    ? '$remainingMonths months remaining'
-                    : 'Non-amortising!',
-                style: TextStyle(
-                  color: remainingMonths > 0 ? BentoTheme.textSecondary : Colors.redAccent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  LoanSimulatorSheet.show(context, controller: _controller, loan: loan);
-                },
-                icon: const Icon(LucideIcons.calculator, size: 14),
-                label: const Text('Pre-payment Simulator'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: BentoTheme.accent,
-                  side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.3)),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Next Due',
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 10),
+                      ),
+                      Text(
+                        summary.nextDueDate != null
+                            ? DateFormat('d MMM').format(summary.nextDueDate!)
+                            : 'N/A',
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  remainingMonths > 0
+                      ? '$remainingMonths months remaining'
+                      : 'Non-amortising!',
+                  style: TextStyle(
+                    color: remainingMonths > 0
+                        ? BentoTheme.textSecondary
+                        : BentoTheme.negative,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    LoanSimulatorSheet.show(context,
+                        controller: _controller, loan: loan);
+                  },
+                  icon: const Icon(LucideIcons.calculator, size: 14),
+                  label: const Text('Pre-payment Simulator'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: BentoTheme.accent,
+                    side: BorderSide(
+                        color: BentoTheme.accent.withValues(alpha: 0.3)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -20,7 +19,8 @@ class SplitGroupDetailPage extends StatefulWidget {
   State<SplitGroupDetailPage> createState() => _SplitGroupDetailPageState();
 }
 
-class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with SingleTickerProviderStateMixin {
+class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FinanceController _controller = FinanceController();
   late final FinanceRepository _repository = _controller.repository;
@@ -56,7 +56,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
       context: context,
       isScrollControlled: true,
       backgroundColor: BentoTheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setSheetState) {
           return Padding(
@@ -76,10 +77,14 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                     children: [
                       Text(
                         'Add Split Expense',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
                       ),
                       IconButton(
-                        icon: const Icon(LucideIcons.x, size: 20, color: Colors.white70),
+                        icon: const Icon(LucideIcons.x,
+                            size: 20, color: Colors.white70),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -96,7 +101,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -104,8 +111,12 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                   // Amount
                   TextField(
                     controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
                       labelText: 'Amount (${FormatUtils.getCurrencySymbol()})',
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
@@ -113,7 +124,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       prefixStyle: TextStyle(color: BentoTheme.accent),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -128,7 +141,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       labelStyle: TextStyle(color: BentoTheme.textSecondary),
                       filled: true,
                       fillColor: BentoTheme.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                     items: widget.group.members.map((m) {
                       return DropdownMenuItem(value: m, child: Text(m));
@@ -145,12 +160,15 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                     children: [
                       Text(
                         'Split Equally',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontWeight: FontWeight.w600),
                       ),
                       Switch(
                         value: splitEqually,
                         activeColor: BentoTheme.accent,
-                        onChanged: (val) => setSheetState(() => splitEqually = val),
+                        onChanged: (val) =>
+                            setSheetState(() => splitEqually = val),
                       ),
                     ],
                   ),
@@ -159,7 +177,10 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                     const SizedBox(height: 8),
                     Text(
                       'CUSTOM SHARES',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
                     ...widget.group.members.map((m) {
@@ -167,16 +188,22 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: TextField(
                           controller: customShares[m],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          style: TextStyle(
+                              color: BentoTheme.textPrimary, fontSize: 13),
                           decoration: InputDecoration(
-                            labelText: '$m share (${FormatUtils.getCurrencySymbol()})',
-                            labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                            labelText:
+                                '$m share (${FormatUtils.getCurrencySymbol()})',
+                            labelStyle: TextStyle(
+                                color: BentoTheme.textSecondary, fontSize: 11),
                             prefixText: '${FormatUtils.getCurrencySymbol()} ',
                             isDense: true,
                             filled: true,
                             fillColor: BentoTheme.background,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none),
                           ),
                         ),
                       );
@@ -189,9 +216,12 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                     height: 48,
                     child: ElevatedButton(
                       onPressed: () async {
-                        final total = double.tryParse(amountController.text) ?? 0.0;
+                        final total =
+                            double.tryParse(amountController.text) ?? 0.0;
                         if (total <= 0) return;
-                        final title = titleController.text.trim().isNotEmpty ? titleController.text.trim() : 'Expense';
+                        final title = titleController.text.trim().isNotEmpty
+                            ? titleController.text.trim()
+                            : 'Expense';
 
                         Map<String, double> shares;
                         if (splitEqually) {
@@ -202,7 +232,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                         } else {
                           shares = {};
                           for (final m in widget.group.members) {
-                            shares[m] = double.tryParse(customShares[m]!.text) ?? 0.0;
+                            shares[m] =
+                                double.tryParse(customShares[m]!.text) ?? 0.0;
                           }
                         }
 
@@ -222,9 +253,11 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       style: ElevatedButton.styleFrom(
                         backgroundColor: BentoTheme.accent,
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Save Expense', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text('Save Expense',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -242,7 +275,9 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
 
     if (!isYouDebtor && !isYouCreditor) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Settlement between ${transfer.from} and ${transfer.to}')),
+        SnackBar(
+            content:
+                Text('Settlement between ${transfer.from} and ${transfer.to}')),
       );
       return;
     }
@@ -256,25 +291,32 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
       builder: (ctx) => AlertDialog(
         backgroundColor: BentoTheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Settle Balance', style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text('Settle Balance',
+            style: TextStyle(
+                color: BentoTheme.textPrimary, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(actionText, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 14)),
+            Text(actionText,
+                style:
+                    TextStyle(color: BentoTheme.textSecondary, fontSize: 14)),
             const SizedBox(height: 12),
             Text(
               isYouCreditor
                   ? '• A reimbursement transaction will be recorded to your account.'
                   : '• An expense transaction will be recorded to your account.',
-              style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12),
+              style: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.7),
+                  fontSize: 12),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
+            child: Text('Cancel',
+                style: TextStyle(color: BentoTheme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -285,14 +327,18 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
 
               // Mark relevant entries as settled
               for (final e in groupEntries) {
-                if (isYouCreditor && e.paidBy.toLowerCase() == 'you' && e.shares.containsKey(transfer.from)) {
+                if (isYouCreditor &&
+                    e.paidBy.toLowerCase() == 'you' &&
+                    e.shares.containsKey(transfer.from)) {
                   await _repository.settleSplitEntry(
                     entryId: e.id,
                     isReimbursement: true,
                     settlementAmount: e.shares[transfer.from],
                     note: 'Settled from ${transfer.from}',
                   );
-                } else if (isYouDebtor && e.paidBy.toLowerCase() == transfer.to.toLowerCase() && e.shares.containsKey('You')) {
+                } else if (isYouDebtor &&
+                    e.paidBy.toLowerCase() == transfer.to.toLowerCase() &&
+                    e.shares.containsKey('You')) {
                   await _repository.settleSplitEntry(
                     entryId: e.id,
                     isReimbursement: false,
@@ -304,12 +350,15 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Settlement of ${FormatUtils.formatMoney(transfer.amount, decimals: 2)} recorded!')),
+                  SnackBar(
+                      content: Text(
+                          'Settlement of ${FormatUtils.formatMoney(transfer.amount, decimals: 2)} recorded!')),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isYouCreditor ? const Color(0xFF22C55E) : BentoTheme.accent,
+              backgroundColor:
+                  isYouCreditor ? const Color(0xFF22C55E) : BentoTheme.accent,
               foregroundColor: Colors.black,
             ),
             child: const Text('Confirm Settle'),
@@ -335,7 +384,10 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
         elevation: 0,
         title: Text(
           widget.group.name,
-          style: TextStyle(color: BentoTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.bold),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -367,7 +419,8 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
         backgroundColor: BentoTheme.accent,
         foregroundColor: Colors.black,
         icon: const Icon(LucideIcons.plus, size: 20),
-        label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Add Expense',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -395,18 +448,23 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white10),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             title: Text(
               entry.title,
-              style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+              style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14),
             ),
             subtitle: Text(
               'Paid by ${entry.paidBy} on $formattedDate • ${entry.settled ? 'Settled' : 'Active'}',
               style: TextStyle(
-                color: entry.settled ? const Color(0xFF22C55E) : BentoTheme.textSecondary,
+                color: entry.settled
+                    ? const Color(0xFF22C55E)
+                    : BentoTheme.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -415,11 +473,15 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               children: [
                 Text(
                   '${FormatUtils.formatMoney(entry.amount, decimals: 0)}',
-                  style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(LucideIcons.trash2, size: 16, color: BentoTheme.textSecondary),
+                  icon: Icon(LucideIcons.trash2,
+                      size: 16, color: BentoTheme.textSecondary),
                   onPressed: () async {
                     await _repository.deleteSplitEntry(entry.id);
                   },
@@ -438,7 +500,11 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
       children: [
         Text(
           'NET BALANCES',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+          style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1),
         ),
         const SizedBox(height: 10),
         Container(
@@ -446,24 +512,37 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderM,
-            border: Border.all(color: Colors.white10),
           ),
           child: Column(
             children: report.balances.map((b) {
               final isPositive = b.net > 0.005;
               final isNegative = b.net < -0.005;
-              final color = isPositive ? const Color(0xFF22C55E) : (isNegative ? const Color(0xFFEF4444) : BentoTheme.textSecondary);
+              final color = isPositive
+                  ? const Color(0xFF22C55E)
+                  : (isNegative
+                      ? const Color(0xFFEF4444)
+                      : BentoTheme.textSecondary);
               final text = isPositive
                   ? 'gets back ${FormatUtils.formatMoney(b.net, decimals: 2)}'
-                  : (isNegative ? 'owes ${FormatUtils.formatMoney((-b.net), decimals: 2)}' : 'settled');
+                  : (isNegative
+                      ? 'owes ${FormatUtils.formatMoney((-b.net), decimals: 2)}'
+                      : 'settled');
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(b.member, style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text(text, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text(b.member,
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
+                    Text(text,
+                        style: TextStyle(
+                            color: color,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               );
@@ -471,13 +550,15 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
           ),
         ),
         const SizedBox(height: 20),
-
         Text(
           'MINIMAL SETTLEMENT SUGGESTIONS',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+          style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1),
         ),
         const SizedBox(height: 10),
-
         if (report.settlements.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),
@@ -488,13 +569,17 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
             child: Center(
               child: Text(
                 '🎉 All debts are settled!',
-                style: TextStyle(color: const Color(0xFF22C55E), fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: const Color(0xFF22C55E),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           )
         else
           ...report.settlements.map((s) {
-            final involvesYou = s.from.toLowerCase() == 'you' || s.to.toLowerCase() == 'you';
+            final involvesYou =
+                s.from.toLowerCase() == 'you' || s.to.toLowerCase() == 'you';
 
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -502,7 +587,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all(color: involvesYou ? BentoTheme.accent.withValues(alpha: 0.3) : Colors.white10),
               ),
               child: Row(
                 children: [
@@ -512,20 +596,31 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       color: BentoTheme.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(LucideIcons.arrowRight, color: BentoTheme.accent, size: 16),
+                    child: Icon(LucideIcons.arrowRight,
+                        color: BentoTheme.accent, size: 16),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: RichText(
                       text: TextSpan(
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13),
                         children: [
-                          TextSpan(text: s.from, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const TextSpan(text: ' pays '),
-                          TextSpan(text: s.to, style: const TextStyle(fontWeight: FontWeight.bold)),
                           TextSpan(
-                            text: ' ${FormatUtils.formatMoney(s.amount, decimals: 2)}',
-                            style: TextStyle(color: BentoTheme.accent, fontWeight: FontWeight.bold),
+                              text: s.from,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          const TextSpan(text: ' pays '),
+                          TextSpan(
+                              text: s.to,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(
+                            text:
+                                ' ${FormatUtils.formatMoney(s.amount, decimals: 2)}',
+                            style: TextStyle(
+                                color: BentoTheme.accent,
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -538,10 +633,13 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       style: ElevatedButton.styleFrom(
                         backgroundColor: BentoTheme.accent,
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         visualDensity: VisualDensity.compact,
                       ),
-                      child: const Text('Settle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: const Text('Settle',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ],
@@ -562,19 +660,25 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderL,
-            border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'TOTAL GROUP SPEND',
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+                style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1),
               ),
               const SizedBox(height: 6),
               Text(
                 '${FormatUtils.formatMoney(report.totalSpent, decimals: 0)}',
-                style: TextStyle(color: BentoTheme.accent, fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: BentoTheme.accent,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Text(
@@ -588,7 +692,11 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
 
         Text(
           'MEMBER SPEND BREAKDOWN',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+          style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1),
         ),
         const SizedBox(height: 10),
 
@@ -597,7 +705,6 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
           decoration: BoxDecoration(
             color: BentoTheme.surface,
             borderRadius: ExpressiveTokens.borderM,
-            border: Border.all(color: Colors.white10),
           ),
           child: Column(
             children: widget.group.members.map((m) {
@@ -612,7 +719,10 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       flex: 2,
                       child: Text(
                         m,
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                     Expanded(
@@ -620,8 +730,15 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage> with Single
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('Paid: ${FormatUtils.formatMoney(paid, decimals: 0)}', style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12)),
-                          Text('Share: ${FormatUtils.formatMoney(consumed, decimals: 0)}', style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+                          Text(
+                              'Paid: ${FormatUtils.formatMoney(paid, decimals: 0)}',
+                              style: TextStyle(
+                                  color: BentoTheme.textPrimary, fontSize: 12)),
+                          Text(
+                              'Share: ${FormatUtils.formatMoney(consumed, decimals: 0)}',
+                              style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 11)),
                         ],
                       ),
                     ),

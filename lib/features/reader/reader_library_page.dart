@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
@@ -101,8 +102,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
               children: [
                 Row(
                   children: [
-                    const Icon(LucideIcons.folder,
-                        color: Color(0xFF38BDF8), size: 18),
+                    Icon(LucideIcons.folder,
+                        color: BentoTheme.accent, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       'CONFIGURED PDF FOLDERS',
@@ -115,8 +116,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(LucideIcons.plus,
-                          color: Color(0xFF38BDF8)),
+                      icon: Icon(LucideIcons.plus, color: BentoTheme.accent),
                       onPressed: () async {
                         await _pickFolder();
                         setModalState(() {});
@@ -149,8 +149,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                         final folder = folders[index];
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(LucideIcons.folderGit2,
-                              color: Color(0xFF38BDF8), size: 20),
+                          leading: Icon(LucideIcons.folderGit2,
+                              color: BentoTheme.accent, size: 20),
                           title: Text(
                             folder,
                             style: TextStyle(
@@ -182,7 +182,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
   }
 
   void _showFileInfoSheet(PdfBook book) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     showModalBottomSheet(
@@ -199,7 +199,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
           children: [
             Row(
               children: [
-                const Icon(LucideIcons.info, color: accent, size: 20),
+                Icon(LucideIcons.info, color: accent, size: 20),
                 const SizedBox(width: 10),
                 Text(
                   'DOCUMENT INFORMATION',
@@ -283,7 +283,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
   }
 
   void _showBookActions(PdfBook book) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
 
     showModalBottomSheet(
       context: context,
@@ -345,7 +345,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
 
               // Read / Continue
               ListTile(
-                leading: const Icon(LucideIcons.bookOpen, color: accent),
+                leading: Icon(LucideIcons.bookOpen, color: accent),
                 title: Text(
                   book.progress != null ? 'Continue Reading' : 'Start Reading',
                   style: TextStyle(color: BentoTheme.textPrimary),
@@ -526,7 +526,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
   }
 
   Widget _buildSortOption(String label, ReaderSort sort, IconData icon) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
     final isSelected = _currentSort == sort;
 
     return ListTile(
@@ -540,9 +540,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      trailing: isSelected
-          ? const Icon(LucideIcons.check, color: accent, size: 18)
-          : null,
+      trailing:
+          isSelected ? Icon(LucideIcons.check, color: accent, size: 18) : null,
       onTap: () {
         setState(() => _currentSort = sort);
         Navigator.pop(context);
@@ -552,7 +551,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF38BDF8); // Sky blue accent
+    final accent = BentoTheme.accent;
 
     return Scaffold(
       backgroundColor: BentoTheme.background,
@@ -574,7 +573,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.filePlus, color: accent),
+            icon: Icon(LucideIcons.filePlus, color: accent),
             tooltip: 'Open PDF File',
             onPressed: _openSinglePdf,
           ),
@@ -688,8 +687,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
               // Library Content
               Expanded(
                 child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: accent))
+                    ? Center(child: CircularProgressIndicator(color: accent))
                     : (displayBooks.isEmpty
                         ? Center(
                             child: Padding(
@@ -705,7 +703,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                                       color: accent.withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(LucideIcons.bookOpen,
+                                    child: Icon(LucideIcons.bookOpen,
                                         color: accent, size: 30),
                                   ),
                                   const SizedBox(height: 16),
@@ -736,20 +734,28 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: accent,
                                         foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 12),
                                       ),
-                                      icon: const Icon(LucideIcons.filePlus, size: 18),
-                                      label: const Text('Open PDF File', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      icon: const Icon(LucideIcons.filePlus,
+                                          size: 18),
+                                      label: const Text('Open PDF File',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold)),
                                       onPressed: _openSinglePdf,
                                     ),
                                     const SizedBox(height: 12),
                                     OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: BentoTheme.textPrimary,
-                                        side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                        side: BorderSide(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.15)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 18, vertical: 12),
                                       ),
-                                      icon: const Icon(LucideIcons.folderPlus, size: 18),
+                                      icon: const Icon(LucideIcons.folderPlus,
+                                          size: 18),
                                       label: const Text('Add PDF Folder'),
                                       onPressed: _pickFolder,
                                     ),
@@ -800,14 +806,15 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
         backgroundColor: accent,
         foregroundColor: Colors.black,
         icon: const Icon(LucideIcons.filePlus, size: 18),
-        label: const Text('Open PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Open PDF',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: _openSinglePdf,
       ),
     );
   }
 
   Widget _buildTabChip(String label, ReaderTab tab, int count) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
     final isSelected = _currentTab == tab;
 
     return Padding(
@@ -839,16 +846,12 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
   }
 
   Widget _buildBookGridItem(PdfBook book) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
 
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(ExpressiveTokens.radiusCard),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-          width: 1.2,
-        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -903,14 +906,10 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                 ),
                 const SizedBox(height: 4),
                 // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: book.progressFraction,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    valueColor: const AlwaysStoppedAnimation<Color>(accent),
-                    minHeight: 3,
-                  ),
+                ProgressBarX(
+                  value: book.progressFraction,
+                  height: 3,
+                  color: accent,
                 ),
                 const SizedBox(height: 4),
                 // Details info (page & size)
@@ -943,15 +942,12 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
   }
 
   Widget _buildBookListItem(PdfBook book) {
-    const accent = Color(0xFF38BDF8);
+    final accent = BentoTheme.accent;
 
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1017,15 +1013,10 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: book.progressFraction,
-                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                          valueColor:
-                              const AlwaysStoppedAnimation<Color>(accent),
-                          minHeight: 4,
-                        ),
+                      ProgressBarX(
+                        value: book.progressFraction,
+                        height: 4,
+                        color: accent,
                       ),
                       const SizedBox(height: 4),
                       Row(

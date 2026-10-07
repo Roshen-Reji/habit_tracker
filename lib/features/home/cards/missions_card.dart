@@ -4,11 +4,17 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class MissionsCard extends StatelessWidget {
-  const MissionsCard({super.key});
+  final HomeCardSize size;
+
+  const MissionsCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +24,8 @@ class MissionsCard extends StatelessWidget {
         final dailyGoals =
             box.values.where((g) => g.type == GoalType.daily).toList();
         final completedCount = dailyGoals.where((g) => g.isCompleted).length;
+        final maxCount = size == HomeCardSize.large ? dailyGoals.length : 3;
+        final displayGoals = dailyGoals.take(maxCount).toList();
 
         return HomeCardFrame(
           icon: LucideIcons.checkSquare,
@@ -54,8 +62,13 @@ class MissionsCard extends StatelessWidget {
               ],
             ),
           ),
-          child: dailyGoals.isEmpty
-              ? Padding(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const XpProgressBar(height: 5),
+              const SizedBox(height: 12),
+              if (dailyGoals.isEmpty)
+                Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: Center(
                     child: Text(
@@ -69,12 +82,10 @@ class MissionsCard extends StatelessWidget {
                     ),
                   ),
                 )
-              : Column(
-                  children: List.generate(
-                    dailyGoals.length > 3 ? 3 : dailyGoals.length,
-                    (index) => _buildMissionTile(dailyGoals[index]),
-                  ),
-                ),
+              else
+                ...displayGoals.map((goal) => _buildMissionTile(goal)),
+            ],
+          ),
         );
       },
     );
@@ -92,13 +103,11 @@ class MissionsCard extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () {
-              goal.isCompleted = !goal.isCompleted;
-              if (goal.isCompleted) {
-                GlobalXPService.addXP(goal.xpValue);
+              if (!goal.isCompleted) {
+                goal.complete();
               } else {
-                GlobalXPService.subtractXP(goal.xpValue);
+                goal.reset();
               }
-              goal.save();
             },
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),

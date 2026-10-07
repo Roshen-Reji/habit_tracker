@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
 import 'package:habit_tracker/features/reader/reader_library_page.dart';
@@ -11,7 +13,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ReaderCard extends StatefulWidget {
-  const ReaderCard({super.key});
+  final HomeCardSize size;
+
+  const ReaderCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<ReaderCard> createState() => _ReaderCardState();
@@ -43,7 +50,7 @@ class _ReaderCardState extends State<ReaderCard> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF38BDF8); // Sky blue accent
+    final accent = BentoTheme.accent;
 
     return ValueListenableBuilder(
       valueListenable:
@@ -74,7 +81,7 @@ class _ReaderCardState extends State<ReaderCard> {
             ),
             child: Text(
               '${_books.length} files',
-              style: const TextStyle(
+              style: TextStyle(
                 color: accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -85,7 +92,7 @@ class _ReaderCardState extends State<ReaderCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_isLoading) ...[
-                const SizedBox(
+                SizedBox(
                   height: 140,
                   child: Center(
                     child: CircularProgressIndicator(
@@ -95,48 +102,47 @@ class _ReaderCardState extends State<ReaderCard> {
                   ),
                 ),
               ] else if (displayBooks.isNotEmpty) ...[
-                // Last 3 book covers row
-                SizedBox(
-                  height: 144,
-                  child: Row(
-                    children: [
-                      for (int i = 0; i < displayBooks.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildBookCoverCard(
-                            context,
-                            displayBooks[i],
-                            accent,
-                          ),
-                        ),
-                      ],
-                      if (displayBooks.length < 3)
-                        for (int k = 0; k < (3 - displayBooks.length); k++)
+                if (widget.size == HomeCardSize.large ||
+                    mostRecentBook == null) ...[
+                  // Last 3 book covers row
+                  SizedBox(
+                    height: 144,
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < displayBooks.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
                           Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(
-                                  ExpressiveTokens.radiusSm,
+                            child: _buildBookCoverCard(
+                              context,
+                              displayBooks[i],
+                              accent,
+                            ),
+                          ),
+                        ],
+                        if (displayBooks.length < 3)
+                          for (int k = 0; k < (3 - displayBooks.length); k++)
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.02),
+                                  borderRadius: BorderRadius.circular(
+                                    ExpressiveTokens.radiusSm,
+                                  ),
                                 ),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.04),
-                                  style: BorderStyle.solid,
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  LucideIcons.filePlus,
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  size: 24,
+                                child: Center(
+                                  child: Icon(
+                                    LucideIcons.filePlus,
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
 
                 // Quick Continue Reading bar for the top book
                 if (mostRecentBook != null) ...[
@@ -163,14 +169,10 @@ class _ReaderCardState extends State<ReaderCard> {
                           color: accent.withValues(alpha: 0.1),
                           borderRadius:
                               BorderRadius.circular(ExpressiveTokens.radiusSm),
-                          border: Border.all(
-                            color: accent.withValues(alpha: 0.25),
-                            width: 1.0,
-                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               LucideIcons.playCircle,
                               color: accent,
                               size: 16,
@@ -203,7 +205,7 @@ class _ReaderCardState extends State<ReaderCard> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(
+                            Icon(
                               LucideIcons.chevronRight,
                               color: accent,
                               size: 14,
@@ -238,7 +240,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                                ExpressiveTokens.radiusSm),
                           ),
                         ),
                         icon: const Icon(LucideIcons.filePlus, size: 15),
@@ -250,7 +253,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           ),
                         ),
                         onPressed: () async {
-                          final book = await ReaderService.importPdfFromPicker();
+                          final book =
+                              await ReaderService.importPdfFromPicker();
                           if (book != null && context.mounted) {
                             await _loadBooks();
                             Navigator.push(
@@ -273,7 +277,8 @@ class _ReaderCardState extends State<ReaderCard> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                                ExpressiveTokens.radiusSm),
                           ),
                         ),
                         icon: const Icon(LucideIcons.library, size: 15),
@@ -359,9 +364,6 @@ class _ReaderCardState extends State<ReaderCard> {
           decoration: BoxDecoration(
             color: BentoTheme.surfaceElevated,
             borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -398,14 +400,10 @@ class _ReaderCardState extends State<ReaderCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: book.progressFraction,
-                        minHeight: 2.5,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(accent),
-                      ),
+                    ProgressBarX(
+                      value: book.progressFraction,
+                      height: 3,
+                      color: accent,
                     ),
                   ],
                 ),

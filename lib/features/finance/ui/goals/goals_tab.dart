@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 import 'package:habit_tracker/features/finance/ui/goals/goal_contribution_dialog.dart';
@@ -18,7 +18,8 @@ class GoalsTab extends StatefulWidget {
   State<GoalsTab> createState() => _GoalsTabState();
 }
 
-class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin {
+class _GoalsTabState extends State<GoalsTab>
+    with SingleTickerProviderStateMixin {
   final FinanceController _controller = FinanceController();
   late TabController _tabController;
 
@@ -44,8 +45,12 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
       listenable: _controller,
       builder: (context, _) {
         final allGoals = _controller.allGoals;
-        final goals = allGoals.where((g) => !g.archived && g.kind != 'sinking_fund').toList();
-        final sinkingFunds = allGoals.where((g) => !g.archived && g.kind == 'sinking_fund').toList();
+        final goals = allGoals
+            .where((g) => !g.archived && g.kind != 'sinking_fund')
+            .toList();
+        final sinkingFunds = allGoals
+            .where((g) => !g.archived && g.kind == 'sinking_fund')
+            .toList();
         final archived = allGoals.where((g) => g.archived).toList();
 
         // Calculate overall metrics
@@ -55,7 +60,8 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
           totalSaved += _controller.getGoalSaved(g.id);
           totalTarget += g.targetAmount;
         }
-        final overallPct = totalTarget > 0 ? (totalSaved / totalTarget).clamp(0.0, 1.0) : 0.0;
+        final overallPct =
+            totalTarget > 0 ? (totalSaved / totalTarget).clamp(0.0, 1.0) : 0.0;
 
         return Scaffold(
           backgroundColor: BentoTheme.background,
@@ -89,13 +95,13 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                           decoration: BoxDecoration(
                             color: BentoTheme.surface,
                             borderRadius: ExpressiveTokens.borderL,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'TOTAL GOAL SAVINGS',
@@ -140,14 +146,10 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: LinearProgressIndicator(
-                                  value: overallPct,
-                                  minHeight: 8,
-                                  backgroundColor: Colors.white12,
-                                  valueColor: AlwaysStoppedAnimation<Color>(BentoTheme.accent),
-                                ),
+                              ProgressBarX(
+                                value: overallPct,
+                                height: 8,
+                                semantic: ProgressSemantic.neutral,
                               ),
                             ],
                           ),
@@ -159,7 +161,6 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                           decoration: BoxDecoration(
                             color: BentoTheme.surface,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                           ),
                           child: TabBar(
                             controller: _tabController,
@@ -170,12 +171,16 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                             ),
                             labelColor: Colors.black,
                             unselectedLabelColor: BentoTheme.textSecondary,
-                            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                            labelStyle: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                            unselectedLabelStyle: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
                             dividerColor: Colors.transparent,
                             tabs: [
                               Tab(text: 'Goals (${goals.length})'),
-                              Tab(text: 'Sinking Funds (${sinkingFunds.length})'),
+                              Tab(
+                                  text:
+                                      'Sinking Funds (${sinkingFunds.length})'),
                               Tab(text: 'Archived (${archived.length})'),
                             ],
                           ),
@@ -226,7 +231,9 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                kind == 'sinking_fund' ? LucideIcons.calendarClock : LucideIcons.target,
+                kind == 'sinking_fund'
+                    ? LucideIcons.calendarClock
+                    : LucideIcons.target,
                 size: 44,
                 color: BentoTheme.textSecondary,
               ),
@@ -234,7 +241,9 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
               Text(
                 kind == 'sinking_fund'
                     ? 'No Sinking Funds'
-                    : (kind == 'archived' ? 'No Archived Goals' : 'No Savings Goals'),
+                    : (kind == 'archived'
+                        ? 'No Archived Goals'
+                        : 'No Savings Goals'),
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 17,
@@ -260,7 +269,9 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                     );
                   },
                   icon: const Icon(LucideIcons.plus, size: 16),
-                  label: Text(kind == 'sinking_fund' ? 'Create Sinking Fund' : 'Create First Goal'),
+                  label: Text(kind == 'sinking_fund'
+                      ? 'Create Sinking Fund'
+                      : 'Create First Goal'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BentoTheme.accent,
                     foregroundColor: Colors.black,
@@ -295,14 +306,14 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
+              MaterialPageRoute(
+                  builder: (_) => GoalDetailPage(goalId: goal.id)),
             );
           },
           borderRadius: ExpressiveTokens.borderM,
@@ -315,9 +326,12 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                   children: [
                     CircleAvatar(
                       radius: 14,
-                      backgroundColor: Color(goal.colorValue).withValues(alpha: 0.2),
+                      backgroundColor:
+                          Color(goal.colorValue).withValues(alpha: 0.2),
                       child: Icon(
-                        goal.kind == 'sinking_fund' ? LucideIcons.calendarClock : LucideIcons.target,
+                        goal.kind == 'sinking_fund'
+                            ? LucideIcons.calendarClock
+                            : LucideIcons.target,
                         size: 15,
                         color: Color(goal.colorValue),
                       ),
@@ -338,7 +352,9 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                           if (deadline != null)
                             Text(
                               'Due: ${DateFormat('dd MMM yyyy').format(deadline)}',
-                              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                              style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 11),
                             ),
                         ],
                       ),
@@ -349,14 +365,17 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                         Text(
                           FormatUtils.formatMoney(saved),
                           style: TextStyle(
-                            color: isDone ? const Color(0xFF10B981) : BentoTheme.textPrimary,
+                            color: isDone
+                                ? const Color(0xFF10B981)
+                                : BentoTheme.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
                           'Target: ${FormatUtils.formatMoney(target)}',
-                          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                          style: TextStyle(
+                              color: BentoTheme.textSecondary, fontSize: 11),
                         ),
                       ],
                     ),
@@ -365,16 +384,11 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                 const SizedBox(height: 12),
 
                 // Progress Bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation<Color>(
+                ProgressBarX(
+                  value: pct,
+                  height: 6,
+                  customColor:
                       isDone ? const Color(0xFF10B981) : Color(goal.colorValue),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -384,7 +398,9 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                     Text(
                       '${(pct * 100).toStringAsFixed(0)}% reached',
                       style: TextStyle(
-                        color: isDone ? const Color(0xFF10B981) : BentoTheme.textSecondary,
+                        color: isDone
+                            ? const Color(0xFF10B981)
+                            : BentoTheme.textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -392,7 +408,8 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                     if (goal.autoContribute) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: BentoTheme.accent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
@@ -418,7 +435,8 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: BentoTheme.accent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -426,7 +444,8 @@ class _GoalsTabState extends State<GoalsTab> with SingleTickerProviderStateMixin
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.plus, size: 12, color: BentoTheme.accent),
+                            Icon(LucideIcons.plus,
+                                size: 12, color: BentoTheme.accent),
                             const SizedBox(width: 4),
                             Text(
                               'Add Money',

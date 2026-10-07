@@ -207,8 +207,8 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
         : null;
 
     final isNew = widget.existingGoal == null;
-    final id =
-        widget.existingGoal?.id ?? 'goal_${DateTime.now().millisecondsSinceEpoch}';
+    final id = widget.existingGoal?.id ??
+        'goal_${DateTime.now().millisecondsSinceEpoch}';
 
     final goal = SavingsGoal(
       id: id,
@@ -266,7 +266,7 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: BentoTheme.negative),
             child: const Text('Delete'),
           ),
         ],
@@ -291,8 +291,7 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
     return Container(
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -343,12 +342,13 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                   const Spacer(),
                   if (widget.existingGoal != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.trash2,
-                          color: Colors.redAccent, size: 20),
+                      icon: Icon(LucideIcons.trash2,
+                          color: BentoTheme.negative, size: 20),
                       onPressed: _delete,
                     ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    icon: const Icon(Icons.close,
+                        color: Colors.white60, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -552,8 +552,6 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08)),
                   ),
                   child: Row(
                     children: [
@@ -568,7 +566,9 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _kind == 'sinking_fund' ? 'Due Date' : 'Target Deadline',
+                              _kind == 'sinking_fund'
+                                  ? 'Due Date'
+                                  : 'Target Deadline',
                               style: TextStyle(
                                   color: BentoTheme.textSecondary,
                                   fontSize: 11),
@@ -576,7 +576,8 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                             const SizedBox(height: 2),
                             Text(
                               _deadline != null
-                                  ? DateFormat('dd MMMM yyyy').format(_deadline!)
+                                  ? DateFormat('dd MMMM yyyy')
+                                      .format(_deadline!)
                                   : 'Select target date (optional)',
                               style: TextStyle(
                                 color: _deadline != null
@@ -679,8 +680,6 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Column(
                   children: [
@@ -720,8 +719,8 @@ class _GoalEditSheetState extends State<GoalEditSheet> {
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: _monthlyController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       style: TextStyle(
                           color: BentoTheme.textPrimary, fontSize: 14),
                       decoration: InputDecoration(

@@ -1,16 +1,16 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/depth_card.dart';
 
-/// Glass Material 3 Expressive frame shared by cards in the home stack.
+/// Calm, borderless frame shared by cards in the home stack (MVP 5 design system).
 class HomeCardFrame extends StatelessWidget {
   final IconData icon;
   final String title;
   final Widget? trailing;
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? accentColor;
   final EdgeInsetsGeometry contentPadding;
   final bool isFocused;
@@ -22,6 +22,7 @@ class HomeCardFrame extends StatelessWidget {
     this.trailing,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.accentColor,
     this.contentPadding = const EdgeInsets.fromLTRB(18, 14, 18, 18),
     this.isFocused = true,
@@ -29,98 +30,38 @@ class HomeCardFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveAccent = accentColor ?? BentoTheme.accent;
-    final borderRadius = BorderRadius.circular(ExpressiveTokens.radiusCard);
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    final glassTop =
-        BentoTheme.surface.withValues(alpha: isLight ? 0.95 : 0.88);
-    final glassBottom =
-        BentoTheme.surfaceElevated.withValues(alpha: isLight ? 0.90 : 0.80);
-    final borderColor = isLight
-        ? Colors.black.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.14);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: borderRadius,
-        splashColor: effectiveAccent.withValues(alpha: 0.1),
-        highlightColor: effectiveAccent.withValues(alpha: 0.05),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: borderRadius,
-            // This decoration deliberately sits outside the clip below so
-            // the soft shadow can extend beyond the glass panel.
-            boxShadow: isFocused ? [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.30),
-                blurRadius: 10,
-                spreadRadius: -2,
-                offset: const Offset(0, 4),
+    return DepthCard(
+      elevation: isFocused ? DepthElevation.e2 : DepthElevation.e1,
+      radius: AppTokens.radiusCard,
+      padding: contentPadding,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header strip: plain 16-px muted glyph, 11-px caps label
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: BentoTheme.textMuted,
               ),
-            ] : null,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: AppTokens.label(color: BentoTheme.textMuted),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
-          child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      glassTop,
-                      glassBottom,
-                    ],
-                  ),
-                  borderRadius: borderRadius,
-                  border: Border.all(
-                    color: borderColor,
-                    width: 1.2,
-                  ),
-                ),
-                padding: contentPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Peek header strip
-                    Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: effectiveAccent.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            icon,
-                            size: 16,
-                            color: effectiveAccent,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            title.toUpperCase(),
-                            style: TextStyle(
-                              color: BentoTheme.textPrimary,
-                              fontSize: 12,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (trailing != null) trailing!,
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    child,
-                  ],
-                ),
-              ),
-        ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }

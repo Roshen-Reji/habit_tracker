@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:habit_tracker/core/theme/app_tokens.dart';
+import 'package:habit_tracker/core/widgets/depth_card.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
 
+/// Legacy BentoTheme adapter that delegates directly to [AppTokens] and [DepthCard].
+///
+/// Preserves existing callers while enforcing the calm, borderless MVP 5 design system.
 class BentoTheme {
   // Base Background Color
   static Color get background {
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    Color base = isLight
-        ? const Color(0xFFF3F4F6)
-        : const Color(0xFF000000); // Sleek soft gray for light
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    Color base = tokens.background;
     bool dynamicBg =
         Hive.box('settings').get('dynamic_background', defaultValue: true);
 
     if (dynamicBg &&
         NowPlayingService.instance.currentDominantColor.value != null) {
       return Color.alphaBlend(
-          NowPlayingService.instance.currentDominantColor.value!
-              .withValues(alpha: isLight ? 0.05 : 0.1),
-          base);
+        NowPlayingService.instance.currentDominantColor.value!
+            .withValues(alpha: isLight ? 0.05 : 0.1),
+        base,
+      );
     }
     return base;
   }
@@ -28,62 +32,92 @@ class BentoTheme {
   static Color get surface {
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    Color base = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF141414);
-    bool dynamicBg =
-        Hive.box('settings').get('dynamic_background', defaultValue: true);
-
-    if (dynamicBg &&
-        NowPlayingService.instance.currentDominantColor.value != null) {
-      return Color.alphaBlend(
-          NowPlayingService.instance.currentDominantColor.value!
-              .withValues(alpha: isLight ? 0.03 : 0.08),
-          base);
-    }
-    return base;
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    return tokens.surface;
   }
 
   static Color get surfaceElevated {
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? const Color(0xFFF9FAFB) : const Color(0xFF1C1C1E);
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    return tokens.surfaceRaised;
+  }
+
+  static Color get surfaceRaised => surfaceElevated;
+
+  static Color get surfaceSunken {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    return tokens.surfaceSunken;
   }
 
   static Color get cardBackground => surfaceElevated;
 
-  // Accent Color - Dynamic or Strict Black/White default
+  /// Neutral accent per MVP 5 design system (equals textPrimary).
   static Color get accent {
-    bool dynamicBg =
-        Hive.box('settings').get('dynamic_background', defaultValue: true);
-    if (dynamicBg &&
-        NowPlayingService.instance.currentDominantColor.value != null) {
-      return NowPlayingService.instance.currentDominantColor.value!;
-    }
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight
-        ? const Color(0xFF111827)
-        : const Color(0xFFFFFFFF); // Slate 900 for Light Accent
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    return tokens.accent;
+  }
+
+  /// Dynamic media accent (album art) exposed strictly for music features.
+  static Color get mediaAccent {
+    if (NowPlayingService.instance.currentDominantColor.value != null) {
+      return NowPlayingService.instance.currentDominantColor.value!;
+    }
+    return accent;
   }
 
   static Color get textPrimary {
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? const Color(0xFF1F2937) : const Color(0xFFFFFFFF);
+    return isLight ? AppTokens.light.textPrimary : AppTokens.dark.textPrimary;
   }
 
   static Color get textSecondary {
     bool isLight =
         Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
     return isLight
-        ? const Color(0xFF6B7280)
-        : const Color(0xFFFFFFFF).withValues(alpha: 0.6);
+        ? AppTokens.light.textSecondary
+        : AppTokens.dark.textSecondary;
   }
 
-  static Color get textMuted => textSecondary;
+  static Color get textMuted {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? AppTokens.light.textMuted : AppTokens.dark.textMuted;
+  }
+
+  static Color get positive {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? AppTokens.light.positive : AppTokens.dark.positive;
+  }
+
+  static Color get negative {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? AppTokens.light.negative : AppTokens.dark.negative;
+  }
+
+  static Color get warning {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? AppTokens.light.warning : AppTokens.dark.warning;
+  }
+
+  static Color get divider {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    return isLight ? AppTokens.light.divider : AppTokens.dark.divider;
+  }
+
   static Color get accentColor => accent;
 }
 
-// Replaces BentoContainer with a flat Bento-style container
+/// Re-implemented BentoContainer delegating directly to [DepthCard] (e2, borderless).
 class BentoContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
@@ -96,7 +130,7 @@ class BentoContainer extends StatelessWidget {
   const BentoContainer({
     super.key,
     required this.child,
-    this.borderRadius = 16.0, // Bento box soft rounded corners
+    this.borderRadius = 16.0,
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.customColor,
@@ -106,39 +140,20 @@ class BentoContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final baseColor = customColor ?? BentoTheme.surface;
-
-    return Container(
+    return DepthCard(
+      elevation: DepthElevation.e2,
+      radius: borderRadius,
+      padding: padding,
+      margin: margin,
+      color: customColor,
       width: width,
       height: height,
-      margin: margin,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: baseColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-            color: isLight
-                ? Colors.black.withValues(alpha: 0.05)
-                : Colors.white.withValues(alpha: 0.05),
-            width: 1.0),
-        boxShadow: isLight
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [],
-      ),
       child: child,
     );
   }
 }
 
-class BentoButton extends StatefulWidget {
+class BentoButton extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
   final double borderRadius;
@@ -157,40 +172,15 @@ class BentoButton extends StatefulWidget {
   });
 
   @override
-  State<BentoButton> createState() => _BentoButtonState();
-}
-
-class _BentoButtonState extends State<BentoButton> {
-  bool _isPressed = false;
-
-  void _handleTapDown(TapDownDetails details) =>
-      setState(() => _isPressed = true);
-  void _handleTapUp(TapUpDetails details) {
-    setState(() => _isPressed = false);
-    widget.onTap();
-  }
-
-  void _handleTapCancel() => setState(() => _isPressed = false);
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      child: BentoContainer(
-        borderRadius: widget.borderRadius,
-        padding: widget.padding,
-        customColor: _isPressed
-            ? (widget.color ?? BentoTheme.surface).withValues(alpha: 0.8)
-            : widget.color,
-        margin: widget.margin,
-        child: widget.child,
-      ).animate(target: _isPressed ? 1 : 0).scale(
-            end: const Offset(0.95, 0.95),
-            duration: 150.ms,
-            curve: Curves.easeOutBack,
-          ),
+    return DepthCard(
+      elevation: DepthElevation.e1,
+      radius: borderRadius,
+      padding: padding,
+      margin: margin,
+      color: color,
+      onTap: onTap,
+      child: child,
     );
   }
 }
@@ -207,15 +197,15 @@ class BentoToggle extends StatelessWidget {
       onTap: () {
         onChanged(!value);
       },
-      child: BentoContainer(
+      child: DepthCard(
+        elevation: DepthElevation.e1,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        borderRadius: 20,
+        radius: 20,
         width: 50,
         height: 28,
-        customColor: BentoTheme.surface, // Background of the track
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutBack,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             width: 20,

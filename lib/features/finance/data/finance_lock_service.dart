@@ -18,10 +18,14 @@ class FinanceLockService {
 
   Box get _settingsBox => Hive.box('finance_settings');
 
-  bool get isLockEnabled => _settingsBox.get('lock_enabled', defaultValue: false) as bool;
-  int get timeoutMinutes => _settingsBox.get('lock_timeout_minutes', defaultValue: 0) as int;
-  bool get lockOnBackground => _settingsBox.get('lock_on_background', defaultValue: true) as bool;
-  bool get hideFromRecents => _settingsBox.get('hide_from_recents', defaultValue: false) as bool;
+  bool get isLockEnabled =>
+      _settingsBox.get('lock_enabled', defaultValue: false) as bool;
+  int get timeoutMinutes =>
+      _settingsBox.get('lock_timeout_minutes', defaultValue: 0) as int;
+  bool get lockOnBackground =>
+      _settingsBox.get('lock_on_background', defaultValue: true) as bool;
+  bool get hideFromRecents =>
+      _settingsBox.get('hide_from_recents', defaultValue: false) as bool;
 
   Future<void> setLockEnabled(bool value) async {
     await _settingsBox.put('lock_enabled', value);

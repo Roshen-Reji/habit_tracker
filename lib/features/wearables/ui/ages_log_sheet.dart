@@ -56,7 +56,9 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
       if (decoded is Map && decoded['note'] != null) {
         return decoded['note'].toString();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AgesLogSheet.tryExtractNote error: $e');
+    }
     return null;
   }
 
@@ -94,7 +96,8 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
     final score = double.tryParse(text);
     if (score == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid numeric AGEs score')),
+        const SnackBar(
+            content: Text('Please enter a valid numeric AGEs score')),
       );
       return;
     }
@@ -107,7 +110,8 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
       _selectedTime.minute,
     );
 
-    final id = widget.initialSample?.id ?? 'manual_ages_${combinedTs.millisecondsSinceEpoch}';
+    final id = widget.initialSample?.id ??
+        'manual_ages_${combinedTs.millisecondsSinceEpoch}';
     final extraMap = <String, dynamic>{
       'source': 'manual',
     };
@@ -180,7 +184,8 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
               ),
               if (isEditing)
                 IconButton(
-                  icon: const Icon(LucideIcons.trash2, color: Colors.redAccent, size: 18),
+                  icon: const Icon(LucideIcons.trash2,
+                      color: Colors.redAccent, size: 18),
                   tooltip: 'Delete reading',
                   onPressed: _delete,
                 ),
@@ -219,17 +224,21 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
             ),
             decoration: InputDecoration(
               hintText: 'e.g. 45.0',
-              hintStyle: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.5)),
+              hintStyle: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.5)),
               filled: true,
               fillColor: BentoTheme.surfaceElevated,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -247,11 +256,13 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
                   onTap: _pickDate,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
                       color: BentoTheme.surfaceElevated,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
@@ -260,7 +271,8 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
                         Expanded(
                           child: Text(
                             DateFormat('MMM d, yyyy').format(_selectedDate),
-                            style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12),
+                            style: TextStyle(
+                                color: BentoTheme.textPrimary, fontSize: 12),
                           ),
                         ),
                       ],
@@ -274,11 +286,13 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
                   onTap: _pickTime,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
                       color: BentoTheme.surfaceElevated,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
@@ -287,7 +301,8 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
                         Expanded(
                           child: Text(
                             _selectedTime.format(context),
-                            style: TextStyle(color: BentoTheme.textPrimary, fontSize: 12),
+                            style: TextStyle(
+                                color: BentoTheme.textPrimary, fontSize: 12),
                           ),
                         ),
                       ],
@@ -305,17 +320,21 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
             style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Optional label or note (e.g. Optimal, After dinner)',
-              hintStyle: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.5)),
+              hintStyle: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.5)),
               filled: true,
               fillColor: BentoTheme.surfaceElevated,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
             ),
           ),
@@ -330,13 +349,15 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+                  borderRadius:
+                      BorderRadius.circular(ExpressiveTokens.radiusSm),
                 ),
               ),
               icon: const Icon(LucideIcons.check, size: 18),
               label: Text(
                 isEditing ? 'Update Reading' : 'Save Reading',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               onPressed: _save,
             ),

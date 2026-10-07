@@ -1,7 +1,6 @@
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'dart:math';
 import 'package:habit_tracker/features/finance/engine/money.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
 
 enum ForecastConfidence {
   high,
@@ -19,6 +18,7 @@ class SafeToSpendResult {
   final double goalsEarmark;
   final double plannedEssential;
   final double cardDues;
+  final double raw;
 
   const SafeToSpendResult({
     required this.safeToSpend,
@@ -30,7 +30,8 @@ class SafeToSpendResult {
     required this.goalsEarmark,
     required this.plannedEssential,
     required this.cardDues,
-  });
+    double? raw,
+  }) : raw = raw ?? (safeToSpend - shortfall);
 
   bool get hasShortfall => shortfall > 0;
 }
@@ -100,10 +101,12 @@ class ForecastEngine {
     required DateTime today,
     DateTime? horizon,
   }) {
-    final effectiveHorizon = horizon ?? DateTime(today.year, today.month + 1, 0);
+    final effectiveHorizon =
+        horizon ?? DateTime(today.year, today.month + 1, 0);
     final daysLeft = max(1, effectiveHorizon.difference(today).inDays + 1);
 
-    final rawS = liquid - obligations - goalsEarmark - plannedEssential - cardDues;
+    final rawS =
+        liquid - obligations - goalsEarmark - plannedEssential - cardDues;
     final safeToSpend = Money.r2(max(0.0, rawS));
     final shortfall = Money.r2(max(0.0, -rawS));
     final perDay = Money.r2(safeToSpend / daysLeft);
@@ -118,6 +121,7 @@ class ForecastEngine {
       goalsEarmark: Money.r2(goalsEarmark),
       plannedEssential: Money.r2(plannedEssential),
       cardDues: Money.r2(cardDues),
+      raw: Money.r2(rawS),
     );
   }
 
@@ -133,7 +137,11 @@ class ForecastEngine {
     required List<double> pastMonthlyVariableSpend,
   }) {
     final projected = Money.r2(
-      liquid + expectedIncomeRemaining - obligations - cardDues - remainingVariable,
+      liquid +
+          expectedIncomeRemaining -
+          obligations -
+          cardDues -
+          remainingVariable,
     );
 
     // Compute confidence based on history length and CV
@@ -157,9 +165,11 @@ class ForecastEngine {
 
     String summary;
     if (projected >= 0) {
-      summary = 'On track to finish the month with ${FormatUtils.formatMoney(projected, decimals: 0)} liquid buffer';
+      summary =
+          'On track to finish the month with ${FormatUtils.formatMoney(projected, decimals: 0)} liquid buffer';
     } else {
-      summary = 'Projected deficit of ${FormatUtils.formatMoney((-projected), decimals: 0)} by month end';
+      summary =
+          'Projected deficit of ${FormatUtils.formatMoney((-projected), decimals: 0)} by month end';
     }
 
     return ForecastResult(
@@ -232,7 +242,9 @@ class ForecastEngine {
 
   static double _stdDev(List<double> values, double mean) {
     if (values.isEmpty) return 0.0;
-    final variance = values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) / values.length;
+    final variance =
+        values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) /
+            values.length;
     return sqrt(variance);
   }
 }

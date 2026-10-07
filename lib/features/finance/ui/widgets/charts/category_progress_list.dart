@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 
 class CategoryProgressList extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -75,14 +76,10 @@ class CategoryProgressList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  minHeight: 6,
-                  value: progress,
-                  color: color,
-                  backgroundColor: BentoTheme.textSecondary.withValues(alpha: 0.12),
-                ),
+              ProgressBarX(
+                height: 6,
+                value: progress,
+                customColor: color,
               ),
             ],
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
@@ -21,6 +22,8 @@ import 'package:habit_tracker/data/services/xp_ledger.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_cleanup_service.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
+import 'package:habit_tracker/data/services/reminder_scheduler.dart';
+import 'package:habit_tracker/core/progression/progression_service.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -33,8 +36,10 @@ void main() async {
     debugPrint('pdfrxFlutterInitialize warning: $e');
   }
 
-  // Custom ErrorWidget so release builds never render a silent black screen on errors
+  // Custom ErrorWidget so release builds never render raw stack traces
   ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint(
+        'Global Flutter Error: ${details.exceptionAsString()}\n${details.stack}');
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
@@ -46,21 +51,35 @@ void main() async {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+                const Icon(Icons.error_outline,
+                    color: Colors.redAccent, size: 40),
                 const SizedBox(height: 16),
                 const Text(
-                  'Initialization Warning',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  'Something went wrong',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Text(
-                      details.exceptionAsString(),
-                      style: const TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'monospace'),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please restart the app or try again.',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        details.exceptionAsString(),
+                        style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                            fontFamily: 'monospace'),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -76,24 +95,32 @@ void main() async {
     // Register Type Adapters for Goal models
     if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(GoalAdapter());
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(GoalTypeAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(GoalCategoryAdapter());
-    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(SpeechModelAdapter());
+    if (!Hive.isAdapterRegistered(2))
+      Hive.registerAdapter(GoalCategoryAdapter());
+    if (!Hive.isAdapterRegistered(3))
+      Hive.registerAdapter(SpeechModelAdapter());
 
     // Register Diet Type Adapters
     if (!Hive.isAdapterRegistered(20)) Hive.registerAdapter(MealTypeAdapter());
     if (!Hive.isAdapterRegistered(21)) Hive.registerAdapter(FoodEntryAdapter());
-    if (!Hive.isAdapterRegistered(22)) Hive.registerAdapter(CalorieBurnEntryAdapter());
-    if (!Hive.isAdapterRegistered(23)) Hive.registerAdapter(DietDayLogAdapter());
+    if (!Hive.isAdapterRegistered(22))
+      Hive.registerAdapter(CalorieBurnEntryAdapter());
+    if (!Hive.isAdapterRegistered(23))
+      Hive.registerAdapter(DietDayLogAdapter());
 
     // Register Health Type Adapters (typeIds 30+)
     if (!Hive.isAdapterRegistered(30)) Hive.registerAdapter(MedicineAdapter());
-    if (!Hive.isAdapterRegistered(31)) Hive.registerAdapter(MedicineLogAdapter());
-    if (!Hive.isAdapterRegistered(32)) Hive.registerAdapter(WeightEntryAdapter());
+    if (!Hive.isAdapterRegistered(31))
+      Hive.registerAdapter(MedicineLogAdapter());
+    if (!Hive.isAdapterRegistered(32))
+      Hive.registerAdapter(WeightEntryAdapter());
 
     // Register Productivity Type Adapters (typeIds 33+)
-    if (!Hive.isAdapterRegistered(33)) Hive.registerAdapter(JournalEntryAdapter());
+    if (!Hive.isAdapterRegistered(33))
+      Hive.registerAdapter(JournalEntryAdapter());
     if (!Hive.isAdapterRegistered(34)) Hive.registerAdapter(IdeaAdapter());
-    if (!Hive.isAdapterRegistered(35)) Hive.registerAdapter(BookProgressAdapter());
+    if (!Hive.isAdapterRegistered(35))
+      Hive.registerAdapter(BookProgressAdapter());
 
     // Register Finance Type Adapters (10, 11, 40-50)
     FinanceStorage.registerAdapters();
@@ -110,15 +137,18 @@ void main() async {
     await Hive.openBox<SpeechModel>('speech_vault');
     await Hive.openBox('xp_history');
 
+    // Initialize unified progression system (P5-2)
+    ProgressionService.init();
+
     // Register default home cards
     HomeCardRegistry.registerDefaults();
 
-    // Open Finance boxes
+    // Open Finance boxes and run migration before anything posts money
     try {
       await FinanceStorage().init();
-      
+      await FinanceMigrator().migrateIfNeeded();
     } catch (e) {
-      debugPrint('FinanceStorage init warning: $e');
+      debugPrint('FinanceStorage init / migration warning: $e');
     }
 
     // Open Diet boxes
@@ -141,7 +171,6 @@ void main() async {
     try {
       await Hive.openBox<Idea>('ideas');
       await Hive.openBox<BookProgress>('reader_progress');
-      
     } catch (e) {
       debugPrint('Productivity boxes warning: $e');
     }
@@ -155,8 +184,46 @@ void main() async {
     } catch (e) {
       debugPrint('Wearable boxes warning: $e');
     }
+  } catch (e, st) {
+    debugPrint('Fatal initialization error in main(): $e\n$st');
+  }
 
-    // If simulated data from earlier testing exists, run safe purge migration once
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await NotificationService().init();
+    } catch (e) {
+      debugPrint('NotificationService warning: $e');
+    }
+    try {
+      TaskResetService.checkAndResetTasks();
+    } catch (e) {
+      debugPrint('TaskResetService warning: $e');
+    }
+    try {
+      await WakeService.instance.rolloverMissedDays(DateTime.now());
+    } catch (e) {
+      debugPrint('WakeService warning: $e');
+    }
+    try {
+      await RecurringRunner.run();
+    } catch (e) {
+      debugPrint('RecurringRunner warning: $e');
+    }
+    try {
+      await ReminderScheduler.sync();
+    } catch (e) {
+      debugPrint('ReminderScheduler sync warning: $e');
+    }
+    try {
+      await MedicineService.rescheduleAll();
+    } catch (e) {
+      debugPrint('MedicineService warning: $e');
+    }
+    try {
+      await JournalService.instance.openEncryptedBox();
+    } catch (e) {
+      debugPrint('JournalService warning: $e');
+    }
     try {
       if (WearableCleanupService.shouldRunPurge()) {
         await WearableCleanupService.runPurge();
@@ -164,48 +231,8 @@ void main() async {
     } catch (e) {
       debugPrint('WearableCleanupService purge warning: $e');
     }
-
-    // Background maintenance services (guarded so failures never block boot)
-    try {
-      TaskResetService.checkAndResetTasks();
-      await WakeService.instance.rolloverMissedDays(DateTime.now());
-    } catch (e) {
-      debugPrint('Task/Wake rollover warning: $e');
-    }
-
-    try {
-      await RecurringRunner.run();
-    } catch (e) {
-      debugPrint('RecurringRunner warning: $e');
-    }
-
-    try {
-      await NotificationService().init();
-    } catch (e) {
-      debugPrint('NotificationService warning: $e');
-    }
-
-    try {
-      await MedicineService.rescheduleAll();
-    } catch (e) {
-      debugPrint('MedicineService warning: $e');
-    }
-  } catch (e, st) {
-    debugPrint('Fatal initialization error in main(): $e\n$st');
-  }
-
-
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    try { await FinanceMigrator().migrateIfNeeded(); } catch (e) { debugPrint('FinanceMigrator warning: '); }
-    try { await JournalService.instance.openEncryptedBox(); } catch (e) { debugPrint('JournalService warning: '); }
-    try { TaskResetService.checkAndResetTasks(); } catch (e) { debugPrint('TaskResetService warning: '); }
-    try { await WakeService.instance.rolloverMissedDays(DateTime.now()); } catch (e) { debugPrint('WakeService warning: '); }
-    try { await RecurringRunner.run(); } catch (e) { debugPrint('RecurringRunner warning: '); }
-    try { await NotificationService().init(); } catch (e) { debugPrint('NotificationService warning: '); }
-    try { await MedicineService.rescheduleAll(); } catch (e) { debugPrint('MedicineService warning: '); }
   });
 
   // runApp MUST ALWAYS execute after initializations
   runApp(const HabitTrackerApp());
-
 }

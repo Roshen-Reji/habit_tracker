@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
-import 'package:habit_tracker/features/finance/models/models.dart';
 
 enum CalendarEventType {
   income,
@@ -38,20 +36,20 @@ class CalendarEvent {
   Color get color {
     switch (type) {
       case CalendarEventType.income:
-        return const Color(0xFF10B981);
+        return BentoTheme.positive;
       case CalendarEventType.bill:
-        return Colors.orangeAccent;
+        return BentoTheme.warning;
       case CalendarEventType.subscription:
-        return Colors.purpleAccent;
+        return const Color(0xFFA78BFA);
       case CalendarEventType.sip:
-        return const Color(0xFF00E5FF);
+        return const Color(0xFF38BDF8);
       case CalendarEventType.emi:
       case CalendarEventType.cardDue:
-        return Colors.redAccent;
+        return BentoTheme.negative;
       case CalendarEventType.goal:
-        return Colors.amberAccent;
+        return const Color(0xFFFBBF24);
       case CalendarEventType.transaction:
-        return Colors.white54;
+        return BentoTheme.textSecondary;
     }
   }
 }
@@ -65,8 +63,10 @@ class FinanceCalendarPage extends StatefulWidget {
 
 class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
   final FinanceController _controller = FinanceController();
-  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
-  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _currentMonth =
+      DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _selectedDate =
+      DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
   void _prevMonth() {
     setState(() {
@@ -95,23 +95,29 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
     final to = DateTime(year, month + 1, 0, 23, 59, 59);
 
     // 1. Recurring Rules
-    final rules = _controller.allRecurringRules.where((r) => r.status == 'active').toList();
+    final rules = _controller.allRecurringRules
+        .where((r) => r.status == 'active')
+        .toList();
     for (final rule in rules) {
       final dates = RecurringEngine.occurrences(rule, from, to);
       for (final d in dates) {
         CalendarEventType type = CalendarEventType.bill;
-        if (rule.kind == 'income') type = CalendarEventType.income;
-        else if (rule.kind == 'subscription') type = CalendarEventType.subscription;
-        else if (rule.kind == 'sip') type = CalendarEventType.sip;
+        if (rule.kind == 'income')
+          type = CalendarEventType.income;
+        else if (rule.kind == 'subscription')
+          type = CalendarEventType.subscription;
+        else if (rule.kind == 'sip')
+          type = CalendarEventType.sip;
         else if (rule.kind == 'emi') type = CalendarEventType.emi;
 
         map.putIfAbsent(d.day, () => []).add(CalendarEvent(
-          title: rule.name,
-          amount: rule.amount,
-          type: type,
-          date: d,
-          subtitle: '${rule.frequency.toUpperCase()} • ${rule.kind.toUpperCase()}',
-        ));
+              title: rule.name,
+              amount: rule.amount,
+              type: type,
+              date: d,
+              subtitle:
+                  '${rule.frequency.toUpperCase()} • ${rule.kind.toUpperCase()}',
+            ));
       }
     }
 
@@ -122,27 +128,32 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
         final daysInMonth = DateTime(year, month + 1, 0).day;
         final d = acc.dueDay!.clamp(1, daysInMonth);
         map.putIfAbsent(d, () => []).add(CalendarEvent(
-          title: '${acc.name} Due Date',
-          amount: 0,
-          type: CalendarEventType.cardDue,
-          date: DateTime(year, month, d),
-          subtitle: 'Credit Card Payment Due',
-        ));
+              title: '${acc.name} Due Date',
+              amount: 0,
+              type: CalendarEventType.cardDue,
+              date: DateTime(year, month, d),
+              subtitle: 'Credit Card Payment Due',
+            ));
       }
     }
 
     // 3. Goals Deadlines
-    final goals = _controller.storage.goalBox.values.where((g) => !g.archived).toList();
+    final goals =
+        _controller.storage.goalBox.values.where((g) => !g.archived).toList();
     for (final g in goals) {
       final deadline = g.deadline ?? g.dueDate;
-      if (deadline != null && deadline.year == year && deadline.month == month) {
+      if (deadline != null &&
+          deadline.year == year &&
+          deadline.month == month) {
         map.putIfAbsent(deadline.day, () => []).add(CalendarEvent(
-          title: '${g.name} Target Due',
-          amount: g.targetAmount,
-          type: CalendarEventType.goal,
-          date: deadline,
-          subtitle: g.kind == 'sinking_fund' ? 'Sinking Fund Due' : 'Savings Goal Deadline',
-        ));
+              title: '${g.name} Target Due',
+              amount: g.targetAmount,
+              type: CalendarEventType.goal,
+              date: deadline,
+              subtitle: g.kind == 'sinking_fund'
+                  ? 'Sinking Fund Due'
+                  : 'Savings Goal Deadline',
+            ));
       }
     }
 
@@ -150,14 +161,17 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
     final txs = _controller.getTransactionsForMonth(_currentMonth);
     for (final tx in txs) {
       final d = tx.date.day;
-      final isInc = tx.effectiveKind == 'income' || tx.effectiveKind == 'refund';
+      final isInc =
+          tx.effectiveKind == 'income' || tx.effectiveKind == 'refund';
       map.putIfAbsent(d, () => []).add(CalendarEvent(
-        title: tx.title,
-        amount: tx.amount.abs(),
-        type: isInc ? CalendarEventType.income : CalendarEventType.transaction,
-        date: tx.date,
-        subtitle: tx.category,
-      ));
+            title: tx.title,
+            amount: tx.amount.abs(),
+            type: isInc
+                ? CalendarEventType.income
+                : CalendarEventType.transaction,
+            date: tx.date,
+            subtitle: tx.category,
+          ));
     }
 
     return map;
@@ -213,8 +227,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: BentoTheme.surface,
-                  borderRadius: ExpressiveTokens.borderL,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   children: [
@@ -235,7 +248,9 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    DateFormat('EEEE, dd MMMM').format(_selectedDate).toUpperCase(),
+                    DateFormat('EEEE, dd MMMM')
+                        .format(_selectedDate)
+                        .toUpperCase(),
                     style: TextStyle(
                       color: BentoTheme.textSecondary,
                       fontSize: 11,
@@ -246,7 +261,9 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                   Text(
                     'In: +${FormatUtils.formatMoney(dayInflow)}  •  Out: -${FormatUtils.formatMoney(dayOutflow)}',
                     style: TextStyle(
-                      color: dayInflow > 0 ? const Color(0xFF10B981) : BentoTheme.textSecondary,
+                      color: dayInflow > 0
+                          ? BentoTheme.positive
+                          : BentoTheme.textSecondary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -261,13 +278,13 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: BentoTheme.surface,
-                    borderRadius: ExpressiveTokens.borderM,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
                     child: Text(
                       'No bills, goals or transactions scheduled for this date.',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 13),
                     ),
                   ),
                 ),
@@ -289,7 +306,6 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -382,14 +398,10 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
             decoration: BoxDecoration(
               color: isSelected
                   ? BentoTheme.accent.withValues(alpha: 0.25)
-                  : (isToday ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
+                  : (isToday
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.transparent),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected
-                    ? BentoTheme.accent
-                    : (isToday ? BentoTheme.accent.withValues(alpha: 0.5) : Colors.transparent),
-                width: 1.5,
-              ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -399,8 +411,12 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                   style: TextStyle(
                     color: isSelected
                         ? BentoTheme.accent
-                        : (isToday ? BentoTheme.textPrimary : BentoTheme.textPrimary),
-                    fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w500,
+                        : (isToday
+                            ? BentoTheme.textPrimary
+                            : BentoTheme.textPrimary),
+                    fontWeight: isSelected || isToday
+                        ? FontWeight.bold
+                        : FontWeight.w500,
                     fontSize: 13,
                   ),
                 ),
@@ -436,17 +452,17 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildLegendItem('Income', const Color(0xFF10B981)),
+          _buildLegendItem('Income', BentoTheme.positive),
           const SizedBox(width: 12),
-          _buildLegendItem('Bills', Colors.orangeAccent),
+          _buildLegendItem('Bills', BentoTheme.warning),
           const SizedBox(width: 12),
-          _buildLegendItem('Subs', Colors.purpleAccent),
+          _buildLegendItem('Subs', const Color(0xFFA78BFA)),
           const SizedBox(width: 12),
-          _buildLegendItem('SIP / Inv', const Color(0xFF00E5FF)),
+          _buildLegendItem('SIP / Inv', const Color(0xFF38BDF8)),
           const SizedBox(width: 12),
-          _buildLegendItem('EMI / Cards', Colors.redAccent),
+          _buildLegendItem('EMI / Cards', BentoTheme.negative),
           const SizedBox(width: 12),
-          _buildLegendItem('Goals', Colors.amberAccent),
+          _buildLegendItem('Goals', const Color(0xFFFBBF24)),
         ],
       ),
     );
@@ -462,7 +478,8 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
+        Text(label,
+            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11)),
       ],
     );
   }
@@ -475,8 +492,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -504,7 +520,8 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
                 if (event.subtitle != null)
                   Text(
                     event.subtitle!,
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
               ],
             ),
@@ -513,7 +530,7 @@ class _FinanceCalendarPageState extends State<FinanceCalendarPage> {
             Text(
               '${isIncome ? '+' : '-'}${FormatUtils.formatMoney(event.amount)}',
               style: TextStyle(
-                color: isIncome ? const Color(0xFF10B981) : BentoTheme.textPrimary,
+                color: isIncome ? BentoTheme.positive : BentoTheme.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

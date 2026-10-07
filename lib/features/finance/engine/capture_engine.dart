@@ -55,9 +55,12 @@ abstract class TransactionSource {
 
 /// Normalizer for merchant and payee descriptions
 class MerchantNormalizer {
-  static final RegExp _upiRefRegex = RegExp(r'(?:upi|ref|rrn|txn|id)[:\-\s]*[0-9a-zA-Z]+', caseSensitive: false);
+  static final RegExp _upiRefRegex = RegExp(
+      r'(?:upi|ref|rrn|txn|id)[:\-\s]*[0-9a-zA-Z]+',
+      caseSensitive: false);
   static final RegExp _digitsRegex = RegExp(r'\b\d+\b');
-  static final RegExp _domainRegex = RegExp(r'\.(?:com|in|co|org|net|io|app)\b', caseSensitive: false);
+  static final RegExp _domainRegex =
+      RegExp(r'\.(?:com|in|co|org|net|io|app)\b', caseSensitive: false);
   static final RegExp _punctRegex = RegExp(r'[*_#@/\\:;,\-\[\]()]');
 
   /// Normalizes a raw bank or merchant string into a clean lookup token
@@ -72,7 +75,8 @@ class MerchantNormalizer {
     s = s.replaceAll(_upiRefRegex, '');
 
     // Remove common prefixes
-    s = s.replaceAll(RegExp(r'\b(?:pos|ecom|vpa|ach|neft|rtgs|imps|autopay|mandate)\b'), '');
+    s = s.replaceAll(
+        RegExp(r'\b(?:pos|ecom|vpa|ach|neft|rtgs|imps|autopay|mandate)\b'), '');
 
     // Remove punctuation
     s = s.replaceAll(_punctRegex, ' ');
@@ -128,14 +132,16 @@ class CategorizationRulesEngine {
         case 'regex':
           try {
             final reg = RegExp(rule.pattern, caseSensitive: false);
-            isMatch = reg.hasMatch(rawTitle) || (rawMerchant != null && reg.hasMatch(rawMerchant));
+            isMatch = reg.hasMatch(rawTitle) ||
+                (rawMerchant != null && reg.hasMatch(rawMerchant));
           } catch (_) {
             isMatch = false;
           }
           break;
         case 'contains':
         default:
-          isMatch = normMerchant.contains(pattern) || normTitle.contains(pattern);
+          isMatch =
+              normMerchant.contains(pattern) || normTitle.contains(pattern);
           break;
       }
 
@@ -184,7 +190,8 @@ class CsvMappingProfile {
         'hasHeader': hasHeader,
       };
 
-  factory CsvMappingProfile.fromJson(Map<String, dynamic> json) => CsvMappingProfile(
+  factory CsvMappingProfile.fromJson(Map<String, dynamic> json) =>
+      CsvMappingProfile(
         name: json['name'] as String? ?? 'Default Profile',
         delimiter: json['delimiter'] as String? ?? ',',
         dateColumn: json['dateColumn'] as int? ?? 0,
@@ -340,7 +347,8 @@ class CsvParser {
         if (profile.debitColumn != null && profile.debitColumn! < row.length) {
           debit = _cleanNumber(row[profile.debitColumn!]);
         }
-        if (profile.creditColumn != null && profile.creditColumn! < row.length) {
+        if (profile.creditColumn != null &&
+            profile.creditColumn! < row.length) {
           credit = _cleanNumber(row[profile.creditColumn!]);
         }
 
@@ -351,7 +359,8 @@ class CsvParser {
           amount = credit;
           kind = 'income';
         }
-      } else if (profile.amountColumn != null && profile.amountColumn! < row.length) {
+      } else if (profile.amountColumn != null &&
+          profile.amountColumn! < row.length) {
         amount = _cleanNumber(row[profile.amountColumn!]);
         kind = amount < 0 ? 'expense' : 'income';
       }
@@ -369,7 +378,8 @@ class CsvParser {
       final sourceRef = generateDedupeKey(
         date: date,
         amount: amount,
-        normalizedDesc: normMerchant.isNotEmpty ? normMerchant : rawDesc.toLowerCase(),
+        normalizedDesc:
+            normMerchant.isNotEmpty ? normMerchant : rawDesc.toLowerCase(),
         accountId: accountId,
       );
 
@@ -406,9 +416,12 @@ class CsvParser {
 
         // Opposite sign, same absolute amount
         if ((d1.amount.abs() - d2.amount.abs()).abs() < 0.01 &&
-            ((d1.amount < 0 && d2.amount > 0) || (d1.amount > 0 && d2.amount < 0))) {
+            ((d1.amount < 0 && d2.amount > 0) ||
+                (d1.amount > 0 && d2.amount < 0))) {
           // Different accounts (if both assigned)
-          if (d1.accountId != null && d2.accountId != null && d1.accountId == d2.accountId) {
+          if (d1.accountId != null &&
+              d2.accountId != null &&
+              d1.accountId == d2.accountId) {
             continue;
           }
           // Date within 2 days
@@ -445,7 +458,9 @@ class AiCategorizer {
   }) async {
     if (normalizedMerchants.isEmpty || availableCategories.isEmpty) return {};
 
-    final categoriesList = availableCategories.map((Category c) => '${c.id}: ${c.name}').join('\n');
+    final categoriesList = availableCategories
+        .map((Category c) => '${c.id}: ${c.name}')
+        .join('\n');
     final merchantsList = normalizedMerchants.toSet().take(20).join(', ');
 
     final prompt = '''
@@ -506,7 +521,8 @@ class ReceiptManager {
       receiptDir.createSync(recursive: true);
     }
     final extension = sourceFile.path.split('.').last;
-    final filename = 'receipt_${DateTime.now().millisecondsSinceEpoch}.$extension';
+    final filename =
+        'receipt_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final targetPath = '${receiptDir.path}/$filename';
     await sourceFile.copy(targetPath);
     return targetPath;
@@ -545,6 +561,9 @@ class SmsTransactionParser {
     final clean = body.replaceAll('\n', ' ');
     final date = receivedDate ?? DateTime.now();
 
+    final accMatch = _accountPattern.firstMatch(clean);
+    final accSuffix = accMatch != null ? ' (A/c ...${accMatch.group(1)})' : '';
+
     // Check Debit
     final debitMatch = _debitPattern.firstMatch(clean);
     if (debitMatch != null) {
@@ -560,7 +579,7 @@ class SmsTransactionParser {
           merchant: normMerchant.isNotEmpty ? normMerchant : null,
           kind: 'expense',
           paymentMethod: 'UPI',
-          notes: 'Auto-parsed from SMS',
+          notes: 'Auto-parsed from SMS$accSuffix',
         );
       }
     }

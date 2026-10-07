@@ -1,3 +1,4 @@
+import 'package:habit_tracker/core/progression/progression_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,7 @@ class GlobalXPService {
     settings.put('global_xp', currentXp + amount);
 
     _recordDailyXP(amount);
+    ProgressionService.refresh();
   }
 
   static void subtractXP(int amount) {
@@ -19,6 +21,7 @@ class GlobalXPService {
     settings.put('global_xp', newXp);
 
     _recordDailyXP(-amount);
+    ProgressionService.refresh();
   }
 
   static void _recordDailyXP(int amount) {
@@ -59,5 +62,7 @@ class GlobalXPService {
     int currentDaily = box.get(dateStr, defaultValue: 0);
     int newDaily = (currentDaily + delta).clamp(0, 9999999);
     box.put(dateStr, newDaily);
+
+    ProgressionService.refresh();
   }
 }

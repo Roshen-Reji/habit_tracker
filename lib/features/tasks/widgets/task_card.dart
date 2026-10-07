@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -193,16 +194,10 @@ class TaskCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RepaintBoundary(
-                      child: LinearProgressIndicator(
-                        value: goal.progress,
-                        borderRadius: BorderRadius.circular(4),
-                        backgroundColor: Colors.black12,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _getCategoryColor(goal.category),
-                        ),
-                        minHeight: 6,
-                      ),
+                    ProgressBarX(
+                      value: goal.progress,
+                      color: _getCategoryColor(goal.category),
+                      height: 6,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -293,7 +288,8 @@ class TaskCard extends StatelessWidget {
                   color: Colors.amber.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(LucideIcons.sunMedium, color: Colors.amber, size: 20),
+                child: const Icon(LucideIcons.sunMedium,
+                    color: Colors.amber, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -310,13 +306,15 @@ class TaskCard extends StatelessWidget {
                     ),
                     Text(
                       '$ruleText · Today: $wakeTimeStr',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -339,7 +337,10 @@ class TaskCard extends StatelessWidget {
             children: [
               Text(
                 'Streak: ${goal.streakCount}d',
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600),
               ),
               Row(
                 children: last7Days.map((log) {

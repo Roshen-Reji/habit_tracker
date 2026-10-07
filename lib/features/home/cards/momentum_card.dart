@@ -3,18 +3,40 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
+import 'package:habit_tracker/features/home/cards/home_card.dart';
+
 class MomentumCard extends StatefulWidget {
-  const MomentumCard({super.key});
+  final HomeCardSize size;
+
+  const MomentumCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<MomentumCard> createState() => _MomentumCardState();
 }
 
 class _MomentumCardState extends State<MomentumCard> {
-  bool _isExpanded = false;
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.size == HomeCardSize.large;
+  }
+
+  @override
+  void didUpdateWidget(covariant MomentumCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.size != widget.size) {
+      _isExpanded = widget.size == HomeCardSize.large;
+    }
+  }
 
   void _toggleExpanded() {
     setState(() {
@@ -60,12 +82,19 @@ class _MomentumCardState extends State<MomentumCard> {
               ],
             ),
           ),
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeInOutCubic,
-            child: _isExpanded
-                ? _buildExpandedGraph(xpHistory)
-                : _buildCompactStrip(xpHistory),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const XpProgressBar(height: 5),
+              const SizedBox(height: 12),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOutCubic,
+                child: _isExpanded
+                    ? _buildExpandedGraph(xpHistory)
+                    : _buildCompactStrip(xpHistory),
+              ),
+            ],
           ),
         );
       },
@@ -97,12 +126,6 @@ class _MomentumCardState extends State<MomentumCard> {
                             .withValues(alpha: isToday ? 0.9 : 0.25)
                         : Colors.white.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: hasWork
-                          ? BentoTheme.accent.withValues(alpha: 0.6)
-                          : Colors.white.withValues(alpha: 0.06),
-                      width: 1,
-                    ),
                   ),
                   alignment: Alignment.center,
                   child: hasWork

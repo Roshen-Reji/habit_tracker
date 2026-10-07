@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/data/finance_repository.dart';
@@ -35,7 +34,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
   @override
   void initState() {
     super.initState();
-    final spendable = _controller.activeAccounts.where((a) => a.spendable).toList();
+    final spendable =
+        _controller.activeAccounts.where((a) => a.spendable).toList();
     if (spendable.isNotEmpty) {
       _selectedAccountId = spendable.first.id;
     }
@@ -63,7 +63,9 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
       setState(() => _parsedDraft = draft);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not detect bank or UPI transaction pattern in this SMS.')),
+        const SnackBar(
+            content: Text(
+                'Could not detect bank or UPI transaction pattern in this SMS.')),
       );
     }
   }
@@ -78,7 +80,9 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         TxDraft(
           title: d.title,
           amount: d.amount,
-          category: d.categoryId != null ? (_controller.getCategory(d.categoryId!)?.name ?? 'Other') : 'Other',
+          category: d.categoryId != null
+              ? (_controller.getCategory(d.categoryId!)?.name ?? 'Other')
+              : 'Other',
           date: d.date,
           mode: d.kind,
           kind: d.kind,
@@ -94,14 +98,16 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Transaction saved: ${d.title} (${FormatUtils.formatMoney(d.amount.abs())})'),
+            content: Text(
+                'Transaction saved: ${d.title} (${FormatUtils.formatMoney(d.amount.abs())})'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Save failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -136,7 +142,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     color: BentoTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(LucideIcons.messageSquare, color: BentoTheme.accent, size: 20),
+                  child: Icon(LucideIcons.messageSquare,
+                      color: BentoTheme.accent, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -145,11 +152,15 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     children: [
                       Text(
                         'Parse Bank / UPI SMS',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                       Text(
                         'Paste bank SMS to extract amount, merchant & date locally',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -167,7 +178,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
               controller: _smsController,
               maxLines: 4,
               decoration: const InputDecoration(
-                hintText: 'Paste SMS here, e.g.:\n"Rs 450.00 spent on your card ending 1234 at SWIGGY on 04-Oct-26..."',
+                hintText:
+                    'Paste SMS here, e.g.:\n"Rs 450.00 spent on your card ending 1234 at SWIGGY on 04-Oct-26..."',
               ),
             ),
             const SizedBox(height: 12),
@@ -179,7 +191,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: BentoTheme.background,
                 foregroundColor: BentoTheme.accent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 16),
@@ -190,7 +203,6 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,12 +212,17 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                       children: [
                         Text(
                           _parsedDraft!.title,
-                          style: TextStyle(color: BentoTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                              color: BentoTheme.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
                         ),
                         Text(
                           '${_parsedDraft!.amount >= 0 ? '+' : ''}${FormatUtils.formatMoney(_parsedDraft!.amount.abs())}',
                           style: TextStyle(
-                            color: _parsedDraft!.amount >= 0 ? Colors.green : Colors.red,
+                            color: _parsedDraft!.amount >= 0
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -215,36 +232,44 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'Merchant: ${_parsedDraft!.merchant ?? "None"} · Payment: ${_parsedDraft!.paymentMethod}',
-                      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                          color: BentoTheme.textSecondary, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
 
                     // Destination account
                     DropdownButtonFormField<String>(
                       value: _selectedAccountId,
-                      decoration: const InputDecoration(labelText: 'Assign to Account'),
+                      decoration:
+                          const InputDecoration(labelText: 'Assign to Account'),
                       dropdownColor: BentoTheme.surface,
                       items: _controller.activeAccounts.map((a) {
-                        return DropdownMenuItem(value: a.id, child: Text(a.name));
+                        return DropdownMenuItem(
+                            value: a.id, child: Text(a.name));
                       }).toList(),
-                      onChanged: (val) => setState(() => _selectedAccountId = val),
+                      onChanged: (val) =>
+                          setState(() => _selectedAccountId = val),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveTransaction,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BentoTheme.accent,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                 ),
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Confirm & Save Transaction', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Confirm & Save Transaction',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ],

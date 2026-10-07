@@ -40,7 +40,8 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
     try {
       // Invariant §6.9 & P11-4: Respect privacy switch
       if (Hive.isBoxOpen('finance_settings')) {
-        final allowed = Hive.box('finance_settings').get('ai_finance_privacy', defaultValue: true);
+        final allowed = Hive.box('finance_settings')
+            .get('ai_finance_privacy', defaultValue: true);
         if (allowed == false) return '';
       }
 
@@ -93,8 +94,10 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
         parts.add('Slp:${sleepMin ~/ 60}h${sleepMin % 60}m');
       }
       if (workouts > 0) parts.add('Wrk:$workouts');
-      if (view.latestWeight != null) parts.add('Wgt:${view.latestWeight!.toStringAsFixed(1)}');
-      if (view.restingHeartRate != null) parts.add('HR:${view.restingHeartRate!.round()}');
+      if (view.latestWeight != null)
+        parts.add('Wgt:${view.latestWeight!.toStringAsFixed(1)}');
+      if (view.restingHeartRate != null)
+        parts.add('HR:${view.restingHeartRate!.round()}');
 
       if (parts.isEmpty) return '[WEAR] No data';
       return '[WEAR] ${parts.join(' ')}';

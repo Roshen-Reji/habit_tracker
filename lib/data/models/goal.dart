@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
-import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
+import 'package:intl/intl.dart';
 
 part 'goal.g.dart';
 
@@ -89,7 +90,8 @@ class Goal extends HiveObject {
   int? targetMinutes; // wake target, minutes after midnight
 
   @HiveField(19)
-  String? metricKey; // 'steps', 'active_minutes', 'sleep_minutes', 'workout_minutes', 'energy_score'
+  String?
+      metricKey; // 'steps', 'active_minutes', 'sleep_minutes', 'workout_minutes', 'energy_score'
 
   @HiveField(20)
   String? metricOp; // '>=', '<='
@@ -140,6 +142,7 @@ class Goal extends HiveObject {
       (targetValue > 0) ? (currentValue / targetValue * 100).clamp(0, 100) : 0;
 
   void updateProgress(double value) {
+    final wasCompleted = isCompleted;
     currentValue = value;
     if (targetValue > 0) {
       progress = completionPercentage / 100;
@@ -147,6 +150,11 @@ class Goal extends HiveObject {
     if (currentValue >= targetValue) {
       complete();
     } else {
+      if (wasCompleted) {
+        final date = lastCompletedDate ?? DateTime.now();
+        final dayKey = DateFormat('yyyy-MM-dd').format(date);
+        XpLedger.set(dayKey, 'task:$id', 0);
+      }
       isCompleted = false;
       save();
     }
@@ -157,15 +165,15 @@ class Goal extends HiveObject {
   }
 
   void complete() {
-    if (!isCompleted) {
-      GlobalXPService.addXP(xpValue);
-    }
+    final now = DateTime.now();
+    final dayKey = DateFormat('yyyy-MM-dd').format(now);
+    XpLedger.set(dayKey, 'task:$id', xpValue);
+
     isCompleted = true;
     currentValue = targetValue;
     progress = 1.0;
 
     // Only increment streak if it hasn't been completed today
-    final now = DateTime.now();
     if (lastCompletedDate == null || !_isSameDay(now, lastCompletedDate!)) {
       streakCount++;
     }
@@ -175,6 +183,10 @@ class Goal extends HiveObject {
   }
 
   void reset() {
+    final date = lastCompletedDate ?? DateTime.now();
+    final dayKey = DateFormat('yyyy-MM-dd').format(date);
+    XpLedger.set(dayKey, 'task:$id', 0);
+
     isCompleted = false;
     currentValue = 0;
     progress = 0.0;

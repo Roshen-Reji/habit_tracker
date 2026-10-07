@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
@@ -43,7 +42,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
   void initState() {
     super.initState();
     _amountController = TextEditingController(
-      text: widget.item.estimatedAmount.truncateToDouble() == widget.item.estimatedAmount
+      text: widget.item.estimatedAmount.truncateToDouble() ==
+              widget.item.estimatedAmount
           ? widget.item.estimatedAmount.toInt().toString()
           : widget.item.estimatedAmount.toStringAsFixed(2),
     );
@@ -87,7 +87,6 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       padding: EdgeInsets.only(
         top: 20,
@@ -113,7 +112,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
 
           Row(
             children: [
-              Icon(LucideIcons.checkCircle, color: const Color(0xFF10B981), size: 22),
+              Icon(LucideIcons.checkCircle,
+                  color: const Color(0xFF10B981), size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -149,7 +149,9 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(
+                  // allowed: input focus
+                  color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               children: [
@@ -165,7 +167,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
                 Expanded(
                   child: TextField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontSize: 22,
@@ -190,16 +193,19 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
             style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
             decoration: InputDecoration(
               labelText: 'Paid From Account',
-              labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+              labelStyle:
+                  TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
               filled: true,
               fillColor: BentoTheme.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
             ),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Default / Cash')),
+              const DropdownMenuItem(
+                  value: null, child: Text('Default / Cash')),
               ...accounts.map((acc) {
                 return DropdownMenuItem(
                   value: acc.id,

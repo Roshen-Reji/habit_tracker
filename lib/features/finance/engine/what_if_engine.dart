@@ -62,7 +62,8 @@ class WhatIfEngine {
       title = 'You can comfortably afford this';
       explanation =
           'After this expense of ${FormatUtils.formatMoney(amount, decimals: 0)}, you will still have ${FormatUtils.formatMoney(projectedAfter, decimals: 0)} at month end, keeping your 1-month emergency buffer intact.';
-      recommendation = 'Safe to proceed with this purchase without impacting commitments.';
+      recommendation =
+          'Safe to proceed with this purchase without impacting commitments.';
     } else if (projectedAfter >= 0) {
       status = AffordabilityStatus.tight;
       title = 'Tight fit — reduces your safety buffer';

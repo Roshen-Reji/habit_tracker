@@ -75,7 +75,8 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                     color: Colors.amber.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(LucideIcons.sunMedium, color: Colors.amber, size: 22),
+                  child: const Icon(LucideIcons.sunMedium,
+                      color: Colors.amber, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -112,7 +113,8 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: todayLog != null
-                      ? (todayLog.onTime ? AppColors.success : AppColors.error).withValues(alpha: 0.3)
+                      ? (todayLog.onTime ? AppColors.success : AppColors.error)
+                          .withValues(alpha: 0.3)
                       : Colors.white.withValues(alpha: 0.08),
                 ),
               ),
@@ -146,7 +148,9 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                         Text(
                           todayLog.onTime ? 'On time ✓ (+5 XP)' : 'Missed ✕',
                           style: TextStyle(
-                            color: todayLog.onTime ? AppColors.success : AppColors.error,
+                            color: todayLog.onTime
+                                ? AppColors.success
+                                : AppColors.error,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -159,16 +163,21 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: BentoTheme.accent,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: const Icon(LucideIcons.penLine, size: 14),
                     label: Text(todayLog != null ? 'Edit Time' : 'Log Time',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)),
                     onPressed: () async {
                       final now = DateTime.now();
                       final initialTime = todayLog != null
-                          ? TimeOfDay(hour: todayLog.wakeAt.hour, minute: todayLog.wakeAt.minute)
+                          ? TimeOfDay(
+                              hour: todayLog.wakeAt.hour,
+                              minute: todayLog.wakeAt.minute)
                           : TimeOfDay.now();
 
                       final picked = await showTimePicker(
@@ -176,8 +185,10 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                         initialTime: initialTime,
                       );
                       if (picked != null) {
-                        final wakeAt = DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
-                        await WakeService.instance.logWake(wakeAt, source: 'manual');
+                        final wakeAt = DateTime(now.year, now.month, now.day,
+                            picked.hour, picked.minute);
+                        await WakeService.instance
+                            .logWake(wakeAt, source: 'manual');
                         setState(() {});
                       }
                     },
@@ -191,10 +202,12 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(LucideIcons.clock, color: Colors.white70),
-              title: const Text('Change Target Time', style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text('Change Target Time',
+                  style: TextStyle(color: Colors.white, fontSize: 14)),
               subtitle: Text(_formatMinutes(_targetMinutes),
                   style: TextStyle(color: BentoTheme.accent, fontSize: 12)),
-              trailing: const Icon(LucideIcons.chevronRight, color: Colors.white38, size: 16),
+              trailing: const Icon(LucideIcons.chevronRight,
+                  color: Colors.white38, size: 16),
               onTap: () async {
                 final picked = await showTimePicker(
                   context: context,
@@ -226,18 +239,22 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                 children: [
                   Row(
                     children: [
-                      const Icon(LucideIcons.compass, color: Colors.white70, size: 18),
+                      const Icon(LucideIcons.compass,
+                          color: Colors.white70, size: 18),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Wake Rule Direction', style: TextStyle(color: Colors.white, fontSize: 14)),
+                            const Text('Wake Rule Direction',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 14)),
                             Text(
                               _direction == 'by'
                                   ? 'Ticked if I wake at or before ${_formatMinutes(_targetMinutes)}'
                                   : 'Ticked if I wake at or after ${_formatMinutes(_targetMinutes)}',
-                              style: TextStyle(color: BentoTheme.accent, fontSize: 12),
+                              style: TextStyle(
+                                  color: BentoTheme.accent, fontSize: 12),
                             ),
                           ],
                         ),
@@ -249,13 +266,16 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Waking by (at or before)')),
+                          label: const Center(
+                              child: Text('Waking by (at or before)')),
                           selected: _direction == 'by',
-                          selectedColor: BentoTheme.accent.withValues(alpha: 0.25),
+                          selectedColor:
+                              BentoTheme.accent.withValues(alpha: 0.25),
                           onSelected: (selected) async {
                             if (selected) {
                               setState(() => _direction = 'by');
-                              await WakeService.instance.createOrUpdateWakeupTask(
+                              await WakeService.instance
+                                  .createOrUpdateWakeupTask(
                                 targetMinutes: _targetMinutes,
                                 graceMinutes: _graceMinutes,
                                 direction: 'by',
@@ -267,13 +287,16 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Waking from (at or after)')),
+                          label: const Center(
+                              child: Text('Waking from (at or after)')),
                           selected: _direction == 'from',
-                          selectedColor: BentoTheme.accent.withValues(alpha: 0.25),
+                          selectedColor:
+                              BentoTheme.accent.withValues(alpha: 0.25),
                           onSelected: (selected) async {
                             if (selected) {
                               setState(() => _direction = 'from');
-                              await WakeService.instance.createOrUpdateWakeupTask(
+                              await WakeService.instance
+                                  .createOrUpdateWakeupTask(
                                 targetMinutes: _targetMinutes,
                                 graceMinutes: _graceMinutes,
                                 direction: 'from',
@@ -305,14 +328,16 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text('No wake-up history recorded yet.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12)),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12)),
               )
             else
               ...allLogs.map((log) {
                 DateTime d;
                 try {
                   final parts = log.dayKey.split('-');
-                  d = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+                  d = DateTime(int.parse(parts[0]), int.parse(parts[1]),
+                      int.parse(parts[2]));
                 } catch (_) {
                   d = log.wakeAt;
                 }
@@ -325,14 +350,16 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: log.onTime ? AppColors.success : AppColors.error,
+                          color:
+                              log.onTime ? AppColors.success : AppColors.error,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
                         DateFormat('EEE, d MMM').format(d),
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 13),
                       ),
                       const Spacer(),
                       Text(
@@ -347,7 +374,8 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                       Text(
                         log.onTime ? '✓' : '✕',
                         style: TextStyle(
-                          color: log.onTime ? AppColors.success : AppColors.error,
+                          color:
+                              log.onTime ? AppColors.success : AppColors.error,
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                         ),

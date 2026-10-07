@@ -25,9 +25,14 @@ class CashFlowChart extends StatelessWidget {
     }
 
     final maxIncome = data.fold<double>(
-        0, (max, item) => _asDouble(item['income']) > max ? _asDouble(item['income']) : max);
+        0,
+        (max, item) =>
+            _asDouble(item['income']) > max ? _asDouble(item['income']) : max);
     final maxExpense = data.fold<double>(
-        0, (max, item) => _asDouble(item['expense']) > max ? _asDouble(item['expense']) : max);
+        0,
+        (max, item) => _asDouble(item['expense']) > max
+            ? _asDouble(item['expense'])
+            : max);
     final maxY = ((maxIncome > maxExpense ? maxIncome : maxExpense) * 1.25)
         .clamp(100.0, 10000000.0);
 
@@ -47,7 +52,9 @@ class CashFlowChart extends StatelessWidget {
               return BarTooltipItem(
                 '$label\n$value',
                 TextStyle(
-                  color: isIncome ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                  color: isIncome
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFFEF4444),
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
@@ -65,9 +72,12 @@ class CashFlowChart extends StatelessWidget {
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,

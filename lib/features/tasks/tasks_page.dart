@@ -214,7 +214,8 @@ class _TasksPageState extends State<TasksPage>
                 color: BentoTheme.accent.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(LucideIcons.wallet, size: 48, color: BentoTheme.accent),
+              child:
+                  Icon(LucideIcons.wallet, size: 48, color: BentoTheme.accent),
             ),
             const SizedBox(height: 16),
             Text(
@@ -235,11 +236,13 @@ class _TasksPageState extends State<TasksPage>
             ElevatedButton.icon(
               onPressed: () => AppNav.openMoney(context),
               icon: const Icon(LucideIcons.arrowUpRight, size: 18),
-              label: const Text('Open Money OS', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text('Open Money OS',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: BentoTheme.accent,
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

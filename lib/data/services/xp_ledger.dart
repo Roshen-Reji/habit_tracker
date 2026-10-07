@@ -36,7 +36,8 @@ class XpLedger {
       DateTime date;
       try {
         final parts = dayKey.split('-');
-        date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        date = DateTime(
+            int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
       } catch (_) {
         date = DateTime.now();
       }

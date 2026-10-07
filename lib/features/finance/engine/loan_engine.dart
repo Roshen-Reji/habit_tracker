@@ -141,7 +141,8 @@ class LoanEngine {
       return (principal: 0.0, interest: Money.r2(paymentAmount));
     }
 
-    final principalPortion = Money.r2(min(currentBalance, paymentAmount - monthlyInterest));
+    final principalPortion =
+        Money.r2(min(currentBalance, paymentAmount - monthlyInterest));
     return (principal: principalPortion, interest: monthlyInterest);
   }
 
@@ -177,7 +178,8 @@ class LoanEngine {
     while (balance > 0.01 && idx < maxMonths) {
       idx++;
       final interest = Money.r2(balance * r);
-      final principalPaid = Money.r2(min(balance, totalPaymentPerMonth - interest));
+      final principalPaid =
+          Money.r2(min(balance, totalPaymentPerMonth - interest));
       final actualPayment = principalPaid + interest;
 
       balance = Money.r2(balance - principalPaid);
@@ -225,7 +227,8 @@ class LoanEngine {
     );
 
     final monthsSaved = max(0, baseline.totalMonths - accelerated.totalMonths);
-    final interestSaved = Money.r2(max(0.0, baseline.totalInterest - accelerated.totalInterest));
+    final interestSaved =
+        Money.r2(max(0.0, baseline.totalInterest - accelerated.totalInterest));
 
     return ExtraPaymentSimulation(
       extraPaymentPerMonth: extraPaymentPerMonth,
@@ -241,7 +244,8 @@ class LoanEngine {
   /// Compares Avalanche vs Snowball payoff strategies for a set of loans.
   /// Avalanche: highest interest rate first.
   /// Snowball: lowest balance first.
-  static ({PayoffComparison avalanche, PayoffComparison snowball}) comparePayoffStrategies({
+  static ({PayoffComparison avalanche, PayoffComparison snowball})
+      comparePayoffStrategies({
     required List<Account> loans,
     required Map<String, double> currentBalances,
     required double totalMonthlyBudget,
@@ -266,7 +270,9 @@ class LoanEngine {
 
     // 2. Snowball: sort by balance ascending
     final snowballLoans = List<Account>.from(validLoans)
-      ..sort((a, b) => (currentBalances[a.id] ?? 0.0).abs().compareTo((currentBalances[b.id] ?? 0.0).abs()));
+      ..sort((a, b) => (currentBalances[a.id] ?? 0.0)
+          .abs()
+          .compareTo((currentBalances[b.id] ?? 0.0).abs()));
 
     final snowballRes = _simulateDebtFreeStrategy(
       loans: snowballLoans,
@@ -296,11 +302,13 @@ class LoanEngine {
 
     // Minimum EMI obligations
     final emis = <String, double>{
-      for (final l in loans) l.id: l.emi ?? calculateEmi(
-        principal: balances[l.id] ?? 0.0,
-        annualRatePct: l.annualRate ?? 10.0,
-        tenureMonths: l.tenureMonths ?? 60,
-      ),
+      for (final l in loans)
+        l.id: l.emi ??
+            calculateEmi(
+              principal: balances[l.id] ?? 0.0,
+              annualRatePct: l.annualRate ?? 10.0,
+              tenureMonths: l.tenureMonths ?? 60,
+            ),
     };
 
     while (balances.values.any((b) => b > 0.01) && months < 360) {
@@ -315,7 +323,8 @@ class LoanEngine {
         final r = ((l.annualRate ?? 10.0) / 100.0) / 12.0;
         final interest = Money.r2(bal * r);
         balances[l.id] = bal + interest;
-        totalInterestAccumulated = Money.r2(totalInterestAccumulated + interest);
+        totalInterestAccumulated =
+            Money.r2(totalInterestAccumulated + interest);
       }
 
       // 2. Pay minimum EMIs on all active loans
@@ -343,7 +352,8 @@ class LoanEngine {
       }
     }
 
-    final debtFreeDate = DateTime(startDate.year, startDate.month + months, startDate.day);
+    final debtFreeDate =
+        DateTime(startDate.year, startDate.month + months, startDate.day);
 
     return PayoffComparison(
       strategyName: strategyName,
@@ -356,7 +366,8 @@ class LoanEngine {
 
   /// Calculates credit card utilisation % and alert status:
   /// Alert if > 30%, Danger if > 70%.
-  static ({double utilisationPct, bool isWarning, bool isDanger}) cardUtilisation({
+  static ({double utilisationPct, bool isWarning, bool isDanger})
+      cardUtilisation({
     required double currentBalance,
     required double creditLimit,
   }) {

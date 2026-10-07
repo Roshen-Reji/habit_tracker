@@ -128,7 +128,8 @@ class AiService {
     if (forced == 'diet' || forced == 'food') return 'diet';
     if (forced == 'vault' || forced == 'speech') return 'vault';
     if (forced == 'wake' || forced == 'wakeup') return 'wake';
-    if (forced == 'wear' || forced == 'wearable' || forced == 'watch') return 'wear';
+    if (forced == 'wear' || forced == 'wearable' || forced == 'watch')
+      return 'wear';
     if (forced == 'journal') return 'journal';
 
     // Image -> most likely food logging
@@ -293,7 +294,8 @@ class AiService {
 
     if (_looksLikeWakeIntent(lower)) return await _handleWakeLocally(message);
     if (_looksLikeWearIntent(lower)) return await _handleWearLocally(message);
-    if (_looksLikeJournalNote(lower)) return await _handleJournalLocally(message);
+    if (_looksLikeJournalNote(lower))
+      return await _handleJournalLocally(message);
     if (_isTaskStatusQuery(lower)) return _buildTaskStatusResponse(lower);
     if (_looksLikeVaultCommand(lower)) return _handleVaultLocally(message);
 
@@ -307,9 +309,12 @@ class AiService {
     final lower = message.toLowerCase().trim();
 
     if (intent == 'tasks') {
-      if (lower.contains('10,000 steps') || lower.contains('10000 steps') || lower == 'steps goal') {
+      if (lower.contains('10,000 steps') ||
+          lower.contains('10000 steps') ||
+          lower == 'steps goal') {
         return AiResponse(
-          message: 'Created daily metric goal: 10,000 steps (tracks automatically from Galaxy Watch).',
+          message:
+              'Created daily metric goal: 10,000 steps (tracks automatically from Galaxy Watch).',
           intent: 'task_create',
           actions: [
             AiAction(
@@ -329,9 +334,11 @@ class AiService {
           ],
         );
       }
-      if (lower.contains('30 active min') || lower.contains('30 active minutes')) {
+      if (lower.contains('30 active min') ||
+          lower.contains('30 active minutes')) {
         return AiResponse(
-          message: 'Created daily metric goal: 30 active minutes (tracks automatically from Galaxy Watch).',
+          message:
+              'Created daily metric goal: 30 active minutes (tracks automatically from Galaxy Watch).',
           intent: 'task_create',
           actions: [
             AiAction(
@@ -353,7 +360,8 @@ class AiService {
       }
       if (lower.contains('sleep 7 h') || lower.contains('sleep 7 hours')) {
         return AiResponse(
-          message: 'Created daily metric goal: Sleep 7 hours (tracks automatically from Galaxy Watch).',
+          message:
+              'Created daily metric goal: Sleep 7 hours (tracks automatically from Galaxy Watch).',
           intent: 'task_create',
           actions: [
             AiAction(
@@ -375,7 +383,8 @@ class AiService {
       }
       if (lower.contains('workout today') || lower == 'daily workout') {
         return AiResponse(
-          message: 'Created daily metric goal: Workout today (tracks automatically from Galaxy Watch).',
+          message:
+              'Created daily metric goal: Workout today (tracks automatically from Galaxy Watch).',
           intent: 'task_create',
           actions: [
             AiAction(
@@ -1108,10 +1117,12 @@ class AiService {
 
     // Invariant §6.9 & P11-4: Check privacy switch
     if (Hive.isBoxOpen('finance_settings')) {
-      final allowed = Hive.box('finance_settings').get('ai_finance_privacy', defaultValue: true);
+      final allowed = Hive.box('finance_settings')
+          .get('ai_finance_privacy', defaultValue: true);
       if (allowed == false) {
         return AiResponse(
-          message: 'Finance AI features are disabled in Settings > AI & Privacy.',
+          message:
+              'Finance AI features are disabled in Settings > AI & Privacy.',
           intent: 'finance',
         );
       }
@@ -1228,17 +1239,26 @@ class AiService {
   }
 
   AiResponse? _handleWhatIfLocally(String lower) {
-    if (!_containsAny(lower, ['can i afford', 'afford a', 'afford to buy', 'can i buy'])) {
+    if (!_containsAny(
+        lower, ['can i afford', 'afford a', 'afford to buy', 'can i buy'])) {
       return null;
     }
     final amount = _extractMoneyAmount(lower);
     if (amount == null || amount <= 0) return null;
 
     String itemName = lower
-        .replaceAll(RegExp(r'can i afford\s*(?:a|an|the)?', caseSensitive: false), '')
-        .replaceAll(RegExp(r'afford\s*(?:to\s+buy)?\s*(?:a|an|the)?', caseSensitive: false), '')
-        .replaceAll(RegExp(r'can i buy\s*(?:a|an|the)?', caseSensitive: false), '')
-        .replaceAll(RegExp(r'(?:for|\?|\b)(?:₹|rs\.?|inr)?\s*[\d,]+(?:\.\d+)?\b', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'can i afford\s*(?:a|an|the)?', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'afford\s*(?:to\s+buy)?\s*(?:a|an|the)?',
+                caseSensitive: false),
+            '')
+        .replaceAll(
+            RegExp(r'can i buy\s*(?:a|an|the)?', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'(?:for|\?|\b)(?:₹|rs\.?|inr)?\s*[\d,]+(?:\.\d+)?\b',
+                caseSensitive: false),
+            '')
         .trim();
     if (itemName.isEmpty) itemName = 'Purchase';
 
@@ -1252,14 +1272,18 @@ class AiService {
       final diffDays = now.difference(t.date).inDays;
       return diffDays >= 0 && diffDays <= 90 && t.effectiveKind == 'expense';
     }).fold<double>(0.0, (sum, t) => sum + t.amount.abs());
-    final avgMonthlyExpense = past3mExpenses > 0 ? (past3mExpenses / 3.0) : 10000.0;
+    final avgMonthlyExpense =
+        past3mExpenses > 0 ? (past3mExpenses / 3.0) : 10000.0;
     final emergencyBuffer = avgMonthlyExpense;
 
     final past3mIncome = txs.where((t) {
       final diffDays = now.difference(t.date).inDays;
-      return diffDays >= 0 && diffDays <= 90 && (t.effectiveKind == 'income' || t.effectiveKind == 'refund');
+      return diffDays >= 0 &&
+          diffDays <= 90 &&
+          (t.effectiveKind == 'income' || t.effectiveKind == 'refund');
     }).fold<double>(0.0, (sum, t) => sum + t.amount.abs());
-    final avgSurplus = ((past3mIncome - past3mExpenses) / 3.0).clamp(0.0, double.infinity);
+    final avgSurplus =
+        ((past3mIncome - past3mExpenses) / 3.0).clamp(0.0, double.infinity);
 
     final result = WhatIfEngine.canAfford(
       amount: amount,
@@ -1273,7 +1297,8 @@ class AiService {
     buffer.writeln(result.explanation);
     buffer.writeln(result.recommendation);
     if (result.monthsToSave != null && result.monthsToSave! > 0) {
-      buffer.writeln('Estimated saving time: ~${result.monthsToSave} months (saving ${FormatUtils.formatMoney(avgSurplus, decimals: 0)}/mo).');
+      buffer.writeln(
+          'Estimated saving time: ~${result.monthsToSave} months (saving ${FormatUtils.formatMoney(avgSurplus, decimals: 0)}/mo).');
     }
 
     return AiResponse(
@@ -1332,7 +1357,11 @@ class AiService {
     }
 
     // 3. Top merchants query
-    if (lower.contains('top') && (lower.contains('merchant') || lower.contains('payee') || lower.contains('store') || lower.contains('place'))) {
+    if (lower.contains('top') &&
+        (lower.contains('merchant') ||
+            lower.contains('payee') ||
+            lower.contains('store') ||
+            lower.contains('place'))) {
       int topN = 5;
       final match = RegExp(r'top\s+(\d+)').firstMatch(lower);
       if (match != null) {
@@ -1369,7 +1398,8 @@ class AiService {
         period = QueryPeriod.lastMonth;
       } else if (lower.contains('this week') || lower.contains('is hafte')) {
         period = QueryPeriod.thisWeek;
-      } else if (lower.contains('last week') || lower.contains('pichle hafte')) {
+      } else if (lower.contains('last week') ||
+          lower.contains('pichle hafte')) {
         period = QueryPeriod.lastWeek;
       } else if (lower.contains('today') || lower.contains('aaj')) {
         period = QueryPeriod.today;
@@ -1445,11 +1475,14 @@ class AiService {
       fromAccount = accounts.first.name;
     }
     if (toAccount == null && accounts.length > 1) {
-      toAccount = accounts.firstWhere((a) => a.name != fromAccount, orElse: () => accounts.last).name;
+      toAccount = accounts
+          .firstWhere((a) => a.name != fromAccount, orElse: () => accounts.last)
+          .name;
     }
 
     return AiResponse(
-      message: 'Ready to transfer ${_formatMoney(amount)} from $fromAccount to $toAccount.',
+      message:
+          'Ready to transfer ${_formatMoney(amount)} from $fromAccount to $toAccount.',
       intent: 'finance_advice',
       actions: [
         AiAction(
@@ -1473,9 +1506,11 @@ class AiService {
     if (!isRec) return null;
 
     String frequency = 'monthly';
-    if (lower.contains('weekly') || lower.contains('har hafte')) frequency = 'weekly';
+    if (lower.contains('weekly') || lower.contains('har hafte'))
+      frequency = 'weekly';
     if (lower.contains('quarterly')) frequency = 'quarterly';
-    if (lower.contains('yearly') || lower.contains('annual')) frequency = 'yearly';
+    if (lower.contains('yearly') || lower.contains('annual'))
+      frequency = 'yearly';
 
     String kind = 'bill';
     if (lower.contains('subscription')) kind = 'subscription';
@@ -1489,12 +1524,16 @@ class AiService {
       cleaned = cleaned.replaceAll(p, '');
     }
     cleaned = cleaned
-        .replaceAll(RegExp(r'(?:every\s+\w+|monthly|weekly|quarterly|yearly|₹|rs\.?|inr|[\d,]+(?:\.\d+)?)'), '')
+        .replaceAll(
+            RegExp(
+                r'(?:every\s+\w+|monthly|weekly|quarterly|yearly|₹|rs\.?|inr|[\d,]+(?:\.\d+)?)'),
+            '')
         .trim();
     if (cleaned.isNotEmpty) name = _titleCase(cleaned);
 
     return AiResponse(
-      message: 'Ready to add $frequency $kind "$name" for ${_formatMoney(amount)}.',
+      message:
+          'Ready to add $frequency $kind "$name" for ${_formatMoney(amount)}.',
       intent: 'finance_advice',
       actions: [
         AiAction(
@@ -1512,16 +1551,17 @@ class AiService {
 
   AiResponse _buildSipResponse() {
     final controller = FinanceController();
-    final sips = controller.allRecurringRules.where((r) => r.kind == 'sip').toList();
+    final sips =
+        controller.allRecurringRules.where((r) => r.kind == 'sip').toList();
     final monthlySip = sips.fold<double>(0, (sum, rule) => sum + rule.amount);
 
     final details = sips.map((rule) {
-      return ': /mo';
+      return '${rule.name}: ${FormatUtils.formatMoney(rule.amount)}/mo';
     }).join(', ');
 
     final msg = StringBuffer(
-        'Your current SIP commitment is /month.');
-    if (details.isNotEmpty) msg.write(' .');
+        'Your current SIP commitment is ${FormatUtils.formatMoney(monthlySip)}/month.');
+    if (details.isNotEmpty) msg.write(' ($details).');
 
     return AiResponse(message: msg.toString(), intent: 'general_chat');
   }
@@ -1736,7 +1776,9 @@ class AiService {
     ])) {
       return true;
     }
-    if (lower.contains('watch') && _containsAny(lower, ['sync', 'status', 'battery', 'connect', 'steps', 'sleep'])) {
+    if (lower.contains('watch') &&
+        _containsAny(lower,
+            ['sync', 'status', 'battery', 'connect', 'steps', 'sleep'])) {
       return true;
     }
     if ((lower.contains('step') || lower.contains('steps')) &&
@@ -1744,10 +1786,12 @@ class AiService {
       return true;
     }
     if (lower.contains('sleep') &&
-        _containsAny(lower, ['score', 'last night', 'how long', 'how much', 'hours'])) {
+        _containsAny(
+            lower, ['score', 'last night', 'how long', 'how much', 'hours'])) {
       return true;
     }
-    if (lower.contains('energy') && _containsAny(lower, ['score', 'today', 'how is', 'my energy'])) {
+    if (lower.contains('energy') &&
+        _containsAny(lower, ['score', 'today', 'how is', 'my energy'])) {
       return true;
     }
     return false;
@@ -1882,7 +1926,9 @@ class AiService {
     final lower = message.toLowerCase().trim();
 
     // 1. Sync Watch Action
-    if (lower.contains('sync') || lower.contains('refresh watch') || lower.contains('update watch')) {
+    if (lower.contains('sync') ||
+        lower.contains('refresh watch') ||
+        lower.contains('update watch')) {
       SyncService.instance.sync();
       return AiResponse(
         message: 'Syncing your Galaxy Watch with Samsung Health...',
@@ -1907,12 +1953,14 @@ class AiService {
       if (steps > 0) {
         final pct = ((steps / goal) * 100).round();
         return AiResponse(
-          message: 'You have walked ${NumberFormat('#,###').format(steps)} steps today ($pct% of your $goal step goal).',
+          message:
+              'You have walked ${NumberFormat('#,###').format(steps)} steps today ($pct% of your $goal step goal).',
           intent: 'wear',
         );
       } else {
         return AiResponse(
-          message: 'No steps recorded for today yet. Make sure your Galaxy Watch is connected and synced.',
+          message:
+              'No steps recorded for today yet. Make sure your Galaxy Watch is connected and synced.',
           intent: 'wear',
         );
       }
@@ -1924,7 +1972,8 @@ class AiService {
       if (sleep != null && sleep.durationMin > 0) {
         final h = sleep.durationMin ~/ 60;
         final m = sleep.durationMin % 60;
-        final scoreStr = sleep.score != null ? ' (Sleep Score: ${sleep.score})' : '';
+        final scoreStr =
+            sleep.score != null ? ' (Sleep Score: ${sleep.score})' : '';
         return AiResponse(
           message: 'You slept for ${h}h ${m}m last night$scoreStr.',
           intent: 'wear',
@@ -1954,7 +2003,9 @@ class AiService {
     }
 
     // 5. Heart Rate Query
-    if (lower.contains('heart rate') || lower.contains('hr') || lower.contains('bpm')) {
+    if (lower.contains('heart rate') ||
+        lower.contains('hr') ||
+        lower.contains('bpm')) {
       final hr = view.restingHeartRate;
       if (hr != null) {
         return AiResponse(
@@ -1992,13 +2043,20 @@ class AiService {
     }
 
     // 7. Body Composition Query
-    if (lower.contains('body') || lower.contains('fat') || lower.contains('muscle') || lower.contains('weight')) {
+    if (lower.contains('body') ||
+        lower.contains('fat') ||
+        lower.contains('muscle') ||
+        lower.contains('weight')) {
       final body = view.bodyComp;
       if (body != null) {
         final parts = <String>[];
-        if (body.weightKg != null) parts.add('Weight: ${body.weightKg!.toStringAsFixed(1)} kg');
-        if (body.bodyFatPct != null) parts.add('Body Fat: ${body.bodyFatPct!.toStringAsFixed(1)}%');
-        if (body.skeletalMuscleMassKg != null) parts.add('Muscle: ${body.skeletalMuscleMassKg!.toStringAsFixed(1)} kg');
+        if (body.weightKg != null)
+          parts.add('Weight: ${body.weightKg!.toStringAsFixed(1)} kg');
+        if (body.bodyFatPct != null)
+          parts.add('Body Fat: ${body.bodyFatPct!.toStringAsFixed(1)}%');
+        if (body.skeletalMuscleMassKg != null)
+          parts.add(
+              'Muscle: ${body.skeletalMuscleMassKg!.toStringAsFixed(1)} kg');
         if (body.bmi != null) parts.add('BMI: ${body.bmi!.toStringAsFixed(1)}');
         return AiResponse(
           message: 'Latest Body Composition:\n${parts.join(' · ')}',
@@ -2017,9 +2075,11 @@ class AiService {
     final sleep = view.mainSleep;
     final energy = view.energy?.score;
     final overview = <String>[];
-    if (steps > 0) overview.add('Steps: ${NumberFormat('#,###').format(steps)}');
+    if (steps > 0)
+      overview.add('Steps: ${NumberFormat('#,###').format(steps)}');
     if (sleep != null && sleep.durationMin > 0) {
-      overview.add('Sleep: ${sleep.durationMin ~/ 60}h ${sleep.durationMin % 60}m');
+      overview
+          .add('Sleep: ${sleep.durationMin ~/ 60}h ${sleep.durationMin % 60}m');
     }
     if (energy != null) overview.add('Energy: $energy/100');
 
@@ -2030,19 +2090,22 @@ class AiService {
       );
     } else {
       return AiResponse(
-        message: 'Galaxy Watch connected, but no health records have been synced for today yet. Say "sync watch" to refresh.',
+        message:
+            'Galaxy Watch connected, but no health records have been synced for today yet. Say "sync watch" to refresh.',
         intent: 'wear',
       );
     }
   }
 
   Future<AiResponse?> _handleJournalLocally(String message) async {
-    final note = message.replaceFirst(
-      RegExp(
-          r"^(?:journal:\s*|journal\s+note:\s*|log\s+note:\s*|note\s+to\s+journal:\s*|note:\s*|today's\s+note:\s*)",
-          caseSensitive: false),
-      '',
-    ).trim();
+    final note = message
+        .replaceFirst(
+          RegExp(
+              r"^(?:journal:\s*|journal\s+note:\s*|log\s+note:\s*|note\s+to\s+journal:\s*|note:\s*|today's\s+note:\s*)",
+              caseSensitive: false),
+          '',
+        )
+        .trim();
 
     if (note.isEmpty) {
       return AiResponse(
@@ -2882,7 +2945,8 @@ class AiService {
 
       final wearCtx = AiContext.buildWearContext();
       if (wearCtx.isNotEmpty) {
-        contextData = contextData.isNotEmpty ? '$contextData $wearCtx' : wearCtx;
+        contextData =
+            contextData.isNotEmpty ? '$contextData $wearCtx' : wearCtx;
       }
       // 'music' intent is handled on-device - never reaches AI
       // 'general' intent gets no context - saves tokens
@@ -3165,14 +3229,18 @@ class AiService {
   /// Execute a confirmed finance transaction action
   void executeFinanceAction(AiAction action) {
     final payload = action.payload;
-    final mode = (payload['mode'] ?? payload['kind'] ?? 'expense').toString().toLowerCase();
+    final mode = (payload['mode'] ?? payload['kind'] ?? 'expense')
+        .toString()
+        .toLowerCase();
     final isExpense = mode != 'income';
-    final title = (payload['title'] ?? (isExpense ? 'Expense' : 'Income')).toString();
+    final title =
+        (payload['title'] ?? (isExpense ? 'Expense' : 'Income')).toString();
     final amount = _asDouble(payload['amount']);
     if (amount <= 0) return;
 
     final repo = FinanceRepository();
-    final categoryName = (payload['category'] ?? (isExpense ? 'Other' : 'Income')).toString();
+    final categoryName =
+        (payload['category'] ?? (isExpense ? 'Other' : 'Income')).toString();
     final merchant = payload['merchant']?.toString();
     final accountName = payload['account_name']?.toString().toLowerCase();
 
@@ -3185,7 +3253,10 @@ class AiService {
         }
       }
     }
-    accountId ??= repo.storage.accountBox.values.where((a) => a.spendable && !a.archived).firstOrNull?.id;
+    accountId ??= repo.storage.accountBox.values
+        .where((a) => a.spendable && !a.archived)
+        .firstOrNull
+        ?.id;
 
     String? categoryId;
     for (final c in repo.storage.categoryBox.values) {
@@ -3225,14 +3296,19 @@ class AiService {
     String? toId;
 
     for (final a in repo.storage.accountBox.values) {
-      if (fromName != null && a.name.toLowerCase().contains(fromName)) fromId = a.id;
+      if (fromName != null && a.name.toLowerCase().contains(fromName))
+        fromId = a.id;
       if (toName != null && a.name.toLowerCase().contains(toName)) toId = a.id;
     }
 
-    final spendable = repo.storage.accountBox.values.where((a) => a.spendable && !a.archived).toList();
+    final spendable = repo.storage.accountBox.values
+        .where((a) => a.spendable && !a.archived)
+        .toList();
     if (fromId == null && spendable.isNotEmpty) fromId = spendable.first.id;
     if (toId == null && spendable.length > 1) {
-      toId = spendable.firstWhere((a) => a.id != fromId, orElse: () => spendable.last).id;
+      toId = spendable
+          .firstWhere((a) => a.id != fromId, orElse: () => spendable.last)
+          .id;
     }
 
     if (fromId != null && toId != null && fromId != toId) {
@@ -3265,7 +3341,8 @@ class AiService {
       }
     }
 
-    final categoryId = matchedCat?.id ?? 'cat_${DateTime.now().millisecondsSinceEpoch}';
+    final categoryId =
+        matchedCat?.id ?? 'cat_${DateTime.now().millisecondsSinceEpoch}';
     if (matchedCat == null) {
       repo.addCategory(Category(
         id: categoryId,
@@ -3311,7 +3388,8 @@ class AiService {
   void _executeFinanceSipAction(AiAction action) {
     final payload = Map<String, dynamic>.from(action.payload);
     payload['kind'] = 'sip';
-    _executeFinanceRecurringAction(AiAction(type: 'finance_recurring', payload: payload));
+    _executeFinanceRecurringAction(
+        AiAction(type: 'finance_recurring', payload: payload));
   }
 
   void _executeFinanceRecurringAction(AiAction action) {
@@ -3322,7 +3400,8 @@ class AiService {
 
     final kind = (payload['kind'] ?? 'bill').toString().toLowerCase();
     final freq = (payload['frequency'] ?? 'monthly').toString().toLowerCase();
-    final dueDay = int.tryParse((payload['due'] ?? payload['date'] ?? 1).toString()) ?? 1;
+    final dueDay =
+        int.tryParse((payload['due'] ?? payload['date'] ?? 1).toString()) ?? 1;
 
     final now = DateTime.now();
     final anchor = DateTime(now.year, now.month, dueDay.clamp(1, 28));
@@ -3349,7 +3428,8 @@ class AiService {
     if (target <= 0) return;
 
     DateTime? deadline;
-    if (payload['deadline'] != null && payload['deadline'].toString().isNotEmpty) {
+    if (payload['deadline'] != null &&
+        payload['deadline'].toString().isNotEmpty) {
       deadline = DateTime.tryParse(payload['deadline'].toString());
     }
 

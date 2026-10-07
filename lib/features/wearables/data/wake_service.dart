@@ -38,7 +38,9 @@ class WakeService {
   /// Returns the current wake-up task if one exists.
   Goal? getWakeupGoal() {
     if (!Hive.isBoxOpen(goalBoxName)) return null;
-    return _goalBox.values.where((g) => g.kind == 'wakeup' && !g.isArchived).firstOrNull;
+    return _goalBox.values
+        .where((g) => g.kind == 'wakeup' && !g.isArchived)
+        .firstOrNull;
   }
 
   /// Creates or updates the single wake-up goal.
@@ -49,7 +51,8 @@ class WakeService {
     String? title,
   }) async {
     final dir = direction ?? WearableSettings.wakeDirection;
-    final metricOp = (dir == 'by' || dir == '<=' || dir == 'before') ? '<=' : '>=';
+    final metricOp =
+        (dir == 'by' || dir == '<=' || dir == 'before') ? '<=' : '>=';
 
     final existing = getWakeupGoal();
     if (existing != null) {
@@ -62,7 +65,8 @@ class WakeService {
 
     final targetH = targetMinutes ~/ 60;
     final targetM = targetMinutes % 60;
-    final targetStr = '${targetH.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')}';
+    final targetStr =
+        '${targetH.toString().padLeft(2, '0')}:${targetM.toString().padLeft(2, '0')}';
 
     final goal = Goal(
       id: 'goal_wakeup_${DateTime.now().millisecondsSinceEpoch}',
@@ -96,9 +100,8 @@ class WakeService {
         WearableSettings.wakeTargetMinutesDefault ??
         300; // default 5:00 AM (300 mins)
     final graceMin = goal?.graceMinutes ?? WearableSettings.wakeGraceMinutes;
-    final direction = (goal?.metricOp == '<=')
-        ? 'by'
-        : WearableSettings.wakeDirection;
+    final direction =
+        (goal?.metricOp == '<=') ? 'by' : WearableSettings.wakeDirection;
 
     final eval = WakeRules.evaluate(
       wakeAt: wakeAt,
@@ -253,7 +256,8 @@ class WakeService {
       }
 
       final existingWake = WakeLogRepository.instance.getLog(dayKey);
-      final existingTaskLog = TaskDayLogRepository.instance.getLog(goal.id, dayKey);
+      final existingTaskLog =
+          TaskDayLogRepository.instance.getLog(goal.id, dayKey);
 
       final isMissed = (existingWake != null && !existingWake.onTime) ||
           (existingTaskLog != null && existingTaskLog.status == 'missed');

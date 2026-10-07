@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' hide Category;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
@@ -213,6 +215,27 @@ class FinanceBackupService {
       settingsMap[key.toString()] = storage.settingsBox.get(key);
     }
 
+    // Global settings snapshot (global_xp, rem_*, etc.)
+    final globalSettingsMap = <String, dynamic>{};
+    if (Hive.isBoxOpen('settings')) {
+      final globalBox = Hive.box('settings');
+      for (final key in globalBox.keys) {
+        final keyStr = key.toString();
+        if (keyStr == 'global_xp' || keyStr.startsWith('rem_')) {
+          globalSettingsMap[keyStr] = globalBox.get(key);
+        }
+      }
+    }
+
+    // XP History snapshot
+    final xpHistoryMap = <String, dynamic>{};
+    if (Hive.isBoxOpen('xp_history')) {
+      final xpBox = Hive.box('xp_history');
+      for (final key in xpBox.keys) {
+        xpHistoryMap[key.toString()] = xpBox.get(key);
+      }
+    }
+
     final backupPayload = {
       'version': 3,
       'exportedAt': DateTime.now().toIso8601String(),
@@ -230,6 +253,8 @@ class FinanceBackupService {
       'splitGroups': splitGroups,
       'splitEntries': splitEntries,
       'settings': settingsMap,
+      'globalSettings': globalSettingsMap,
+      'xpHistory': xpHistoryMap,
     };
 
     final jsonString =
@@ -537,6 +562,24 @@ class FinanceBackupService {
       await storage.settingsBox.put(entry.key, entry.value);
     }
 
+    // Restore global settings (global_xp, rem_*)
+    final globalSettingsMap = (data['globalSettings'] as Map? ?? {});
+    if (globalSettingsMap.isNotEmpty && Hive.isBoxOpen('settings')) {
+      final globalBox = Hive.box('settings');
+      for (final entry in globalSettingsMap.entries) {
+        await globalBox.put(entry.key, entry.value);
+      }
+    }
+
+    // Restore xp_history
+    final xpHistoryMap = (data['xpHistory'] as Map? ?? {});
+    if (xpHistoryMap.isNotEmpty && Hive.isBoxOpen('xp_history')) {
+      final xpBox = Hive.box('xp_history');
+      for (final entry in xpHistoryMap.entries) {
+        await xpBox.put(entry.key, entry.value);
+      }
+    }
+
     return summary;
   }
 
@@ -556,6 +599,8 @@ class FinanceBackupService {
           await file.delete();
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('FinanceBackupService auto-pruning error: $e');
+    }
   }
 }

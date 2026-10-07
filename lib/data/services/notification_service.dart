@@ -1,13 +1,56 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:habit_tracker/app.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
+import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
+import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) async {
+  // 1. Finance Alarm Snooze action (plugin only, no Hive isolate access)
+  if (response.actionId == 'snooze_10') {
+    final plugin = FlutterLocalNotificationsPlugin();
+    final snoozeTime = DateTime.now().add(const Duration(minutes: 10));
+    try {
+      await plugin.zonedSchedule(
+        id: (response.id ?? 1000) + 1,
+        title: 'Snoozed: Finance Reminder',
+        body: 'Payment reminder due now',
+        scheduledDate: tz.TZDateTime.from(snoozeTime, tz.local),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            'finance_alarm',
+            'Finance Alarms',
+            channelDescription: 'Alarm notifications for finance due dates',
+            importance: Importance.max,
+            priority: Priority.max,
+            category: AndroidNotificationCategory.alarm,
+            audioAttributesUsage: AudioAttributesUsage.alarm,
+            fullScreenIntent: true,
+            additionalFlags: Int32List.fromList([4]),
+            actions: const [
+              AndroidNotificationAction('snooze_10', 'Snooze 10 min'),
+              AndroidNotificationAction('open', 'Open'),
+            ],
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        payload: response.payload,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+      );
+    } catch (e) {
+      debugPrint('Background snooze error: $e');
+    }
+    return;
+  }
+
+  // 2. Medicine Actions
   if (response.payload != null && response.payload!.startsWith('med:')) {
     final parts = response.payload!.split(':');
     if (parts.length >= 2) {
@@ -60,6 +103,17 @@ class NotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
+    try {
+      final tzInfo = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(tzInfo.identifier));
+    } catch (e) {
+      debugPrint('Timezone lookup warning: $e, falling back to Asia/Kolkata');
+      try {
+        tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+      } catch (fallbackError) {
+        debugPrint('Fallback timezone Asia/Kolkata error: $fallbackError');
+      }
+    }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -80,11 +134,68 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (response) {
+        if (response.actionId == 'snooze_10') {
+          notificationTapBackground(response);
+          return;
+        }
+        _handleNotificationNavigation(response);
         notificationTapBackground(response);
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
+
+    // Setup notification channels on Android
+    final androidPlugin =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'finance_reminders',
+          'Finance Reminders',
+          description: 'Reminders for bills, SIPs, and dues',
+          importance: Importance.high,
+        ),
+      );
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'finance_alarm',
+          'Finance Alarms',
+          description: 'Alarm notifications for finance due dates',
+          importance: Importance.max,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+          enableVibration: true,
+        ),
+      );
+    }
+
+    // Check if app was launched via tapping a notification
+    final launchDetails =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+      final response = launchDetails.notificationResponse;
+      if (response != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleNotificationNavigation(response);
+        });
+      }
+    }
+
     _isInitialized = true;
+  }
+
+  static void _handleNotificationNavigation(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null) return;
+    if (payload.startsWith('rec:')) {
+      globalNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const RecurringPage()),
+      );
+    } else if (payload.startsWith('acc:')) {
+      globalNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const AccountsPage()),
+      );
+    }
   }
 
   Future<void> scheduleTaskReminder(Goal task) async {
@@ -178,13 +289,12 @@ class NotificationService {
         body: body,
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
-            'finance_channel',
-            'Finance Notifications',
+            'finance_reminders',
+            'Finance Reminders',
             channelDescription:
                 'Notifications for SIP debits and finance alerts',
             importance: Importance.max,
             priority: Priority.high,
-            color: Color(0xFF18FFFF),
           ),
           iOS: DarwinNotificationDetails(),
         ),
@@ -200,8 +310,8 @@ class NotificationService {
     required String title,
     required String body,
     String? payload,
-    String channelId = 'finance_channel',
-    String channelName = 'Finance Notifications',
+    String channelId = 'finance_reminders',
+    String channelName = 'Finance Reminders',
   }) async {
     if (!_isInitialized) return;
     try {
@@ -217,7 +327,6 @@ class NotificationService {
             channelDescription: 'Finance alerts, budget warnings and reminders',
             importance: Importance.max,
             priority: Priority.high,
-            color: const Color(0xFF18FFFF),
           ),
           iOS: const DarwinNotificationDetails(),
         ),
@@ -231,5 +340,9 @@ class NotificationService {
 
   Future<void> cancelReminder(int id) async {
     await flutterLocalNotificationsPlugin.cancel(id: id);
+  }
+
+  Future<void> cancelAll() async {
+    await flutterLocalNotificationsPlugin.cancelAll();
   }
 }

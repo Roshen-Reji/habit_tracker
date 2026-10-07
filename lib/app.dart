@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/services/now_playing_service.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -13,6 +13,7 @@ import 'package:habit_tracker/features/wearables/data/sync_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
+import 'package:habit_tracker/data/services/reminder_scheduler.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -43,7 +44,12 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
     if (state == AppLifecycleState.resumed) {
       TaskResetService.checkAndResetTasks();
       WakeService.instance.rolloverMissedDays(DateTime.now());
-      RecurringRunner.run();
+      unawaited(RecurringRunner.run().catchError((e) {
+        debugPrint('RecurringRunner error on resume: $e');
+      }));
+      unawaited(ReminderScheduler.syncIfThrottleElapsed().catchError((e) {
+        debugPrint('ReminderScheduler error on resume: $e');
+      }));
       if (WearableSettings.isEnabled && WearableSettings.autoSyncOnResume) {
         SyncService.instance.sync(days: 7);
       }
@@ -74,57 +80,56 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
         final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
 
-
-            return MaterialApp(
-              navigatorKey: globalNavigatorKey,
-              title: 'Habit Tracker',
-              themeMode: mode,
-              localizationsDelegates: const [
-                FlutterQuillLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: FlutterQuillLocalizations.supportedLocales,
-              scrollBehavior: const MaterialScrollBehavior().copyWith(
-                physics: const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics()),
+        return MaterialApp(
+          navigatorKey: globalNavigatorKey,
+          title: 'Habitify',
+          themeMode: mode,
+          localizationsDelegates: const [
+            FlutterQuillLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: FlutterQuillLocalizations.supportedLocales,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics()),
+          ),
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: BentoTheme.background,
+            fontFamily: 'Roboto',
+            colorScheme: ColorScheme.light(
+              primary: BentoTheme.accent,
+              surface: BentoTheme.background,
+            ),
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: ExpressiveTokens.borderL,
               ),
-              theme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.light,
-                scaffoldBackgroundColor: BentoTheme.background,
-                fontFamily: 'Roboto',
-                colorScheme: ColorScheme.light(
-                  primary: BentoTheme.accent,
-                  surface: BentoTheme.background,
-                ),
-                cardTheme: const CardThemeData(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: ExpressiveTokens.borderL,
-                  ),
-                ),
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: BentoTheme.background,
+            fontFamily: 'Roboto',
+            colorScheme: ColorScheme.dark(
+              primary: BentoTheme.accent,
+              surface: BentoTheme.background,
+            ),
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: ExpressiveTokens.borderL,
               ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.dark,
-                scaffoldBackgroundColor: BentoTheme.background,
-                fontFamily: 'Roboto',
-                colorScheme: ColorScheme.dark(
-                  primary: BentoTheme.accent,
-                  surface: BentoTheme.background,
-                ),
-                cardTheme: const CardThemeData(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: ExpressiveTokens.borderL,
-                  ),
-                ),
-              ),
-              home: const HomePage(),
-              debugShowCheckedModeBanner: false,
-            );
+            ),
+          ),
+          home: const HomePage(),
+          debugShowCheckedModeBanner: false,
+        );
       },
     );
   }

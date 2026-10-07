@@ -8,6 +8,7 @@ import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/wearables/ui/fitness_tab.dart';
 
 class HealthPage extends StatefulWidget {
@@ -73,7 +74,8 @@ class _HealthPageState extends State<HealthPage> {
                   child: _buildTabButton(1, 'WEIGHT', LucideIcons.scale),
                 ),
                 Expanded(
-                  child: _buildTabButton(2, 'HEALTH DATA', LucideIcons.heartPulse),
+                  child:
+                      _buildTabButton(2, 'HEALTH DATA', LucideIcons.heartPulse),
                 ),
               ],
             ),
@@ -504,15 +506,10 @@ class _MedicineTabState extends State<_MedicineTab> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: stats.complianceRate,
-                            minHeight: 6,
-                            backgroundColor: Colors.white12,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF10B981)),
-                          ),
+                        ProgressBarX(
+                          value: stats.complianceRate,
+                          height: 6,
+                          color: const Color(0xFF10B981),
                         ),
                         if (stats.nextDoseMedicine != null &&
                             stats.nextDoseTime != null) ...[

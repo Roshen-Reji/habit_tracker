@@ -11,8 +11,15 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:habit_tracker/features/home/cards/home_card.dart';
+
 class HealthSummaryCard extends StatelessWidget {
-  const HealthSummaryCard({super.key});
+  final HomeCardSize size;
+
+  const HealthSummaryCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,11 +58,11 @@ class HealthSummaryCard extends StatelessWidget {
                             );
 
                             final score = summary.compositeScore.round();
-                            Color scoreColor = Colors.greenAccent;
+                            Color scoreColor = BentoTheme.positive;
                             if (score < 50) {
-                              scoreColor = Colors.redAccent;
+                              scoreColor = BentoTheme.negative;
                             } else if (score < 80) {
-                              scoreColor = Colors.amberAccent;
+                              scoreColor = BentoTheme.warning;
                             }
 
                             return HomeCardFrame(
@@ -86,83 +93,271 @@ class HealthSummaryCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Metric tiles row
-                                  Row(
-                                    children: [
-                                      // Calories
-                                      Expanded(
-                                        child: _buildMetricTile(
-                                          icon: LucideIcons.utensils,
-                                          iconColor: Colors.orangeAccent,
-                                          title: 'CALORIES',
-                                          value:
-                                              '${summary.netCalories.round()} kcal',
-                                          subtitle: summary.calorieTarget > 0
-                                              ? 'Target: ${summary.calorieTarget.round()}'
-                                              : 'No target set',
+                              child: size == HomeCardSize.hero
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 76,
+                                              height: 76,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 76,
+                                                    height: 76,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      value: (score / 100)
+                                                          .clamp(0.0, 1.0),
+                                                      strokeWidth: 7,
+                                                      backgroundColor:
+                                                          BentoTheme.textPrimary
+                                                              .withValues(
+                                                                  alpha: 0.08),
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                              scoreColor),
+                                                      strokeCap:
+                                                          StrokeCap.round,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '$score',
+                                                    style: TextStyle(
+                                                      color: BentoTheme
+                                                          .textPrimary,
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontFeatures: const [
+                                                        FontFeature
+                                                            .tabularFigures()
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 20),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'HEALTH COMPOSITE',
+                                                    style: TextStyle(
+                                                      color: BentoTheme
+                                                          .textSecondary,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      letterSpacing: 1.2,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    score >= 80
+                                                        ? 'Optimal Performance'
+                                                        : (score >= 50
+                                                            ? 'Steady Progress'
+                                                            : 'Needs Attention'),
+                                                    style: TextStyle(
+                                                      color: BentoTheme
+                                                          .textPrimary,
+                                                      fontSize: 17,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    'Aggregated across diet, medicines, habits & weight',
+                                                    style: TextStyle(
+                                                      color: BentoTheme
+                                                          .textSecondary,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Medicine
-                                      Expanded(
-                                        child: _buildMetricTile(
-                                          icon: LucideIcons.pill,
-                                          iconColor: const Color(0xFF2DD4BF),
-                                          title: 'MEDICINE',
-                                          value: summary.medicineTotalToday > 0
-                                              ? '${summary.medicineTakenToday}/${summary.medicineTotalToday}'
-                                              : 'None',
-                                          subtitle: summary.medicineTotalToday >
-                                                  0
-                                              ? (summary.medicineTakenToday >=
-                                                      summary.medicineTotalToday
-                                                  ? 'All taken'
-                                                  : 'Pending')
-                                              : 'No meds',
+                                        const SizedBox(height: 18),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.utensils,
+                                                iconColor:
+                                                    BentoTheme.textPrimary,
+                                                title: 'CALORIES',
+                                                value:
+                                                    '${summary.netCalories.round()} kcal',
+                                                subtitle: summary
+                                                            .calorieTarget >
+                                                        0
+                                                    ? 'Target: ${summary.calorieTarget.round()}'
+                                                    : 'No target set',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.pill,
+                                                iconColor: BentoTheme.accent,
+                                                title: 'MEDICINE',
+                                                value: summary
+                                                            .medicineTotalToday >
+                                                        0
+                                                    ? '${summary.medicineTakenToday}/${summary.medicineTotalToday}'
+                                                    : 'None',
+                                                subtitle: summary
+                                                            .medicineTotalToday >
+                                                        0
+                                                    ? (summary.medicineTakenToday >=
+                                                            summary
+                                                                .medicineTotalToday
+                                                        ? 'All taken'
+                                                        : 'Pending')
+                                                    : 'No meds',
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      // Health Missions
-                                      Expanded(
-                                        child: _buildMetricTile(
-                                          icon: LucideIcons.checkSquare,
-                                          iconColor: Colors.lightBlueAccent,
-                                          title: 'HEALTH HABITS',
-                                          value:
-                                              '${summary.healthMissionsCompletedToday}/${summary.healthMissionsTotalToday}',
-                                          subtitle: summary
-                                                      .healthMissionsTotalToday >
-                                                  0
-                                              ? '${((summary.healthMissionsCompletedToday / summary.healthMissionsTotalToday) * 100).toInt()}% completed'
-                                              : 'No habits',
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.checkSquare,
+                                                iconColor: BentoTheme.positive,
+                                                title: 'HEALTH HABITS',
+                                                value:
+                                                    '${summary.healthMissionsCompletedToday}/${summary.healthMissionsTotalToday}',
+                                                subtitle: summary
+                                                            .healthMissionsTotalToday >
+                                                        0
+                                                    ? '${((summary.healthMissionsCompletedToday / summary.healthMissionsTotalToday) * 100).toInt()}% completed'
+                                                    : 'No habits',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.scale,
+                                                iconColor:
+                                                    BentoTheme.textSecondary,
+                                                title: 'WEIGHT',
+                                                value: summary.latestWeightKg !=
+                                                        null
+                                                    ? '${summary.latestWeightKg!.toStringAsFixed(1)} ${summary.weightUnit}'
+                                                    : '--',
+                                                subtitle: summary
+                                                            .goalWeightKg !=
+                                                        null
+                                                    ? 'Goal: ${summary.goalWeightKg!.toStringAsFixed(1)}'
+                                                    : 'No goal set',
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Weight
-                                      Expanded(
-                                        child: _buildMetricTile(
-                                          icon: LucideIcons.scale,
-                                          iconColor: const Color(0xFFA855F7),
-                                          title: 'WEIGHT',
-                                          value: summary.latestWeightKg != null
-                                              ? '${summary.latestWeightKg!.toStringAsFixed(1)} ${summary.weightUnit}'
-                                              : '--',
-                                          subtitle: summary.goalWeightKg != null
-                                              ? 'Goal: ${summary.goalWeightKg!.toStringAsFixed(1)}'
-                                              : 'No goal set',
+                                      ],
+                                    )
+                                  : Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.utensils,
+                                                iconColor:
+                                                    BentoTheme.textPrimary,
+                                                title: 'CALORIES',
+                                                value:
+                                                    '${summary.netCalories.round()} kcal',
+                                                subtitle: summary
+                                                            .calorieTarget >
+                                                        0
+                                                    ? 'Target: ${summary.calorieTarget.round()}'
+                                                    : 'No target set',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: _buildMetricTile(
+                                                icon: LucideIcons.pill,
+                                                iconColor: BentoTheme.accent,
+                                                title: 'MEDICINE',
+                                                value: summary
+                                                            .medicineTotalToday >
+                                                        0
+                                                    ? '${summary.medicineTakenToday}/${summary.medicineTotalToday}'
+                                                    : 'None',
+                                                subtitle: summary
+                                                            .medicineTotalToday >
+                                                        0
+                                                    ? (summary.medicineTakenToday >=
+                                                            summary
+                                                                .medicineTotalToday
+                                                        ? 'All taken'
+                                                        : 'Pending')
+                                                    : 'No meds',
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                        if (size == HomeCardSize.large) ...[
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildMetricTile(
+                                                  icon: LucideIcons.checkSquare,
+                                                  iconColor:
+                                                      BentoTheme.positive,
+                                                  title: 'HEALTH HABITS',
+                                                  value:
+                                                      '${summary.healthMissionsCompletedToday}/${summary.healthMissionsTotalToday}',
+                                                  subtitle: summary
+                                                              .healthMissionsTotalToday >
+                                                          0
+                                                      ? '${((summary.healthMissionsCompletedToday / summary.healthMissionsTotalToday) * 100).toInt()}% completed'
+                                                      : 'No habits',
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildMetricTile(
+                                                  icon: LucideIcons.scale,
+                                                  iconColor:
+                                                      BentoTheme.textSecondary,
+                                                  title: 'WEIGHT',
+                                                  value: summary
+                                                              .latestWeightKg !=
+                                                          null
+                                                      ? '${summary.latestWeightKg!.toStringAsFixed(1)} ${summary.weightUnit}'
+                                                      : '--',
+                                                  subtitle: summary
+                                                              .goalWeightKg !=
+                                                          null
+                                                      ? 'Goal: ${summary.goalWeightKg!.toStringAsFixed(1)}'
+                                                      : 'No goal set',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                             );
                           },
                         );

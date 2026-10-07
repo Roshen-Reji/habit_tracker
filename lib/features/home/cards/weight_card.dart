@@ -4,12 +4,19 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class WeightCard extends StatelessWidget {
-  const WeightCard({super.key});
+  final HomeCardSize size;
+
+  const WeightCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +117,7 @@ class WeightCard extends StatelessWidget {
                   // Sparkline graph or prompt
                   if (entries.length >= 2) ...[
                     SizedBox(
-                      height: 54,
+                      height: size == HomeCardSize.large ? 75 : 54,
                       child: LineChart(
                         LineChartData(
                           gridData: const FlGridData(show: false),
@@ -145,6 +152,49 @@ class WeightCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (size == HomeCardSize.large) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'RECENT WEIGH-INS',
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...entries.reversed.take(3).map((e) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                () {
+                                  final d = DateTime.tryParse(e.date);
+                                  return d != null
+                                      ? DateFormat('d MMM yyyy').format(d)
+                                      : e.date;
+                                }(),
+                                style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                '${e.kg.toStringAsFixed(1)} $unit',
+                                style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                   ] else ...[
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -191,10 +241,6 @@ class WeightCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: BentoTheme.surfaceElevated,
         borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
-        border: highlightColor != null
-            ? Border.all(
-                color: highlightColor.withValues(alpha: 0.25), width: 1)
-            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

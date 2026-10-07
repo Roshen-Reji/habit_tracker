@@ -8,15 +8,18 @@ class DueItem {
   final DateTime dueDate;
   final double estimatedAmount;
   final bool isVariable;
+  final bool needsFunds;
 
   const DueItem({
     required this.rule,
     required this.dueDate,
     required this.estimatedAmount,
     this.isVariable = false,
+    this.needsFunds = false,
   });
 
-  String get sourceRef => 'rec:${rule.id}:${DateFormat('yyyy-MM-dd').format(dueDate)}';
+  String get sourceRef =>
+      'rec:${rule.id}:${DateFormat('yyyy-MM-dd').format(dueDate)}';
 }
 
 class DetectedSubscription {
@@ -51,7 +54,8 @@ class DetectedSubscription {
 
 class RecurringEngine {
   /// Computes all occurrence due dates for [rule] in the window `[from, to]`.
-  static List<DateTime> occurrences(RecurringRule rule, DateTime from, DateTime to) {
+  static List<DateTime> occurrences(
+      RecurringRule rule, DateTime from, DateTime to) {
     if (rule.status != 'active') return [];
 
     final list = <DateTime>[];
@@ -97,8 +101,10 @@ class RecurringEngine {
         final targetYear = current.year + ((targetMonth - 1) ~/ 12);
         final normalizedMonth = ((targetMonth - 1) % 12) + 1;
 
-        final targetDay = rule.dayOfMonth ?? rule.anchorDate?.day ?? rule.startDate.day;
-        final daysInTargetMonth = DateTime(targetYear, normalizedMonth + 1, 0).day;
+        final targetDay =
+            rule.dayOfMonth ?? rule.anchorDate?.day ?? rule.startDate.day;
+        final daysInTargetMonth =
+            DateTime(targetYear, normalizedMonth + 1, 0).day;
         final clampedDay = min(targetDay, daysInTargetMonth);
 
         return DateTime(targetYear, normalizedMonth, clampedDay);
@@ -108,8 +114,10 @@ class RecurringEngine {
         final targetYear = current.year + ((targetMonth - 1) ~/ 12);
         final normalizedMonth = ((targetMonth - 1) % 12) + 1;
 
-        final targetDay = rule.dayOfMonth ?? rule.anchorDate?.day ?? rule.startDate.day;
-        final daysInTargetMonth = DateTime(targetYear, normalizedMonth + 1, 0).day;
+        final targetDay =
+            rule.dayOfMonth ?? rule.anchorDate?.day ?? rule.startDate.day;
+        final daysInTargetMonth =
+            DateTime(targetYear, normalizedMonth + 1, 0).day;
         final clampedDay = min(targetDay, daysInTargetMonth);
 
         return DateTime(targetYear, normalizedMonth, clampedDay);
@@ -133,13 +141,15 @@ class RecurringEngine {
 
   /// Calculates the estimated amount for a recurring rule:
   /// if [amountIsVariable] is true, computes average of the last 3 posted transactions with this rule's id.
-  static double estimateAmount(RecurringRule rule, Iterable<Transaction> transactions) {
+  static double estimateAmount(
+      RecurringRule rule, Iterable<Transaction> transactions) {
     if (!rule.amountIsVariable) return rule.amount;
 
     final ruleTxs = transactions
         .where((tx) =>
             tx.recurringRuleId == rule.id ||
-            (tx.sourceRef != null && tx.sourceRef!.startsWith('rec:${rule.id}:')))
+            (tx.sourceRef != null &&
+                tx.sourceRef!.startsWith('rec:${rule.id}:')))
         .toList();
 
     if (ruleTxs.isEmpty) return rule.amount;
@@ -161,7 +171,9 @@ class RecurringEngine {
     s = s.replaceAll(RegExp(r'\.(com|in|org|net|co|io|app)'), '');
 
     // Strip common payment prefixes / tokens
-    s = s.replaceAll(RegExp(r'\b(upi|paytm|razorpay|billdesk|googlepay|gpay|phonepe)\b'), '');
+    s = s.replaceAll(
+        RegExp(r'\b(upi|paytm|razorpay|billdesk|googlepay|gpay|phonepe)\b'),
+        '');
 
     // Strip digits
     s = s.replaceAll(RegExp(r'[0-9]'), '');
@@ -188,7 +200,8 @@ class RecurringEngine {
     // Only analyze expenses and refunds
     final expenses = transactions
         .where((tx) =>
-            (tx.effectiveKind == 'expense' || tx.effectiveKind == 'subscription') &&
+            (tx.effectiveKind == 'expense' ||
+                tx.effectiveKind == 'subscription') &&
             tx.amount.abs() > 0)
         .toList();
 
@@ -238,10 +251,14 @@ class RecurringEngine {
         // At least 60% of intervals match cycle ±3 days
         if (matchingCount >= (intervals.length * 0.6).ceil()) {
           matchedCycle = cycle;
-          if (cycle == 7) freq = 'weekly';
-          else if (cycle == 14) freq = 'weekly';
-          else if (cycle == 30) freq = 'monthly';
-          else if (cycle == 91) freq = 'quarterly';
+          if (cycle == 7)
+            freq = 'weekly';
+          else if (cycle == 14)
+            freq = 'weekly';
+          else if (cycle == 30)
+            freq = 'monthly';
+          else if (cycle == 91)
+            freq = 'quarterly';
           else if (cycle == 365) freq = 'yearly';
           break;
         }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/engine/health_score_engine.dart';
 
@@ -25,16 +25,16 @@ class HealthScoreSheet extends StatelessWidget {
     Color scoreColor;
     String scoreGrade;
     if (health.overallScore >= 80) {
-      scoreColor = Colors.green;
+      scoreColor = BentoTheme.positive;
       scoreGrade = 'Excellent';
     } else if (health.overallScore >= 60) {
       scoreColor = BentoTheme.accent;
       scoreGrade = 'Good';
     } else if (health.overallScore >= 40) {
-      scoreColor = Colors.orange;
+      scoreColor = BentoTheme.warning;
       scoreGrade = 'Fair';
     } else {
-      scoreColor = Colors.red;
+      scoreColor = BentoTheme.negative;
       scoreGrade = 'Needs Attention';
     }
 
@@ -43,17 +43,22 @@ class HealthScoreSheet extends StatelessWidget {
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 24),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           Row(
             children: [
               Container(
@@ -62,7 +67,8 @@ class HealthScoreSheet extends StatelessWidget {
                   color: scoreColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(LucideIcons.heartPulse, color: scoreColor, size: 20),
+                child:
+                    Icon(LucideIcons.heartPulse, color: scoreColor, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -87,7 +93,6 @@ class HealthScoreSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -99,7 +104,6 @@ class HealthScoreSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: BentoTheme.background,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: scoreColor.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: [
@@ -109,7 +113,7 @@ class HealthScoreSheet extends StatelessWidget {
                           height: 80,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: scoreColor, width: 4),
+                            color: scoreColor.withValues(alpha: 0.12),
                           ),
                           child: Center(
                             child: Text(
@@ -117,6 +121,7 @@ class HealthScoreSheet extends StatelessWidget {
                               style: TextStyle(
                                 color: scoreColor,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 24,
                               ),
                             ),
                           ),
@@ -155,12 +160,12 @@ class HealthScoreSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: BentoTheme.accent.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(LucideIcons.flag, color: BentoTheme.accent, size: 20),
+                        Icon(LucideIcons.flag,
+                            color: BentoTheme.accent, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -190,18 +195,19 @@ class HealthScoreSheet extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // Weakest area banner if available
-                  if (health.weakestComponent != null && health.weakestComponent!.score < 70) ...[
+                  if (health.weakestComponent != null &&
+                      health.weakestComponent!.score < 70) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
+                        color: BentoTheme.warning.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(LucideIcons.alertCircle, color: Colors.orange, size: 20),
+                          Icon(LucideIcons.alertCircle,
+                              color: BentoTheme.warning, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -210,14 +216,15 @@ class HealthScoreSheet extends StatelessWidget {
                                 Text(
                                   'Focus Area: ${health.weakestComponent!.name}',
                                   style: TextStyle(
-                                    color: Colors.orange,
+                                    color: BentoTheme.warning,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   health.weakestComponent!.description,
-                                  style: TextStyle(color: BentoTheme.textSecondary),
+                                  style: TextStyle(
+                                      color: BentoTheme.textSecondary),
                                 ),
                               ],
                             ),
@@ -247,11 +254,11 @@ class HealthScoreSheet extends StatelessWidget {
   Widget _buildComponentTile(HealthScoreComponent comp) {
     Color barColor;
     if (comp.score >= 80) {
-      barColor = Colors.green;
+      barColor = BentoTheme.positive;
     } else if (comp.score >= 50) {
       barColor = BentoTheme.accent;
     } else {
-      barColor = Colors.orange;
+      barColor = BentoTheme.warning;
     }
 
     return Container(
@@ -260,7 +267,6 @@ class HealthScoreSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: BentoTheme.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +284,7 @@ class HealthScoreSheet extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    '${comp.score.toStringAsFixed(0)}',
+                    comp.score.toStringAsFixed(0),
                     style: TextStyle(
                       color: barColor,
                       fontWeight: FontWeight.bold,
@@ -293,14 +299,10 @@ class HealthScoreSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (comp.score / 100.0).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              valueColor: AlwaysStoppedAnimation<Color>(barColor),
-            ),
+          ProgressBarX(
+            value: ProgressMath.ratio(comp.score, 100),
+            height: 6,
+            customColor: barColor,
           ),
           const SizedBox(height: 8),
           Row(
@@ -314,7 +316,8 @@ class HealthScoreSheet extends StatelessWidget {
               ),
               Text(
                 'Weight: ${comp.baseWeight.toStringAsFixed(0)}%',
-                style: TextStyle(color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
+                style: TextStyle(
+                    color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
               ),
             ],
           ),

@@ -54,15 +54,37 @@ class _CategoriesPageState extends State<CategoriesPage> {
     int colorValue = category?.colorValue ?? 0xFF22C55E;
 
     final availableColors = [
-      0xFF22C55E, 0xFF3B82F6, 0xFFF59E0B, 0xFFEC4899,
-      0xFF8B5CF6, 0xFF14B8A6, 0xFFEF4444, 0xFF6366F1,
-      0xFF84CC16, 0xFF06B6D4, 0xFFE11D48, 0xFFD97706,
+      0xFF22C55E,
+      0xFF3B82F6,
+      0xFFF59E0B,
+      0xFFEC4899,
+      0xFF8B5CF6,
+      0xFF14B8A6,
+      0xFFEF4444,
+      0xFF6366F1,
+      0xFF84CC16,
+      0xFF06B6D4,
+      0xFFE11D48,
+      0xFFD97706,
     ];
 
     final availableIcons = [
-      'tag', 'utensils', 'shopping_cart', 'car', 'bolt',
-      'heart_pulse', 'film', 'tv', 'apple', 'home',
-      'graduation_cap', 'plane', 'repeat', 'shield', 'gift', 'sparkles',
+      'tag',
+      'utensils',
+      'shopping_cart',
+      'car',
+      'bolt',
+      'heart_pulse',
+      'film',
+      'tv',
+      'apple',
+      'home',
+      'graduation_cap',
+      'plane',
+      'repeat',
+      'shield',
+      'gift',
+      'sparkles',
     ];
 
     showModalBottomSheet(
@@ -127,9 +149,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'needs', child: Text('Needs (Essential)')),
-                        DropdownMenuItem(value: 'wants', child: Text('Wants (Discretionary)')),
-                        DropdownMenuItem(value: 'savings', child: Text('Savings')),
+                        DropdownMenuItem(
+                            value: 'needs', child: Text('Needs (Essential)')),
+                        DropdownMenuItem(
+                            value: 'wants',
+                            child: Text('Wants (Discretionary)')),
+                        DropdownMenuItem(
+                            value: 'savings', child: Text('Savings')),
                         DropdownMenuItem(value: 'none', child: Text('None')),
                       ],
                       onChanged: (val) {
@@ -146,11 +172,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     SwitchListTile(
                       title: Text(
                         'Essential Expense',
-                        style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+                        style: TextStyle(
+                            color: BentoTheme.textPrimary, fontSize: 14),
                       ),
                       subtitle: Text(
                         'Counted towards basic emergency buffer and essential needs',
-                        style: TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: BentoTheme.textSecondary, fontSize: 11),
                       ),
                       value: essential,
                       activeColor: BentoTheme.accent,
@@ -189,14 +217,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                     ? BentoTheme.accent.withValues(alpha: 0.2)
                                     : BentoTheme.surface,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected ? BentoTheme.accent : Colors.transparent,
-                                ),
                               ),
                               child: Icon(
                                 _iconForKey(key),
                                 size: 18,
-                                color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
+                                color: isSelected
+                                    ? BentoTheme.accent
+                                    : BentoTheme.textSecondary,
                               ),
                             ),
                           );
@@ -232,7 +259,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                 color: Color(c),
                                 shape: BoxShape.circle,
                                 border: isSelected
-                                    ? Border.all(color: Colors.white, width: 2.5)
+                                    ? Border.all(
+                                        // allowed: input focus
+                                        color: Colors.white,
+                                        width: 2.5)
                                     : null,
                               ),
                             ),
@@ -283,8 +313,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(isEditing ? 'Save Changes' : 'Create Category',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text(
+                            isEditing ? 'Save Changes' : 'Create Category',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -299,7 +331,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   void _showMergeDialog(Category sourceCategory) {
     final targets = _controller.activeCategories
-        .where((c) => c.id != sourceCategory.id && c.kind == sourceCategory.kind)
+        .where(
+            (c) => c.id != sourceCategory.id && c.kind == sourceCategory.kind)
         .toList();
 
     if (targets.isEmpty) {
@@ -326,7 +359,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                 children: [
                   Text(
                     'All transactions using "${sourceCategory.name}" will be updated to the chosen category, and "${sourceCategory.name}" will be archived.',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<String>(
@@ -334,7 +368,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     dropdownColor: BentoTheme.surface,
                     style: TextStyle(color: BentoTheme.textPrimary),
                     items: targets
-                        .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                        .map((t) =>
+                            DropdownMenuItem(value: t.id, child: Text(t.name)))
                         .toList(),
                     onChanged: (val) => setDialogState(() => targetId = val),
                   ),
@@ -343,16 +378,20 @@ class _CategoriesPageState extends State<CategoriesPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
+                  child: Text('Cancel',
+                      style: TextStyle(color: BentoTheme.textSecondary)),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     if (targetId == null) return;
                     Navigator.of(ctx).pop();
-                    await _repository.mergeCategory(sourceCategory.id, targetId!);
+                    await _repository.mergeCategory(
+                        sourceCategory.id, targetId!);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Merged into ${_controller.getCategory(targetId)?.name}')),
+                        SnackBar(
+                            content: Text(
+                                'Merged into ${_controller.getCategory(targetId)?.name}')),
                       );
                     }
                   },
@@ -395,7 +434,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
           IconButton(
             icon: Icon(
               _showArchived ? LucideIcons.archive : LucideIcons.archiveRestore,
-              color: _showArchived ? BentoTheme.accent : BentoTheme.textSecondary,
+              color:
+                  _showArchived ? BentoTheme.accent : BentoTheme.textSecondary,
               size: 20,
             ),
             tooltip: _showArchived ? 'Hide Archived' : 'Show Archived',
@@ -417,7 +457,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     selectedColor: BentoTheme.accent,
                     backgroundColor: BentoTheme.surface,
                     labelStyle: TextStyle(
-                      color: _selectedKind == 'expense' ? Colors.black : BentoTheme.textSecondary,
+                      color: _selectedKind == 'expense'
+                          ? Colors.black
+                          : BentoTheme.textSecondary,
                       fontWeight: FontWeight.bold,
                     ),
                     onSelected: (val) {
@@ -433,7 +475,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     selectedColor: BentoTheme.accent,
                     backgroundColor: BentoTheme.surface,
                     labelStyle: TextStyle(
-                      color: _selectedKind == 'income' ? Colors.black : BentoTheme.textSecondary,
+                      color: _selectedKind == 'income'
+                          ? Colors.black
+                          : BentoTheme.textSecondary,
                       fontWeight: FontWeight.bold,
                     ),
                     onSelected: (val) {
@@ -456,7 +500,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: categories.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
@@ -472,24 +517,21 @@ class _CategoriesPageState extends State<CategoriesPage> {
         backgroundColor: BentoTheme.accent,
         foregroundColor: Colors.black,
         icon: const Icon(LucideIcons.plus, size: 20),
-        label: const Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Add Category',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
   Widget _buildCategoryTile(Category cat) {
-    final color = cat.colorValue != 0 ? Color(cat.colorValue) : BentoTheme.accent;
+    final color =
+        cat.colorValue != 0 ? Color(cat.colorValue) : BentoTheme.accent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: cat.archived
-              ? Colors.white10
-              : BentoTheme.textSecondary.withValues(alpha: 0.1),
-        ),
       ),
       child: Row(
         children: [
@@ -516,16 +558,20 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     Text(
                       cat.name,
                       style: TextStyle(
-                        color: cat.archived ? BentoTheme.textSecondary : BentoTheme.textPrimary,
+                        color: cat.archived
+                            ? BentoTheme.textSecondary
+                            : BentoTheme.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        decoration: cat.archived ? TextDecoration.lineThrough : null,
+                        decoration:
+                            cat.archived ? TextDecoration.lineThrough : null,
                       ),
                     ),
                     if (cat.essential) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
@@ -557,7 +603,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
           ),
           // Actions Popup Menu
           PopupMenuButton<String>(
-            icon: Icon(LucideIcons.moreVertical, size: 16, color: BentoTheme.textSecondary),
+            icon: Icon(LucideIcons.moreVertical,
+                size: 16, color: BentoTheme.textSecondary),
             color: BentoTheme.surface,
             onSelected: (action) async {
               if (action == 'edit') {
@@ -586,13 +633,16 @@ class _CategoriesPageState extends State<CategoriesPage> {
               ),
               const PopupMenuItem(
                 value: 'merge',
-                child: Text('Merge Into...', style: TextStyle(color: Colors.white)),
+                child: Text('Merge Into...',
+                    style: TextStyle(color: Colors.white)),
               ),
               PopupMenuItem(
                 value: 'archive',
                 child: Text(
                   cat.archived ? 'Unarchive' : 'Archive',
-                  style: TextStyle(color: cat.archived ? BentoTheme.accent : Colors.redAccent),
+                  style: TextStyle(
+                      color:
+                          cat.archived ? BentoTheme.accent : Colors.redAccent),
                 ),
               ),
             ],
@@ -604,22 +654,38 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   IconData _iconForKey(String? key) {
     switch (key) {
-      case 'utensils': return LucideIcons.utensils;
-      case 'shopping_cart': return LucideIcons.shoppingCart;
-      case 'car': return LucideIcons.car;
-      case 'bolt': return LucideIcons.zap;
-      case 'heart_pulse': return LucideIcons.heartPulse;
-      case 'film': return LucideIcons.film;
-      case 'tv': return LucideIcons.tv;
-      case 'apple': return LucideIcons.apple;
-      case 'home': return LucideIcons.home;
-      case 'graduation_cap': return LucideIcons.graduationCap;
-      case 'plane': return LucideIcons.plane;
-      case 'repeat': return LucideIcons.repeat;
-      case 'shield': return LucideIcons.shield;
-      case 'gift': return LucideIcons.gift;
-      case 'sparkles': return LucideIcons.sparkles;
-      default: return LucideIcons.tag;
+      case 'utensils':
+        return LucideIcons.utensils;
+      case 'shopping_cart':
+        return LucideIcons.shoppingCart;
+      case 'car':
+        return LucideIcons.car;
+      case 'bolt':
+        return LucideIcons.zap;
+      case 'heart_pulse':
+        return LucideIcons.heartPulse;
+      case 'film':
+        return LucideIcons.film;
+      case 'tv':
+        return LucideIcons.tv;
+      case 'apple':
+        return LucideIcons.apple;
+      case 'home':
+        return LucideIcons.home;
+      case 'graduation_cap':
+        return LucideIcons.graduationCap;
+      case 'plane':
+        return LucideIcons.plane;
+      case 'repeat':
+        return LucideIcons.repeat;
+      case 'shield':
+        return LucideIcons.shield;
+      case 'gift':
+        return LucideIcons.gift;
+      case 'sparkles':
+        return LucideIcons.sparkles;
+      default:
+        return LucideIcons.tag;
     }
   }
 }

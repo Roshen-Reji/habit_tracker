@@ -2,39 +2,26 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/models/quote.dart';
 
+import 'package:habit_tracker/core/content/quotes.dart';
+
 class QuoteCard extends StatefulWidget {
-  const QuoteCard({super.key});
+  final HomeCardSize size;
+
+  const QuoteCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<QuoteCard> createState() => _QuoteCardState();
 }
 
 class _QuoteCardState extends State<QuoteCard> {
-  static final List<Quote> _quotes = [
-    Quote('We are what we repeatedly do.', 'Aristotle'),
-    Quote('The cosmos is within us.', 'Carl Sagan'),
-    Quote('He who has a why to live can bear almost any how.', 'Nietzsche'),
-    Quote(
-      'Man is sometimes extraordinarily, passionately, in love with suffering...',
-      'Fyodor Dostoevsky',
-    ),
-    Quote(
-      'Taking a new step, uttering a new word, is what people fear most.',
-      'Fyodor Dostoevsky',
-    ),
-    Quote(
-      'If you want to overcome the whole world, overcome yourself.',
-      'Fyodor Dostoevsky',
-    ),
-    Quote(
-      'Life isn’t about finding yourself. Life is about creating yourself.',
-      'George Bernard Shaw',
-    ),
-    Quote('Doubt kills more dreams than failure ever will.', 'Suzy Kassem'),
-  ];
+  static const List<Quote> _quotes = curatedQuotes;
 
   late int _quoteIndex;
 
@@ -91,24 +78,61 @@ class _QuoteCardState extends State<QuoteCard> {
             '"${quote.text}"',
             style: TextStyle(
               color: BentoTheme.textPrimary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: widget.size == HomeCardSize.hero
+                  ? 19
+                  : (widget.size == HomeCardSize.large ? 17 : 15),
+              height: widget.size == HomeCardSize.hero
+                  ? 1.6
+                  : (widget.size == HomeCardSize.large ? 1.5 : 1.4),
               fontStyle: FontStyle.italic,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(
+            height: widget.size == HomeCardSize.hero
+                ? 18
+                : (widget.size == HomeCardSize.large ? 14 : 8),
+          ),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
               '— ${quote.author}',
               style: TextStyle(
                 color: BentoTheme.textSecondary,
-                fontSize: 12,
+                fontSize: widget.size == HomeCardSize.hero
+                    ? 14
+                    : (widget.size == HomeCardSize.large ? 13 : 12),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
+          if (widget.size == HomeCardSize.hero) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: BentoTheme.accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.sparkles,
+                      size: 14, color: BentoTheme.accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Daily Reflection · How does this apply to your progress today?',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/backup/finance_backup_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
 import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
 import 'package:habit_tracker/features/finance/ui/accounts/accounts_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
 
 class MoreTab extends StatelessWidget {
   final Function(String deepLink)? onNavigate;
@@ -18,7 +18,9 @@ class MoreTab extends StatelessWidget {
       final backup = await FinanceBackupService.exportJson();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup exported successfully (${backup.length} bytes)')),
+        SnackBar(
+            content:
+                Text('Backup exported successfully (${backup.length} bytes)')),
       );
     } catch (e) {
       if (!context.mounted) return;
@@ -60,8 +62,19 @@ class MoreTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
               _sectionHeader('MANAGE & CONFIGURE'),
+              _tile(
+                icon: LucideIcons.bellRing,
+                title: 'Reminders & Alarms',
+                subtitle: 'Schedules, notifications, styles and permissions',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const RemindersSettingsPage(),
+                    ),
+                  );
+                },
+              ),
               _tile(
                 icon: LucideIcons.tag,
                 title: 'Categories',
@@ -86,7 +99,6 @@ class MoreTab extends StatelessWidget {
                   }
                 },
               ),
-
               const SizedBox(height: 20),
               _sectionHeader('INTELLIGENCE & REPORTS'),
               _tile(
@@ -151,13 +163,13 @@ class MoreTab extends StatelessWidget {
                   if (onNavigate != null) onNavigate!('reports');
                 },
               ),
-
               const SizedBox(height: 20),
               _sectionHeader('DATA & PRIVACY'),
               _tile(
                 icon: LucideIcons.download,
                 title: 'Export JSON Backup',
-                subtitle: 'Create a full encrypted snapshot of all finance data',
+                subtitle:
+                    'Create a full encrypted snapshot of all finance data',
                 onTap: () => _exportBackup(context),
               ),
               _tile(
@@ -168,7 +180,7 @@ class MoreTab extends StatelessWidget {
                   if (onNavigate != null) onNavigate!('privacy');
                 },
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -201,12 +213,11 @@ class MoreTab extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: ExpressiveTokens.borderM,
+        borderRadius: BorderRadius.circular(16),
         child: ListTile(
           leading: Container(
             width: 38,
@@ -232,7 +243,8 @@ class MoreTab extends StatelessWidget {
               fontSize: 12,
             ),
           ),
-          trailing: Icon(LucideIcons.chevronRight, size: 16, color: BentoTheme.textSecondary),
+          trailing: Icon(LucideIcons.chevronRight,
+              size: 16, color: BentoTheme.textSecondary),
           onTap: onTap,
         ),
       ),

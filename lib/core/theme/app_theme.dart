@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'app_tokens.dart';
 import 'expressive_tokens.dart';
 
 class AppTheme {
@@ -36,9 +37,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.background,
+      primaryColor: AppTokens.dark.accent,
+      scaffoldBackgroundColor: AppTokens.dark.background,
       fontFamily: 'Roboto',
+      extensions: const [AppTokens.dark],
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
         secondary: AppColors.primaryDark,
@@ -106,9 +108,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: const Color(0xFF111827),
-      scaffoldBackgroundColor: const Color(0xFFF3F4F6),
+      primaryColor: AppTokens.light.accent,
+      scaffoldBackgroundColor: AppTokens.light.background,
       fontFamily: 'Roboto',
+      extensions: const [AppTokens.light],
       colorScheme: const ColorScheme.light(
         primary: Color(0xFF111827),
         surface: Color(0xFFFFFFFF),

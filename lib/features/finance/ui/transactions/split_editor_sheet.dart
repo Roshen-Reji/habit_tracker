@@ -69,18 +69,22 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
         if (decoded is List) {
           for (final item in decoded) {
             if (item is Map) {
-              _lines.add(SplitLineItem.fromJson(Map<String, dynamic>.from(item)));
+              _lines
+                  .add(SplitLineItem.fromJson(Map<String, dynamic>.from(item)));
             }
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('SplitEditorSheet initial splits parse error: $e');
+      }
     }
 
     if (_lines.isEmpty) {
       // Default to 2 lines dividing the amount
       final half = (widget.totalAmount / 2).clamp(0.0, double.infinity);
       _lines.add(SplitLineItem(
-        categoryId: widget.categories.isNotEmpty ? widget.categories.first.id : null,
+        categoryId:
+            widget.categories.isNotEmpty ? widget.categories.first.id : null,
         amount: half,
       ));
       _lines.add(SplitLineItem(
@@ -100,7 +104,8 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
     setState(() {
       final rem = _remaining > 0 ? _remaining : 0.0;
       _lines.add(SplitLineItem(
-        categoryId: widget.categories.isNotEmpty ? widget.categories.first.id : null,
+        categoryId:
+            widget.categories.isNotEmpty ? widget.categories.first.id : null,
         amount: rem,
       ));
     });
@@ -126,14 +131,14 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
 
     return Container(
       padding: EdgeInsets.only(
-        top: 20,
+        top: 14,
         left: 20,
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
         color: BentoTheme.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
@@ -141,6 +146,17 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: BentoTheme.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -163,15 +179,12 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: BentoTheme.surface,
+              color: isBalanced
+                  ? BentoTheme.positive.withValues(alpha: 0.12)
+                  : isOver
+                      ? BentoTheme.negative.withValues(alpha: 0.12)
+                      : BentoTheme.surface,
               borderRadius: ExpressiveTokens.borderM,
-              border: Border.all(
-                color: isBalanced
-                    ? const Color(0xFF22C55E).withValues(alpha: 0.5)
-                    : isOver
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.5)
-                        : BentoTheme.accent.withValues(alpha: 0.3),
-              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -261,8 +274,10 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                 label: const Text('Add Split'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: BentoTheme.accent,
-                  side: BorderSide(color: BentoTheme.accent.withValues(alpha: 0.5)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  side: BorderSide(
+                      color: BentoTheme.accent.withValues(alpha: 0.5)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -301,9 +316,6 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: ExpressiveTokens.borderM,
-        border: Border.all(
-          color: BentoTheme.textSecondary.withValues(alpha: 0.1),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +326,8 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: BentoTheme.cardBackground,
                       borderRadius: BorderRadius.circular(6),
@@ -339,22 +352,20 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                     },
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: line.isOwed
-                            ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
-                            : Colors.transparent,
+                            ? BentoTheme.warning.withValues(alpha: 0.2)
+                            : BentoTheme.surfaceElevated,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: line.isOwed
-                              ? const Color(0xFFF59E0B)
-                              : BentoTheme.textSecondary.withValues(alpha: 0.3),
-                        ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            line.isOwed ? LucideIcons.userCheck : LucideIcons.user,
+                            line.isOwed
+                                ? LucideIcons.userCheck
+                                : LucideIcons.user,
                             size: 13,
                             color: line.isOwed
                                 ? const Color(0xFFF59E0B)
@@ -379,7 +390,8 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
               ),
               if (_lines.length > 1)
                 IconButton(
-                  icon: const Icon(LucideIcons.trash2, size: 16, color: Colors.redAccent),
+                  icon: const Icon(LucideIcons.trash2,
+                      size: 16, color: Colors.redAccent),
                   onPressed: () => _removeLine(index),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -394,8 +406,10 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
               Expanded(
                 flex: 4,
                 child: TextFormField(
-                  initialValue: line.amount > 0 ? line.amount.toStringAsFixed(2) : '',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  initialValue:
+                      line.amount > 0 ? line.amount.toStringAsFixed(2) : '',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   style: TextStyle(
                     color: BentoTheme.textPrimary,
                     fontSize: 15,
@@ -403,7 +417,8 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                   ),
                   decoration: InputDecoration(
                     labelText: 'Amount',
-                    labelStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                    labelStyle: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 12),
                     prefixText: '${FormatUtils.getCurrencySymbol()} ',
                     prefixStyle: TextStyle(
                       color: BentoTheme.accent,
@@ -440,7 +455,8 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
                           labelText: 'Friend Name',
                           hintText: 'e.g. Rahul',
                           hintStyle: TextStyle(
-                            color: BentoTheme.textSecondary.withValues(alpha: 0.5),
+                            color:
+                                BentoTheme.textSecondary.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                           labelStyle: TextStyle(

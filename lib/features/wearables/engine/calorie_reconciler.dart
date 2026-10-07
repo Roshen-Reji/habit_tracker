@@ -44,7 +44,8 @@ class CalorieReconciler {
 
     // 1. Restore any superseded entries whose source session no longer exists
     for (final entry in entries) {
-      if (entry.supersededBy != null && !sessionExternalIds.contains(entry.supersededBy)) {
+      if (entry.supersededBy != null &&
+          !sessionExternalIds.contains(entry.supersededBy)) {
         entry.supersededBy = null;
         modified = true;
       }
@@ -63,7 +64,8 @@ class CalorieReconciler {
       if (existingIdx != -1) {
         // Already exists: update values if revised
         final existing = entries[existingIdx];
-        if (existing.caloriesBurned != kcal || existing.durationMinutes != session.durationMin) {
+        if (existing.caloriesBurned != kcal ||
+            existing.durationMinutes != session.durationMin) {
           existing.caloriesBurned = kcal;
           existing.durationMinutes = session.durationMin;
           existing.activity = session.title ?? session.type;
@@ -72,16 +74,21 @@ class CalorieReconciler {
       } else {
         // De-dup against manual entries
         for (final manual in entries) {
-          final isWearable = manual.source == 'health_connect' || manual.source == 'samsung_health' || manual.source == 'wearable';
+          final isWearable = manual.source == 'health_connect' ||
+              manual.source == 'samsung_health' ||
+              manual.source == 'wearable';
           if (!isWearable && manual.supersededBy == null) {
-            final timeDiffMin = manual.timestamp.difference(session.start).inMinutes.abs();
+            final timeDiffMin =
+                manual.timestamp.difference(session.start).inMinutes.abs();
             final manualName = manual.activity.trim().toLowerCase();
             final durDiffRatio = session.durationMin > 0
-                ? (manual.durationMinutes - session.durationMin).abs() / session.durationMin
+                ? (manual.durationMinutes - session.durationMin).abs() /
+                    session.durationMin
                 : 1.0;
 
             final timeMatches = timeDiffMin <= 30;
-            final activityAndDurationMatches = manualName == sessionName && durDiffRatio <= 0.25;
+            final activityAndDurationMatches =
+                manualName == sessionName && durDiffRatio <= 0.25;
 
             if (timeMatches || activityAndDurationMatches) {
               manual.supersededBy = session.externalId;
@@ -131,7 +138,8 @@ class CalorieReconciler {
 
     final now = DateTime.now();
     int age = now.year - dob.year;
-    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
       age--;
     }
     if (age <= 0 || heightCm <= 0 || weightKg <= 0) return null;
