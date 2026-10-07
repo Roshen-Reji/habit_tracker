@@ -3,6 +3,7 @@ import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/journal_service.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/journal/data/journal_day_repository.dart';
 import 'package:habit_tracker/features/journal/journal_editor_page.dart';
@@ -12,7 +13,12 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class JournalCard extends StatelessWidget {
-  const JournalCard({super.key});
+  final HomeCardSize size;
+
+  const JournalCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +80,32 @@ class JournalCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+          if (size == HomeCardSize.large) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: BentoTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(ExpressiveTokens.radiusSm),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.sparkles, color: accent, size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Prompt: What was the highlight of your day?',
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [

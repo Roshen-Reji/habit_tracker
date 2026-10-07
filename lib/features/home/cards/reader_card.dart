@@ -4,6 +4,7 @@ import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/data/services/reader_service.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
 import 'package:habit_tracker/features/reader/reader_library_page.dart';
@@ -12,7 +13,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ReaderCard extends StatefulWidget {
-  const ReaderCard({super.key});
+  final HomeCardSize size;
+
+  const ReaderCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<ReaderCard> createState() => _ReaderCardState();
@@ -96,44 +102,47 @@ class _ReaderCardState extends State<ReaderCard> {
                   ),
                 ),
               ] else if (displayBooks.isNotEmpty) ...[
-                // Last 3 book covers row
-                SizedBox(
-                  height: 144,
-                  child: Row(
-                    children: [
-                      for (int i = 0; i < displayBooks.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildBookCoverCard(
-                            context,
-                            displayBooks[i],
-                            accent,
-                          ),
-                        ),
-                      ],
-                      if (displayBooks.length < 3)
-                        for (int k = 0; k < (3 - displayBooks.length); k++)
+                if (widget.size == HomeCardSize.large ||
+                    mostRecentBook == null) ...[
+                  // Last 3 book covers row
+                  SizedBox(
+                    height: 144,
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < displayBooks.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
                           Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(
-                                  ExpressiveTokens.radiusSm,
+                            child: _buildBookCoverCard(
+                              context,
+                              displayBooks[i],
+                              accent,
+                            ),
+                          ),
+                        ],
+                        if (displayBooks.length < 3)
+                          for (int k = 0; k < (3 - displayBooks.length); k++)
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.02),
+                                  borderRadius: BorderRadius.circular(
+                                    ExpressiveTokens.radiusSm,
+                                  ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  LucideIcons.filePlus,
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  size: 24,
+                                child: Center(
+                                  child: Icon(
+                                    LucideIcons.filePlus,
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
 
                 // Quick Continue Reading bar for the top book
                 if (mostRecentBook != null) ...[

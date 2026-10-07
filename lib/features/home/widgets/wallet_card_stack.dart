@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/features/home/widgets/home_card_size_sheet.dart';
 
 class WalletCardStack extends StatefulWidget {
   final ScrollController? controller;
@@ -21,11 +22,31 @@ class _WalletCardStackState extends State<WalletCardStack> {
   bool _internalController = false;
   bool _isSettling = false;
   int _activeIndex = 0;
+  List<double> _focusOffsets = const [0.0];
 
-  static const double _cardSpacing = 135.0;
-  static const double _tuckOffset = 10.0;
-  static const double _focusSpacing = _cardSpacing - _tuckOffset;
   static const double _perspective = 0.00135;
+
+  static double _cardSpacingFor(HomeCardSize size, double viewportHeight) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return 135.0;
+      case HomeCardSize.large:
+        return 235.0;
+      case HomeCardSize.hero:
+        return math.max(320.0, viewportHeight * 0.46);
+    }
+  }
+
+  static double _tuckOffsetFor(HomeCardSize size) {
+    switch (size) {
+      case HomeCardSize.compact:
+        return 10.0;
+      case HomeCardSize.large:
+        return 12.0;
+      case HomeCardSize.hero:
+        return 14.0;
+    }
+  }
 
   @override
   void initState() {
@@ -40,15 +61,28 @@ class _WalletCardStackState extends State<WalletCardStack> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients || _focusOffsets.isEmpty) return;
     final scrollOffset = math.max(0.0, _scrollController.offset).toDouble();
-    final cameraPosition = scrollOffset / _focusSpacing;
-    final newActiveIndex = cameraPosition.round();
+    final newActiveIndex = _findActiveIndex(scrollOffset, _focusOffsets);
     if (newActiveIndex != _activeIndex) {
       setState(() {
         _activeIndex = newActiveIndex;
       });
     }
+  }
+
+  int _findActiveIndex(double scrollOffset, List<double> offsets) {
+    if (offsets.isEmpty) return 0;
+    int closest = 0;
+    double minDiff = (scrollOffset - offsets[0]).abs();
+    for (int i = 1; i < offsets.length; i++) {
+      final diff = (scrollOffset - offsets[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = i;
+      }
+    }
+    return closest;
   }
 
   @override
@@ -60,16 +94,18 @@ class _WalletCardStackState extends State<WalletCardStack> {
     super.dispose();
   }
 
-  void _settleToNearestCard(int cardCount) {
+  void _settleToNearestCard(List<double> offsets) {
     if (_isSettling ||
         !_scrollController.hasClients ||
+        offsets.length < 2 ||
         MediaQuery.of(context).disableAnimations) {
       return;
     }
 
     final position = _scrollController.position;
     final current = position.pixels;
-    final target = (current / _focusSpacing).round() * _focusSpacing;
+    final activeIndex = _findActiveIndex(current, offsets);
+    final target = offsets[activeIndex];
     final clampedTarget = target
         .clamp(
           position.minScrollExtent,
@@ -77,7 +113,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
         )
         .toDouble();
 
-    if ((current - clampedTarget).abs() < 2.0 || cardCount < 2) return;
+    if ((current - clampedTarget).abs() < 2.0) return;
 
     _isSettling = true;
     _scrollController
@@ -94,7 +130,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(keys: ['home_layout']),
+      valueListenable: Hive.box('settings')
+          .listenable(keys: ['home_layout', 'home_card_sizes']),
       builder: (context, Box settingsBox, _) {
         final layout = HomeCardRegistry.loadLayout(settingsBox);
         final visibleCards = <HomeCardSpec>[];
@@ -147,9 +184,31 @@ class _WalletCardStackState extends State<WalletCardStack> {
           builder: (context, constraints) {
             final viewportHeight =
                 constraints.maxHeight.isFinite ? constraints.maxHeight : 600.0;
-            final totalScrollHeight =
-                (viewportHeight + (visibleCards.length - 1) * _focusSpacing)
-                    .toDouble();
+
+            final cardSizes = visibleCards
+                .map((s) => HomeCardRegistry.getCardSize(settingsBox, s.id))
+                .toList();
+
+            final focusOffsets = <double>[0.0];
+            final baseY = <double>[0.0];
+            final tuckY = <double>[0.0];
+
+            for (int i = 0; i < visibleCards.length; i++) {
+              final sp = _cardSpacingFor(cardSizes[i], viewportHeight);
+              final tk = _tuckOffsetFor(cardSizes[i]);
+              final fs = sp - tk;
+              if (i > 0) {
+                focusOffsets.add(focusOffsets[i - 1] + fs);
+                baseY.add(baseY[i - 1] + sp);
+                tuckY.add(tuckY[i - 1] + tk);
+              }
+            }
+
+            _focusOffsets = focusOffsets;
+
+            final totalScrollHeight = focusOffsets.length > 1
+                ? (viewportHeight + focusOffsets.last).toDouble()
+                : viewportHeight;
             final reduceMotion = MediaQuery.of(context).disableAnimations;
             final activeClamped =
                 _activeIndex.clamp(0, visibleCards.length - 1);
@@ -159,14 +218,15 @@ class _WalletCardStackState extends State<WalletCardStack> {
                 NotificationListener<ScrollEndNotification>(
                   onNotification: (notification) {
                     if (notification.depth == 0) {
-                      _settleToNearestCard(visibleCards.length);
+                      _settleToNearestCard(focusOffsets);
                     }
                     return false;
                   },
                   child: SingleChildScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(
-                        decelerationRate: ScrollDecelerationRate.normal),
+                      decelerationRate: ScrollDecelerationRate.normal,
+                    ),
                     child: SizedBox(
                       height: totalScrollHeight,
                       width: double.infinity,
@@ -174,40 +234,35 @@ class _WalletCardStackState extends State<WalletCardStack> {
                   ),
                 ),
                 Positioned.fill(
-                  child: IgnorePointer(
-                    ignoring: false,
-                    child: Flow(
-                      delegate: _WalletFlowDelegate(
-                        scrollController: _scrollController,
-                        reduceMotion: reduceMotion,
-                        focusSpacing: _focusSpacing,
-                        tuckOffset: _tuckOffset,
-                        cardSpacing: _cardSpacing,
-                        perspective: _perspective,
-                        visibleCount: visibleCards.length,
-                      ),
-                      children: List.generate(visibleCards.length, (index) {
-                        if ((index - activeClamped).abs() > 3) {
-                          return const SizedBox.shrink();
-                        }
-
-                        // We wrap each card in a RepaintBoundary.
-                        // For non-focused cards, we apply a dark overlay using a ColorFiltered or just an overlay inside the card?
-                        // Wait, FlowDelegate can paint opacity. The dark overlay can be painted by FlowDelegate if it were simple, but Flow doesn't paint custom shapes.
-                        // We can just use an overlay widget whose opacity is animated by a local animation? No, the overlay amount depends on the scroll offset which is exactly what we are optimizing.
-                        // If we use ColorFiltered, we still need to rebuild to change the color filter.
-                        // Instructions: "For cards behind the focused one, use scale, fade (via FadeTransition or a colour overlay, not an Opacity widget) and a dark overlay."
-                        // We'll just build it normally and use context.paintChild(..., opacity: opacity) in FlowDelegate which avoids the Opacity widget entirely.
-                        // And for the dark overlay, if they don't want Opacity widget, maybe we can just let context.paintChild's opacity handle the "fade".
-                        return RepaintBoundary(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: visibleCards[index].compactBuilder(context),
-                          ),
-                        );
-                      }),
+                  child: Flow(
+                    delegate: _WalletFlowDelegate(
+                      scrollController: _scrollController,
+                      reduceMotion: reduceMotion,
+                      focusOffsets: focusOffsets,
+                      baseY: baseY,
+                      tuckY: tuckY,
+                      perspective: _perspective,
+                      visibleCount: visibleCards.length,
                     ),
+                    children: List.generate(visibleCards.length, (index) {
+                      if ((index - activeClamped).abs() > 3) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final cardSpec = visibleCards[index];
+                      final cardSize = cardSizes[index];
+
+                      return RepaintBoundary(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: GestureDetector(
+                            onLongPress: () =>
+                                HomeCardSizeSheet.show(context, cardSpec),
+                            child: cardSpec.buildWidget(context, cardSize),
+                          ),
+                        ),
+                      );
+                    }),
                   ),
                 ),
               ],
@@ -222,18 +277,18 @@ class _WalletCardStackState extends State<WalletCardStack> {
 class _WalletFlowDelegate extends FlowDelegate {
   final ScrollController scrollController;
   final bool reduceMotion;
-  final double focusSpacing;
-  final double tuckOffset;
-  final double cardSpacing;
+  final List<double> focusOffsets;
+  final List<double> baseY;
+  final List<double> tuckY;
   final double perspective;
   final int visibleCount;
 
   _WalletFlowDelegate({
     required this.scrollController,
     required this.reduceMotion,
-    required this.focusSpacing,
-    required this.tuckOffset,
-    required this.cardSpacing,
+    required this.focusOffsets,
+    required this.baseY,
+    required this.tuckY,
     required this.perspective,
     required this.visibleCount,
   }) : super(repaint: scrollController);
@@ -243,9 +298,17 @@ class _WalletFlowDelegate extends FlowDelegate {
     final scrollOffset = scrollController.hasClients
         ? math.max(0.0, scrollController.offset).toDouble()
         : 0.0;
-    final cameraPosition = scrollOffset / focusSpacing;
-    final activeIndex =
-        cameraPosition.round().clamp(0, visibleCount - 1).toInt();
+
+    int activeIndex = 0;
+    double minDiff = double.infinity;
+    for (int i = 0; i < focusOffsets.length; i++) {
+      final diff = (scrollOffset - focusOffsets[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        activeIndex = i;
+      }
+    }
+    activeIndex = activeIndex.clamp(0, visibleCount - 1);
 
     final paintOrder = List<int>.generate(visibleCount, (i) => i)
       ..remove(activeIndex)
@@ -253,17 +316,20 @@ class _WalletFlowDelegate extends FlowDelegate {
 
     for (final index in paintOrder) {
       if ((index - activeIndex).abs() > 3) {
-        // We still must call paintChild to satisfy the Flow children index, but it will be a SizedBox.shrink()
-        // so it does nothing. But actually, we don't even need to paint it if it's out of bounds.
-        // Wait, yes we do, or we can just ignore painting it.
         continue;
       }
 
-      final yTuck = index * tuckOffset;
-      final yBase = index * cardSpacing;
+      final yTuck = index < tuckY.length ? tuckY[index] : index * 10.0;
+      final yBase = index < baseY.length ? baseY[index] : index * 135.0;
       final isActive = index == activeIndex;
 
-      final relativeDepth = index - cameraPosition;
+      final cardFocus = index < focusOffsets.length ? focusOffsets[index] : 0.0;
+      final currentFocusStep = index < focusOffsets.length - 1
+          ? (focusOffsets[index + 1] - focusOffsets[index])
+          : (index > 0 ? focusOffsets[index] - focusOffsets[index - 1] : 135.0);
+
+      final relativeDepth = (cardFocus - scrollOffset) /
+          (currentFocusStep > 0 ? currentFocusStep : 135.0);
       final depthAmount = isActive
           ? 0.0
           : (index - activeIndex).abs().clamp(0.0, 2.4).toDouble() / 2.4;
@@ -296,10 +362,9 @@ class _WalletFlowDelegate extends FlowDelegate {
         ..rotateX(tilt);
 
       if (!reduceMotion) {
-        // Apply center scaling
         final size = context.getChildSize(index) ?? Size.zero;
         final dx = size.width / 2;
-        final dy = 0.0;
+        const dy = 0.0;
         transform.translate(dx, dy, 0.0);
         transform.scale(scale, scale, 1.0);
         transform.translate(-dx, -dy, 0.0);
@@ -317,6 +382,7 @@ class _WalletFlowDelegate extends FlowDelegate {
   bool shouldRepaint(covariant _WalletFlowDelegate oldDelegate) {
     return scrollController != oldDelegate.scrollController ||
         reduceMotion != oldDelegate.reduceMotion ||
-        visibleCount != oldDelegate.visibleCount;
+        visibleCount != oldDelegate.visibleCount ||
+        focusOffsets != oldDelegate.focusOffsets;
   }
 }

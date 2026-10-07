@@ -7,6 +7,7 @@ import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -14,7 +15,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MedicineCard extends StatefulWidget {
-  const MedicineCard({super.key});
+  final HomeCardSize size;
+
+  const MedicineCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<MedicineCard> createState() => _MedicineCardState();
@@ -215,6 +221,57 @@ class _MedicineCardState extends State<MedicineCard> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                  ],
+
+                  if (widget.size == HomeCardSize.large &&
+                      medBox.values.where((m) => m.active).isNotEmpty) ...[
+                    Text(
+                      'ACTIVE MEDICATIONS',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...medBox.values.where((m) => m.active).take(3).map((m) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: accent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                m.name,
+                                style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              m.doseLabel,
+                              style: TextStyle(
+                                color: BentoTheme.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
                   ],
 
                   // Daily progress bar

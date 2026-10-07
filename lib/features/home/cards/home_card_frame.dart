@@ -10,6 +10,7 @@ class HomeCardFrame extends StatelessWidget {
   final Widget? trailing;
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? accentColor;
   final EdgeInsetsGeometry contentPadding;
   final bool isFocused;
@@ -21,6 +22,7 @@ class HomeCardFrame extends StatelessWidget {
     this.trailing,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.accentColor,
     this.contentPadding = const EdgeInsets.fromLTRB(18, 14, 18, 18),
     this.isFocused = true,
@@ -33,6 +35,7 @@ class HomeCardFrame extends StatelessWidget {
       radius: AppTokens.radiusCard,
       padding: contentPadding,
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

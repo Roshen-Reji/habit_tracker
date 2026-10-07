@@ -5,10 +5,16 @@ import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class MissionsCard extends StatelessWidget {
-  const MissionsCard({super.key});
+  final HomeCardSize size;
+
+  const MissionsCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +24,8 @@ class MissionsCard extends StatelessWidget {
         final dailyGoals =
             box.values.where((g) => g.type == GoalType.daily).toList();
         final completedCount = dailyGoals.where((g) => g.isCompleted).length;
+        final maxCount = size == HomeCardSize.large ? dailyGoals.length : 3;
+        final displayGoals = dailyGoals.take(maxCount).toList();
 
         return HomeCardFrame(
           icon: LucideIcons.checkSquare,
@@ -75,10 +83,7 @@ class MissionsCard extends StatelessWidget {
                   ),
                 )
               else
-                ...List.generate(
-                  dailyGoals.length > 3 ? 3 : dailyGoals.length,
-                  (index) => _buildMissionTile(dailyGoals[index]),
-                ),
+                ...displayGoals.map((goal) => _buildMissionTile(goal)),
             ],
           ),
         );

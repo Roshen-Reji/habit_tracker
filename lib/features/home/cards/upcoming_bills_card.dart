@@ -5,16 +5,23 @@ import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class UpcomingBillsCard extends StatelessWidget {
-  const UpcomingBillsCard({super.key});
+  final HomeCardSize size;
+
+  const UpcomingBillsCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   Widget build(BuildContext context) {
     final controller = FinanceController();
     final dueItems = controller.getUnpostedDueItems();
     final totalDue = dueItems.fold(0.0, (sum, i) => sum + i.rule.amount);
+    final count = size == HomeCardSize.large ? 5 : 2;
 
     return HomeCardFrame(
       icon: LucideIcons.calendarClock,
@@ -50,7 +57,8 @@ class UpcomingBillsCard extends StatelessWidget {
               Text(
                 FormatUtils.formatMoney(totalDue, decimals: 0),
                 style: TextStyle(
-                  color: totalDue > 0 ? Colors.red : Colors.green,
+                  color:
+                      totalDue > 0 ? BentoTheme.negative : BentoTheme.positive,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -64,25 +72,31 @@ class UpcomingBillsCard extends StatelessWidget {
               style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
             )
           else
-            ...dueItems.take(2).map((item) {
+            ...dueItems.take(count).map((item) {
               return Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 5),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '${item.rule.name} (${DateFormat('d MMM').format(item.dueDate)})',
-                      style: TextStyle(
+                    Expanded(
+                      child: Text(
+                        '${item.rule.name} (${DateFormat('d MMM').format(item.dueDate)})',
+                        style: TextStyle(
                           color: BentoTheme.textPrimary,
                           fontSize: 12,
-                          fontWeight: FontWeight.w500),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       FormatUtils.formatMoney(item.rule.amount, decimals: 0),
                       style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold),
+                        color: BentoTheme.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),

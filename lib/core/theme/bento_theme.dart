@@ -43,6 +43,15 @@ class BentoTheme {
     return tokens.surfaceRaised;
   }
 
+  static Color get surfaceRaised => surfaceElevated;
+
+  static Color get surfaceSunken {
+    bool isLight =
+        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+    final tokens = isLight ? AppTokens.light : AppTokens.dark;
+    return tokens.surfaceSunken;
+  }
+
   static Color get cardBackground => surfaceElevated;
 
   /// Neutral accent per MVP 5 design system (equals textPrimary).

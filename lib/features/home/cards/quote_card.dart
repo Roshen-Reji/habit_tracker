@@ -2,11 +2,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/models/quote.dart';
 
 class QuoteCard extends StatefulWidget {
-  const QuoteCard({super.key});
+  final HomeCardSize size;
+
+  const QuoteCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<QuoteCard> createState() => _QuoteCardState();
@@ -91,20 +97,20 @@ class _QuoteCardState extends State<QuoteCard> {
             '"${quote.text}"',
             style: TextStyle(
               color: BentoTheme.textPrimary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: widget.size == HomeCardSize.large ? 17 : 15,
+              height: widget.size == HomeCardSize.large ? 1.5 : 1.4,
               fontStyle: FontStyle.italic,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: widget.size == HomeCardSize.large ? 14 : 8),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
               '— ${quote.author}',
               style: TextStyle(
                 color: BentoTheme.textSecondary,
-                fontSize: 12,
+                fontSize: widget.size == HomeCardSize.large ? 13 : 12,
                 fontWeight: FontWeight.w600,
               ),
             ),

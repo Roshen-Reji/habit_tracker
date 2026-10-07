@@ -7,15 +7,36 @@ import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
+import 'package:habit_tracker/features/home/cards/home_card.dart';
+
 class MomentumCard extends StatefulWidget {
-  const MomentumCard({super.key});
+  final HomeCardSize size;
+
+  const MomentumCard({
+    super.key,
+    this.size = HomeCardSize.compact,
+  });
 
   @override
   State<MomentumCard> createState() => _MomentumCardState();
 }
 
 class _MomentumCardState extends State<MomentumCard> {
-  bool _isExpanded = false;
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.size == HomeCardSize.large;
+  }
+
+  @override
+  void didUpdateWidget(covariant MomentumCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.size != widget.size) {
+      _isExpanded = widget.size == HomeCardSize.large;
+    }
+  }
 
   void _toggleExpanded() {
     setState(() {
