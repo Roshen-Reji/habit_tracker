@@ -128,6 +128,7 @@ class HomeCardRegistry {
       icon: LucideIcons.quote,
       compactBuilder: (context) => const QuoteCard(size: HomeCardSize.compact),
       largeBuilder: (context) => const QuoteCard(size: HomeCardSize.large),
+      heroBuilder: (context) => const QuoteCard(size: HomeCardSize.hero),
       defaultOrder: 0,
       defaultVisible: true,
     ));

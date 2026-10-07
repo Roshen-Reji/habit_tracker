@@ -29,22 +29,11 @@ class _WalletCardStackState extends State<WalletCardStack> {
   static double _cardSpacingFor(HomeCardSize size, double viewportHeight) {
     switch (size) {
       case HomeCardSize.compact:
-        return 135.0;
+        return 145.0;
       case HomeCardSize.large:
-        return 235.0;
+        return 245.0;
       case HomeCardSize.hero:
         return math.max(320.0, viewportHeight * 0.46);
-    }
-  }
-
-  static double _tuckOffsetFor(HomeCardSize size) {
-    switch (size) {
-      case HomeCardSize.compact:
-        return 10.0;
-      case HomeCardSize.large:
-        return 12.0;
-      case HomeCardSize.hero:
-        return 14.0;
     }
   }
 
@@ -113,14 +102,14 @@ class _WalletCardStackState extends State<WalletCardStack> {
         )
         .toDouble();
 
-    if ((current - clampedTarget).abs() < 2.0) return;
+    if ((current - clampedTarget).abs() < 4.0) return;
 
     _isSettling = true;
     _scrollController
         .animateTo(
       clampedTarget,
-      duration: const Duration(milliseconds: 460),
-      curve: Curves.easeOutBack,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
     )
         .whenComplete(() {
       if (mounted) _isSettling = false;
@@ -190,60 +179,40 @@ class _WalletCardStackState extends State<WalletCardStack> {
                 .toList();
 
             final focusOffsets = <double>[0.0];
-            final baseY = <double>[0.0];
-            final tuckY = <double>[0.0];
-
-            for (int i = 0; i < visibleCards.length; i++) {
-              final sp = _cardSpacingFor(cardSizes[i], viewportHeight);
-              final tk = _tuckOffsetFor(cardSizes[i]);
-              final fs = sp - tk;
-              if (i > 0) {
-                focusOffsets.add(focusOffsets[i - 1] + fs);
-                baseY.add(baseY[i - 1] + sp);
-                tuckY.add(tuckY[i - 1] + tk);
-              }
+            for (int i = 1; i < visibleCards.length; i++) {
+              final prevSize = cardSizes[i - 1];
+              final sp = _cardSpacingFor(prevSize, viewportHeight);
+              focusOffsets.add(focusOffsets[i - 1] + sp);
             }
 
             _focusOffsets = focusOffsets;
 
-            final totalScrollHeight = focusOffsets.length > 1
-                ? (viewportHeight + focusOffsets.last).toDouble()
-                : viewportHeight;
+            final lastCardSize = cardSizes.last;
+            final lastCardHeight =
+                _cardSpacingFor(lastCardSize, viewportHeight);
+            final totalScrollHeight = focusOffsets.last + lastCardHeight + 60.0;
+
             final reduceMotion = MediaQuery.of(context).disableAnimations;
             final activeClamped =
                 _activeIndex.clamp(0, visibleCards.length - 1);
 
-            return Stack(
-              children: [
-                NotificationListener<ScrollEndNotification>(
-                  onNotification: (notification) {
-                    if (notification.depth == 0) {
-                      _settleToNearestCard(focusOffsets);
-                    }
-                    return false;
-                  },
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const BouncingScrollPhysics(
-                      decelerationRate: ScrollDecelerationRate.normal,
-                    ),
-                    child: SizedBox(
-                      height: totalScrollHeight,
-                      width: double.infinity,
-                    ),
-                  ),
+            return NotificationListener<ScrollEndNotification>(
+              onNotification: (notification) {
+                if (notification.depth == 0) {
+                  _settleToNearestCard(focusOffsets);
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(
+                  decelerationRate: ScrollDecelerationRate.normal,
                 ),
-                Positioned.fill(
-                  child: Flow(
-                    delegate: _WalletFlowDelegate(
-                      scrollController: _scrollController,
-                      reduceMotion: reduceMotion,
-                      focusOffsets: focusOffsets,
-                      baseY: baseY,
-                      tuckY: tuckY,
-                      perspective: _perspective,
-                      visibleCount: visibleCards.length,
-                    ),
+                child: SizedBox(
+                  height: totalScrollHeight,
+                  width: double.infinity,
+                  child: Stack(
+                    clipBehavior: Clip.none,
                     children: List.generate(visibleCards.length, (index) {
                       if ((index - activeClamped).abs() > 3) {
                         return const SizedBox.shrink();
@@ -251,138 +220,80 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
                       final cardSpec = visibleCards[index];
                       final cardSize = cardSizes[index];
+                      final isCardActive = index == activeClamped;
+                      final cardTop = focusOffsets[index];
 
-                      return RepaintBoundary(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: GestureDetector(
-                            onLongPress: () =>
-                                HomeCardSizeSheet.show(context, cardSpec),
-                            child: cardSpec.buildWidget(context, cardSize),
+                      return Positioned(
+                        top: cardTop,
+                        left: 0,
+                        right: 0,
+                        child: RepaintBoundary(
+                          child: AnimatedBuilder(
+                            animation: _scrollController,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: isCardActive
+                                    ? null
+                                    : () {
+                                        _scrollController.animateTo(
+                                          focusOffsets[index],
+                                          duration:
+                                              const Duration(milliseconds: 340),
+                                          curve: Curves.easeOutCubic,
+                                        );
+                                      },
+                                onLongPress: () =>
+                                    HomeCardSizeSheet.show(context, cardSpec),
+                                child: cardSpec.buildWidget(context, cardSize),
+                              ),
+                            ),
+                            builder: (context, child) {
+                              if (reduceMotion) {
+                                return child!;
+                              }
+
+                              final scrollOffset = _scrollController.hasClients
+                                  ? _scrollController.offset
+                                  : 0.0;
+                              final delta = cardTop - scrollOffset;
+                              final relativeDist =
+                                  (delta / 280.0).clamp(-1.2, 1.2);
+                              final depthAmount = relativeDist.abs();
+
+                              final scale =
+                                  (1.0 - (depthAmount * 0.03)).clamp(0.96, 1.0);
+                              final opacity =
+                                  (1.0 - (depthAmount * 0.12)).clamp(0.82, 1.0);
+                              final tilt = relativeDist * 0.025;
+
+                              final transform = Matrix4.identity()
+                                ..setEntry(3, 2, _perspective)
+                                ..rotateX(tilt)
+                                ..scale(scale, scale, 1.0);
+
+                              return Transform(
+                                alignment: Alignment.center,
+                                transform: transform,
+                                child: Opacity(
+                                  opacity: opacity,
+                                  child: child,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       );
                     }),
                   ),
                 ),
-              ],
+              ),
             );
           },
         );
       },
     );
-  }
-}
-
-class _WalletFlowDelegate extends FlowDelegate {
-  final ScrollController scrollController;
-  final bool reduceMotion;
-  final List<double> focusOffsets;
-  final List<double> baseY;
-  final List<double> tuckY;
-  final double perspective;
-  final int visibleCount;
-
-  _WalletFlowDelegate({
-    required this.scrollController,
-    required this.reduceMotion,
-    required this.focusOffsets,
-    required this.baseY,
-    required this.tuckY,
-    required this.perspective,
-    required this.visibleCount,
-  }) : super(repaint: scrollController);
-
-  @override
-  void paintChildren(FlowPaintingContext context) {
-    final scrollOffset = scrollController.hasClients
-        ? math.max(0.0, scrollController.offset).toDouble()
-        : 0.0;
-
-    int activeIndex = 0;
-    double minDiff = double.infinity;
-    for (int i = 0; i < focusOffsets.length; i++) {
-      final diff = (scrollOffset - focusOffsets[i]).abs();
-      if (diff < minDiff) {
-        minDiff = diff;
-        activeIndex = i;
-      }
-    }
-    activeIndex = activeIndex.clamp(0, visibleCount - 1);
-
-    final paintOrder = List<int>.generate(visibleCount, (i) => i)
-      ..remove(activeIndex)
-      ..add(activeIndex);
-
-    for (final index in paintOrder) {
-      if ((index - activeIndex).abs() > 3) {
-        continue;
-      }
-
-      final yTuck = index < tuckY.length ? tuckY[index] : index * 10.0;
-      final yBase = index < baseY.length ? baseY[index] : index * 135.0;
-      final isActive = index == activeIndex;
-
-      final cardFocus = index < focusOffsets.length ? focusOffsets[index] : 0.0;
-      final currentFocusStep = index < focusOffsets.length - 1
-          ? (focusOffsets[index + 1] - focusOffsets[index])
-          : (index > 0 ? focusOffsets[index] - focusOffsets[index - 1] : 135.0);
-
-      final relativeDepth = (cardFocus - scrollOffset) /
-          (currentFocusStep > 0 ? currentFocusStep : 135.0);
-      final depthAmount = isActive
-          ? 0.0
-          : (index - activeIndex).abs().clamp(0.0, 2.4).toDouble() / 2.4;
-      final parallaxRate = reduceMotion
-          ? 1.0
-          : (1.0 -
-                  (relativeDepth.clamp(0.0, 3.0) * 0.035) +
-                  ((-relativeDepth).clamp(0.0, 3.0) * 0.012))
-              .clamp(0.89, 1.04)
-              .toDouble();
-
-      final cameraScroll = scrollOffset * parallaxRate;
-      final visualY = math.max(yTuck, yBase - cameraScroll).toDouble();
-
-      final yChild = visualY + scrollOffset;
-      final scale = 1.0 - (depthAmount * 0.085);
-      final opacity = isActive ? 1.0 : (0.68 + ((1.0 - depthAmount) * 0.18));
-      final tilt = reduceMotion || isActive
-          ? 0.0
-          : relativeDepth.clamp(-1.0, 1.0).toDouble() * 0.045;
-      final zOffset = reduceMotion || isActive ? 0.0 : -depthAmount * 34.0;
-      final horizontalParallax = reduceMotion || isActive
-          ? 0.0
-          : relativeDepth.clamp(-2.0, 2.0).toDouble() * 1.6;
-
-      final transform = Matrix4.identity()
-        ..translate(horizontalParallax, yChild, 0.0)
-        ..setEntry(3, 2, perspective)
-        ..translate(0.0, 0.0, zOffset)
-        ..rotateX(tilt);
-
-      if (!reduceMotion) {
-        final size = context.getChildSize(index) ?? Size.zero;
-        final dx = size.width / 2;
-        const dy = 0.0;
-        transform.translate(dx, dy, 0.0);
-        transform.scale(scale, scale, 1.0);
-        transform.translate(-dx, -dy, 0.0);
-      }
-
-      context.paintChild(
-        index,
-        transform: transform,
-        opacity: reduceMotion ? 1.0 : opacity,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WalletFlowDelegate oldDelegate) {
-    return scrollController != oldDelegate.scrollController ||
-        reduceMotion != oldDelegate.reduceMotion ||
-        visibleCount != oldDelegate.visibleCount ||
-        focusOffsets != oldDelegate.focusOffsets;
   }
 }

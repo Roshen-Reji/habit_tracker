@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
@@ -18,6 +19,17 @@ class NetWorthHomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Hive.isBoxOpen('fin_accounts') ||
+        !Hive.isBoxOpen('finance_transactions')) {
+      return HomeCardFrame(
+        icon: LucideIcons.lineChart,
+        title: 'Net Worth',
+        child: Text(
+          'Finance data unavailable',
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+        ),
+      );
+    }
     final controller = FinanceController();
     final now = DateTime.now();
     final netWorth = controller.getNetWorth();

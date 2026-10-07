@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
@@ -21,6 +22,17 @@ class FinanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Hive.isBoxOpen('fin_accounts') ||
+        !Hive.isBoxOpen('finance_transactions')) {
+      return HomeCardFrame(
+        icon: LucideIcons.wallet,
+        title: 'Finance Summary',
+        child: Text(
+          'Finance data unavailable',
+          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+        ),
+      );
+    }
     final controller = FinanceController();
 
     return ListenableBuilder(
