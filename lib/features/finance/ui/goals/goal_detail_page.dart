@@ -553,8 +553,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                   Expanded(
                     child: Text(
                       'Shortfall exceeds 20% safe trims on non-essentials. Consider extending the deadline or adding fresh income.',
-                      style: TextStyle(
-                          color: BentoTheme.warning, fontSize: 11),
+                      style: TextStyle(color: BentoTheme.warning, fontSize: 11),
                     ),
                   ),
                 ],

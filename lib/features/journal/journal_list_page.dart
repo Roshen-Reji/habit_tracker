@@ -194,7 +194,8 @@ class _JournalListPageState extends State<JournalListPage>
               );
               if (picked != null && mounted) {
                 final dayKey = DateFormat('yyyy-MM-dd').format(picked);
-                final dayDoc = await JournalDayRepository.instance.getOrCreateDay(dayKey);
+                final dayDoc =
+                    await JournalDayRepository.instance.getOrCreateDay(dayKey);
                 if (mounted) {
                   Navigator.push(
                     context,
@@ -221,10 +222,12 @@ class _JournalListPageState extends State<JournalListPage>
           borderRadius: BorderRadius.circular(16),
         ),
         icon: const Icon(LucideIcons.penLine, size: 18),
-        label: const Text('Today', style: TextStyle(fontWeight: FontWeight.bold)),
+        label:
+            const Text('Today', style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () async {
           final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-          final dayDoc = await JournalDayRepository.instance.getOrCreateDay(todayKey);
+          final dayDoc =
+              await JournalDayRepository.instance.getOrCreateDay(todayKey);
           if (mounted) {
             Navigator.push(
               context,
@@ -245,7 +248,8 @@ class _JournalListPageState extends State<JournalListPage>
           // Gather unique days (newest first, today always included)
           final dayKeysSet = <String>{todayKey};
           for (final e in allEntries) {
-            final key = e.dayKey ?? DateFormat('yyyy-MM-dd').format(e.createdAt);
+            final key =
+                e.dayKey ?? DateFormat('yyyy-MM-dd').format(e.createdAt);
             dayKeysSet.add(key);
           }
 
@@ -254,16 +258,22 @@ class _JournalListPageState extends State<JournalListPage>
 
           final filteredDayKeys = sortedDayKeys.where((dayKey) {
             if (_searchQuery.isEmpty) return true;
-            final dayDoc = allEntries.where((e) => e.id == 'day_$dayKey').firstOrNull;
+            final dayDoc =
+                allEntries.where((e) => e.id == 'day_$dayKey').firstOrNull;
             final leg = JournalDayRepository.instance.legacyEntriesFor(dayKey);
 
             final matchesDoc = dayDoc != null &&
                 (dayDoc.title.toLowerCase().contains(_searchQuery) ||
-                    _extractPlainText(dayDoc.bodyDelta).toLowerCase().contains(_searchQuery) ||
-                    dayDoc.tags.any((t) => t.toLowerCase().contains(_searchQuery)));
+                    _extractPlainText(dayDoc.bodyDelta)
+                        .toLowerCase()
+                        .contains(_searchQuery) ||
+                    dayDoc.tags
+                        .any((t) => t.toLowerCase().contains(_searchQuery)));
             final matchesLeg = leg.any((l) =>
                 l.title.toLowerCase().contains(_searchQuery) ||
-                _extractPlainText(l.bodyDelta).toLowerCase().contains(_searchQuery) ||
+                _extractPlainText(l.bodyDelta)
+                    .toLowerCase()
+                    .contains(_searchQuery) ||
                 l.tags.any((t) => t.toLowerCase().contains(_searchQuery)));
 
             return matchesDoc || matchesLeg || dayKey.contains(_searchQuery);
@@ -351,7 +361,8 @@ class _JournalListPageState extends State<JournalListPage>
     DateTime date;
     try {
       final parts = dayKey.split('-');
-      date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      date = DateTime(
+          int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
     } catch (_) {
       date = DateTime.now();
     }
@@ -367,7 +378,8 @@ class _JournalListPageState extends State<JournalListPage>
         : <AutoLogEvent>[];
 
     final snippet = dayDoc != null ? _extractPlainText(dayDoc.bodyDelta) : '';
-    final hasContent = snippet.isNotEmpty || autoLogs.isNotEmpty || legacy.isNotEmpty;
+    final hasContent =
+        snippet.isNotEmpty || autoLogs.isNotEmpty || legacy.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -402,7 +414,8 @@ class _JournalListPageState extends State<JournalListPage>
           // Day Card
           GestureDetector(
             onTap: () async {
-              final doc = await JournalDayRepository.instance.getOrCreateDay(dayKey);
+              final doc =
+                  await JournalDayRepository.instance.getOrCreateDay(dayKey);
               if (mounted) {
                 Navigator.push(
                   context,
@@ -475,7 +488,9 @@ class _JournalListPageState extends State<JournalListPage>
                     )
                   else if (!hasContent)
                     Text(
-                      isToday ? 'Write today’s reflection...' : 'No entry for this day. Tap to write.',
+                      isToday
+                          ? 'Write today’s reflection...'
+                          : 'No entry for this day. Tap to write.',
                       style: TextStyle(
                         color: BentoTheme.textSecondary.withValues(alpha: 0.5),
                         fontSize: 13,
@@ -486,11 +501,13 @@ class _JournalListPageState extends State<JournalListPage>
                   // Legacy entries group
                   if (legacy.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
+                    Divider(
+                        color: Colors.white.withValues(alpha: 0.06), height: 1),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(LucideIcons.history, size: 14, color: BentoTheme.textSecondary),
+                        Icon(LucideIcons.history,
+                            size: 14, color: BentoTheme.textSecondary),
                         const SizedBox(width: 6),
                         Text(
                           'Earlier entries (${legacy.length})',
@@ -503,27 +520,32 @@ class _JournalListPageState extends State<JournalListPage>
                         const Spacer(),
                         TextButton(
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           onPressed: () async {
-                            await JournalDayRepository.instance.mergeLegacyEntries(dayKey);
+                            await JournalDayRepository.instance
+                                .mergeLegacyEntries(dayKey);
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('Merged into day document'),
+                                  content:
+                                      const Text('Merged into day document'),
                                   action: SnackBarAction(
                                     label: 'Undo',
                                     onPressed: () async {
-                                      await JournalDayRepository.instance.undoMergeLegacyEntries(dayKey);
+                                      await JournalDayRepository.instance
+                                          .undoMergeLegacyEntries(dayKey);
                                     },
                                   ),
                                 ),
                               );
                             }
                           },
-                          child: const Text('Merge all', style: TextStyle(fontSize: 11)),
+                          child: const Text('Merge all',
+                              style: TextStyle(fontSize: 11)),
                         ),
                       ],
                     ),
@@ -533,7 +555,8 @@ class _JournalListPageState extends State<JournalListPage>
                         padding: const EdgeInsets.only(top: 4),
                         child: Row(
                           children: [
-                            const Text('• ', style: TextStyle(color: Colors.white38)),
+                            const Text('• ',
+                                style: TextStyle(color: Colors.white38)),
                             Expanded(
                               child: Text(
                                 '${l.title} (${DateFormat('h:mm a').format(l.createdAt)})',
@@ -571,7 +594,9 @@ class _JournalListPageState extends State<JournalListPage>
         }
         return buffer.toString().trim();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('JournalListPage Delta parse error: $e');
+    }
     return bodyDelta.trim();
   }
 

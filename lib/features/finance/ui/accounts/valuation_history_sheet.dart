@@ -247,7 +247,9 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative,
+                            color: gainLoss >= 0
+                                ? BentoTheme.positive
+                                : BentoTheme.negative,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -255,7 +257,9 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: (gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative)
+                            color: (gainLoss >= 0
+                                    ? BentoTheme.positive
+                                    : BentoTheme.negative)
                                 .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -264,7 +268,9 @@ class _ValuationHistorySheetState extends State<ValuationHistorySheet> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: gainLoss >= 0 ? BentoTheme.positive : BentoTheme.negative,
+                              color: gainLoss >= 0
+                                  ? BentoTheme.positive
+                                  : BentoTheme.negative,
                             ),
                           ),
                         ),

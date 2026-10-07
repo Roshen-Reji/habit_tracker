@@ -508,7 +508,8 @@ class _TransactionsTabState extends State<TransactionsTab> {
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
                 borderRadius: ExpressiveTokens.borderM,
-                border: Border.all( // allowed: input focus
+                border: Border.all(
+                  // allowed: input focus
                   color: BentoTheme.textSecondary.withValues(alpha: 0.12),
                 ),
               ),

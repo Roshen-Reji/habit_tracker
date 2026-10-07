@@ -55,10 +55,13 @@ class _GlassTabBarState extends State<GlassTabBar> {
   void _handleDrag(Offset localPosition, double totalWidth) {
     if (widget.items.isEmpty) return;
     const horizontalPadding = 6.0;
-    final usableWidth = (totalWidth - (horizontalPadding * 2)).clamp(1.0, double.infinity);
+    final usableWidth =
+        (totalWidth - (horizontalPadding * 2)).clamp(1.0, double.infinity);
     final itemWidth = usableWidth / widget.items.length;
-    final adjustedX = (localPosition.dx - horizontalPadding).clamp(0.0, usableWidth - 1);
-    final targetIndex = (adjustedX / itemWidth).floor().clamp(0, widget.items.length - 1);
+    final adjustedX =
+        (localPosition.dx - horizontalPadding).clamp(0.0, usableWidth - 1);
+    final targetIndex =
+        (adjustedX / itemWidth).floor().clamp(0, widget.items.length - 1);
 
     if (targetIndex != _activeVisualIndex) {
       HapticFeedback.selectionClick();
@@ -93,7 +96,8 @@ class _GlassTabBarState extends State<GlassTabBar> {
               height: widget.height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(32.0),
-                boxShadow: AppElevation.shadows(DepthElevation.e4, isDark: isDark),
+                boxShadow:
+                    AppElevation.shadows(DepthElevation.e4, isDark: isDark),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(32.0),
@@ -112,7 +116,8 @@ class _GlassTabBarState extends State<GlassTabBar> {
                         if (itemCount == 0) return const SizedBox.shrink();
 
                         final itemWidth = totalWidth / itemCount;
-                        final activeIndex = _activeVisualIndex.clamp(0, itemCount - 1);
+                        final activeIndex =
+                            _activeVisualIndex.clamp(0, itemCount - 1);
 
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
@@ -187,7 +192,8 @@ class _GlassTabBarState extends State<GlassTabBar> {
                                                   MainAxisAlignment.center,
                                               children: [
                                                 AnimatedScale(
-                                                  scale: isSelected ? 1.06 : 0.96,
+                                                  scale:
+                                                      isSelected ? 1.06 : 0.96,
                                                   duration: const Duration(
                                                       milliseconds: 240),
                                                   curve: Curves.easeOutCubic,
@@ -216,7 +222,8 @@ class _GlassTabBarState extends State<GlassTabBar> {
                                                         : tokens.textMuted,
                                                   ),
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   child: Text(item.label),
                                                 ),
                                               ],

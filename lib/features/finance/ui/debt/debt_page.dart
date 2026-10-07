@@ -512,8 +512,9 @@ class _DebtPageState extends State<DebtPage> {
                     Icon(
                       LucideIcons.alertTriangle,
                       size: 13,
-                      color:
-                          util.isDanger ? BentoTheme.negative : BentoTheme.warning,
+                      color: util.isDanger
+                          ? BentoTheme.negative
+                          : BentoTheme.warning,
                     ),
                   ],
                 ],

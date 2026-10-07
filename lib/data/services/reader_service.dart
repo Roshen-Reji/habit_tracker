@@ -121,12 +121,17 @@ class ReaderService {
         if (status.isGranted) return true;
         final res = await Permission.manageExternalStorage.request();
         if (res.isGranted) return true;
-      } catch (_) {}
+      } catch (e) {
+        debugPrint(
+            'ReaderService requestStorageAccess (manageExternalStorage) error: $e');
+      }
 
       try {
         final storageRes = await Permission.storage.request();
         return storageRes.isGranted;
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('ReaderService requestStorageAccess (storage) error: $e');
+      }
     }
     return true;
   }
@@ -146,7 +151,9 @@ class ReaderService {
       try {
         final tempDir = await getTemporaryDirectory();
         Pdfrx.cacheDirectoryPath = tempDir.path;
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('ReaderService getTemporaryDirectory error: $e');
+      }
     }
   }
 
@@ -173,11 +180,14 @@ class ReaderService {
       final targetFile = File(targetPath);
 
       if (originalFile.existsSync()) {
-        if (!targetFile.existsSync() || targetFile.lengthSync() != originalFile.lengthSync()) {
+        if (!targetFile.existsSync() ||
+            targetFile.lengthSync() != originalFile.lengthSync()) {
           if (targetFile.existsSync()) {
             try {
               targetFile.deleteSync();
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('ReaderService targetFile.deleteSync error: $e');
+            }
           }
           await originalFile.copy(targetPath);
         }
@@ -314,7 +324,9 @@ class ReaderService {
           folderPaths.add(norm);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('ReaderService getAllBooks internalBooksDir error: $e');
+    }
 
     Box<BookProgress>? progressBox;
     if (Hive.isBoxOpen(progressBoxName)) {
@@ -759,12 +771,15 @@ class ReaderService {
       if (targetFile.existsSync()) {
         try {
           targetFile.deleteSync();
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('ReaderService importPdfFromPicker deleteSync error: $e');
+        }
       }
 
       if (pickedFile.bytes != null && pickedFile.bytes!.isNotEmpty) {
         await targetFile.writeAsBytes(pickedFile.bytes!, flush: true);
-      } else if (pickedFile.path != null && File(pickedFile.path!).existsSync()) {
+      } else if (pickedFile.path != null &&
+          File(pickedFile.path!).existsSync()) {
         final sourceFile = File(pickedFile.path!);
         await sourceFile.copy(targetPath);
       } else if (pickedFile.readStream != null) {

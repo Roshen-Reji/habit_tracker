@@ -110,7 +110,9 @@ class NotificationService {
       debugPrint('Timezone lookup warning: $e, falling back to Asia/Kolkata');
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
-      } catch (_) {}
+      } catch (fallbackError) {
+        debugPrint('Fallback timezone Asia/Kolkata error: $fallbackError');
+      }
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =

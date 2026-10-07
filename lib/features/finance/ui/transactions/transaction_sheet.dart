@@ -745,7 +745,10 @@ class _TransactionSheetState extends State<TransactionSheet> {
                             _kind = 'debt_payment';
                           }
                           _ensureValidCategory();
-                        } catch (_) {}
+                        } catch (e) {
+                          debugPrint(
+                              'TransactionSheet account kind lookup error: $e');
+                        }
                       }
                     });
                   },

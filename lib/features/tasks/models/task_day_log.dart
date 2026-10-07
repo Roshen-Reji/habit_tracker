@@ -24,7 +24,8 @@ class TaskDayLog extends HiveObject {
   DateTime loggedAt;
 
   @HiveField(7)
-  String source; // 'manual', 'chat', 'ai', 'sleep_infer', 'rollover', 'wearable'
+  String
+      source; // 'manual', 'chat', 'ai', 'sleep_infer', 'rollover', 'wearable'
 
   @HiveField(8)
   String? note;

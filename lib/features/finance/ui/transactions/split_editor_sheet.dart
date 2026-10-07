@@ -74,7 +74,9 @@ class _SplitEditorSheetState extends State<SplitEditorSheet> {
             }
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('SplitEditorSheet initial splits parse error: $e');
+      }
     }
 
     if (_lines.isEmpty) {

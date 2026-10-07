@@ -296,7 +296,8 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
     );
   }
 
-  Widget _buildLockScreen(BuildContext context, FinanceLockService lockService) {
+  Widget _buildLockScreen(
+      BuildContext context, FinanceLockService lockService) {
     final tokens = AppTokens.of(context);
 
     return Scaffold(
@@ -367,4 +368,3 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
     );
   }
 }
-

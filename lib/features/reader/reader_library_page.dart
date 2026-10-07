@@ -116,8 +116,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: Icon(LucideIcons.plus,
-                          color: BentoTheme.accent),
+                      icon: Icon(LucideIcons.plus, color: BentoTheme.accent),
                       onPressed: () async {
                         await _pickFolder();
                         setModalState(() {});
@@ -541,9 +540,8 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      trailing: isSelected
-          ? Icon(LucideIcons.check, color: accent, size: 18)
-          : null,
+      trailing:
+          isSelected ? Icon(LucideIcons.check, color: accent, size: 18) : null,
       onTap: () {
         setState(() => _currentSort = sort);
         Navigator.pop(context);
@@ -689,8 +687,7 @@ class _ReaderLibraryPageState extends State<ReaderLibraryPage>
               // Library Content
               Expanded(
                 child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(color: accent))
+                    ? Center(child: CircularProgressIndicator(color: accent))
                     : (displayBooks.isEmpty
                         ? Center(
                             child: Padding(

@@ -259,8 +259,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                 color: Color(c),
                                 shape: BoxShape.circle,
                                 border: isSelected
-                                    ? Border.all( // allowed: input focus
-                                        color: Colors.white, width: 2.5)
+                                    ? Border.all(
+                                        // allowed: input focus
+                                        color: Colors.white,
+                                        width: 2.5)
                                     : null,
                               ),
                             ),

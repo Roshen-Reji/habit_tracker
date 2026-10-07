@@ -82,7 +82,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
 
         return MaterialApp(
           navigatorKey: globalNavigatorKey,
-          title: 'Habit Tracker',
+          title: 'Habitify',
           themeMode: mode,
           localizationsDelegates: const [
             FlutterQuillLocalizations.delegate,

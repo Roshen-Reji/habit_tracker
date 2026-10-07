@@ -385,8 +385,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                               ? Icons.arrow_upward_rounded
                               : Icons.arrow_downward_rounded,
                           size: 18,
-                          color:
-                              isOutflow ? BentoTheme.negative : BentoTheme.positive,
+                          color: isOutflow
+                              ? BentoTheme.negative
+                              : BentoTheme.positive,
                         ),
                       ),
                       title: Text(
@@ -404,8 +405,9 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color:
-                              isOutflow ? BentoTheme.textPrimary : BentoTheme.positive,
+                          color: isOutflow
+                              ? BentoTheme.textPrimary
+                              : BentoTheme.positive,
                         ),
                       ),
                     ),

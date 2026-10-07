@@ -56,7 +56,9 @@ class _AgesLogSheetState extends State<AgesLogSheet> {
       if (decoded is Map && decoded['note'] != null) {
         return decoded['note'].toString();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AgesLogSheet.tryExtractNote error: $e');
+    }
     return null;
   }
 

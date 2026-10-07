@@ -261,7 +261,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all( // allowed: input focus
+              border: Border.all(
+                  // allowed: input focus
                   color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
@@ -332,7 +333,8 @@ class _GoalContributionDialogState extends State<GoalContributionDialog> {
                   decoration: BoxDecoration(
                     color: BentoTheme.background,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all( // allowed: input focus
+                    border: Border.all(
+                        // allowed: input focus
                         color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: TextField(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
 
@@ -295,7 +296,9 @@ class LedgerEngine {
             }
           }
           continue;
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('LedgerEngine.spendingByCategory split parse error: $e');
+        }
       }
 
       final cat = tx.categoryId ?? tx.category;
@@ -319,7 +322,9 @@ class LedgerEngine {
             total += Money.asDouble(item['amount']);
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('LedgerEngine.receivablesFromSplits split parse error: $e');
+      }
     }
 
     return Money.r2(total);

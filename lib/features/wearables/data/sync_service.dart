@@ -76,14 +76,11 @@ class SyncService {
       List<ExerciseSession> exerciseList = [];
       List<BodyCompSample> bodyList = [];
 
-      int readCount = 0;
-
       // 1. Fetch telemetry across streams with per-type try-catch
       try {
         dailyList = await source.fetchDailyActivity(syncDays);
         if (dailyList.isNotEmpty) {
           await repo.dailyBox.putAll({for (final d in dailyList) d.dayKey: d});
-          readCount += dailyList.length;
         }
       } catch (e) {
         debugPrint('Sync daily error: $e');
@@ -94,7 +91,6 @@ class SyncService {
         if (sleepList.isNotEmpty) {
           await repo.sleepBox
               .putAll({for (final s in sleepList) s.externalId: s});
-          readCount += sleepList.length;
         }
       } catch (e) {
         debugPrint('Sync sleep error: $e');
@@ -105,7 +101,6 @@ class SyncService {
         if (exerciseList.isNotEmpty) {
           await repo.exerciseBox
               .putAll({for (final e in exerciseList) e.externalId: e});
-          readCount += exerciseList.length;
         }
       } catch (e) {
         debugPrint('Sync exercise error: $e');
@@ -118,32 +113,29 @@ class SyncService {
             for (final b in bodyList)
               '${b.dayKey}_${b.timestamp.millisecondsSinceEpoch}': b
           });
-          readCount += bodyList.length;
         }
       } catch (e) {
         debugPrint('Sync body comp error: $e');
       }
 
       // 3. Reconcile Exercise Calories with DietDayLog
-      if (source.sourceId != 'mock') {
-        await _reconcileExerciseCalories(exerciseList, dailyList);
-        await _reconcileWeight(bodyList);
+      await _reconcileExerciseCalories(exerciseList, dailyList);
+      await _reconcileWeight(bodyList);
 
-        // 4. Auto-log to Day Journal if enabled
-        if (WearableSettings.journalAutologEnabled) {
-          await _autoLogToJournal(sleepList, exerciseList);
-        }
-
-        // 5. Auto-log wake up from wearable sleep end if wake goal is pending
-        await _autoLogWakeFromSleep(sleepList);
-
-        // 6. Reconcile Wearable XP with XpLedger
-        await WearableXpService.instance.reconcileRecent(days: 3);
-
-        // 7. Reconcile Metric Tasks
-        final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        await MetricTaskService.instance.reconcileDay(todayKey);
+      // 4. Auto-log to Day Journal if enabled
+      if (WearableSettings.journalAutologEnabled) {
+        await _autoLogToJournal(sleepList, exerciseList);
       }
+
+      // 5. Auto-log wake up from wearable sleep end if wake goal is pending
+      await _autoLogWakeFromSleep(sleepList);
+
+      // 6. Reconcile Wearable XP with XpLedger
+      await WearableXpService.instance.reconcileRecent(days: 3);
+
+      // 7. Reconcile Metric Tasks
+      final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      await MetricTaskService.instance.reconcileDay(todayKey);
 
       final now = DateTime.now();
       WearableSettings.lastSyncMs = now.millisecondsSinceEpoch;
@@ -204,7 +196,6 @@ class SyncService {
     final weightBox = Hive.box<WeightEntry>('weight_entries');
 
     final existingEntries = weightBox.values.toList();
-    bool modified = false;
 
     // Group body samples by dayKey and keep the latest per day
     final byDay = <String, BodyCompSample>{};
@@ -227,11 +218,9 @@ class SyncService {
             date: dayKey,
             kg: sample.weightKg!,
             source: 'health_connect',
-            externalId: sample.externalId ??
-                'wear_${sample.timestamp.millisecondsSinceEpoch}',
+            externalId: sample.externalId,
           ),
         );
-        modified = true;
       } else if (existing.source == 'health_connect') {
         // Update existing wearable entry if different
         if (existing.kg != sample.weightKg!) {
@@ -243,7 +232,6 @@ class SyncService {
             externalId: existing.externalId,
           );
           await weightBox.putAt(idx, updated);
-          modified = true;
         }
       }
     }

@@ -172,7 +172,9 @@ class NowPlayingService {
     if (!_isSupportedPlatform) return;
     try {
       await _methodChannel.invokeMethod('refresh');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('NowPlayingService.refresh error: $e');
+    }
   }
 
   Future<bool> send(MediaCommand command, {dynamic argument}) async {

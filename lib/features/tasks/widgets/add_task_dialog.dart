@@ -256,11 +256,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                           targetValue: target,
                           unit: _metricKey == 'steps'
                               ? 'steps'
-                              : (_metricKey?.contains('minutes') == true ? 'mins' : 'units'),
+                              : (_metricKey?.contains('minutes') == true
+                                  ? 'mins'
+                                  : 'units'),
                           createdDate: DateTime.now(),
                           reminderTime: reminderDate,
                           endDate: selectedEndDate,
-                          kind: _isWakeup ? 'wakeup' : (_metricKey != null ? 'metric' : null),
+                          kind: _isWakeup
+                              ? 'wakeup'
+                              : (_metricKey != null ? 'metric' : null),
                           metricKey: _metricKey,
                           metricOp: _metricOp ?? '>=',
                         );
@@ -335,13 +339,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 avatar: Icon(
                   LucideIcons.footprints,
                   size: 14,
-                  color: _metricKey == 'steps' ? Colors.black : BentoTheme.accent,
+                  color:
+                      _metricKey == 'steps' ? Colors.black : BentoTheme.accent,
                 ),
                 label: const Text('10,000 steps'),
                 selectedColor: BentoTheme.accent,
                 backgroundColor: BentoTheme.background,
                 labelStyle: TextStyle(
-                  color: _metricKey == 'steps' ? Colors.black : BentoTheme.textPrimary,
+                  color: _metricKey == 'steps'
+                      ? Colors.black
+                      : BentoTheme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -365,13 +372,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 avatar: Icon(
                   LucideIcons.flame,
                   size: 14,
-                  color: _metricKey == 'active_minutes' ? Colors.black : BentoTheme.accent,
+                  color: _metricKey == 'active_minutes'
+                      ? Colors.black
+                      : BentoTheme.accent,
                 ),
                 label: const Text('30 active mins'),
                 selectedColor: BentoTheme.accent,
                 backgroundColor: BentoTheme.background,
                 labelStyle: TextStyle(
-                  color: _metricKey == 'active_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  color: _metricKey == 'active_minutes'
+                      ? Colors.black
+                      : BentoTheme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -395,13 +406,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 avatar: Icon(
                   LucideIcons.moon,
                   size: 14,
-                  color: _metricKey == 'sleep_minutes' ? Colors.black : BentoTheme.accent,
+                  color: _metricKey == 'sleep_minutes'
+                      ? Colors.black
+                      : BentoTheme.accent,
                 ),
                 label: const Text('Sleep 7 h'),
                 selectedColor: BentoTheme.accent,
                 backgroundColor: BentoTheme.background,
                 labelStyle: TextStyle(
-                  color: _metricKey == 'sleep_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  color: _metricKey == 'sleep_minutes'
+                      ? Colors.black
+                      : BentoTheme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -425,13 +440,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 avatar: Icon(
                   LucideIcons.dumbbell,
                   size: 14,
-                  color: _metricKey == 'workout_minutes' ? Colors.black : BentoTheme.accent,
+                  color: _metricKey == 'workout_minutes'
+                      ? Colors.black
+                      : BentoTheme.accent,
                 ),
                 label: const Text('Workout today'),
                 selectedColor: BentoTheme.accent,
                 backgroundColor: BentoTheme.background,
                 labelStyle: TextStyle(
-                  color: _metricKey == 'workout_minutes' ? Colors.black : BentoTheme.textPrimary,
+                  color: _metricKey == 'workout_minutes'
+                      ? Colors.black
+                      : BentoTheme.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),

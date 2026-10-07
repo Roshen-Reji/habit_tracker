@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -598,6 +599,8 @@ class FinanceBackupService {
           await file.delete();
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('FinanceBackupService auto-pruning error: $e');
+    }
   }
 }

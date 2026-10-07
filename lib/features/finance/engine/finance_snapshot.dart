@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
 import 'package:habit_tracker/features/finance/engine/goal_planner_engine.dart';
@@ -101,7 +102,9 @@ class FinanceSnapshot {
               unsettledReceivables += Money.asDouble(item['amount']);
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('FinanceSnapshot splits parse error: $e');
+        }
       }
 
       // Process month income/spending for current month

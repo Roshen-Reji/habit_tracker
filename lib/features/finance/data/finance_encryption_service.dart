@@ -41,7 +41,9 @@ class FinanceEncryptionService {
       if (stored != null) {
         return base64Decode(stored);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('FinanceEncryptionService read key error: $e');
+    }
 
     final newKey = Hive.generateSecureKey();
     try {
@@ -49,7 +51,9 @@ class FinanceEncryptionService {
         key: _keyStorageKey,
         value: base64Encode(newKey),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('FinanceEncryptionService write key error: $e');
+    }
     return newKey;
   }
 

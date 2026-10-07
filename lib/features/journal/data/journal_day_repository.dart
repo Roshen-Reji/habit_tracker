@@ -60,7 +60,8 @@ class JournalDayRepository {
       DateTime date;
       try {
         final parts = dayKey.split('-');
-        date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        date = DateTime(
+            int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
       } catch (_) {
         date = DateTime.now();
       }
@@ -131,7 +132,10 @@ class JournalDayRepository {
     try {
       final raw = jsonDecode(entry.autoLogJson!);
       if (raw is List) {
-        return raw.map((item) => AutoLogEvent.fromJson(Map<String, dynamic>.from(item))).toList();
+        return raw
+            .map((item) =>
+                AutoLogEvent.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
       }
     } catch (e) {
       debugPrint('Error decoding autoLogJson: $e');
@@ -158,12 +162,17 @@ class JournalDayRepository {
     try {
       mainDelta = List<dynamic>.from(jsonDecode(dayDoc.bodyDelta));
     } catch (_) {
-      mainDelta = [{'insert': '\n'}];
+      mainDelta = [
+        {'insert': '\n'}
+      ];
     }
 
     for (final l in leg) {
       final timeStr = DateFormat('h:mm a').format(l.createdAt);
-      mainDelta.add({'insert': '\n\n--- ${l.title} ($timeStr) ---\n', 'attributes': {'bold': true}});
+      mainDelta.add({
+        'insert': '\n\n--- ${l.title} ($timeStr) ---\n',
+        'attributes': {'bold': true}
+      });
       try {
         final lDelta = jsonDecode(l.bodyDelta);
         if (lDelta is List) {
@@ -241,7 +250,8 @@ class JournalDayRepository {
   void _queueInInbox(String dayKey, AutoLogEvent event) {
     if (!Hive.isBoxOpen('settings')) return;
     final settings = Hive.box('settings');
-    final inbox = List<Map<String, dynamic>>.from(settings.get('journal_inbox', defaultValue: []));
+    final inbox = List<Map<String, dynamic>>.from(
+        settings.get('journal_inbox', defaultValue: []));
     inbox.add({
       'dayKey': dayKey,
       'event': event.toJson(),

@@ -399,7 +399,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
               child: Row(
                 children: [
                   Icon(LucideIcons.clock,
-                       size: 18, color: BentoTheme.textSecondary),
+                      size: 18, color: BentoTheme.textSecondary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -839,8 +839,7 @@ class _RemindersSettingsPageState extends State<RemindersSettingsPage> {
     bool isInfoOnly = false,
     VoidCallback? onFix,
   }) {
-    final statusColor =
-        isGranted ? BentoTheme.positive : BentoTheme.negative;
+    final statusColor = isGranted ? BentoTheme.positive : BentoTheme.negative;
     final statusText = isGranted ? 'Granted' : 'Denied';
 
     return Row(

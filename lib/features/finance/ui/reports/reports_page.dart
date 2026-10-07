@@ -270,8 +270,8 @@ class _ReportsPageState extends State<ReportsPage>
                       LucideIcons.arrowDownLeft)),
               const SizedBox(width: 12),
               Expanded(
-                  child: _metricCard('Spending', rep.spending, BentoTheme.negative,
-                      LucideIcons.arrowUpRight)),
+                  child: _metricCard('Spending', rep.spending,
+                      BentoTheme.negative, LucideIcons.arrowUpRight)),
             ],
           ),
           const SizedBox(height: 12),
@@ -313,8 +313,9 @@ class _ReportsPageState extends State<ReportsPage>
                       style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)
                           .copyWith(
-                        color:
-                            rep.netWorthChange >= 0 ? BentoTheme.positive : BentoTheme.negative,
+                        color: rep.netWorthChange >= 0
+                            ? BentoTheme.positive
+                            : BentoTheme.negative,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -550,7 +551,9 @@ class _ReportsPageState extends State<ReportsPage>
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isIncrease ? BentoTheme.negative : BentoTheme.positive,
+                          color: isIncrease
+                              ? BentoTheme.negative
+                              : BentoTheme.positive,
                         ),
                       ),
                     ],
@@ -625,7 +628,9 @@ class _ReportsPageState extends State<ReportsPage>
                         'Net: ${p.net >= 0 ? '+' : ''}${FormatUtils.formatMoney(p.net, decimals: 0)}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: p.net >= 0 ? BentoTheme.positive : BentoTheme.negative,
+                          color: p.net >= 0
+                              ? BentoTheme.positive
+                              : BentoTheme.negative,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

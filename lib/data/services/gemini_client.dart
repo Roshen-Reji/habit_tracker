@@ -52,7 +52,9 @@ class GeminiClient {
     try {
       box = settingsBox ??
           (Hive.isBoxOpen('settings') ? Hive.box('settings') : null);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('GeminiClient settingsBox access error: $e');
+    }
 
     final override = box?.get('gemini_model')?.toString().trim();
     if (override != null && override.isNotEmpty) {
@@ -235,7 +237,9 @@ class GeminiClient {
               );
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('GeminiClient 429 body parse error: $e');
+        }
 
         firstNon404Error ??= GeminiResult.failure(
           errorMessage: 'Gemini Rate Limited (429, model $model): $truncated',

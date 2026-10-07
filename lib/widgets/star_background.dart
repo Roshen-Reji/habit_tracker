@@ -92,15 +92,18 @@ class StarPainter extends CustomPainter {
 
     final paint = Paint()
       ..strokeCap = StrokeCap.round
-      ..color = starColor.withOpacity(0.15); // Global single color to allow batched drawPoints
+      ..color = starColor
+          .withOpacity(0.15); // Global single color to allow batched drawPoints
 
     final Float32List points = Float32List(stars.length * 2);
-    
+
     // Calculate global twinkle effect
-    final double globalTwinkle = (0.5 + (sin(animationValue * 2) * 0.2)).clamp(0.0, 1.0);
-    paint.color = Color.alphaBlend(starColor.withValues(alpha: 0.15), Colors.white)
-          .withValues(alpha: globalTwinkle);
-          
+    final double globalTwinkle =
+        (0.5 + (sin(animationValue * 2) * 0.2)).clamp(0.0, 1.0);
+    paint.color =
+        Color.alphaBlend(starColor.withValues(alpha: 0.15), Colors.white)
+            .withValues(alpha: globalTwinkle);
+
     // Draw thick stars
     paint.strokeWidth = 2.0;
 

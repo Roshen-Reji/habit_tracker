@@ -271,7 +271,9 @@ class _FitnessTabState extends State<FitnessTab> {
     if (sample.extraJson != null) {
       try {
         extra = jsonDecode(sample.extraJson!) as Map<String, dynamic>;
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('AgesSample extraJson decode error: $e');
+      }
     }
     final trend = extra['trend']?.toString() ?? 'stable';
 
@@ -528,7 +530,9 @@ class _FitnessTabState extends State<FitnessTab> {
     if (energy.extraJson != null) {
       try {
         extra = jsonDecode(energy.extraJson!) as Map<String, dynamic>;
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('EnergyScoreDay extraJson decode error: $e');
+      }
     }
 
     final sleepScore = (extra['sleepScoreAvg'] as num?)?.toDouble();

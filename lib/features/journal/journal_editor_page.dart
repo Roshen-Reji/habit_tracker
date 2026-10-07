@@ -46,7 +46,8 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
       _isPinned = entry.pinned;
       _tags = List.from(entry.tags);
       _createdAt = entry.createdAt;
-      _dayKey = entry.dayKey ?? DateFormat('yyyy-MM-dd').format(entry.createdAt);
+      _dayKey =
+          entry.dayKey ?? DateFormat('yyyy-MM-dd').format(entry.createdAt);
       _autoLogJson = entry.autoLogJson;
       _mergedInto = entry.mergedInto;
 
@@ -64,7 +65,8 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
       final now = DateTime.now();
       _dayKey = DateFormat('yyyy-MM-dd').format(now);
       _id = 'day_$_dayKey';
-      _titleController = TextEditingController(text: DateFormat('EEEE, d MMM yyyy').format(now));
+      _titleController = TextEditingController(
+          text: DateFormat('EEEE, d MMM yyyy').format(now));
       _isPinned = false;
       _tags = [];
       _createdAt = now;
@@ -510,7 +512,8 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
             runSpacing: 6,
             children: events.map((event) {
               return Chip(
-                avatar: Icon(_getIconForKind(event.kind), size: 14, color: BentoTheme.accent),
+                avatar: Icon(_getIconForKind(event.kind),
+                    size: 14, color: BentoTheme.accent),
                 label: Text(
                   event.text,
                   style: TextStyle(
@@ -521,11 +524,14 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
                 ),
                 backgroundColor: BentoTheme.surfaceElevated,
                 side: BorderSide.none,
-                deleteIcon: Icon(LucideIcons.x, size: 12, color: BentoTheme.textSecondary),
+                deleteIcon: Icon(LucideIcons.x,
+                    size: 12, color: BentoTheme.textSecondary),
                 onDeleted: () async {
                   if (_dayKey != null) {
-                    await JournalDayRepository.instance.removeAutoLog(_dayKey!, event.key);
-                    final updatedEntry = await JournalDayRepository.instance.getOrCreateDay(_dayKey!);
+                    await JournalDayRepository.instance
+                        .removeAutoLog(_dayKey!, event.key);
+                    final updatedEntry = await JournalDayRepository.instance
+                        .getOrCreateDay(_dayKey!);
                     setState(() {
                       _autoLogJson = updatedEntry.autoLogJson;
                       _hasUnsavedChanges = true;
@@ -566,11 +572,14 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
           TextButton(
             onPressed: () async {
               await JournalDayRepository.instance.mergeLegacyEntries(_dayKey!);
-              final updated = await JournalDayRepository.instance.getOrCreateDay(_dayKey!);
+              final updated =
+                  await JournalDayRepository.instance.getOrCreateDay(_dayKey!);
               try {
                 final deltaJson = jsonDecode(updated.bodyDelta);
                 _quillController.document = Document.fromJson(deltaJson);
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('JournalEditorPage legacy Delta parse error: $e');
+              }
               setState(() {
                 _hasUnsavedChanges = false;
               });
@@ -581,7 +590,8 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
                     action: SnackBarAction(
                       label: 'Undo',
                       onPressed: () async {
-                        await JournalDayRepository.instance.undoMergeLegacyEntries(_dayKey!);
+                        await JournalDayRepository.instance
+                            .undoMergeLegacyEntries(_dayKey!);
                         if (mounted) setState(() {});
                       },
                     ),
@@ -589,7 +599,8 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
                 );
               }
             },
-            child: const Text('Merge', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Merge',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

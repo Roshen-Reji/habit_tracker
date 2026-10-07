@@ -149,7 +149,8 @@ class _MarkPaidDialogState extends State<MarkPaidDialog> {
             decoration: BoxDecoration(
               color: BentoTheme.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all( // allowed: input focus
+              border: Border.all(
+                  // allowed: input focus
                   color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(

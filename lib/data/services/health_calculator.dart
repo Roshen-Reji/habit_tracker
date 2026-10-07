@@ -60,7 +60,8 @@ class HealthSummaryData {
 
     // 2. Medicine adherence (20 pts)
     if (medicineTotalToday > 0) {
-      final medRatio = (medicineTakenToday / medicineTotalToday).clamp(0.0, 1.0);
+      final medRatio =
+          (medicineTakenToday / medicineTotalToday).clamp(0.0, 1.0);
       score += medRatio * 20.0;
     } else {
       score += 20.0;
@@ -68,7 +69,9 @@ class HealthSummaryData {
 
     // 3. Health & Wake missions (15 pts)
     if (healthMissionsTotalToday > 0) {
-      final missionRatio = (healthMissionsCompletedToday / healthMissionsTotalToday).clamp(0.0, 1.0);
+      final missionRatio =
+          (healthMissionsCompletedToday / healthMissionsTotalToday)
+              .clamp(0.0, 1.0);
       score += missionRatio * 15.0;
     } else {
       score += 15.0;

@@ -55,7 +55,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
             receiptsDir.listSync(recursive: true).whereType<File>().toList();
         if (mounted) setState(() => _receiptCount = files.length);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Receipts count scan error: $e');
+    }
   }
 
   Future<void> _toggleLock(bool val) async {
@@ -273,7 +275,9 @@ class _FinancePrivacyDataPageState extends State<FinancePrivacyDataPage> {
       if (await receiptsDir.exists()) {
         await receiptsDir.delete(recursive: true);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Receipts wipe directory error: $e');
+    }
 
     // 3. Reset settings and fin_schema_version
     await storage.settingsBox.clear();

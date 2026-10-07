@@ -320,8 +320,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
               children: [
                 Row(
                   children: [
-                    Icon(LucideIcons.bookmarkCheck,
-                        color: _accent, size: 18),
+                    Icon(LucideIcons.bookmarkCheck, color: _accent, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       'BOOKMARKS (${bookmarks.length})',
@@ -334,8 +333,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: Icon(LucideIcons.plus,
-                          color: _accent),
+                      icon: Icon(LucideIcons.plus, color: _accent),
                       tooltip: 'Bookmark Current Page',
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -518,8 +516,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           children: [
             Row(
               children: [
-                Icon(LucideIcons.listTree,
-                    color: _accent, size: 18),
+                Icon(LucideIcons.listTree, color: _accent, size: 18),
                 const SizedBox(width: 10),
                 Text(
                   'TABLE OF CONTENTS',
@@ -990,8 +987,7 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
           children: [
             Row(
               children: [
-                Icon(LucideIcons.timer,
-                    color: _accent, size: 18),
+                Icon(LucideIcons.timer, color: _accent, size: 18),
                 const SizedBox(width: 10),
                 Text(
                   'READING STATS & TIMER',
@@ -1412,7 +1408,9 @@ class _PdfReaderPageState extends State<PdfReaderPage> {
                 _outline = outline;
               });
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('PdfReader loadOutline error: $e');
+          }
         }
       },
     );

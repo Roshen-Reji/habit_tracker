@@ -199,5 +199,3 @@ class AppNav extends ChangeNotifier {
     );
   }
 }
-
-

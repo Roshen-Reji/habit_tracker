@@ -326,7 +326,8 @@ class _CsvImportPageState extends State<CsvImportPage> {
               Row(
                 children: [
                   Expanded(
-                      child: _summaryBadge('New', newCount, BentoTheme.positive)),
+                      child:
+                          _summaryBadge('New', newCount, BentoTheme.positive)),
                   const SizedBox(width: 8),
                   Expanded(
                       child: _summaryBadge(

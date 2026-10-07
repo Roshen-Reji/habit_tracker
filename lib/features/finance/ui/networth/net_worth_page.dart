@@ -218,8 +218,7 @@ class _NetWorthPageState extends State<NetWorthPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.handshake_outlined,
-                        color: BentoTheme.accent),
+                    Icon(Icons.handshake_outlined, color: BentoTheme.accent),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

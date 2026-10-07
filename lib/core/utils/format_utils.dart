@@ -82,13 +82,13 @@ class FormatUtils {
       // Also handles the negative sign like '-₹ ₹ 20,000'
       final isNeg = formattedStr.startsWith('-');
       var cleanStr = isNeg ? formattedStr.substring(1) : formattedStr;
-      
+
       // Keep removing the symbol + optional spaces until there's only one symbol left
       // Actually we just remove ALL leading symbols and spaces, then prepend exactly ONE.
       cleanStr = cleanStr.replaceAll(RegExp('^($symbol\\s*)+'), '');
       formattedStr = '${isNeg ? '-' : ''}$symbol$cleanStr';
     }
-    
+
     return formattedStr;
   }
 

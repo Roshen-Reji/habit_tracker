@@ -380,7 +380,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                 decoration: BoxDecoration(
                   color: BentoTheme.background,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all( // allowed: input focus
+                  border: Border.all(
+                      // allowed: input focus
                       color: Colors.white.withValues(alpha: 0.08)),
                 ),
                 child: Row(
@@ -477,7 +478,8 @@ class _BudgetLineSheetState extends State<BudgetLineSheet> {
                         decoration: BoxDecoration(
                           color: BentoTheme.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all( // allowed: input focus
+                          border: Border.all(
+                              // allowed: input focus
                               color: BentoTheme.accent.withValues(alpha: 0.3)),
                         ),
                         child: Row(
