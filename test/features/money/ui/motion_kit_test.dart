@@ -8,6 +8,8 @@ import 'package:habit_tracker/features/money/ui/motion/press_scale.dart';
 import 'package:habit_tracker/features/money/ui/motion/animated_money_text.dart';
 import 'package:habit_tracker/features/money/ui/widgets/money_progress_bar.dart';
 import 'package:habit_tracker/features/finance/data/finance_storage.dart';
+import 'package:habit_tracker/features/money/ui/today/today_tab.dart';
+import 'package:habit_tracker/features/money/ui/activity/activity_tab.dart';
 import 'package:habit_tracker/features/money/ui/shell/money_shell.dart';
 
 void main() {
@@ -182,14 +184,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Starts at Today Tab
-      expect(find.text('Today Tab'), findsOneWidget);
-      expect(find.text('Activity Tab'), findsNothing);
+      expect(find.byType(TodayTab), findsOneWidget);
+      expect(find.byType(ActivityTab), findsNothing);
 
       // Tap Activity tab
       await tester.tap(find.text('Activity'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Activity Tab'), findsOneWidget);
+      expect(find.byType(ActivityTab), findsOneWidget);
 
       // Tap Plans tab
       await tester.tap(find.text('Plans'));

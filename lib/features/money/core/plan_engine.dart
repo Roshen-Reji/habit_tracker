@@ -40,6 +40,7 @@ class CorePlan {
     this.categoryId,
   });
 
+  String get name => title;
   bool get isSIP => kind == PlanKind.sip;
   bool get isEMI => kind == PlanKind.emi;
   bool get isBill => kind == PlanKind.bill;

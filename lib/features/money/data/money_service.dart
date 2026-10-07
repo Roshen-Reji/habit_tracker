@@ -251,6 +251,9 @@ class MoneyService {
   }
 
   /// Executes the 5-second undo action if active (Law L8).
+  Future<bool> undo() => undoLastAction();
+
+  /// Executes the 5-second undo action if active (Law L8).
   Future<bool> undoLastAction() async {
     final action = lastUndoAction;
     if (action != null) {

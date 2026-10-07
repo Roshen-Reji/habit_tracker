@@ -22,6 +22,7 @@ import '../today/today_tab.dart';
 import '../activity/activity_tab.dart';
 import '../plans/plans_tab.dart';
 import '../accounts/accounts_tab.dart';
+import '../widgets/quick_add_sheet.dart';
 
 /// Unified Money v2 Shell supporting 4 tabs, lazy preservation, smooth transitions,
 /// and complete backward-compatible deep linking.
@@ -207,13 +208,7 @@ class _MoneyShellState extends State<MoneyShell>
   }
 
   void _openQuickAdd() {
-    // Quick Add modal will be fully connected in Milestone M5.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Quick Add (M5)'),
-        duration: Duration(milliseconds: 1000),
-      ),
-    );
+    QuickAddSheet.show(context);
   }
 
   Widget _buildTabContent(int index) {
