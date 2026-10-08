@@ -375,3 +375,33 @@ Commander enforces strict data privacy invariants for all AI and cloud interacti
 - **Fault-Tolerant Page Navigation**: `PdfReaderPage` clamps initial page indices (`math.max(1, book.lastPage)`), preventing 0-index crashes and white screens.
 - **Missing Document Recovery**: If an underlying PDF is deleted externally, a clean error state offers the user options to relocate or unbind the document without crashes.
 
+---
+
+## 11. Money v2 Subsystem Architecture & Laws
+
+### 11.1 Overview & Product Model
+Money v2 replaces the legacy fragmented finance controller and multi-tab system with a unified, local-first reactive architecture:
+- **Accounts**: Exactly one **Main** checking account, plus **Funds** (investments & SIP targets), **Loans** (liabilities), and **Cards**.
+- **Entries**: 3 primitive actions: **Spent**, **Received**, and **Moved** (account to account).
+- **Plans**: Unified concept replacing recurring rules, SIPs, EMIs, bills, and subscriptions. Each plan specifies amount, day of month, and source/destination.
+- **Goals**: Pure views over funds or manual targets (never hold separate balances).
+
+### 11.2 The Nine Money Laws
+- **L1 Immediate**: Any spend, receive, or move reflects across all screens within the same UI frame.
+- **L2 No Ignored Entries**: Balance = `openingBalance + Σ all entries up to now`. Opening dates are informational only; no transactions are discarded based on timestamp.
+- **L3 One Representation**: Entries are internally represented as `{kind, amountMinor, from, to}` in integer paise. Storage signs and modes are derived in a single adapter.
+- **L4 Funds**: `Invested = openingBalance + Σ deposits`, `Value = latest valuation + post-valuation deposits`, `Gain = Value - Invested`.
+- **L5 Loans**: Transfers to loans split into principal reduction (`LoanEngine.splitPayment`) and interest expense on Main.
+- **L6 Idempotent Plans**: Occurrences keyed as `plan:{id}:{yyyy-MM-dd}`. Never posted twice, catches up on resume/launch/save, and flags **Needs funds** without posting if balance is insufficient.
+- **L7 Free to Spend**: Available (Main) − Plans due before month end. Displayed as a calm 3-line breakdown: Available, Coming up, Free to spend (or "Short by ₹X").
+- **L8 5-Second Undo**: All adds, edits, and deletions offer a 5-second Undo via SnackBar and rollback capability.
+- **L9 Single Writer, Single Reader**: Only `MoneyService` writes entries. Only `MoneySnapshot` is read by screens and home cards. UI code never opens Hive boxes directly.
+
+### 11.3 Motion & Smoothness Standards
+- Built on `MoneyMotionTokens`: 90ms instant, 160ms quick, 240ms standard, 360ms emphasized.
+- `AnimatedMoneyText`: Smooth counter with tabular figures (`tnum`).
+- `PressScale`: Micro-interactions with spring physics.
+- `FrameTimingLogger`: Debug/profile-only frame budget tracker counting over-budget frames (>16.6ms at 60Hz, >8.3ms at 120Hz).
+- 0 `shrinkWrap: true`, 0 `Border.all` on cards, and 0 `BackdropFilter` in Finance for 120Hz fluid rendering with Impeller.
+
+
