@@ -58,55 +58,57 @@ class TodayTab extends StatelessWidget {
                             color: BentoTheme.textSecondary, fontSize: 13)),
                   ),
                 )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: plans.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, idx) {
-                    final occ = plans[idx];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: BentoTheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  occ.plan.name,
-                                  style: TextStyle(
-                                    color: BentoTheme.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: ListView.separated(
+                    itemCount: plans.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, idx) {
+                      final occ = plans[idx];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: BentoTheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    occ.plan.name,
+                                    style: TextStyle(
+                                      color: BentoTheme.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  DateFormat('dd MMM').format(occ.dueDate),
-                                  style: TextStyle(
-                                    color: BentoTheme.textSecondary,
-                                    fontSize: 11,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat('dd MMM').format(occ.dueDate),
+                                    style: TextStyle(
+                                      color: BentoTheme.textSecondary,
+                                      fontSize: 11,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            Minor.format(occ.plan.amountMinor),
-                            style: TextStyle(
-                              color: BentoTheme.negative,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                            Text(
+                              Minor.format(occ.plan.amountMinor),
+                              style: TextStyle(
+                                color: BentoTheme.negative,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
         ),
         actions: [
@@ -655,83 +657,86 @@ class TodayTab extends StatelessWidget {
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: plans.length,
-        separatorBuilder: (_, __) => Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: BentoTheme.divider.withValues(alpha: 0.4)),
-        itemBuilder: (context, idx) {
-          final occ = plans[idx];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+      child: Column(
+        children: [
+          for (int idx = 0; idx < plans.length; idx++) ...[
+            if (idx > 0)
+              Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+                color: BentoTheme.divider.withValues(alpha: 0.4),
+              ),
+            _buildUpcomingPlanTile(context, plans[idx]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingPlanTile(BuildContext context, PlanOccurrence occ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: BentoTheme.accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(LucideIcons.calendarClock,
+                size: 16, color: BentoTheme.accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.accent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(LucideIcons.calendarClock,
-                      size: 16, color: BentoTheme.accent),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        occ.plan.name,
-                        style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat('dd MMM').format(occ.dueDate),
-                        style: TextStyle(
-                            color: BentoTheme.textSecondary, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                if (occ.needsFunds) ...[
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.negative.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Needs funds',
-                      style: TextStyle(
-                        color: BentoTheme.negative,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
                 Text(
-                  Minor.format(occ.plan.amountMinor),
+                  occ.plan.name,
                   style: TextStyle(
                     color: BentoTheme.textPrimary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  DateFormat('dd MMM').format(occ.dueDate),
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 11),
+                ),
               ],
             ),
-          );
-        },
+          ),
+          if (occ.needsFunds) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: BentoTheme.negative.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Needs funds',
+                style: TextStyle(
+                  color: BentoTheme.negative,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            Minor.format(occ.plan.amountMinor),
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -787,77 +792,81 @@ class TodayTab extends StatelessWidget {
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: recent.length,
-        separatorBuilder: (_, __) => Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: BentoTheme.divider.withValues(alpha: 0.4)),
-        itemBuilder: (context, idx) {
-          final entry = recent[idx];
-          final isSpent = entry.kind == EntryKind.spent;
-          final isReceived = entry.kind == EntryKind.received;
-          final color = isSpent
-              ? BentoTheme.negative
-              : (isReceived ? BentoTheme.positive : BentoTheme.accent);
+      child: Column(
+        children: [
+          for (int idx = 0; idx < recent.length; idx++) ...[
+            if (idx > 0)
+              Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+                color: BentoTheme.divider.withValues(alpha: 0.4),
+              ),
+            _buildRecentEntryTile(context, recent[idx]),
+          ],
+        ],
+      ),
+    );
+  }
 
-          return InkWell(
-            onTap: () => QuickAddSheet.show(context, editEntry: entry),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+  Widget _buildRecentEntryTile(BuildContext context, Entry entry) {
+    final isSpent = entry.kind == EntryKind.spent;
+    final isReceived = entry.kind == EntryKind.received;
+    final color = isSpent
+        ? BentoTheme.negative
+        : (isReceived ? BentoTheme.positive : BentoTheme.accent);
+
+    return InkWell(
+      onTap: () => QuickAddSheet.show(context, editEntry: entry),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                MoneyCategoryIcon.getIcon(entry.icon ?? entry.category),
+                size: 16,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      MoneyCategoryIcon.getIcon(entry.icon ?? entry.category),
-                      size: 16,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.title,
-                          style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          DateFormat('dd MMM, hh:mm a').format(entry.date),
-                          style: TextStyle(
-                              color: BentoTheme.textSecondary, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
                   Text(
-                    '${isSpent ? '-' : (isReceived ? '+' : '')}${Minor.format(entry.amountMinor)}',
+                    entry.title,
                     style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
+                      color: BentoTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    DateFormat('dd MMM, hh:mm a').format(entry.date),
+                    style: TextStyle(
+                        color: BentoTheme.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
             ),
-          );
-        },
+            Text(
+              '${isSpent ? '-' : (isReceived ? '+' : '')}${Minor.format(entry.amountMinor)}',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

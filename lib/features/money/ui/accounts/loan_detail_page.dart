@@ -138,47 +138,53 @@ class LoanDetailPage extends StatelessWidget {
                   decoration: BoxDecoration(
                       color: BentoTheme.surface,
                       borderRadius: BorderRadius.circular(18)),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: repayments.length,
-                    separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        indent: 50,
-                        color: BentoTheme.divider.withValues(alpha: 0.3)),
-                    itemBuilder: (ctx, idx) {
-                      final e = repayments[idx];
-                      return ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: BentoTheme.positive.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            MoneyCategoryIcon.getIcon(e.icon ?? e.category),
-                            color: BentoTheme.positive,
-                            size: 16,
-                          ),
-                        ),
-                        title: Text(e.title,
-                            style: TextStyle(
-                                color: BentoTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13)),
-                        subtitle: Text(DateFormat('dd MMM yyyy').format(e.date),
-                            style: TextStyle(
-                                color: BentoTheme.textSecondary, fontSize: 11)),
-                        trailing: Text(
-                          Minor.format(e.amountMinor),
-                          style: TextStyle(
-                              color: BentoTheme.positive,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13),
-                        ),
-                        onTap: () => QuickAddSheet.show(context, editEntry: e),
-                      );
-                    },
+                  child: Column(
+                    children: [
+                      for (int idx = 0; idx < repayments.length; idx++) ...[
+                        if (idx > 0)
+                          Divider(
+                              height: 1,
+                              indent: 50,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                        Builder(builder: (ctx) {
+                          final e = repayments[idx];
+                          return ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    BentoTheme.positive.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                MoneyCategoryIcon.getIcon(e.icon ?? e.category),
+                                color: BentoTheme.positive,
+                                size: 16,
+                              ),
+                            ),
+                            title: Text(e.title,
+                                style: TextStyle(
+                                    color: BentoTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
+                            subtitle: Text(
+                                DateFormat('dd MMM yyyy').format(e.date),
+                                style: TextStyle(
+                                    color: BentoTheme.textSecondary,
+                                    fontSize: 11)),
+                            trailing: Text(
+                              Minor.format(e.amountMinor),
+                              style: TextStyle(
+                                  color: BentoTheme.positive,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13),
+                            ),
+                            onTap: () =>
+                                QuickAddSheet.show(context, editEntry: e),
+                          );
+                        }),
+                      ],
+                    ],
                   ),
                 ),
             ],

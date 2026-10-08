@@ -1,10 +1,10 @@
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
-import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/features/money/state/money_state.dart';
 
 class AiContext {
   static String buildSystemPrompt() {
@@ -45,20 +45,14 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
         if (allowed == false) return '';
       }
 
-      final now = DateTime.now();
-      double inc = 0, exp = 0;
-      for (var tx in Hive.box<Transaction>('finance_transactions').values) {
-        if (tx.date.month == now.month && tx.date.year == now.year) {
-          final kind = tx.effectiveKind;
-          if (kind == 'income' || kind == 'refund' || kind == 'reimbursement') {
-            inc += tx.amount.abs();
-          } else if (kind == 'expense') {
-            exp += tx.amount.abs();
-          }
-        }
-      }
-      // LLM receives ONLY high-level month total figures, never individual transactions or accounts
-      return '[FIN] Inc:${inc.toStringAsFixed(0)} Exp:${exp.toStringAsFixed(0)}';
+      final snapshot = MoneyState().value;
+      final inc = snapshot.monthReceivedRupees;
+      final exp = snapshot.monthSpentRupees;
+      final mainBal = snapshot.mainBalanceRupees;
+      final freeToSpend = snapshot.freeToSpend.freeToSpendRupees;
+
+      // LLM receives ONLY high-level figures (Laws L7, L9)
+      return '[FIN] Main:${mainBal.toStringAsFixed(0)} Free:${freeToSpend.toStringAsFixed(0)} Inc:${inc.toStringAsFixed(0)} Exp:${exp.toStringAsFixed(0)}';
     } catch (_) {
       return '';
     }

@@ -73,10 +73,31 @@ class _MoneyShellState extends State<MoneyShell>
     ),
   ];
 
+  int _resolveTabFromDeepLink(String? link, int defaultIndex) {
+    if (link == null) return defaultIndex;
+    final lower = link.toLowerCase().trim();
+    if (lower == 'overview' || lower == 'home' || lower == 'today') return 0;
+    if (lower == 'transactions' || lower == 'txns' || lower == 'activity') {
+      return 1;
+    }
+    if (lower == 'plans' ||
+        lower == 'recurring' ||
+        lower == 'bills' ||
+        lower == 'subscriptions' ||
+        lower == 'subs' ||
+        lower == 'sip' ||
+        lower == 'emi') {
+      return 2;
+    }
+    if (lower == 'accounts' || lower == 'account' || lower == 'more') return 3;
+    return defaultIndex;
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialTab.clamp(0, _tabItems.length - 1);
+    final initial = _resolveTabFromDeepLink(widget.deepLink, widget.initialTab);
+    _currentIndex = initial.clamp(0, _tabItems.length - 1);
     _loadedTabs.add(_currentIndex);
 
     FrameTimingLogger().startTracking('MoneyShell');
@@ -106,6 +127,14 @@ class _MoneyShellState extends State<MoneyShell>
       BalanceReviewDialog.showIfNeeded(context);
       _handleDeepLink(widget.deepLink);
     });
+  }
+
+  @override
+  void didUpdateWidget(MoneyShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.deepLink != widget.deepLink && widget.deepLink != null) {
+      _handleDeepLink(widget.deepLink);
+    }
   }
 
   @override

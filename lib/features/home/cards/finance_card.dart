@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
@@ -7,10 +6,36 @@ import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
-import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/ui/overview/safe_to_spend_breakdown_sheet.dart';
+import 'package:habit_tracker/features/money/core/entry.dart';
+import 'package:habit_tracker/features/money/core/minor.dart';
+import 'package:habit_tracker/features/money/core/snapshot.dart';
+import 'package:habit_tracker/features/money/state/money_state.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+
+class _MonthReport {
+  final double income;
+  final double spending;
+  final double net;
+  const _MonthReport({
+    required this.income,
+    required this.spending,
+    required this.net,
+  });
+}
+
+class _SafeToSpendData {
+  final double safeToSpend;
+  final double perDay;
+  final bool hasShortfall;
+  final double shortfall;
+  const _SafeToSpendData({
+    required this.safeToSpend,
+    required this.perDay,
+    required this.hasShortfall,
+    required this.shortfall,
+  });
+}
 
 class FinanceCard extends StatelessWidget {
   final HomeCardSize size;
@@ -22,57 +47,50 @@ class FinanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Hive.isBoxOpen('fin_accounts') ||
-        !Hive.isBoxOpen('finance_transactions')) {
-      return HomeCardFrame(
-        icon: LucideIcons.wallet,
-        title: 'Finance Summary',
-        child: Text(
-          'Finance data unavailable',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
-        ),
-      );
-    }
-    final controller = FinanceController();
+    return ValueListenableBuilder<MoneySnapshot>(
+      valueListenable: MoneyState(),
+      builder: (context, snapshot, _) {
+        final now = snapshot.asOf;
+        final report = _MonthReport(
+          income: snapshot.monthReceivedRupees,
+          spending: snapshot.monthSpentRupees,
+          net: snapshot.monthReceivedRupees - snapshot.monthSpentRupees,
+        );
 
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final now = DateTime.now();
-        final report = controller.getMonthlySummaryReport(now);
-
-        // P1-2: Primary figure is Money left (sum of spendable accounts as of now)
-        final moneyLeft = controller.getLiquidBalance();
+        final moneyLeft = snapshot.mainBalanceRupees;
         final isPositiveNet = report.net >= 0;
         final netFormatted = FormatUtils.signed(report.net, decimals: 0);
 
-        // Safe to Spend
-        final safeToSpend = controller.getSafeToSpend();
-        final isShortfall = safeToSpend.hasShortfall;
+        final fts = snapshot.freeToSpend;
+        final isShortfall = fts.isShort;
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        final daysLeft = (daysInMonth - now.day).clamp(1, 31);
+        final perDay = isShortfall ? 0.0 : (fts.freeToSpendRupees / daysLeft);
         final safeToSpendDisplay = isShortfall
-            ? 'Short by ${FormatUtils.formatMoney(safeToSpend.shortfall, decimals: 0)}'
-            : FormatUtils.formatMoney(safeToSpend.safeToSpend, decimals: 0);
+            ? 'Short by ${FormatUtils.formatMoney(fts.shortByRupees, decimals: 0)}'
+            : FormatUtils.formatMoney(fts.freeToSpendRupees, decimals: 0);
 
-        // Next SIP/Bill debit lookup
-        final dueItems = controller.getUnpostedDueItems();
+        final safeToSpend = _SafeToSpendData(
+          safeToSpend: fts.freeToSpendRupees,
+          perDay: perDay,
+          hasShortfall: isShortfall,
+          shortfall: fts.shortByRupees,
+        );
+
         String? nextSipInfo;
-
-        if (dueItems.isNotEmpty) {
-          final sortedItems = List.of(dueItems)
-            ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-          final earliest = sortedItems.first;
-
+        if (snapshot.upcomingPlans.isNotEmpty) {
+          final earliest = snapshot.upcomingPlans.first;
           final dateStr = DateFormat('MMM d').format(earliest.dueDate);
           final amtStr =
-              ' (${FormatUtils.formatMoney(earliest.rule.amount, decimals: 0)})';
-          nextSipInfo = '${earliest.rule.name} · $dateStr$amtStr';
+              ' (${FormatUtils.formatMoney(earliest.amountRupees, decimals: 0)})';
+          nextSipInfo = '${earliest.plan.title} · $dateStr$amtStr';
         }
 
         return HomeCardFrame(
           icon: LucideIcons.wallet,
           title: 'Finance Summary',
           onTap: () {
-            AppNav.openMoney(context);
+            AppNav.openMoney(context, deepLink: 'today');
           },
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -93,7 +111,7 @@ class FinanceCard extends StatelessWidget {
           ),
           child: _buildContent(
             context: context,
-            controller: controller,
+            snapshot: snapshot,
             now: now,
             moneyLeft: moneyLeft,
             report: report,
@@ -109,11 +127,11 @@ class FinanceCard extends StatelessWidget {
 
   Widget _buildContent({
     required BuildContext context,
-    required FinanceController controller,
+    required MoneySnapshot snapshot,
     required DateTime now,
     required double moneyLeft,
-    required dynamic report,
-    required dynamic safeToSpend,
+    required _MonthReport report,
+    required _SafeToSpendData safeToSpend,
     required String safeToSpendDisplay,
     required bool isShortfall,
     required String? nextSipInfo,
@@ -122,7 +140,6 @@ class FinanceCard extends StatelessWidget {
       case HomeCardSize.compact:
         return _buildCompact(
           context: context,
-          controller: controller,
           moneyLeft: moneyLeft,
           safeToSpend: safeToSpend,
           safeToSpendDisplay: safeToSpendDisplay,
@@ -131,7 +148,6 @@ class FinanceCard extends StatelessWidget {
       case HomeCardSize.large:
         return _buildLarge(
           context: context,
-          controller: controller,
           moneyLeft: moneyLeft,
           report: report,
           safeToSpend: safeToSpend,
@@ -142,7 +158,7 @@ class FinanceCard extends StatelessWidget {
       case HomeCardSize.hero:
         return _buildHero(
           context: context,
-          controller: controller,
+          snapshot: snapshot,
           now: now,
           moneyLeft: moneyLeft,
           report: report,
@@ -153,9 +169,8 @@ class FinanceCard extends StatelessWidget {
 
   Widget _buildCompact({
     required BuildContext context,
-    required FinanceController controller,
     required double moneyLeft,
-    required dynamic safeToSpend,
+    required _SafeToSpendData safeToSpend,
     required String safeToSpendDisplay,
     required bool isShortfall,
   }) {
@@ -195,8 +210,7 @@ class FinanceCard extends StatelessWidget {
             ),
             InkWell(
               onTap: () {
-                final exp = controller.getSafeToSpendExplanation();
-                SafeToSpendBreakdownSheet.show(context, exp);
+                AppNav.openMoney(context, deepLink: 'today');
               },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -234,10 +248,9 @@ class FinanceCard extends StatelessWidget {
 
   Widget _buildLarge({
     required BuildContext context,
-    required FinanceController controller,
     required double moneyLeft,
-    required dynamic report,
-    required dynamic safeToSpend,
+    required _MonthReport report,
+    required _SafeToSpendData safeToSpend,
     required String safeToSpendDisplay,
     required bool isShortfall,
     required String? nextSipInfo,
@@ -254,8 +267,7 @@ class FinanceCard extends StatelessWidget {
           children: [
             InkWell(
               onTap: () {
-                final exp = controller.getSafeToSpendExplanation();
-                SafeToSpendBreakdownSheet.show(context, exp);
+                AppNav.openMoney(context, deepLink: 'today');
               },
               borderRadius: BorderRadius.circular(8),
               child: Column(
@@ -422,19 +434,33 @@ class FinanceCard extends StatelessWidget {
 
   Widget _buildHero({
     required BuildContext context,
-    required FinanceController controller,
+    required MoneySnapshot snapshot,
     required DateTime now,
     required double moneyLeft,
-    required dynamic report,
+    required _MonthReport report,
     required String? nextSipInfo,
   }) {
-    // 6-month historical trend
+    // 6-month historical trend derived purely from snapshot
     final trendList = <Map<String, dynamic>>[];
     double maxAmount = 1.0;
     for (var i = 5; i >= 0; i--) {
       final m = DateTime(now.year, now.month - i);
-      final inc = controller.getMonthIncome(m);
-      final exp = controller.getMonthSpending(m);
+      double inc = 0.0;
+      double exp = 0.0;
+      if (i == 0) {
+        inc = report.income;
+        exp = report.spending;
+      } else {
+        for (final e in snapshot.recentEntries) {
+          if (e.date.year == m.year && e.date.month == m.month) {
+            if (e.kind == EntryKind.received) {
+              inc += Minor.fromMinor(e.amountMinor);
+            } else if (e.kind == EntryKind.spent) {
+              exp += Minor.fromMinor(e.amountMinor);
+            }
+          }
+        }
+      }
       if (inc > maxAmount) maxAmount = inc;
       if (exp > maxAmount) maxAmount = exp;
       trendList.add({

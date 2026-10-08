@@ -58,6 +58,12 @@ class MoneyService {
     });
   }
 
+  /// Cancels any active timers and cleans up resources.
+  void dispose() {
+    _undoExpiryTimer?.cancel();
+    _undoExpiryTimer = null;
+  }
+
   int _counter = 0;
   String _generateId(String prefix) {
     _counter++;

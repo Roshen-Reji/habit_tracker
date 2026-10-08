@@ -133,7 +133,6 @@ class _BalanceReviewDialogState extends State<BalanceReviewDialog> {
               const SizedBox(height: 16),
               Flexible(
                 child: ListView.separated(
-                  shrinkWrap: true,
                   itemCount: widget.discrepancies.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (ctx, idx) {

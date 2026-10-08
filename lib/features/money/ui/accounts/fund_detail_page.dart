@@ -269,57 +269,62 @@ class _FundDetailPageState extends State<FundDetailPage> {
                   decoration: BoxDecoration(
                       color: BentoTheme.surface,
                       borderRadius: BorderRadius.circular(18)),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: deposits.length,
-                    separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        indent: 50,
-                        color: BentoTheme.divider.withValues(alpha: 0.3)),
-                    itemBuilder: (ctx, idx) {
-                      final e = deposits[idx];
-                      final isDeposit = e.toAccountId == widget.accountId;
+                  child: Column(
+                    children: [
+                      for (int idx = 0; idx < deposits.length; idx++) ...[
+                        if (idx > 0)
+                          Divider(
+                              height: 1,
+                              indent: 50,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                        Builder(builder: (ctx) {
+                          final e = deposits[idx];
+                          final isDeposit = e.toAccountId == widget.accountId;
 
-                      return ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: (isDeposit
+                          return ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: (isDeposit
+                                        ? BentoTheme.positive
+                                        : BentoTheme.negative)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                MoneyCategoryIcon.getIcon(e.icon ?? e.category),
+                                color: isDeposit
                                     ? BentoTheme.positive
-                                    : BentoTheme.negative)
-                                .withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            MoneyCategoryIcon.getIcon(e.icon ?? e.category),
-                            color: isDeposit
-                                ? BentoTheme.positive
-                                : BentoTheme.negative,
-                            size: 16,
-                          ),
-                        ),
-                        title: Text(e.title,
-                            style: TextStyle(
-                                color: BentoTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13)),
-                        subtitle: Text(DateFormat('dd MMM yyyy').format(e.date),
-                            style: TextStyle(
-                                color: BentoTheme.textSecondary, fontSize: 11)),
-                        trailing: Text(
-                          '${isDeposit ? '+' : '-'}${Minor.format(e.amountMinor)}',
-                          style: TextStyle(
-                            color: isDeposit
-                                ? BentoTheme.positive
-                                : BentoTheme.negative,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        onTap: () => QuickAddSheet.show(context, editEntry: e),
-                      );
-                    },
+                                    : BentoTheme.negative,
+                                size: 16,
+                              ),
+                            ),
+                            title: Text(e.title,
+                                style: TextStyle(
+                                    color: BentoTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
+                            subtitle: Text(
+                                DateFormat('dd MMM yyyy').format(e.date),
+                                style: TextStyle(
+                                    color: BentoTheme.textSecondary,
+                                    fontSize: 11)),
+                            trailing: Text(
+                              '${isDeposit ? '+' : '-'}${Minor.format(e.amountMinor)}',
+                              style: TextStyle(
+                                color: isDeposit
+                                    ? BentoTheme.positive
+                                    : BentoTheme.negative,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            onTap: () =>
+                                QuickAddSheet.show(context, editEntry: e),
+                          );
+                        }),
+                      ],
+                    ],
                   ),
                 ),
             ],

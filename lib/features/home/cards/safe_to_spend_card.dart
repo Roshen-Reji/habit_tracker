@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
-import 'package:habit_tracker/features/finance/data/finance_controller.dart';
-import 'package:habit_tracker/features/finance/engine/forecast_engine.dart';
-import 'package:habit_tracker/features/finance/engine/safe_to_spend_engine.dart';
+import 'package:habit_tracker/features/money/core/free_to_spend.dart';
+import 'package:habit_tracker/features/money/core/snapshot.dart';
+import 'package:habit_tracker/features/money/state/money_state.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
@@ -22,66 +22,67 @@ class SafeToSpendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Hive.isBoxOpen('fin_accounts') ||
-        !Hive.isBoxOpen('finance_transactions')) {
-      return HomeCardFrame(
-        icon: LucideIcons.shieldCheck,
-        title: 'Safe to Spend',
-        child: Text(
-          'Finance data unavailable',
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
-        ),
-      );
-    }
-    final controller = FinanceController();
-    final safeToSpend = controller.getSafeToSpend();
-    final explanation = controller.getSafeToSpendExplanation();
+    return ValueListenableBuilder<MoneySnapshot>(
+      valueListenable: MoneyState(),
+      builder: (context, snapshot, _) {
+        final fts = snapshot.freeToSpend;
+        final isShortfall = fts.isShort;
+        final now = snapshot.asOf;
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        final daysLeft = (daysInMonth - now.day).clamp(1, 31);
+        final freeToSpendRupees = fts.freeToSpendRupees;
+        final perDay = isShortfall ? 0.0 : (freeToSpendRupees / daysLeft);
 
-    final isShortfall = safeToSpend.hasShortfall;
-    final displayAmount = isShortfall
-        ? 'Deficit ${FormatUtils.formatMoney(safeToSpend.shortfall, decimals: 0)}'
-        : FormatUtils.formatMoney(safeToSpend.safeToSpend, decimals: 0);
-    final perDayAmount = isShortfall
-        ? 'DEFICIT'
-        : '${FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0)}/day';
+        final displayAmount = isShortfall
+            ? 'Short by ${FormatUtils.formatMoney(fts.shortByRupees, decimals: 0)}'
+            : FormatUtils.formatMoney(freeToSpendRupees, decimals: 0);
 
-    return HomeCardFrame(
-      icon: isShortfall ? LucideIcons.alertTriangle : LucideIcons.shieldCheck,
-      title: 'Safe to Spend',
-      onTap: () {
-        AppNav.openMoney(context, deepLink: 'overview');
-      },
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: (isShortfall ? AppColors.error : BentoTheme.accent)
-              .withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          perDayAmount,
-          style: TextStyle(
-            color: isShortfall ? AppColors.error : BentoTheme.accent,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
+        final perDayAmount = isShortfall
+            ? 'DEFICIT'
+            : '${FormatUtils.formatMoney(perDay, decimals: 0)}/day';
+
+        return HomeCardFrame(
+          icon:
+              isShortfall ? LucideIcons.alertTriangle : LucideIcons.shieldCheck,
+          title: 'Safe to Spend',
+          onTap: () {
+            AppNav.openMoney(context, deepLink: 'today');
+          },
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (isShortfall ? AppColors.error : BentoTheme.accent)
+                  .withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              perDayAmount,
+              style: TextStyle(
+                color: isShortfall ? AppColors.error : BentoTheme.accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: _buildBody(
-        context: context,
-        safeToSpend: safeToSpend,
-        explanation: explanation,
-        displayAmount: displayAmount,
-        perDayAmount: perDayAmount,
-        isShortfall: isShortfall,
-      ),
+          child: _buildBody(
+            context: context,
+            fts: fts,
+            daysLeft: daysLeft,
+            perDay: perDay,
+            displayAmount: displayAmount,
+            perDayAmount: perDayAmount,
+            isShortfall: isShortfall,
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBody({
     required BuildContext context,
-    required SafeToSpendResult safeToSpend,
-    required SafeToSpendExplanation explanation,
+    required FreeToSpendResult fts,
+    required int daysLeft,
+    required double perDay,
     required String displayAmount,
     required String perDayAmount,
     required bool isShortfall,
@@ -94,7 +95,7 @@ class SafeToSpendCard extends StatelessWidget {
             Text(
               isShortfall
                   ? displayAmount
-                  : FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0),
+                  : FormatUtils.formatMoney(perDay, decimals: 0),
               style: TextStyle(
                 color: isShortfall ? AppColors.error : BentoTheme.textPrimary,
                 fontSize: 26,
@@ -107,7 +108,7 @@ class SafeToSpendCard extends StatelessWidget {
             Text(
               isShortfall
                   ? 'Committed obligations exceed liquid reserves'
-                  : 'per day available for the next ${safeToSpend.daysLeft} days',
+                  : 'per day available for the next $daysLeft days',
               style: TextStyle(
                 color: BentoTheme.textSecondary,
                 fontSize: 12,
@@ -138,7 +139,7 @@ class SafeToSpendCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${safeToSpend.daysLeft} days remaining in month',
+                      '$daysLeft days remaining in month',
                       style: TextStyle(
                         color: BentoTheme.textSecondary,
                         fontSize: 11,
@@ -157,14 +158,13 @@ class SafeToSpendCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _buildDeductionsList(explanation),
+            _buildDeductionsList(fts),
           ],
         );
       case HomeCardSize.hero:
-        final double liquid = explanation.liquid;
-        final double ratio = liquid > 0
-            ? (safeToSpend.safeToSpend / liquid).clamp(0.0, 1.0)
-            : 0.0;
+        final double liquid = fts.availableRupees;
+        final double ratio =
+            liquid > 0 ? (fts.freeToSpendRupees / liquid).clamp(0.0, 1.0) : 0.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +172,7 @@ class SafeToSpendCard extends StatelessWidget {
             Text(
               isShortfall
                   ? displayAmount
-                  : FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0),
+                  : FormatUtils.formatMoney(perDay, decimals: 0),
               style: TextStyle(
                 color: isShortfall ? AppColors.error : BentoTheme.textPrimary,
                 fontSize: 44,
@@ -184,7 +184,7 @@ class SafeToSpendCard extends StatelessWidget {
             Text(
               isShortfall
                   ? 'Deficit for committed month-end obligations'
-                  : 'Daily spend pace · ${FormatUtils.formatMoney(safeToSpend.safeToSpend, decimals: 0)} total',
+                  : 'Daily spend pace · ${FormatUtils.formatMoney(fts.freeToSpendRupees, decimals: 0)} total',
               style: TextStyle(
                 color: BentoTheme.textSecondary,
                 fontSize: 12,
@@ -199,42 +199,14 @@ class SafeToSpendCard extends StatelessWidget {
                   : ProgressSemantic.neutral,
             ),
             const SizedBox(height: 12),
-            _buildDeductionsList(explanation),
+            _buildDeductionsList(fts),
           ],
         );
     }
   }
 
-  Widget _buildDeductionsList(SafeToSpendExplanation exp) {
-    final items = <Map<String, dynamic>>[];
-    if (exp.obligations > 0) {
-      items.add({
-        'label': 'Bills & Subscriptions',
-        'amount': exp.obligations,
-        'icon': LucideIcons.calendarClock,
-      });
-    }
-    if (exp.goalsEarmark > 0) {
-      items.add({
-        'label': 'Earmarked Goals',
-        'amount': exp.goalsEarmark,
-        'icon': LucideIcons.target,
-      });
-    }
-    if (exp.plannedEssential > 0) {
-      items.add({
-        'label': 'Essential Budget',
-        'amount': exp.plannedEssential,
-        'icon': LucideIcons.pieChart,
-      });
-    }
-    if (exp.cardDues > 0) {
-      items.add({
-        'label': 'Card Dues',
-        'amount': exp.cardDues,
-        'icon': LucideIcons.creditCard,
-      });
-    }
+  Widget _buildDeductionsList(FreeToSpendResult fts) {
+    final items = fts.upcomingPlansThisMonth;
 
     if (items.isEmpty) {
       return Text(
@@ -244,25 +216,26 @@ class SafeToSpendCard extends StatelessWidget {
     }
 
     return Column(
-      children: items.take(4).map((i) {
+      children: items.take(4).map((occ) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2.5),
           child: Row(
             children: [
-              Icon(i['icon'] as IconData,
+              Icon(LucideIcons.calendarClock,
                   size: 13, color: BentoTheme.textSecondary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  i['label'] as String,
+                  '${occ.plan.title} (${DateFormat('d MMM').format(occ.dueDate)})',
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 11,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
-                FormatUtils.formatMoney(i['amount'] as double, decimals: 0),
+                FormatUtils.formatMoney(occ.amountRupees, decimals: 0),
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 11,
