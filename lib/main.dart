@@ -24,6 +24,8 @@ import 'package:habit_tracker/features/wearables/data/wearable_cleanup_service.d
 import 'package:habit_tracker/features/finance/engine/recurring_runner.dart';
 import 'package:habit_tracker/data/services/reminder_scheduler.dart';
 import 'package:habit_tracker/core/progression/progression_service.dart';
+import 'package:habit_tracker/features/money/data/money_service.dart';
+import 'package:habit_tracker/features/money/data/plan_runner.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -147,6 +149,7 @@ void main() async {
     try {
       await FinanceStorage().init();
       await FinanceMigrator().migrateIfNeeded();
+      MoneyService().init();
     } catch (e) {
       debugPrint('FinanceStorage init / migration warning: $e');
     }
@@ -208,6 +211,11 @@ void main() async {
       await RecurringRunner.run();
     } catch (e) {
       debugPrint('RecurringRunner warning: $e');
+    }
+    try {
+      await PlanRunner().runDuePlans();
+    } catch (e) {
+      debugPrint('PlanRunner warning: $e');
     }
     try {
       await ReminderScheduler.sync();

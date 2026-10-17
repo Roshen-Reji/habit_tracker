@@ -12,6 +12,8 @@ import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/engine/recurring_engine.dart';
 import 'package:habit_tracker/features/finance/engine/loan_engine.dart';
 import 'package:habit_tracker/features/finance/models/models.dart';
+import 'package:habit_tracker/features/money/data/money_store.dart';
+import 'package:habit_tracker/features/money/state/money_state.dart';
 
 /// Draft object used to create a new Transaction through the repository.
 class TxDraft {
@@ -92,6 +94,9 @@ class FinanceRepository {
 
   void _notify() {
     changes.value++;
+    try {
+      MoneyState().refreshFromStore(MoneyStore(storage: storage));
+    } catch (_) {}
   }
 
   int _counter = 0;

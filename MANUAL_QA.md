@@ -342,6 +342,86 @@ This section covers device-only hardware tests, OS permissions, biometric sensor
    - Re-open the document: resumes directly at page 15 without jumping to page 0 or page 1.
 3. **Missing File Handling**:
    - Delete the PDF from disk externally.
-   - Open the book from Library:
+- Open the book from Library:
    - Displays clean error card ("PDF Document Not Found on Device") with option to locate or remove from library without crashing.
+
+---
+
+## 12. Money v2 Acceptance Scenarios (Device Verification)
+
+Run these 11 scenarios on a real device or emulator to verify end-to-end correctness of the Money rewrite:
+
+### Scenario 1: Quick Spend & Immediate Reflection (Law L1, L8)
+1. Open Money v2 (Today tab). Note Main account balance.
+2. Tap "Spent" button. Key in `₹200`, choose "Food", and tap "Save Entry".
+3. **Verify:**
+   - Main balance drops by exactly `₹200` immediately with smooth number roll (`AnimatedMoneyText`).
+   - Free to Spend updates in the same frame.
+   - Switch to Activity tab: `₹200 Food` is listed under Today.
+   - Switch to Accounts tab: Main Checking is reduced by `₹200`.
+   - Bottom SnackBar shows `Spent ₹200.00` with an **Undo** button for 5 seconds.
+   - Tap **Undo**: `₹200` is restored across Today, Activity, and Accounts immediately.
+
+### Scenario 2: Backdated Spend & Pre-Opening Spend (Law L2)
+1. Tap "Spent" -> More options. Pick yesterday's date. Enter `₹150`. Save.
+2. Tap "Spent" -> More options. Pick a date from 2024 (prior to account opening). Enter `₹100`. Save.
+3. **Verify:**
+   - Both spends are deducted from Main balance (`-₹250` total).
+   - Neither spend is skipped or ignored by the ledger.
+
+### Scenario 3: Edit and Delete Old Entries (Law L8)
+1. In Activity tab, tap any existing transaction to edit.
+2. Change amount from `₹200` to `₹250`. Save.
+3. **Verify:** Balance drops by `₹50` everywhere.
+4. Swipe the transaction left to delete.
+5. **Verify:** Item slides out, balance restores by `₹250`, and SnackBar offers 5-second Undo.
+
+### Scenario 4: SIP Execution & Idempotency (Law L4, L6)
+1. Navigate to Plans -> Add Plan -> Select **SIP**.
+2. Title: `Index SIP`, Amount: `₹1,000`, Due Day: current day of month, Destination: select or inline-create a mutual fund.
+3. Save plan.
+4. **Verify:**
+   - Main balance drops by `₹1,000`, fund invested increases by `₹1,000`.
+   - Background plan runner posts exactly once with key `plan:{id}:{yyyy-MM-dd}`.
+   - Restart the app: nothing is re-posted.
+5. In Accounts tab, open the Fund:
+   - Tap "Update Value", enter `₹2,300`.
+   - **Verify:** Invested shows `₹1,000`, Value shows `₹2,300`, Gain shows `+₹1,300`.
+
+### Scenario 5: Past Start Date Prompt (Law L6)
+1. In Plans, tap Add Plan. Set start date 3 months in the past.
+2. Tap Save:
+   - Dialog prompts: "Start from today (Default)" or "Post missed".
+   - Select "Start from today": no transactions are created for past months.
+
+### Scenario 6: Needs Funds Handling (Law L6)
+1. When Main balance is lower than a due plan (e.g. ₹500 balance, ₹1,000 SIP due):
+   - Runner skips posting (no negative surprise).
+   - Plan row displays a clear amber **"Needs funds"** badge.
+   - Adding funds and re-opening posts the plan cleanly.
+
+### Scenario 7: EMI Principal & Interest Split (Law L5)
+1. Record a move from Main to a Loan account with interest specified.
+2. **Verify:** Loan outstanding reduces by principal only; interest is recorded as an expense on Main.
+
+### Scenario 8: Account Moves (Law L1)
+1. Tap "Moved" on Today tab. Transfer `₹1,000` from Main to Savings.
+2. **Verify:** Main falls by `₹1,000`, Savings rises by `₹1,000`, Net Worth remains completely unchanged.
+
+### Scenario 9: Kill & Restart Persistence
+1. Force close the app via Android task manager.
+2. Re-open Commander Habit Tracker.
+3. **Verify:** Every number on Today, Activity, Plans, Accounts, and Home cards matches the state before kill.
+
+### Scenario 10: Smoothness & Frame Budget (Section 7)
+1. Scroll Activity tab with 100+ transactions: verify 60Hz/120Hz smoothness without micro-stutters.
+2. Switch tabs: verify 220ms fade + 12px vertical shift transition.
+3. Today tab loads within 300ms.
+
+### Scenario 11: Home Cards Sync (Law L9)
+1. Look at Home cards: **Safe to Spend**, **Finance Summary**, **Net Worth**, and **Upcoming Bills**.
+2. Add a spend in Money.
+3. Return to Home:
+   - All 4 cards reflect the updated numbers in real time without refreshing or restarting.
+
 

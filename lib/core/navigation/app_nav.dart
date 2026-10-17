@@ -9,7 +9,9 @@ import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
 import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
+import 'package:hive/hive.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
+import 'package:habit_tracker/features/money/ui/shell/money_shell.dart';
 
 enum AppTab {
   home,
@@ -96,23 +98,47 @@ class AppNav extends ChangeNotifier {
     int initialTab = 0,
     String? deepLink,
   }) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MoneyShellPage(
-          initialTab: initialTab,
-          deepLink: deepLink,
+    final useLegacy = Hive.isBoxOpen('finance_settings') &&
+        (Hive.box('finance_settings')
+                .get('money2_use_legacy', defaultValue: false) ==
+            true);
+
+    if (useLegacy) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MoneyShellPage(
+            initialTab: initialTab,
+            deepLink: deepLink,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MoneyShell(
+            initialTab: initialTab,
+            deepLink: deepLink,
+          ),
+        ),
+      );
+    }
   }
 
   /// Opens the Accounts management screen.
   static Future<void> openAccounts(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AccountsPage(),
-      ),
-    );
+    final useLegacy = Hive.isBoxOpen('finance_settings') &&
+        (Hive.box('finance_settings')
+                .get('money2_use_legacy', defaultValue: false) ==
+            true);
+    if (useLegacy) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AccountsPage(),
+        ),
+      );
+    } else {
+      await openMoney(context, deepLink: 'accounts');
+    }
   }
 
   /// Opens the Net Worth screen.
@@ -138,11 +164,19 @@ class AppNav extends ChangeNotifier {
 
   /// Opens the Bills & Subscriptions recurring management screen.
   static Future<void> openBills(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const RecurringPage(),
-      ),
-    );
+    final useLegacy = Hive.isBoxOpen('finance_settings') &&
+        (Hive.box('finance_settings')
+                .get('money2_use_legacy', defaultValue: false) ==
+            true);
+    if (useLegacy) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const RecurringPage(),
+        ),
+      );
+    } else {
+      await openMoney(context, deepLink: 'plans');
+    }
   }
 
   /// Opens the Financial Calendar screen.
