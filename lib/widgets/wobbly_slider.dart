@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:habit_tracker/core/motion/motion_tokens.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 
@@ -20,24 +22,31 @@ class WobblySlider extends StatefulWidget {
 }
 
 class _WobblySliderState extends State<WobblySlider>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _springController;
   bool _isDragging = false;
   double _dragValue = 0;
+  double _verticalTension = 0.0;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration:
-          const Duration(milliseconds: 2000), // Slightly slower, more fluid
+      duration: const Duration(milliseconds: 2000),
     )..repeat();
+
+    _springController = AnimationController.unbounded(
+      vsync: this,
+      value: 0.0,
+    );
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _springController.dispose();
     super.dispose();
   }
 
@@ -46,8 +55,20 @@ class _WobblySliderState extends State<WobblySlider>
     double newValue = percent * widget.max;
     setState(() {
       _dragValue = newValue;
+      _verticalTension = (localPosition.dy - 20.0).clamp(-20.0, 20.0);
     });
     widget.onChanged(newValue);
+  }
+
+  void _releaseSpring() {
+    setState(() => _isDragging = false);
+    final simulation = SpringSimulation(
+      MotionTokens.snappyMicro,
+      _verticalTension,
+      0.0,
+      0.0,
+    );
+    _springController.animateWith(simulation);
   }
 
   @override
@@ -58,32 +79,37 @@ class _WobblySliderState extends State<WobblySlider>
 
     return GestureDetector(
       onPanStart: (details) {
+        _springController.stop();
         setState(() => _isDragging = true);
       },
       onPanUpdate: (details) {
         final RenderBox box = context.findRenderObject() as RenderBox;
         _updateValue(details.localPosition, box.size.width);
       },
-      onPanEnd: (details) {
-        setState(() => _isDragging = false);
-      },
+      onPanEnd: (_) => _releaseSpring(),
+      onPanCancel: () => _releaseSpring(),
       onTapDown: (details) {
         final RenderBox box = context.findRenderObject() as RenderBox;
         _updateValue(details.localPosition, box.size.width);
+        _releaseSpring();
       },
       child: SizedBox(
         height: 40,
         width: double.infinity,
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_controller, _springController]),
           builder: (context, child) {
-            return CustomPaint(
-              painter: _WobblySliderPainter(
-                progress: percent,
-                animationValue: _controller.value,
-                activeColor: AppColors.primary,
-                inactiveColor: BentoTheme.textSecondary.withValues(alpha: 0.2),
-                knobColor: BentoTheme.textPrimary,
+            final double tension = _isDragging ? _verticalTension : _springController.value;
+            return RepaintBoundary(
+              child: CustomPaint(
+                painter: _WobblySliderPainter(
+                  progress: percent,
+                  animationValue: _controller.value,
+                  elasticTension: tension,
+                  activeColor: AppColors.primary,
+                  inactiveColor: BentoTheme.textSecondary.withValues(alpha: 0.2),
+                  knobColor: BentoTheme.textPrimary,
+                ),
               ),
             );
           },
@@ -96,6 +122,7 @@ class _WobblySliderState extends State<WobblySlider>
 class _WobblySliderPainter extends CustomPainter {
   final double progress;
   final double animationValue;
+  final double elasticTension;
   final Color activeColor;
   final Color inactiveColor;
   final Color knobColor;
@@ -103,6 +130,7 @@ class _WobblySliderPainter extends CustomPainter {
   _WobblySliderPainter({
     required this.progress,
     required this.animationValue,
+    this.elasticTension = 0.0,
     required this.activeColor,
     required this.inactiveColor,
     required this.knobColor,
@@ -128,6 +156,20 @@ class _WobblySliderPainter extends CustomPainter {
     double amplitude = 6.0; // height of the wave
     double wavelength = 40.0; // length of one wave cycle
 
+    // Helper for elastic baseline deflection
+    double getBaselineY(double x) {
+      if (activeWidth <= 0) {
+        return midY;
+      }
+      if (x <= activeWidth) {
+        return midY + (elasticTension * (x / activeWidth));
+      } else {
+        double remaining = size.width - activeWidth;
+        if (remaining <= 0) return midY;
+        return midY + (elasticTension * (1.0 - ((x - activeWidth) / remaining)));
+      }
+    }
+
     // Draw secondary (background) active track for a premium liquid feel
     if (activeWidth > 0) {
       final secondaryPaint = Paint()
@@ -148,7 +190,8 @@ class _WobblySliderPainter extends CustomPainter {
         double normalizedX = x / activeWidth;
         double envelope = math.sin(normalizedX * math.pi);
 
-        double y = midY + math.sin(phase) * (amplitude * 0.8) * envelope;
+        double baseY = getBaselineY(x);
+        double y = baseY + math.sin(phase) * (amplitude * 0.8) * envelope;
         secondaryPath.lineTo(x, y);
       }
       canvas.drawPath(secondaryPath, secondaryPaint);
@@ -167,22 +210,25 @@ class _WobblySliderPainter extends CustomPainter {
         double normalizedX = x / activeWidth;
         double envelope = math.sin(normalizedX * math.pi);
 
-        double y = midY + math.sin(phase) * amplitude * envelope;
+        double baseY = getBaselineY(x);
+        double y = baseY + math.sin(phase) * amplitude * envelope;
         activePath.lineTo(x, y);
       }
       canvas.drawPath(activePath, activePaint);
     }
 
-    // Draw inactive track (straight line)
+    // Draw inactive track (deflected string)
     if (activeWidth < size.width) {
-      canvas.drawLine(
-        Offset(activeWidth, midY),
-        Offset(size.width, midY),
-        inactivePaint,
-      );
+      Path inactivePath = Path();
+      inactivePath.moveTo(activeWidth, midY + elasticTension);
+      for (double x = activeWidth; x <= size.width; x += 2.0) {
+        inactivePath.lineTo(x, getBaselineY(x));
+      }
+      canvas.drawPath(inactivePath, inactivePaint);
     }
 
-    // Draw knob
+    // Knob position with elastic deflection
+    final double knobY = midY + elasticTension;
     final knobPaint = Paint()
       ..color = knobColor
       ..style = PaintingStyle.fill;
@@ -191,17 +237,18 @@ class _WobblySliderPainter extends CustomPainter {
     canvas.drawShadow(
         Path()
           ..addOval(
-              Rect.fromCircle(center: Offset(activeWidth, midY), radius: 6.5)),
+              Rect.fromCircle(center: Offset(activeWidth, knobY), radius: 6.5)),
         Colors.black,
         4,
         true);
-    canvas.drawCircle(Offset(activeWidth, midY), 6.5, knobPaint);
+    canvas.drawCircle(Offset(activeWidth, knobY), 6.5, knobPaint);
   }
 
   @override
   bool shouldRepaint(covariant _WobblySliderPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.animationValue != animationValue ||
+        oldDelegate.elasticTension != elasticTension ||
         oldDelegate.activeColor != activeColor ||
         oldDelegate.inactiveColor != inactiveColor ||
         oldDelegate.knobColor != knobColor;

@@ -70,7 +70,6 @@ class HealthConnectSource implements WearableSource {
   @override
   Future<List<DailyActivity>> fetchDailyActivity(int days) async {
     final now = DateTime.now();
-    final start = now.subtract(Duration(days: days));
     final List<DailyActivity> list = [];
 
     // health package aggregate calls per day
@@ -166,11 +165,8 @@ class HealthConnectSource implements WearableSource {
       // but in flutter_health, the value might be a WorkoutHealthValue
       if (d.value is WorkoutHealthValue) {
         final wv = d.value as WorkoutHealthValue;
-        activeKcal = wv.totalEnergyBurned != null
-            ? wv.totalEnergyBurned!.toDouble()
-            : null;
-        distance =
-            wv.totalDistance != null ? wv.totalDistance!.toDouble() : null;
+        activeKcal = wv.totalEnergyBurned?.toDouble();
+        distance = wv.totalDistance?.toDouble();
       }
 
       list.add(ExerciseSession(
@@ -223,4 +219,10 @@ class HealthConnectSource implements WearableSource {
 
     return byDay.values.toList();
   }
+
+  @override
+  Future<List<EnergyScoreDay>> fetchEnergyScores(int days) async => [];
+
+  @override
+  Future<List<AgesSample>> fetchAgesSamples(int days) async => [];
 }

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/features/finance/data/finance_lock_service.dart';
 import 'package:habit_tracker/features/finance/data/finance_encryption_service.dart';
-import 'package:habit_tracker/features/finance/engine/money.dart';
 import 'package:habit_tracker/features/finance/models/account.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart';
 

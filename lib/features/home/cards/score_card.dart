@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/models/user_rank.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
+import 'package:habit_tracker/data/services/rank_service.dart';
 import 'package:habit_tracker/data/services/score_service.dart';
+import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/tasks/task_analytics_page.dart';
 
-import 'package:habit_tracker/features/home/cards/home_card.dart';
-import 'package:habit_tracker/data/services/global_xp_service.dart';
-import 'package:intl/intl.dart';
-
+/// Executive Telemetry Module for XP Totals & Live Service Rank (AGENTS.md Phase 3.1).
 class ScoreCard extends StatelessWidget {
   final HomeCardSize size;
 
@@ -30,35 +35,58 @@ class ScoreCard extends StatelessWidget {
         final year = summary['year'] ?? 0;
         final xpHistory = GlobalXPService.getPast7DaysXP();
 
+        // Calculate live UserRank
+        final missionBox = Hive.isBoxOpen('mission_box_v4')
+            ? Hive.box<Goal>('mission_box_v4')
+            : null;
+        final goals = missionBox?.values.toList() ?? <Goal>[];
+        final UserRank rank = RankService.calculateServiceRecord(goals);
+
         return HomeCardFrame(
+          domain: HomeCardDomain.telemetry,
           icon: LucideIcons.trophy,
-          title: 'XP Totals',
+          title: 'Executive Telemetry',
+          subtitle: '${rank.title} • LVL ${rank.level}',
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const TaskAnalyticsPage(),
+              PageTransitions.containerTransform(
+                const TaskAnalyticsPage(),
               ),
             );
           },
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Analytics',
-                style: TextStyle(
-                  color: BentoTheme.accent,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+          statusBadge: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: TactileTokens.vermilion.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: TactileTokens.vermilion.withValues(alpha: 0.3),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(LucideIcons.shield, size: 10, color: TactileTokens.vermilion),
+                const SizedBox(width: 4),
+                Text(
+                  rank.position,
+                  style: const TextStyle(
+                    fontFamily: 'Roboto',
+                    color: TactileTokens.vermilion,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                LucideIcons.arrowRight,
-                size: 13,
-                color: BentoTheme.accent,
-              ),
-            ],
+              ],
+            ),
+          ),
+          trailing: const Icon(
+            LucideIcons.arrowUpRight,
+            size: 14,
+            color: TactileTokens.textMuted,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,19 +96,19 @@ class ScoreCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildXPColumn('WEEK', '$week XP', 'Past 7 days'),
+                  _buildXPColumn('WEEK', week, 'Past 7 days'),
                   Container(
                     width: 1,
                     height: 38,
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: const Color(0x12FFFFFF),
                   ),
-                  _buildXPColumn('MONTH', '$month XP', 'Past 30 days'),
+                  _buildXPColumn('MONTH', month, 'Past 30 days'),
                   Container(
                     width: 1,
                     height: 38,
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: const Color(0x12FFFFFF),
                   ),
-                  _buildXPColumn('YEAR', '$year XP', 'Past 365 days'),
+                  _buildXPColumn('YEAR', year, 'Past 365 days'),
                 ],
               ),
               if (size == HomeCardSize.large || size == HomeCardSize.hero) ...[
@@ -88,10 +116,11 @@ class ScoreCard extends StatelessWidget {
                 Text(
                   '7-DAY XP TREND',
                   style: TextStyle(
-                    color: BentoTheme.textSecondary,
+                    fontFamily: 'Roboto',
+                    color: BentoTheme.textMuted,
                     fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -104,39 +133,81 @@ class ScoreCard extends StatelessWidget {
     );
   }
 
+  Widget _buildXPColumn(String label, num xpValue, String sub) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            color: BentoTheme.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 3),
+        AnimatedMetricTicker.xp(
+          value: xpValue,
+          prefix: '',
+          style: TactileTokens.tabular(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: TactileTokens.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          sub,
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            color: BentoTheme.textMuted,
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _build7DayBars(List<int> xpHistory) {
-    final maxVal = xpHistory.fold<int>(1, (prev, e) => e > prev ? e : prev);
+    final max = xpHistory.isEmpty ? 1 : xpHistory.reduce((a, b) => a > b ? a : b);
+    final safeMax = max == 0 ? 1 : max;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(7, (index) {
-        final xp = xpHistory[index];
+        final xp = xpHistory.length > index ? xpHistory[index] : 0;
+        final ratio = (xp / safeMax).clamp(0.05, 1.0);
         final isToday = index == 6;
-        final date = DateTime.now().subtract(Duration(days: 6 - index));
-        final label = isToday
-            ? 'TODAY'
-            : DateFormat('EE').format(date).substring(0, 1).toUpperCase();
-        final ratio = (xp / maxVal).clamp(0.08, 1.0);
 
         return Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 28,
               height: 48 * ratio,
               decoration: BoxDecoration(
                 color: isToday
-                    ? BentoTheme.textPrimary
-                    : BentoTheme.textSecondary.withValues(alpha: 0.35),
+                    ? TactileTokens.vermilion
+                    : TactileTokens.surfaceRaised,
                 borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isToday
+                      ? TactileTokens.vermilion
+                      : const Color(0x18FFFFFF),
+                  width: 0.8,
+                ),
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              label,
+              isToday ? 'NOW' : 'D${index + 1}',
               style: TextStyle(
-                color:
-                    isToday ? BentoTheme.textPrimary : BentoTheme.textSecondary,
+                fontFamily: 'Roboto',
+                color: isToday
+                    ? TactileTokens.textPrimary
+                    : BentoTheme.textMuted,
                 fontSize: 9,
                 fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -144,39 +215,6 @@ class ScoreCard extends StatelessWidget {
           ],
         );
       }),
-    );
-  }
-
-  Widget _buildXPColumn(String label, String value, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: BentoTheme.textSecondary,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            color: BentoTheme.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          subtitle,
-          style: TextStyle(
-            color: BentoTheme.textSecondary.withValues(alpha: 0.7),
-            fontSize: 10,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
 import 'package:habit_tracker/features/brainstorm/brainstorm_page.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -20,19 +24,38 @@ class BrainstormCard extends StatelessWidget {
     final titleController = TextEditingController();
     final descController = TextEditingController();
 
-    showDialog(
+    showSpringDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: BentoTheme.surface,
+        backgroundColor: const Color(0xFF13151A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(ExpressiveTokens.radiusDialog),
-        ),
-        title: Text(
-          'Capture Idea',
-          style: TextStyle(
-            color: BentoTheme.textPrimary,
-            fontWeight: FontWeight.bold,
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
           ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: TactileTokens.amberWarning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.lightbulb,
+                  size: 16, color: TactileTokens.amberWarning),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Capture Idea',
+              style: TextStyle(
+                color: TactileTokens.warmIvory,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -40,15 +63,15 @@ class BrainstormCard extends StatelessWidget {
             TextField(
               controller: titleController,
               autofocus: true,
-              style: TextStyle(color: BentoTheme.textPrimary),
+              style: const TextStyle(color: TactileTokens.warmIvory),
               decoration: InputDecoration(
-                hintText: 'Idea Title...',
+                hintText: 'Idea title or spark...',
                 hintStyle: TextStyle(
-                    color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
+                    color: TactileTokens.warmIvory.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: BentoTheme.surfaceElevated,
+                fillColor: const Color(0xFF1C1F26),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -57,15 +80,15 @@ class BrainstormCard extends StatelessWidget {
             TextField(
               controller: descController,
               maxLines: 3,
-              style: TextStyle(color: BentoTheme.textPrimary),
+              style: const TextStyle(color: TactileTokens.warmIvory),
               decoration: InputDecoration(
-                hintText: 'Description or notes...',
+                hintText: 'Supporting notes or context...',
                 hintStyle: TextStyle(
-                    color: BentoTheme.textSecondary.withValues(alpha: 0.6)),
+                    color: TactileTokens.warmIvory.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: BentoTheme.surfaceElevated,
+                fillColor: const Color(0xFF1C1F26),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -73,16 +96,16 @@ class BrainstormCard extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
+          TactileButton(
+            size: TactileButtonSize.small,
+            variant: TactileButtonVariant.outline,
+            label: 'Cancel',
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: TextStyle(color: BentoTheme.textSecondary)),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF59E0B),
-              foregroundColor: Colors.black,
-            ),
+          TactileButton(
+            size: TactileButtonSize.small,
+            variant: TactileButtonVariant.primary,
+            label: 'Save Idea',
             onPressed: () async {
               final title = titleController.text.trim();
               final desc = descController.text.trim();
@@ -99,7 +122,6 @@ class BrainstormCard extends StatelessWidget {
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Save Idea'),
           ),
         ],
       ),
@@ -108,7 +130,7 @@ class BrainstormCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFF59E0B); // Amber accent
+    const accent = TactileTokens.amberWarning;
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<Idea>('ideas').listenable(),
@@ -119,13 +141,15 @@ class BrainstormCard extends StatelessWidget {
 
         return HomeCardFrame(
           icon: LucideIcons.lightbulb,
-          title: 'Brainstorm',
+          title: 'Brainstorm & Ideas',
+          subtitle: 'Tactile Ideation Desk',
+          domain: HomeCardDomain.editorial,
           accentColor: accent,
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const BrainstormPage(),
+              PageTransitions.containerTransform(
+                const BrainstormPage(),
               ),
             );
           },
@@ -134,13 +158,19 @@ class BrainstormCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: accent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: accent.withValues(alpha: 0.3),
+                width: 0.8,
+              ),
             ),
             child: Text(
-              '${ideas.length} ideas',
+              '${ideas.length} IDEAS',
               style: const TextStyle(
                 color: accent,
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
+                fontFeatures: [FontFeature.tabularFigures()],
+                letterSpacing: 0.6,
               ),
             ),
           ),
@@ -154,95 +184,93 @@ class BrainstormCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: BentoTheme.surfaceElevated,
-                      borderRadius:
-                          BorderRadius.circular(ExpressiveTokens.radiusSm),
+                      color: const Color(0xFF13151A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(LucideIcons.sparkles,
-                            color: accent, size: 14),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             idea.title,
-                            style: TextStyle(
-                              color: BentoTheme.textPrimary,
-                              fontSize: 13,
+                            style: const TextStyle(
+                              color: TactileTokens.warmIvory,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (idea.description.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            LucideIcons.alignLeft,
+                            size: 11,
+                            color: BentoTheme.textMuted,
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ] else ...[
-                Text(
-                  'Capture instant flashes of insight, project concepts, and future strategies.',
-                  style: TextStyle(
-                    color: BentoTheme.textSecondary,
-                    fontSize: 12,
-                    height: 1.4,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF13151A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Capture instant flashes of insight, project architectures, and upcoming strategies.',
+                    style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
               ],
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: BentoTheme.surfaceElevated,
-                        foregroundColor: BentoTheme.textPrimary,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(ExpressiveTokens.radiusSm),
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(LucideIcons.plus, size: 15),
-                      label: const Text(
-                        'Add Idea',
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
+                    child: TactileButton.icon(
+                      size: TactileButtonSize.small,
+                      variant: TactileButtonVariant.secondary,
+                      icon: LucideIcons.plus,
+                      label: 'Capture Idea',
                       onPressed: () => _showAddIdeaDialog(context),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accent.withValues(alpha: 0.15),
-                        foregroundColor: accent,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(ExpressiveTokens.radiusSm),
-                          side: BorderSide(
-                            color: accent.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(LucideIcons.layoutList, size: 15),
-                      label: const Text(
-                        'View All',
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
+                    child: TactileButton.icon(
+                      size: TactileButtonSize.small,
+                      variant: TactileButtonVariant.outline,
+                      icon: LucideIcons.layoutList,
+                      label: 'Desk View',
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const BrainstormPage(),
+                          PageTransitions.containerTransform(
+                            const BrainstormPage(),
                           ),
                         );
                       },

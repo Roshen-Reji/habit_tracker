@@ -134,7 +134,7 @@ void main() {
       });
 
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
 
       // Balance immediately drops from ₹10,000 to ₹9,000
       expect(

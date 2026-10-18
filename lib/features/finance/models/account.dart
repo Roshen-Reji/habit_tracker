@@ -1,4 +1,6 @@
 import 'package:hive/hive.dart';
+import 'package:habit_tracker/models/finance_model.dart';
+import 'package:habit_tracker/features/finance/engine/money.dart';
 
 part 'account.g.dart';
 
@@ -65,8 +67,8 @@ class Account extends HiveObject {
     required this.kind,
     this.institution,
     required this.openingBalance,
-    required this.openingDate,
-    required this.colorValue,
+    DateTime? openingDate,
+    this.colorValue = 0xFF10B981,
     this.archived = false,
     this.includeInNetWorth = true,
     this.spendable = true,
@@ -78,7 +80,20 @@ class Account extends HiveObject {
     this.emi,
     this.tenureMonths,
     this.startDate,
-  });
+  }) : openingDate = openingDate ?? DateTime(2026, 1, 1);
+
+  double balanceAsOf(Iterable<Transaction> txs, DateTime asOf) {
+    var bal = openingBalance;
+    for (final tx in txs) {
+      if (tx.date.isAfter(asOf)) continue;
+      if (tx.accountId == id) {
+        bal += tx.amount;
+      } else if (tx.toAccountId == id) {
+        bal += tx.amount.abs();
+      }
+    }
+    return Money.r2(bal);
+  }
 
   bool get isLiability =>
       kind == 'credit_card' ||

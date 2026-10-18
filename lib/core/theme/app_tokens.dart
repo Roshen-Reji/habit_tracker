@@ -34,20 +34,20 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.isDark,
   });
 
-  /// Dark mode tokens
+  /// Dark mode tokens (Tactile Precision / Neo-Hardware Dark)
   static const AppTokens dark = AppTokens(
-    background: Color(0xFF0A0A0B),
-    surface: Color(0xFF151517),
-    surfaceRaised: Color(0xFF1B1B1E),
-    surfaceSunken: Color(0xFF101011),
+    background: Color(0xFF090A0C), // Deep Obsidian
+    surface: Color(0xFF121418), // Matte Carbon
+    surfaceRaised: Color(0xFF16191F), // Elevated Matte Surface
+    surfaceSunken: Color(0xFF0C0E11), // Sunken Recessed Surface
     textPrimary: Color(0xFFFFFFFF),
     textSecondary: Color(0xA3FFFFFF), // 64% white
-    textMuted: Color(0x66FFFFFF), // 40% white
-    positive: Color(0xFF6BB58A), // muted calm green
-    negative: Color(0xFFE07A7A), // muted calm red
-    warning: Color(0xFFD9AE6B), // muted warm amber
-    accent: Color(0xFFFFFFFF), // neutral equals textPrimary
-    divider: Color(0x1AFFFFFF), // ~10% white for subtle dividers
+    textMuted: Color(0x59FFFFFF), // 35% white
+    positive: Color(0xFF10B981), // Emerald Mint
+    negative: Color(0xFFF43F5E), // Crimson Pulse
+    warning: Color(0xFFF59E0B), // Amber Warning
+    accent: Color(0xFFFF4F28), // Electric Vermilion primary signal
+    divider: Color(0x12FFFFFF), // 1px specular border rgba(255, 255, 255, 0.07)
     isDark: true,
   );
 
@@ -60,18 +60,18 @@ class AppTokens extends ThemeExtension<AppTokens> {
     textPrimary: Color(0xFF16161A),
     textSecondary: Color(0x9E16161A), // 62%
     textMuted: Color(0x6616161A), // 40%
-    positive: Color(0xFF2F8F5B),
-    negative: Color(0xFFC0504D),
-    warning: Color(0xFFB8873A),
-    accent: Color(0xFF16161A), // neutral equals textPrimary
+    positive: Color(0xFF10B981),
+    negative: Color(0xFFF43F5E),
+    warning: Color(0xFFF59E0B),
+    accent: Color(0xFFFF4F28),
     divider: Color(0x1416161A), // ~8% black for subtle dividers
     isDark: false,
   );
 
-  /// Radii
-  static const double radiusCard = 20.0;
-  static const double radiusHero = 28.0;
-  static const double radiusInnerChip = 14.0;
+  /// Radii (Crisp Hardware Precision)
+  static const double radiusCard = 14.0;
+  static const double radiusHero = 20.0;
+  static const double radiusInnerChip = 10.0;
   static const double radiusPill = 999.0;
 
   /// Spacing 4-pt grid
@@ -83,12 +83,17 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const double space24 = 24.0;
   static const double space32 = 32.0;
 
-  /// Motion
-  static const Duration motionFast = Duration(milliseconds: 160);
+  /// Motion & Springs (stiffness 380, damping 28)
+  static const Duration motionFast = Duration(milliseconds: 140);
   static const Duration motionNormal = Duration(milliseconds: 240);
-  static const Duration motionSlow = Duration(milliseconds: 320);
+  static const Duration motionSlow = Duration(milliseconds: 340);
   static const Curve curveEnter = Curves.easeOutCubic;
   static const Curve curveMove = Curves.fastOutSlowIn;
+  static const SpringDescription spring = SpringDescription(
+    mass: 1.0,
+    stiffness: 380.0,
+    damping: 28.0,
+  );
 
   /// Typography styles
   static TextStyle heroNumber({Color? color}) => TextStyle(
@@ -96,6 +101,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
         fontSize: 44,
         height: 48 / 44,
         fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
         color: color,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
@@ -103,7 +109,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static TextStyle sectionTitle({Color? color}) => TextStyle(
         fontFamily: 'Roboto',
         fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
         color: color,
       );
 
@@ -122,12 +129,22 @@ class AppTokens extends ThemeExtension<AppTokens> {
         color: color,
       );
 
+  static TextStyle metric({Color? color, double fontSize = 28}) => TextStyle(
+        fontFamily: 'Roboto',
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: color,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+
   static TextStyle tabularFigures(TextStyle style) => style.copyWith(
         fontFeatures: [
           ...?style.fontFeatures,
           const FontFeature.tabularFigures(),
         ],
       );
+
 
   /// Retrieve tokens from [BuildContext] with fallback based on brightness.
   static AppTokens of(BuildContext context) {

@@ -9,7 +9,9 @@ import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/recurring/recurring_page.dart';
 import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
 import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
+import 'package:habit_tracker/screens/settings_page.dart';
 import 'package:hive/hive.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/finance/ui/shell/money_shell_page.dart';
 import 'package:habit_tracker/features/money/ui/shell/money_shell.dart';
 
@@ -105,8 +107,8 @@ class AppNav extends ChangeNotifier {
 
     if (useLegacy) {
       await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => MoneyShellPage(
+        PageTransitions.containerTransform(
+          MoneyShellPage(
             initialTab: initialTab,
             deepLink: deepLink,
           ),
@@ -114,8 +116,8 @@ class AppNav extends ChangeNotifier {
       );
     } else {
       await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => MoneyShell(
+        PageTransitions.containerTransform(
+          MoneyShell(
             initialTab: initialTab,
             deepLink: deepLink,
           ),
@@ -132,8 +134,8 @@ class AppNav extends ChangeNotifier {
             true);
     if (useLegacy) {
       await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const AccountsPage(),
+        PageTransitions.containerTransform(
+          const AccountsPage(),
         ),
       );
     } else {
@@ -144,8 +146,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Net Worth screen.
   static Future<void> openNetWorth(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const NetWorthPage(),
+      PageTransitions.containerTransform(
+        const NetWorthPage(),
       ),
     );
   }
@@ -156,8 +158,8 @@ class AppNav extends ChangeNotifier {
     String accountId,
   ) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AccountDetailPage(accountId: accountId),
+      PageTransitions.containerTransform(
+        AccountDetailPage(accountId: accountId),
       ),
     );
   }
@@ -170,8 +172,8 @@ class AppNav extends ChangeNotifier {
             true);
     if (useLegacy) {
       await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const RecurringPage(),
+        PageTransitions.containerTransform(
+          const RecurringPage(),
         ),
       );
     } else {
@@ -182,8 +184,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Financial Calendar screen.
   static Future<void> openCalendar(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FinanceCalendarPage(),
+      PageTransitions.containerTransform(
+        const FinanceCalendarPage(),
       ),
     );
   }
@@ -191,8 +193,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Debt & Credit Cards dashboard.
   static Future<void> openDebt(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const DebtPage(),
+      PageTransitions.containerTransform(
+        const DebtPage(),
       ),
     );
   }
@@ -200,8 +202,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Financial Insights page.
   static Future<void> openInsights(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const InsightsPage(),
+      PageTransitions.containerTransform(
+        const InsightsPage(),
       ),
     );
   }
@@ -209,8 +211,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Cash Flow Analysis page.
   static Future<void> openCashFlow(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const CashFlowPage(),
+      PageTransitions.containerTransform(
+        const CashFlowPage(),
       ),
     );
   }
@@ -218,8 +220,8 @@ class AppNav extends ChangeNotifier {
   /// Opens the Financial Reports & Export page.
   static Future<void> openReports(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ReportsPage(),
+      PageTransitions.containerTransform(
+        const ReportsPage(),
       ),
     );
   }
@@ -227,8 +229,17 @@ class AppNav extends ChangeNotifier {
   /// Opens the Split & Settle dashboard.
   static Future<void> openSplitGroups(BuildContext context) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const SplitGroupsPage(),
+      PageTransitions.containerTransform(
+        const SplitGroupsPage(),
+      ),
+    );
+  }
+
+  /// Opens the global Settings page.
+  static Future<void> openSettings(BuildContext context) async {
+    await Navigator.of(context).push(
+      PageTransitions.containerTransform(
+        const SettingsPage(),
       ),
     );
   }

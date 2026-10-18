@@ -323,10 +323,10 @@ class _ReportsPageState extends State<ReportsPage>
                 ),
                 const SizedBox(height: 12),
                 _rowText('Starting Net Worth',
-                    '${FormatUtils.formatCurrency(rep.netWorthStart)}'),
+                    FormatUtils.formatCurrency(rep.netWorthStart)),
                 const SizedBox(height: 6),
                 _rowText('Ending Net Worth',
-                    '${FormatUtils.formatCurrency(rep.netWorthEnd)}'),
+                    FormatUtils.formatCurrency(rep.netWorthEnd)),
                 const SizedBox(height: 6),
                 _rowText('Savings Rate',
                     '${(rep.savingsRate * 100).toStringAsFixed(1)}%'),
@@ -377,7 +377,7 @@ class _ReportsPageState extends State<ReportsPage>
                     ),
                   ),
                   Text(
-                    '${FormatUtils.formatCurrency(item.amount)}',
+                    FormatUtils.formatCurrency(item.amount),
                     style: const TextStyle(fontSize: 14).copyWith(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -458,7 +458,7 @@ class _ReportsPageState extends State<ReportsPage>
                 ],
               ),
               Text(
-                '${FormatUtils.formatCurrency(item.totalSpent)}',
+                FormatUtils.formatCurrency(item.totalSpent),
                 style: const TextStyle(fontSize: 14).copyWith(
                   color: BentoTheme.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -541,7 +541,7 @@ class _ReportsPageState extends State<ReportsPage>
                           .copyWith(color: BentoTheme.textPrimary)),
                   Row(
                     children: [
-                      Text('${FormatUtils.formatCurrency(c.month2Amount)}',
+                      Text(FormatUtils.formatCurrency(c.month2Amount),
                           style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600)),
@@ -666,7 +666,7 @@ class _ReportsPageState extends State<ReportsPage>
           ),
           const SizedBox(height: 8),
           Text(
-            '${FormatUtils.formatCurrency(amount)}',
+            FormatUtils.formatCurrency(amount),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                 .copyWith(color: color, fontWeight: FontWeight.bold),
           ),
@@ -697,9 +697,9 @@ class _ReportsPageState extends State<ReportsPage>
         Text(title,
             style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.w500)),
-        Text('${FormatUtils.formatMoney(val1, decimals: 0)}',
+        Text(FormatUtils.formatMoney(val1, decimals: 0),
             style: TextStyle(color: BentoTheme.textSecondary)),
-        Text('${FormatUtils.formatMoney(val2, decimals: 0)}',
+        Text(FormatUtils.formatMoney(val2, decimals: 0),
             style: TextStyle(
                 color: isExpense ? BentoTheme.negative : BentoTheme.positive,
                 fontWeight: FontWeight.bold)),

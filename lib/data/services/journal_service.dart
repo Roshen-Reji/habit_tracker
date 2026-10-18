@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -152,6 +153,11 @@ class JournalService {
     final box = await openEncryptedBox();
     await box.put(entry.id, entry);
     recordActivity();
+    try {
+      final dayKey = entry.dayKey ??
+          '${entry.createdAt.year.toString().padLeft(4, '0')}-${entry.createdAt.month.toString().padLeft(2, '0')}-${entry.createdAt.day.toString().padLeft(2, '0')}';
+      await XpLedger.set(dayKey, 'journal_log_day', 10);
+    } catch (_) {}
   }
 
   Future<void> deleteEntry(String id) async {

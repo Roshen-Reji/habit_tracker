@@ -6,7 +6,8 @@ import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
-import 'package:habit_tracker/widgets/mini_player_bar.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
@@ -62,17 +63,26 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
+          backgroundColor: TactileTokens.surface,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-              side: const BorderSide(color: Colors.white)),
-          title: const Text("Welcome",
-              style: TextStyle(color: Colors.white, letterSpacing: 2)),
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: TactileTokens.specularBorder, width: 1.0),
+          ),
+          title: const Text(
+            "Welcome",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("enter your name",
-                  style: TextStyle(color: Colors.white70)),
+              const Text(
+                "enter your name",
+                style: TextStyle(color: TactileTokens.textSecondary),
+              ),
               const SizedBox(height: 20),
               TextField(
                 controller: _nameController,
@@ -89,7 +99,10 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
-            TextButton(
+            TactileButton(
+              size: TactileButtonSize.small,
+              variant: TactileButtonVariant.primary,
+              label: "ENGAGE",
               onPressed: () {
                 if (_nameController.text.isNotEmpty) {
                   _settingsBox.put(
@@ -98,9 +111,6 @@ class _HomePageState extends State<HomePage> {
                   setState(() {});
                 }
               },
-              child: const Text("ENGAGE",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -110,7 +120,7 @@ class _HomePageState extends State<HomePage> {
 
   void _onItemTapped(int index) {
     if (_selectedIndex != index) {
-      HapticFeedback.mediumImpact();
+      HapticFeedback.selectionClick();
       AppNav.instance.setTab(index);
     }
   }
@@ -162,9 +172,10 @@ class _HomePageState extends State<HomePage> {
           Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavBar(
-                selectedIndex: _selectedIndex, onItemTapped: _onItemTapped),
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onItemTapped,
+            ),
           ),
-          const GlobalFloatingPlayer(),
           const HomeChatFAB(),
         ],
       ),

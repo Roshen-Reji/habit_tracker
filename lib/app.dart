@@ -50,6 +50,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
       }));
       unawaited(PlanRunner().runDuePlans().catchError((e) {
         debugPrint('PlanRunner error on resume: $e');
+        return 0;
       }));
       unawaited(ReminderScheduler.syncIfThrottleElapsed().catchError((e) {
         debugPrint('ReminderScheduler error on resume: $e');

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:habit_tracker/core/motion/motion_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/widgets/home_card_size_sheet.dart';
@@ -231,45 +233,6 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
             return Stack(
               children: [
-                // Ambient backdrop depth lens
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ClipRect(
-                      child: AnimatedBuilder(
-                        animation: _scrollController,
-                        builder: (context, _) {
-                          final scrollOffset = _scrollController.hasClients
-                              ? math
-                                  .max(0.0, _scrollController.offset)
-                                  .toDouble()
-                              : 0.0;
-                          final currentStep = focusOffsets.length > 1
-                              ? (focusOffsets[1] - focusOffsets[0])
-                                  .clamp(100.0, 400.0)
-                              : 145.0;
-                          final travel = scrollOffset / currentStep;
-                          final betweenCards = (travel - travel.round()).abs();
-                          final lensBlur =
-                              reduceMotion ? 0.0 : 8.0 + (betweenCards * 4.0);
-
-                          return BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: lensBlur,
-                              sigmaY: lensBlur,
-                            ),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: BentoTheme.background
-                                    .withValues(alpha: 0.08),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-
                 // Card stack scroll container
                 NotificationListener<ScrollEndNotification>(
                   onNotification: (notification) {
@@ -282,9 +245,9 @@ class _WalletCardStackState extends State<WalletCardStack> {
                   child: SingleChildScrollView(
                     controller: _scrollController,
                     physics: reduceMotion
-                        ? const ClampingScrollPhysics()
+                        ? const AlwaysScrollableScrollPhysics()
                         : const BouncingScrollPhysics(
-                            decelerationRate: ScrollDecelerationRate.normal,
+                            parent: AlwaysScrollableScrollPhysics(),
                           ),
                     child: SizedBox(
                       height: totalScrollHeight,
@@ -336,8 +299,40 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                       HomeCardSizeSheet.show(context, cardSpec),
                                   child: IgnorePointer(
                                     ignoring: index != activeClamped,
-                                    child:
-                                        cardSpec.buildWidget(context, cardSize),
+                                    child: cardSpec
+                                        .buildWidget(context, cardSize)
+                                        .animate()
+                                        .fadeIn(
+                                          delay: Duration(
+                                              milliseconds:
+                                                  math.min(index * 25, 200)),
+                                          duration: const Duration(
+                                              milliseconds: 320),
+                                          curve:
+                                              MotionTokens.fastOutExtraSlowIn,
+                                        )
+                                        .slideY(
+                                          begin: 16.0 / cardHeight,
+                                          end: 0.0,
+                                          delay: Duration(
+                                              milliseconds:
+                                                  math.min(index * 25, 200)),
+                                          duration: const Duration(
+                                              milliseconds: 320),
+                                          curve:
+                                              MotionTokens.fastOutExtraSlowIn,
+                                        )
+                                        .scale(
+                                          begin: const Offset(0.96, 0.96),
+                                          end: const Offset(1.0, 1.0),
+                                          delay: Duration(
+                                              milliseconds:
+                                                  math.min(index * 25, 200)),
+                                          duration: const Duration(
+                                              milliseconds: 320),
+                                          curve:
+                                              MotionTokens.fastOutExtraSlowIn,
+                                        ),
                                   ),
                                 ),
                                 builder: (context, child) {
@@ -406,17 +401,47 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                           child: ClipRRect(
                                             borderRadius:
                                                 BorderRadius.circular(20),
-                                            child: blurSigma > 0.1
-                                                ? ImageFiltered(
-                                                    imageFilter:
-                                                        ImageFilter.blur(
-                                                      sigmaX: blurSigma,
-                                                      sigmaY: blurSigma,
-                                                      tileMode: TileMode.decal,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                border: Border.all(
+                                                  color: Colors.white.withValues(
+                                                    alpha: index == activeClamped
+                                                        ? 0.12
+                                                        : 0.05,
+                                                  ),
+                                                  width: 1.0,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(
+                                                      alpha: index == activeClamped
+                                                          ? 0.45
+                                                          : 0.20,
                                                     ),
-                                                    child: child!,
-                                                  )
-                                                : child!,
+                                                    blurRadius:
+                                                        index == activeClamped
+                                                            ? 18
+                                                            : 8,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: blurSigma > 0.1
+                                                  ? ImageFiltered(
+                                                      imageFilter:
+                                                          ImageFilter.blur(
+                                                        sigmaX: blurSigma,
+                                                        sigmaY: blurSigma,
+                                                        tileMode:
+                                                            TileMode.decal,
+                                                      ),
+                                                      child: child!,
+                                                    )
+                                                  : child!,
+                                            ),
                                           ),
                                         ),
                                       ),

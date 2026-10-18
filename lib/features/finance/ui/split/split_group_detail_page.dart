@@ -472,7 +472,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${FormatUtils.formatMoney(entry.amount, decimals: 0)}',
+                  FormatUtils.formatMoney(entry.amount, decimals: 0),
                   style: TextStyle(
                       color: BentoTheme.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -674,7 +674,7 @@ class _SplitGroupDetailPageState extends State<SplitGroupDetailPage>
               ),
               const SizedBox(height: 6),
               Text(
-                '${FormatUtils.formatMoney(report.totalSpent, decimals: 0)}',
+                FormatUtils.formatMoney(report.totalSpent, decimals: 0),
                 style: TextStyle(
                     color: BentoTheme.accent,
                     fontSize: 28,

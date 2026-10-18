@@ -99,17 +99,21 @@ class _DepthCardState extends State<DepthCard> {
       final topLight =
           Color.alphaBlend(const Color(0x09FFFFFF), tokens.surfaceRaised);
       return BoxDecoration(
+        color: _isPressed ? const Color(0xFF1A1D24) : null,
         borderRadius: borderRadius,
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.0, 0.4, 1.0],
-          colors: [
-            topLight,
-            tokens.surfaceRaised,
-            tokens.surface,
-          ],
-        ),
+        border: Border.all(color: const Color(0x12FFFFFF), width: 1.0),
+        gradient: _isPressed
+            ? null
+            : LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.4, 1.0],
+                colors: [
+                  topLight,
+                  tokens.surfaceRaised,
+                  tokens.surface,
+                ],
+              ),
         boxShadow: shadows,
       );
     } else {

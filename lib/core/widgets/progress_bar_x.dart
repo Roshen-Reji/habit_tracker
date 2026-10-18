@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/motion_tokens.dart';
 import 'package:habit_tracker/core/progression/progression_engine.dart';
 import 'package:habit_tracker/core/progression/progression_service.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
@@ -47,7 +48,7 @@ class ProgressBarX extends StatelessWidget {
     Color? customColor,
     this.customTrackColor,
     this.duration = const Duration(milliseconds: 400),
-    this.curve = Curves.easeOutCubic,
+    this.curve = MotionTokens.fastOutExtraSlowIn,
   }) : customColor = color ?? customColor;
 
   @override
@@ -97,19 +98,91 @@ class ProgressBarX extends StatelessWidget {
             builder: (context, animValue, _) {
               return Align(
                 alignment: Alignment.centerLeft,
-                child: Container(
-                  width: totalWidth * animValue,
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: fillColor,
-                    borderRadius: radius,
-                  ),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: totalWidth * animValue,
+                      height: height,
+                      decoration: BoxDecoration(
+                        color: fillColor,
+                        borderRadius: radius,
+                      ),
+                    ),
+                    if (animValue >= 0.999)
+                      _SpecularShimmer(
+                        width: totalWidth * animValue,
+                        height: height,
+                        radius: radius,
+                      ),
+                  ],
                 ),
               );
             },
           );
         },
       ),
+    );
+  }
+}
+
+class _SpecularShimmer extends StatefulWidget {
+  final double width;
+  final double height;
+  final BorderRadius radius;
+
+  const _SpecularShimmer({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  State<_SpecularShimmer> createState() => _SpecularShimmerState();
+}
+
+class _SpecularShimmerState extends State<_SpecularShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ClipRRect(
+          borderRadius: widget.radius,
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-2.0 + (_controller.value * 4.0), 0),
+                end: Alignment(-1.0 + (_controller.value * 4.0), 0),
+                colors: [
+                  Colors.white.withValues(alpha: 0.0),
+                  Colors.white.withValues(alpha: 0.45),
+                  Colors.white.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

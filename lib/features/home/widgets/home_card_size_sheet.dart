@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/widgets/depth_card.dart';
@@ -19,10 +20,9 @@ class HomeCardSizeSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context, HomeCardSpec spec) {
     HapticFeedback.mediumImpact();
-    return showModalBottomSheet(
+    return showSpringSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       builder: (_) => HomeCardSizeSheet(spec: spec),
     );
   }

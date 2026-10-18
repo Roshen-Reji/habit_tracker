@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter/services.dart';
+import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/widgets/wallet_card_stack.dart';
-import 'package:habit_tracker/screens/settings_page.dart';
 
 class DashboardView extends StatelessWidget {
   final ScrollController? scrollController;
@@ -67,19 +68,26 @@ class DashboardView extends StatelessWidget {
                           )
                           .fade(),
                       GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsPage(),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          AppNav.openSettings(context);
+                        },
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
                           ),
-                        ),
-                        child: BentoContainer(
-                          borderRadius: 12,
-                          padding: const EdgeInsets.all(10),
-                          child: Icon(
-                            LucideIcons.settings,
-                            color: BentoTheme.textPrimary,
-                            size: 20,
+                          child: Center(
+                            child: BentoContainer(
+                              borderRadius: 12,
+                              padding: const EdgeInsets.all(10),
+                              child: Icon(
+                                LucideIcons.settings,
+                                color: BentoTheme.textPrimary,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
                       ).animate().scale(

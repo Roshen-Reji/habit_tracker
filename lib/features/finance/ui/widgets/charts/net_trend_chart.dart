@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 
@@ -36,11 +37,17 @@ class NetTrendChart extends StatelessWidget {
         spots.fold<double>(0, (max, spot) => spot.y > max ? spot.y : max);
     final padding = ((maxValue - minValue).abs() * 0.18).clamp(100.0, 100000.0);
 
-    return LineChart(
-      LineChartData(
+    return RepaintBoundary(
+      child: LineChart(
+        LineChartData(
         minY: minValue - padding,
         maxY: maxValue + padding,
         lineTouchData: LineTouchData(
+          touchCallback: (event, response) {
+            if (event.isInterestedForInteractions && response?.lineBarSpots != null) {
+              HapticFeedback.selectionClick();
+            }
+          },
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (_) => BentoTheme.background,
             tooltipBorderRadius: BorderRadius.circular(8),
@@ -136,6 +143,7 @@ class NetTrendChart extends StatelessWidget {
         ],
       ),
       duration: const Duration(milliseconds: 350),
-    );
-  }
+    ),
+  );
+}
 }

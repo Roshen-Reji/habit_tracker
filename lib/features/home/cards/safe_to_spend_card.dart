@@ -4,12 +4,15 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
-import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
+import 'package:habit_tracker/features/finance/ui/transactions/transaction_sheet.dart';
 import 'package:habit_tracker/features/money/core/free_to_spend.dart';
 import 'package:habit_tracker/features/money/core/snapshot.dart';
 import 'package:habit_tracker/features/money/state/money_state.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class SafeToSpendCard extends StatelessWidget {
@@ -42,27 +45,35 @@ class SafeToSpendCard extends StatelessWidget {
             : '${FormatUtils.formatMoney(perDay, decimals: 0)}/day';
 
         return HomeCardFrame(
-          icon:
-              isShortfall ? LucideIcons.alertTriangle : LucideIcons.shieldCheck,
+          domain: HomeCardDomain.ledger,
+          icon: isShortfall ? LucideIcons.alertTriangle : LucideIcons.wallet,
           title: 'Safe to Spend',
           onTap: () {
             AppNav.openMoney(context, deepLink: 'today');
           },
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: (isShortfall ? AppColors.error : BentoTheme.accent)
-                  .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              perDayAmount,
-              style: TextStyle(
-                color: isShortfall ? AppColors.error : BentoTheme.accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAddExpenseButton(context),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (isShortfall ? AppColors.error : BentoTheme.accent)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  perDayAmount,
+                  style: TextStyle(
+                    color: isShortfall ? AppColors.error : BentoTheme.accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           child: _buildBody(
             context: context,
@@ -78,6 +89,103 @@ class SafeToSpendCard extends StatelessWidget {
     );
   }
 
+  Widget _buildAddExpenseButton(BuildContext context) {
+    return TactileButton(
+      label: '+ Expense',
+      icon: LucideIcons.plus,
+      size: TactileButtonSize.small,
+      variant: TactileButtonVariant.secondary,
+      onPressed: () {
+        TransactionSheet.show(context, initialKind: 'expense');
+      },
+    );
+  }
+
+  Widget _buildBurnRateGauge({
+    required double ratio,
+    required bool isShortfall,
+  }) {
+    const totalSegments = 7;
+    final activeSegments = isShortfall
+        ? totalSegments
+        : (ratio * totalSegments).clamp(1.0, totalSegments.toDouble()).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(totalSegments, (index) {
+            final isActive = index < activeSegments;
+            Color segmentColor;
+            if (isShortfall) {
+              segmentColor = TactileTokens.accentPulse;
+            } else if (index < 4) {
+              segmentColor = TactileTokens.accentMint;
+            } else if (index < 6) {
+              segmentColor = TactileTokens.accentWarning;
+            } else {
+              segmentColor = TactileTokens.accentPulse;
+            }
+
+            return Expanded(
+              child: Container(
+                height: 6,
+                margin: EdgeInsets.only(right: index == totalSegments - 1 ? 0 : 4),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? segmentColor
+                      : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(3),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: segmentColor.withValues(alpha: 0.35),
+                            blurRadius: 4,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'SAFE ZONE',
+              style: TextStyle(
+                color: TactileTokens.accentMint,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            Text(
+              'CAUTION',
+              style: TextStyle(
+                color: TactileTokens.accentWarning,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            Text(
+              'BURN LIMIT',
+              style: TextStyle(
+                color: TactileTokens.accentPulse,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildBody({
     required BuildContext context,
     required FreeToSpendResult fts,
@@ -87,23 +195,37 @@ class SafeToSpendCard extends StatelessWidget {
     required String perDayAmount,
     required bool isShortfall,
   }) {
+    final double liquid = fts.availableRupees;
+    final double ratio = liquid > 0
+        ? (fts.freeToSpendRupees / liquid).clamp(0.0, 1.0)
+        : (isShortfall ? 1.0 : 0.5);
+
     switch (size) {
       case HomeCardSize.compact:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isShortfall
-                  ? displayAmount
-                  : FormatUtils.formatMoney(perDay, decimals: 0),
-              style: TextStyle(
-                color: isShortfall ? AppColors.error : BentoTheme.textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            if (isShortfall)
+              Text(
+                displayAmount,
+                style: const TextStyle(
+                  color: AppColors.error,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              )
+            else
+              AnimatedMetricTicker.rupees(
+                value: perDay,
+                style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
             const SizedBox(height: 4),
             Text(
               isShortfall
@@ -115,6 +237,8 @@ class SafeToSpendCard extends StatelessWidget {
                 height: 1.3,
               ),
             ),
+            const SizedBox(height: 10),
+            _buildBurnRateGauge(ratio: ratio, isShortfall: isShortfall),
           ],
         );
       case HomeCardSize.large:
@@ -127,17 +251,25 @@ class SafeToSpendCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      displayAmount,
-                      style: TextStyle(
-                        color: isShortfall
-                            ? AppColors.error
-                            : BentoTheme.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    if (isShortfall)
+                      Text(
+                        displayAmount,
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      )
+                    else
+                      AnimatedMetricTicker.rupees(
+                        value: fts.freeToSpendRupees,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
                     Text(
                       '$daysLeft days remaining in month',
                       style: TextStyle(
@@ -153,34 +285,42 @@ class SafeToSpendCard extends StatelessWidget {
                     color: BentoTheme.accent,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
+            _buildBurnRateGauge(ratio: ratio, isShortfall: isShortfall),
+            const SizedBox(height: 12),
             _buildDeductionsList(fts),
           ],
         );
       case HomeCardSize.hero:
-        final double liquid = fts.availableRupees;
-        final double ratio =
-            liquid > 0 ? (fts.freeToSpendRupees / liquid).clamp(0.0, 1.0) : 0.0;
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isShortfall
-                  ? displayAmount
-                  : FormatUtils.formatMoney(perDay, decimals: 0),
-              style: TextStyle(
-                color: isShortfall ? AppColors.error : BentoTheme.textPrimary,
-                fontSize: 44,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            if (isShortfall)
+              Text(
+                displayAmount,
+                style: const TextStyle(
+                  color: AppColors.error,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              )
+            else
+              AnimatedMetricTicker.rupees(
+                value: perDay,
+                style: TextStyle(
+                  color: BentoTheme.textPrimary,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
             Text(
               isShortfall
                   ? 'Deficit for committed month-end obligations'
@@ -191,14 +331,8 @@ class SafeToSpendCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            ProgressBarX(
-              value: ratio,
-              height: 8,
-              semantic: isShortfall
-                  ? ProgressSemantic.over
-                  : ProgressSemantic.neutral,
-            ),
-            const SizedBox(height: 12),
+            _buildBurnRateGauge(ratio: ratio, isShortfall: isShortfall),
+            const SizedBox(height: 14),
             _buildDeductionsList(fts),
           ],
         );

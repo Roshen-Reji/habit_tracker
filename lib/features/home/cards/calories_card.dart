@@ -8,6 +8,7 @@ import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/features/home/widgets/biometric_cluster.dart';
 
 class CaloriesCard extends StatelessWidget {
   final HomeCardSize size;
@@ -25,12 +26,12 @@ class CaloriesCard extends StatelessWidget {
         final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
         final log = box.get(today);
 
-        final intake = log?.totalCalories ?? 0;
-        final target = log?.targetCalories ??
+        final intake = (log?.totalCalories ?? 0).toDouble();
+        final target = (log?.targetCalories ??
             Hive.box('settings')
                 .get('daily_calorie_target', defaultValue: 2000.0)
-                .toDouble();
-        final burned = log?.totalBurned ?? 0;
+                .toDouble()).toDouble();
+        final burned = (log?.totalBurned ?? 0).toDouble();
         final net = intake - burned;
         final isOver = net > target;
         final progress = target > 0 ? (net / target).clamp(0.0, 1.0) : 0.0;
@@ -44,8 +45,9 @@ class CaloriesCard extends StatelessWidget {
             : '${(target - net).toStringAsFixed(0)} kcal left';
 
         return HomeCardFrame(
+          domain: HomeCardDomain.biometrics,
           icon: LucideIcons.utensils,
-          title: 'Diet & Calories',
+          title: 'Diet & Calorie Burn',
           onTap: () {
             AppNav.goTo(AppTab.diet);
           },
@@ -62,10 +64,13 @@ class CaloriesCard extends StatelessWidget {
                 color: isOver ? BentoTheme.negative : BentoTheme.positive,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
           child: _buildBody(
+            intake: intake,
+            burned: burned,
             net: net,
             target: target,
             progress: progress,
@@ -81,6 +86,8 @@ class CaloriesCard extends StatelessWidget {
   }
 
   Widget _buildBody({
+    required double intake,
+    required double burned,
     required double net,
     required double target,
     required double progress,
@@ -95,46 +102,10 @@ class CaloriesCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${net.toStringAsFixed(0)} kcal',
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    Text(
-                      'of ${target.toStringAsFixed(0)} kcal target',
-                      style: TextStyle(
-                        color: BentoTheme.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${(progress * 100).toInt()}%',
-                  style: TextStyle(
-                    color: isOver ? BentoTheme.negative : BentoTheme.accent,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            ProgressBarX(
-              value: progress.toDouble(),
-              height: 6,
-              color: isOver ? BentoTheme.negative : BentoTheme.accent,
+            CalorieDualMeter(
+              intakeKcal: intake,
+              burnKcal: burned,
+              targetKcal: target,
             ),
           ],
         );
@@ -142,48 +113,12 @@ class CaloriesCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${net.toStringAsFixed(0)} kcal',
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    Text(
-                      'of ${target.toStringAsFixed(0)} kcal daily target',
-                      style: TextStyle(
-                        color: BentoTheme.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${(progress * 100).toInt()}%',
-                  style: TextStyle(
-                    color: isOver ? BentoTheme.negative : BentoTheme.accent,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            CalorieDualMeter(
+              intakeKcal: intake,
+              burnKcal: burned,
+              targetKcal: target,
             ),
-            const SizedBox(height: 10),
-            ProgressBarX(
-              value: progress.toDouble(),
-              height: 6,
-              color: isOver ? BentoTheme.negative : BentoTheme.accent,
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             // Macro bars with targets
             Row(
               children: [
@@ -206,42 +141,10 @@ class CaloriesCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${net.toStringAsFixed(0)} kcal',
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    Text(
-                      'Net intake · ${target.toStringAsFixed(0)} kcal goal',
-                      style: TextStyle(
-                        color: BentoTheme.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: CircularProgressIndicator(
-                    value: progress.toDouble(),
-                    strokeWidth: 6,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    color: isOver ? BentoTheme.negative : BentoTheme.accent,
-                  ),
-                ),
-              ],
+            CalorieDualMeter(
+              intakeKcal: intake,
+              burnKcal: burned,
+              targetKcal: target,
             ),
             const SizedBox(height: 16),
             Row(
@@ -259,7 +162,7 @@ class CaloriesCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
               'TODAY\'S MEALS',
               style: TextStyle(
@@ -276,7 +179,7 @@ class CaloriesCard extends StatelessWidget {
                 style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
               )
             else
-              ...entries.take(3).map((e) {
+              ...entries.take(5).map((e) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Row(
@@ -299,6 +202,7 @@ class CaloriesCard extends StatelessWidget {
                           color: BentoTheme.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],

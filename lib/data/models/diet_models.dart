@@ -141,6 +141,7 @@ class DietDayLog extends HiveObject {
     entries.add(entry);
     save();
     _reconcileDeficitXp();
+    XpLedger.set(dateKey, 'diet_log_day', 5);
   }
 
   void addBurn(CalorieBurnEntry burn) {
@@ -153,6 +154,9 @@ class DietDayLog extends HiveObject {
     entries.removeWhere((e) => e.id == entryId);
     save();
     _reconcileDeficitXp();
+    if (entries.isEmpty) {
+      XpLedger.set(dateKey, 'diet_log_day', 0);
+    }
   }
 
   void removeBurn(String burnId) {

@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
 
@@ -36,12 +37,18 @@ class CashFlowChart extends StatelessWidget {
     final maxY = ((maxIncome > maxExpense ? maxIncome : maxExpense) * 1.25)
         .clamp(100.0, 10000000.0);
 
-    return BarChart(
-      BarChartData(
+    return RepaintBoundary(
+      child: BarChart(
+        BarChartData(
         alignment: BarChartAlignment.spaceAround,
         maxY: maxY,
         minY: 0,
         barTouchData: BarTouchData(
+          touchCallback: (event, response) {
+            if (event.isInterestedForInteractions && response?.spot != null) {
+              HapticFeedback.selectionClick();
+            }
+          },
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (_) => BentoTheme.background,
             tooltipBorderRadius: BorderRadius.circular(8),
@@ -124,6 +131,7 @@ class CashFlowChart extends StatelessWidget {
         }).toList(),
       ),
       duration: const Duration(milliseconds: 350),
-    );
-  }
+    ),
+  );
+}
 }

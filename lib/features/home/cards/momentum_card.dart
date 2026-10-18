@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
-import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
-
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/features/home/widgets/momentum_sparkline.dart';
+import 'package:intl/intl.dart';
 
+/// Executive Telemetry Module for Momentum Signal (AGENTS.md Phase 3.1).
+/// Features a smooth cubic-bezier sparkline, gradient fill, and glowing current-day node.
 class MomentumCard extends StatefulWidget {
   final HomeCardSize size;
 
@@ -27,14 +30,14 @@ class _MomentumCardState extends State<MomentumCard> {
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.size == HomeCardSize.large;
+    _isExpanded = widget.size == HomeCardSize.large || widget.size == HomeCardSize.hero;
   }
 
   @override
   void didUpdateWidget(covariant MomentumCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.size != widget.size) {
-      _isExpanded = widget.size == HomeCardSize.large;
+      _isExpanded = widget.size == HomeCardSize.large || widget.size == HomeCardSize.hero;
     }
   }
 
@@ -51,33 +54,40 @@ class _MomentumCardState extends State<MomentumCard> {
       builder: (context, Box box, _) {
         final List<int> xpHistory = GlobalXPService.getPast7DaysXP();
         final completedDays = xpHistory.where((xp) => xp > 0).length;
+        final todayXp = xpHistory.isNotEmpty ? xpHistory.last : 0;
 
         return HomeCardFrame(
+          domain: HomeCardDomain.telemetry,
           icon: LucideIcons.activity,
-          title: 'Momentum Signal',
+          title: 'MOMENTUM SIGNAL',
+          subtitle: 'Active Streak: $completedDays / 7 Days',
           onTap: _toggleExpanded,
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: BentoTheme.accent.withValues(alpha: 0.12),
+              color: TactileTokens.vermilion.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: TactileTokens.vermilion.withValues(alpha: 0.3),
+                width: 0.8,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$completedDays/7 active',
-                  style: TextStyle(
-                    color: BentoTheme.accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  '+$todayXp XP TODAY',
+                  style: TactileTokens.tabular(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: TactileTokens.vermilion,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   _isExpanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                  size: 14,
-                  color: BentoTheme.accent,
+                  size: 13,
+                  color: TactileTokens.vermilion,
                 ),
               ],
             ),
@@ -88,8 +98,8 @@ class _MomentumCardState extends State<MomentumCard> {
               const XpProgressBar(height: 5),
               const SizedBox(height: 12),
               AnimatedSize(
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeInOutCubic,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
                 child: _isExpanded
                     ? _buildExpandedGraph(xpHistory)
                     : _buildCompactStrip(xpHistory),
@@ -105,55 +115,47 @@ class _MomentumCardState extends State<MomentumCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Micro cubic-bezier sparkline with glowing today node
+        MomentumSparkline(
+          values: xpHistory,
+          height: 60.0,
+          showLabels: false,
+        ),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(7, (index) {
-            final xp = xpHistory[index];
-            final hasWork = xp > 0;
             final isToday = index == 6;
             final date = DateTime.now().subtract(Duration(days: 6 - index));
             final dayLabel =
                 isToday ? 'NOW' : DateFormat('EE').format(date).toUpperCase();
+            final xp = xpHistory.length > index ? xpHistory[index] : 0;
+            final hasWork = xp > 0;
 
             return Column(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: hasWork
-                        ? BentoTheme.accent
-                            .withValues(alpha: isToday ? 0.9 : 0.25)
-                        : Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: hasWork
-                      ? Icon(
-                          LucideIcons.check,
-                          size: 16,
-                          color:
-                              isToday ? Colors.black : BentoTheme.textPrimary,
-                        )
-                      : Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color:
-                                BentoTheme.textSecondary.withValues(alpha: 0.3),
-                          ),
-                        ),
-                ),
-                const SizedBox(height: 6),
                 Text(
                   dayLabel,
                   style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: isToday
-                        ? BentoTheme.textPrimary
-                        : BentoTheme.textSecondary,
-                    fontSize: 10,
+                        ? TactileTokens.textPrimary
+                        : TactileTokens.textMuted,
+                    fontSize: 9,
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isToday
+                        ? TactileTokens.vermilion
+                        : (hasWork
+                            ? BentoTheme.accent
+                            : const Color(0x28FFFFFF)),
                   ),
                 ),
               ],
@@ -168,61 +170,12 @@ class _MomentumCardState extends State<MomentumCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 140,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(7, (index) {
-              return _buildDotMatrixColumn(xpHistory[index], index == 6);
-            }),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(7, (index) {
-            final date = DateTime.now().subtract(Duration(days: 6 - index));
-            final isToday = index == 6;
-            final label =
-                isToday ? 'NOW' : DateFormat('EE').format(date).toUpperCase();
-            return Text(
-              label,
-              style: TextStyle(
-                color:
-                    isToday ? BentoTheme.textPrimary : BentoTheme.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          }),
+        MomentumSparkline(
+          values: xpHistory,
+          height: 110.0,
+          showLabels: true,
         ),
       ],
-    );
-  }
-
-  Widget _buildDotMatrixColumn(int xp, bool isToday) {
-    final filledDots = (xp / 10).round().clamp(0, 10);
-    const totalDots = 10;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: List.generate(totalDots, (index) {
-        final invertedIndex = totalDots - 1 - index;
-        final isFilled = invertedIndex < filledDots;
-
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 2.5),
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isFilled
-                ? (isToday ? BentoTheme.textPrimary : BentoTheme.textSecondary)
-                : BentoTheme.textPrimary.withValues(alpha: 0.1),
-          ),
-        );
-      }),
     );
   }
 }

@@ -233,7 +233,7 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '${FormatUtils.formatMoney(totalReceivables, decimals: 0)}',
+                        FormatUtils.formatMoney(totalReceivables, decimals: 0),
                         style: const TextStyle(
                           color: Color(0xFF22C55E),
                           fontSize: 22,
@@ -268,7 +268,7 @@ class _SplitGroupsPageState extends State<SplitGroupsPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${FormatUtils.formatMoney(totalPayables, decimals: 0)}',
+                          FormatUtils.formatMoney(totalPayables, decimals: 0),
                           style: const TextStyle(
                             color: Color(0xFFEF4444),
                             fontSize: 22,

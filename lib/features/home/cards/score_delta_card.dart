@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/score_service.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/tasks/task_analytics_page.dart';
 
@@ -30,13 +32,14 @@ class ScoreDeltaCard extends StatelessWidget {
         final xpHistory = GlobalXPService.getPast7DaysXP();
 
         return HomeCardFrame(
+          domain: HomeCardDomain.telemetry,
           icon: LucideIcons.trendingUp,
           title: 'XP Velocity',
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const TaskAnalyticsPage(),
+              PageTransitions.containerTransform(
+                const TaskAnalyticsPage(),
               ),
             );
           },
@@ -69,7 +72,7 @@ class ScoreDeltaCard extends StatelessWidget {
                   style: TextStyle(
                     color: BentoTheme.textSecondary,
                     fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -147,8 +150,9 @@ class ScoreDeltaCard extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        '$sign$delta XP',
+      child: AnimatedMetricTicker.xp(
+        value: delta,
+        prefix: sign,
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -190,8 +194,9 @@ class ScoreDeltaCard extends StatelessWidget {
               color: color,
             ),
             const SizedBox(width: 2),
-            Text(
-              '$sign$delta XP',
+            AnimatedMetricTicker.xp(
+              value: delta,
+              prefix: sign,
               style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontSize: 15,

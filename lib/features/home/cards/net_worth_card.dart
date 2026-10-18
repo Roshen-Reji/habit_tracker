@@ -7,6 +7,7 @@ import 'package:habit_tracker/core/utils/format_utils.dart';
 import 'package:habit_tracker/features/money/core/snapshot.dart';
 import 'package:habit_tracker/features/money/state/money_state.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class NetWorthHomeCard extends StatelessWidget {
@@ -30,6 +31,7 @@ class NetWorthHomeCard extends StatelessWidget {
         final pct = prevEst > 0 ? (change / prevEst) * 100 : 0.0;
 
         return HomeCardFrame(
+          domain: HomeCardDomain.ledger,
           icon: LucideIcons.lineChart,
           title: 'Net Worth',
           onTap: () {
@@ -48,6 +50,7 @@ class NetWorthHomeCard extends StatelessWidget {
                 color: isPositive ? AppColors.success : AppColors.error,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -77,14 +80,13 @@ class NetWorthHomeCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              FormatUtils.formatMoney(netWorth),
+            AnimatedMetricTicker.currency(
+              value: netWorth,
               style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.5,
-                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
             const SizedBox(height: 6),
@@ -108,13 +110,12 @@ class NetWorthHomeCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      FormatUtils.formatMoney(netWorth),
+                    AnimatedMetricTicker.rupees(
+                      value: netWorth,
                       style: TextStyle(
                         color: BentoTheme.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     Text(
@@ -148,14 +149,13 @@ class NetWorthHomeCard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              FormatUtils.formatMoney(netWorth),
+            AnimatedMetricTicker.rupees(
+              value: netWorth,
               style: TextStyle(
                 color: BentoTheme.textPrimary,
                 fontSize: 44,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
-                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
             Text(

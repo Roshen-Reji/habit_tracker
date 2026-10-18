@@ -53,17 +53,12 @@ void main() {
       final totalSize = tester.getSize(navBarFinder);
       expect(totalSize.height, equals(74.0));
 
-      // Check tab animated containers inside BottomNavBar have height: 46
-      final tabs = tester
-          .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
-          .toList();
-      expect(tabs.length, equals(3));
-      for (final tab in tabs) {
-        expect(tab.constraints?.maxHeight ?? 46.0, equals(46.0));
-      }
+      // Verify tabs inside Floating Adaptive Dock
+      final tabs = find.byType(InkWell);
+      expect(tabs, findsNWidgets(3));
 
       // Verify tabs respond to taps and change selection
-      await tester.tap(find.byType(GestureDetector).at(1));
+      await tester.tap(tabs.at(1));
       await tester.pumpAndSettle();
       expect(selectedIndex, equals(1));
     });

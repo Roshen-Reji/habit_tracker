@@ -5,6 +5,7 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/wearables/data/sync_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class WearablesSettingsPage extends StatefulWidget {
@@ -152,6 +153,16 @@ class _WearablesSettingsPageState extends State<WearablesSettingsPage> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
+                                    if (_permissions.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '• ${_permissions.values.where((v) => v).length}/${_permissions.length} perms',
+                                        style: TextStyle(
+                                          color: BentoTheme.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ],
@@ -169,16 +180,10 @@ class _WearablesSettingsPageState extends State<WearablesSettingsPage> {
                       ),
                       if (!isEnabled) ...[
                         const SizedBox(height: 16),
-                        ElevatedButton(
+                        TactileButton(
+                          variant: TactileButtonVariant.primary,
+                          label: 'Connect & Grant Permissions',
                           onPressed: _requestPermissions,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: BentoTheme.accent,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Connect & Grant Permissions'),
                         ),
                       ],
                       const SizedBox(height: 16),
@@ -215,35 +220,16 @@ class _WearablesSettingsPageState extends State<WearablesSettingsPage> {
                                 SyncService.instance.statusNotifier,
                             builder: (context, status, _) {
                               final isSyncing = status == SyncStatus.syncing;
-                              return ElevatedButton.icon(
+                              return TactileButton(
+                                size: TactileButtonSize.small,
+                                variant: TactileButtonVariant.secondary,
+                                isLoading: isSyncing,
+                                disabled: !isEnabled,
+                                icon: LucideIcons.refreshCw,
+                                label: isSyncing ? 'SYNCING...' : 'SYNC NOW',
                                 onPressed: isSyncing || !isEnabled
                                     ? null
                                     : _triggerSync,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: BentoTheme.accent,
-                                  foregroundColor: Colors.black,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                ),
-                                icon: isSyncing
-                                    ? const SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.black),
-                                      )
-                                    : const Icon(LucideIcons.refreshCw,
-                                        size: 16),
-                                label: Text(
-                                  isSyncing ? 'SYNCING...' : 'SYNC NOW',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12),
-                                ),
                               );
                             },
                           ),

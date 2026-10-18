@@ -19,4 +19,8 @@ abstract class WearableSource {
   Future<List<ExerciseSession>> fetchExercises(int days);
 
   Future<List<BodyCompSample>> fetchBodyComposition(int days);
+
+  Future<List<EnergyScoreDay>> fetchEnergyScores(int days) async => [];
+
+  Future<List<AgesSample>> fetchAgesSamples(int days) async => [];
 }

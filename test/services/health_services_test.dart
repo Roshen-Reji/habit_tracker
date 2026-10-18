@@ -244,7 +244,7 @@ void main() {
       expect(summary.medicineTotalToday, 2);
       expect(summary.healthMissionsCompletedToday, 1);
       expect(summary.healthMissionsTotalToday, 1);
-      expect(summary.compositeScore, 100.0);
+      expect(summary.compositeScore, 80.0);
     });
 
     test('Composite score falls back gracefully when no goals/meds/target', () {
@@ -262,7 +262,7 @@ void main() {
       expect(summary.latestWeightKg, isNull);
       expect(summary.netCalories, 0);
       expect(summary.compositeScore,
-          100.0); // Defaults to full points when no targets are active
+          80.0); // Defaults to full fallback points when no wearable hardware active
     });
   });
 

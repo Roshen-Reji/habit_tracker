@@ -3,7 +3,8 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/services/medicine_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 class HealthSummaryData {
@@ -199,5 +200,51 @@ class HealthCalculator {
       sleepDurationMin: sleepDurationMin,
       steps: steps,
     );
+  }
+}
+
+/// Reactive cached notifier for [HealthSummaryData].
+///
+/// Decouples UI widget builds from synchronous Hive box queries and aggregation
+/// by computing snapshots reactively on box change events.
+class HealthState extends ValueNotifier<HealthSummaryData> {
+  static HealthState? _instance;
+  static HealthState get instance => _instance ??= HealthState._();
+
+  factory HealthState() => instance;
+
+  HealthState._() : super(HealthCalculator.computeSummary()) {
+    _initListeners();
+  }
+
+  @visibleForTesting
+  static void reset() {
+    _instance?.dispose();
+    _instance = null;
+  }
+
+  void _initListeners() {
+    _listenBox<DietDayLog>('diet_logs');
+    _listenBox<Medicine>('medicines');
+    _listenBox<MedicineLog>('medicine_logs');
+    _listenBox<WeightEntry>('weight_entries');
+    _listenBox<Goal>('mission_box_v4');
+    _listenBox('settings');
+    if (Hive.isBoxOpen(WearableRepository.sleepBoxName)) {
+      Hive.box(WearableRepository.sleepBoxName).listenable().addListener(refresh);
+    }
+    if (Hive.isBoxOpen(WearableRepository.dailyBoxName)) {
+      Hive.box(WearableRepository.dailyBoxName).listenable().addListener(refresh);
+    }
+  }
+
+  void _listenBox<T>(String boxName) {
+    if (Hive.isBoxOpen(boxName)) {
+      Hive.box<T>(boxName).listenable().addListener(refresh);
+    }
+  }
+
+  void refresh() {
+    value = HealthCalculator.computeSummary();
   }
 }

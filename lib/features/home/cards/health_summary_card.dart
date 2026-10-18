@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
-import 'package:habit_tracker/data/models/diet_models.dart';
-import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/data/services/health_calculator.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 
 class HealthSummaryCard extends StatelessWidget {
@@ -25,55 +22,27 @@ class HealthSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const accent = Color(0xFFF43F5E); // Rose accent
 
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<DietDayLog>('diet_logs').listenable(),
-      builder: (context, Box<DietDayLog> dietBox, _) {
-        return ValueListenableBuilder(
-          valueListenable: Hive.box<Medicine>('medicines').listenable(),
-          builder: (context, Box<Medicine> medBox, __) {
-            return ValueListenableBuilder(
-              valueListenable:
-                  Hive.box<MedicineLog>('medicine_logs').listenable(),
-              builder: (context, Box<MedicineLog> logBox, ___) {
-                return ValueListenableBuilder(
-                  valueListenable:
-                      Hive.box<WeightEntry>('weight_entries').listenable(),
-                  builder: (context, Box<WeightEntry> weightBox, ____) {
-                    return ValueListenableBuilder(
-                      valueListenable:
-                          Hive.box<Goal>('mission_box_v4').listenable(),
-                      builder: (context, Box<Goal> goalBox, _____) {
-                        return ValueListenableBuilder(
-                          valueListenable: Hive.box('settings').listenable(),
-                          builder: (context, Box settingsBox, ______) {
-                            final todayKey =
-                                DateFormat('yyyy-MM-dd').format(DateTime.now());
-                            final dietLog = dietBox.get(todayKey);
+    return ValueListenableBuilder<HealthSummaryData>(
+      valueListenable: HealthState(),
+      builder: (context, summary, _) {
+        final score = summary.compositeScore.round();
+        Color scoreColor = BentoTheme.positive;
+        if (score < 50) {
+          scoreColor = BentoTheme.negative;
+        } else if (score < 80) {
+          scoreColor = BentoTheme.warning;
+        }
 
-                            final summary = HealthCalculator.computeSummary(
-                              weights: weightBox.values.toList(),
-                              dietLog: dietLog,
-                              goals: goalBox.values.toList(),
-                              settingsMap: settingsBox.toMap(),
-                            );
-
-                            final score = summary.compositeScore.round();
-                            Color scoreColor = BentoTheme.positive;
-                            if (score < 50) {
-                              scoreColor = BentoTheme.negative;
-                            } else if (score < 80) {
-                              scoreColor = BentoTheme.warning;
-                            }
-
-                            return HomeCardFrame(
+        return HomeCardFrame(
+                              domain: HomeCardDomain.biometrics,
                               icon: LucideIcons.heartPulse,
                               title: 'Health Summary',
                               accentColor: accent,
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HealthPage(),
+                                  PageTransitions.containerTransform(
+                                    const HealthPage(),
                                   ),
                                 );
                               },
@@ -84,8 +53,9 @@ class HealthSummaryCard extends StatelessWidget {
                                   color: scoreColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(
-                                  '$score / 100',
+                                child: AnimatedMetricTicker(
+                                  value: score,
+                                  suffix: ' / 100',
                                   style: TextStyle(
                                     color: scoreColor,
                                     fontSize: 11,
@@ -126,18 +96,14 @@ class HealthSummaryCard extends StatelessWidget {
                                                           StrokeCap.round,
                                                     ),
                                                   ),
-                                                  Text(
-                                                    '$score',
+                                                  AnimatedMetricTicker(
+                                                    value: score,
                                                     style: TextStyle(
                                                       color: BentoTheme
                                                           .textPrimary,
                                                       fontSize: 20,
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      fontFeatures: const [
-                                                        FontFeature
-                                                            .tabularFigures()
-                                                      ],
                                                     ),
                                                   ),
                                                 ],
@@ -358,16 +324,6 @@ class HealthSummaryCard extends StatelessWidget {
                                         ],
                                       ],
                                     ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
         );
       },
     );

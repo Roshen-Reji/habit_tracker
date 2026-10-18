@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -8,10 +11,8 @@ class ExpandedPlayerSheet extends StatefulWidget {
   const ExpandedPlayerSheet({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+    return showSpringSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => const ExpandedPlayerSheet(),
     );
   }
@@ -98,27 +99,30 @@ class _ExpandedPlayerSheetState extends State<ExpandedPlayerSheet> {
               ),
               const SizedBox(height: 24),
 
-              // Artwork
-              ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(ExpressiveTokens.radiusCard),
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  color: BentoTheme.surfaceElevated,
-                  child: track.artworkBytes != null &&
-                          track.artworkBytes!.isNotEmpty
-                      ? Image.memory(
-                          track.artworkBytes!,
-                          fit: BoxFit.cover,
-                        )
-                      : Center(
-                          child: Icon(
-                            LucideIcons.music,
-                            size: 64,
-                            color: BentoTheme.textSecondary,
+              // Artwork Hero Morph
+              Hero(
+                tag: 'player_artwork_hero',
+                child: ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(ExpressiveTokens.radiusCard),
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    color: BentoTheme.surfaceElevated,
+                    child: track.artworkBytes != null &&
+                            track.artworkBytes!.isNotEmpty
+                        ? Image.memory(
+                            track.artworkBytes!,
+                            fit: BoxFit.cover,
+                          )
+                        : Center(
+                            child: Icon(
+                              LucideIcons.music,
+                              size: 64,
+                              color: BentoTheme.textSecondary,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -221,59 +225,51 @@ class _ExpandedPlayerSheetState extends State<ExpandedPlayerSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  IconButton(
-                    iconSize: 32,
-                    icon: Icon(LucideIcons.skipBack,
-                        color: BentoTheme.textPrimary),
+                  TactileIconButton(
+                    size: 52,
+                    iconSize: 26,
+                    borderRadius: 14,
+                    icon: LucideIcons.skipBack,
                     onPressed: () =>
                         NowPlayingService.instance.send(MediaCommand.previous),
                   ),
-                  const SizedBox(width: 24),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: BentoTheme.accent,
-                    ),
-                    child: IconButton(
-                      iconSize: 36,
-                      icon: Icon(
-                        track.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                        color: BentoTheme.background,
-                      ),
-                      onPressed: () {
-                        NowPlayingService.instance.send(
-                          track.isPlaying
-                              ? MediaCommand.pause
-                              : MediaCommand.play,
-                        );
-                      },
-                    ),
+                  const SizedBox(width: 20),
+                  TactileIconButton(
+                    size: 64,
+                    iconSize: 30,
+                    borderRadius: 32,
+                    backgroundColor: TactileTokens.vermilion,
+                    color: Colors.white,
+                    icon: track.isPlaying ? LucideIcons.pause : LucideIcons.play,
+                    onPressed: () {
+                      NowPlayingService.instance.send(
+                        track.isPlaying
+                            ? MediaCommand.pause
+                            : MediaCommand.play,
+                      );
+                    },
                   ),
-                  const SizedBox(width: 24),
-                  IconButton(
-                    iconSize: 32,
-                    icon: Icon(LucideIcons.skipForward,
-                        color: BentoTheme.textPrimary),
+                  const SizedBox(width: 20),
+                  TactileIconButton(
+                    size: 52,
+                    iconSize: 26,
+                    borderRadius: 14,
+                    icon: LucideIcons.skipForward,
                     onPressed: () =>
                         NowPlayingService.instance.send(MediaCommand.next),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Open app button
-              TextButton.icon(
+              TactileButton(
+                size: TactileButtonSize.small,
+                variant: TactileButtonVariant.ghost,
+                icon: LucideIcons.externalLink,
+                label: 'Open Player App',
                 onPressed: () =>
                     NowPlayingService.instance.send(MediaCommand.openApp),
-                icon: Icon(LucideIcons.externalLink,
-                    size: 16, color: BentoTheme.textSecondary),
-                label: Text(
-                  'Open Player App',
-                  style: TextStyle(
-                    color: BentoTheme.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
               ),
             ],
           ),

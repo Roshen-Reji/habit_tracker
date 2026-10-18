@@ -54,11 +54,22 @@ class MoneyProgressBar extends StatelessWidget {
                   child: SizedBox(
                     width: barWidth,
                     height: height,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: effectiveColor,
-                        borderRadius: borderRadius,
-                      ),
+                    child: Stack(
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: effectiveColor,
+                            borderRadius: borderRadius,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                        if (val >= 0.999)
+                          _MoneySpecularShimmer(
+                            width: barWidth,
+                            height: height,
+                            radius: borderRadius,
+                          ),
+                      ],
                     ),
                   ),
                 );
@@ -67,6 +78,68 @@ class MoneyProgressBar extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _MoneySpecularShimmer extends StatefulWidget {
+  final double width;
+  final double height;
+  final BorderRadius radius;
+
+  const _MoneySpecularShimmer({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  State<_MoneySpecularShimmer> createState() => _MoneySpecularShimmerState();
+}
+
+class _MoneySpecularShimmerState extends State<_MoneySpecularShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ClipRRect(
+          borderRadius: widget.radius,
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-2.0 + (_controller.value * 4.0), 0),
+                end: Alignment(-1.0 + (_controller.value * 4.0), 0),
+                colors: [
+                  Colors.white.withValues(alpha: 0.0),
+                  Colors.white.withValues(alpha: 0.45),
+                  Colors.white.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

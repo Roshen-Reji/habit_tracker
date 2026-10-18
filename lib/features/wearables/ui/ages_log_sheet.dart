@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
@@ -13,9 +14,8 @@ class AgesLogSheet extends StatefulWidget {
   const AgesLogSheet({super.key, this.initialSample});
 
   static Future<void> show(BuildContext context, {AgesSample? sample}) {
-    return showModalBottomSheet(
+    return showSpringSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: BentoTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

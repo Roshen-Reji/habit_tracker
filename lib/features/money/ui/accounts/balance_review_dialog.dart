@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import '../../data/balance_check.dart';
 
 /// Modal dialog showing one-time balance migration review (Section 6).
@@ -217,34 +218,19 @@ class _BalanceReviewDialogState extends State<BalanceReviewDialog> {
               else ...[
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BentoTheme.accent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                  child: TactileButton(
+                    variant: TactileButtonVariant.primary,
+                    label: 'Use new balances',
                     onPressed: _handleUseNewBalances,
-                    child: const Text('Use new balances',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: BentoTheme.textPrimary,
-                      side: BorderSide(color: BentoTheme.divider),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                  child: TactileButton(
+                    variant: TactileButtonVariant.outline,
+                    label: 'Keep today\'s balances',
                     onPressed: _handleKeepTodayBalances,
-                    child: const Text('Keep today\'s balances'),
                   ),
                 ),
               ],
