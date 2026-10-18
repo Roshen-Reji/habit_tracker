@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:habit_tracker/data/models/productivity_models.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
+import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -540,6 +542,12 @@ class ReaderService {
     if (existing != null) {
       existing.totalReadingSeconds += seconds;
       await existing.save();
+      try {
+        final dayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        final currentXp = XpLedger.get(dayKey, 'reader_session');
+        final earned = (currentXp + (seconds ~/ 60) * 1).clamp(0, 30);
+        await XpLedger.set(dayKey, 'reader_session', earned > 0 ? earned : 5);
+      } catch (_) {}
     }
   }
 

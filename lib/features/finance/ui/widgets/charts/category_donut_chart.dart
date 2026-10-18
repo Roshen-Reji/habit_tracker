@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
+import 'package:habit_tracker/core/motion/motion_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/utils/format_utils.dart';
 
 class CategoryDonutChart extends StatefulWidget {
   final List<Map<String, dynamic>> items;
@@ -53,42 +55,51 @@ class _CategoryDonutChartState extends State<CategoryDonutChart> {
     return Column(
       children: [
         Expanded(
-          child: PieChart(
-            PieChartData(
-              centerSpaceRadius: 52,
-              sectionsSpace: 2,
-              pieTouchData: PieTouchData(
-                touchCallback: (event, response) {
-                  final section = response?.touchedSection;
-                  if (!event.isInterestedForInteractions || section == null) {
-                    setState(() => _touchedIndex = -1);
-                    return;
-                  }
-                  setState(() => _touchedIndex = section.touchedSectionIndex);
-                },
-              ),
-              sections: widget.items.asMap().entries.map((entry) {
-                final amount = _asDouble(entry.value['value']);
-                final isSelected = entry.key == _touchedIndex;
-                final percent = total <= 0 ? 0 : amount / total * 100;
-                final color = entry.value['color'] is Color
-                    ? entry.value['color'] as Color
-                    : _chartColors[entry.key % _chartColors.length];
+          child: RepaintBoundary(
+            child: PieChart(
+              PieChartData(
+                centerSpaceRadius: 52,
+                sectionsSpace: 2,
+                pieTouchData: PieTouchData(
+                  touchCallback: (event, response) {
+                    final section = response?.touchedSection;
+                    if (!event.isInterestedForInteractions || section == null) {
+                      if (_touchedIndex != -1) {
+                        setState(() => _touchedIndex = -1);
+                      }
+                      return;
+                    }
+                    final newIdx = section.touchedSectionIndex;
+                    if (newIdx != _touchedIndex) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _touchedIndex = newIdx);
+                    }
+                  },
+                ),
+                sections: widget.items.asMap().entries.map((entry) {
+                  final amount = _asDouble(entry.value['value']);
+                  final isSelected = entry.key == _touchedIndex;
+                  final percent = total <= 0 ? 0 : amount / total * 100;
+                  final color = entry.value['color'] is Color
+                      ? entry.value['color'] as Color
+                      : _chartColors[entry.key % _chartColors.length];
 
-                return PieChartSectionData(
-                  value: amount <= 0 ? 0.01 : amount,
-                  color: color,
-                  radius: isSelected ? 58 : 48,
-                  title: percent < 7 ? '' : '${percent.toStringAsFixed(0)}%',
-                  titleStyle: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
-                );
-              }).toList(),
+                  return PieChartSectionData(
+                    value: amount <= 0 ? 0.01 : amount,
+                    color: color,
+                    radius: isSelected ? 60 : 48,
+                    title: percent < 7 ? '' : '${percent.toStringAsFixed(0)}%',
+                    titleStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  );
+                }).toList(),
+              ),
+              duration: const Duration(milliseconds: 320),
+              curve: MotionTokens.fastOutExtraSlowIn,
             ),
-            duration: const Duration(milliseconds: 350),
           ),
         ),
         const SizedBox(height: 10),
@@ -109,8 +120,8 @@ class _CategoryDonutChartState extends State<CategoryDonutChart> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text(
-                      FormatUtils.formatCurrency(_asDouble(selected['value'])),
+                    AnimatedMetricTicker.currency(
+                      value: _asDouble(selected['value']),
                       style: TextStyle(
                         color: BentoTheme.textSecondary,
                         fontSize: 13,

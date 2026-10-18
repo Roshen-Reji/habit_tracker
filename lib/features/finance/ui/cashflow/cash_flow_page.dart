@@ -213,7 +213,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                   Divider(height: 20, color: BentoTheme.divider),
                   _buildProjectionRow(
                     'Projected Net Buffer',
-                    '${FormatUtils.formatMoney(cashFlow.remainingNext30)}',
+                    FormatUtils.formatMoney(cashFlow.remainingNext30),
                     cashFlow.remainingNext30 >= 0
                         ? BentoTheme.positive
                         : BentoTheme.negative,
@@ -256,7 +256,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                         ],
                       ),
                       Text(
-                        '${FormatUtils.formatMoney(e.value)}',
+                        FormatUtils.formatMoney(e.value),
                         style: const TextStyle(fontSize: 14).copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -296,7 +296,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
                           style: const TextStyle(fontSize: 14)
                               .copyWith(color: BentoTheme.textPrimary)),
                       Text(
-                        '${FormatUtils.formatMoney(e.value)}',
+                        FormatUtils.formatMoney(e.value),
                         style: const TextStyle(fontSize: 14).copyWith(
                           color: BentoTheme.textPrimary,
                           fontWeight: FontWeight.w600,
@@ -339,7 +339,7 @@ class _CashFlowPageState extends State<CashFlowPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${FormatUtils.formatMoney(amount)}',
+            FormatUtils.formatMoney(amount),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                 .copyWith(
               color: color,

@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
@@ -159,19 +160,11 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                     ],
                   ),
                   const Spacer(),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BentoTheme.accent,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(LucideIcons.penLine, size: 14),
-                    label: Text(todayLog != null ? 'Edit Time' : 'Log Time',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                  TactileButton.icon(
+                    size: TactileButtonSize.small,
+                    variant: TactileButtonVariant.primary,
+                    icon: LucideIcons.penLine,
+                    label: todayLog != null ? 'Edit Time' : 'Log Time',
                     onPressed: () async {
                       final now = DateTime.now();
                       final initialTime = todayLog != null

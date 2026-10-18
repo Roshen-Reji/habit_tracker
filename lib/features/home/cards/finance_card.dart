@@ -11,6 +11,7 @@ import 'package:habit_tracker/features/money/core/minor.dart';
 import 'package:habit_tracker/features/money/core/snapshot.dart';
 import 'package:habit_tracker/features/money/state/money_state.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 
 class _MonthReport {
@@ -87,6 +88,7 @@ class FinanceCard extends StatelessWidget {
         }
 
         return HomeCardFrame(
+          domain: HomeCardDomain.ledger,
           icon: LucideIcons.wallet,
           title: 'Finance Summary',
           onTap: () {
@@ -106,6 +108,7 @@ class FinanceCard extends StatelessWidget {
                     isPositiveNet ? BentoTheme.positive : BentoTheme.negative,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -195,15 +198,14 @@ class FinanceCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  FormatUtils.formatMoney(moneyLeft, decimals: 0),
+                AnimatedMetricTicker.rupees(
+                  value: moneyLeft,
                   style: TextStyle(
                     color: moneyLeft < 0
                         ? const Color(0xFFE07A7A)
                         : BentoTheme.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ],
@@ -283,8 +285,8 @@ class FinanceCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    FormatUtils.formatMoney(moneyLeft, decimals: 0),
+                  AnimatedMetricTicker.rupees(
+                    value: moneyLeft,
                     style: TextStyle(
                       color: moneyLeft < 0
                           ? const Color(0xFFE07A7A)
@@ -292,7 +294,6 @@ class FinanceCard extends StatelessWidget {
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
-                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],

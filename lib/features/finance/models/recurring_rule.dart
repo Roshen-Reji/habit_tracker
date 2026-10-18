@@ -70,25 +70,26 @@ class RecurringRule extends HiveObject {
   RecurringRule({
     required this.id,
     required this.name,
-    required this.kind,
+    this.kind = 'bill',
     required this.amount,
     this.amountIsVariable = false,
     this.categoryId,
     this.accountId,
     this.toAccountId,
-    required this.frequency,
+    this.frequency = 'monthly',
     this.interval = 1,
     this.anchorDate,
     this.dayOfMonth,
-    required this.startDate,
+    DateTime? startDate,
     this.endDate,
     this.autoPost = false,
     this.reminderDaysBefore = 2,
     this.status = 'active',
     this.folio,
     this.notes,
-    required this.createdAt,
-  });
+    DateTime? createdAt,
+  })  : startDate = startDate ?? DateTime(2026, 1, 1),
+        createdAt = createdAt ?? DateTime(2026, 1, 1);
 
   bool get isActive => status == 'active';
   bool get isPaused => status == 'paused';

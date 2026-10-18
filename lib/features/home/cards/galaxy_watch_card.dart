@@ -6,11 +6,14 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
+import 'package:habit_tracker/features/home/widgets/biometric_cluster.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/features/wearables/ui/wearables_settings_page.dart';
 
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 
 class GalaxyWatchCard extends StatelessWidget {
@@ -25,28 +28,18 @@ class GalaxyWatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!WearableSettings.isEnabled) {
       return HomeCardFrame(
+        domain: HomeCardDomain.biometrics,
         icon: LucideIcons.watch,
-        title: 'Activity',
+        title: 'Activity & Vitals',
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const WearablesSettingsPage()),
+            PageTransitions.containerTransform(const WearablesSettingsPage()),
           );
         },
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: BentoTheme.accent.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            'Connect',
-            style: TextStyle(
-              color: BentoTheme.accent,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        trailing: const BiometricSyncPill(
+          isConnected: false,
+          label: 'OFFLINE',
         ),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -117,47 +110,27 @@ class GalaxyWatchCard extends StatelessWidget {
         final ages = view.ages?.score;
 
         return HomeCardFrame(
+          domain: HomeCardDomain.biometrics,
           icon: LucideIcons.watch,
-          title: 'Activity',
+          title: 'Activity & Vitals',
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const HealthPage(initialTab: 2)),
+              PageTransitions.containerTransform(
+                  const HealthPage(initialTab: 2)),
             );
           },
-          trailing: ages != null
-              ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.sparkles,
-                          size: 12, color: BentoTheme.accent),
-                      const SizedBox(width: 4),
-                      Text(
-                        'AGEs ${ages.toStringAsFixed(1)}',
-                        style: TextStyle(
-                          color: BentoTheme.accent,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : null,
+          trailing: BiometricSyncPill(
+            isConnected: true,
+            label: ages != null ? 'AGEs ${ages.toStringAsFixed(1)}' : 'SYNCED',
+          ),
           child: size == HomeCardSize.hero
               ? _buildHeroContent(
                   context,
                   steps: steps,
                   hours: hours,
                   mins: mins,
+                  sleepMin: sleepMin,
                   sleepScore: view.sleepScore,
                   energy: energy,
                   ages: ages,
@@ -174,6 +147,7 @@ class GalaxyWatchCard extends StatelessWidget {
                             value: steps > 0
                                 ? NumberFormat('#,###').format(steps)
                                 : '—',
+                            numericValue: steps > 0 ? steps : null,
                             subtitle: steps > 0
                                 ? '${((steps / 10000) * 100).round()}% goal'
                                 : 'No steps',
@@ -200,6 +174,8 @@ class GalaxyWatchCard extends StatelessWidget {
                             icon: LucideIcons.zap,
                             title: 'ENERGY',
                             value: energy != null ? '$energy/100' : '—',
+                            numericValue: energy,
+                            numericSuffix: '/100',
                             subtitle: energy != null
                                 ? (energy >= 80 ? 'Optimal' : 'Good')
                                 : 'No score',
@@ -244,12 +220,15 @@ class GalaxyWatchCard extends StatelessWidget {
     required int steps,
     required int hours,
     required int mins,
+    required int? sleepMin,
     required int? sleepScore,
     required int? energy,
     required double? ages,
   }) {
-    final percent = ((steps / 10000) * 100).clamp(0, 999).round();
-    final stepProgress = (steps / 10000).clamp(0.0, 1.0);
+    final stepProgress = (steps / 10000).clamp(0.0, 1.5);
+    final sleepProgress =
+        (sleepMin != null && sleepMin > 0) ? (sleepMin / 480).clamp(0.0, 1.0) : 0.0;
+    final energyProgress = energy != null ? (energy / 100.0).clamp(0.0, 1.0) : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,35 +236,11 @@ class GalaxyWatchCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 76,
-              height: 76,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 76,
-                    height: 76,
-                    child: CircularProgressIndicator(
-                      value: stepProgress,
-                      strokeWidth: 7,
-                      backgroundColor:
-                          BentoTheme.textPrimary.withValues(alpha: 0.08),
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(BentoTheme.textPrimary),
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Text(
-                    '$percent%',
-                    style: TextStyle(
-                      color: BentoTheme.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+            ConcentricBiometricRings(
+              stepsProgress: stepProgress,
+              sleepProgress: sleepProgress,
+              energyProgress: energyProgress,
+              size: 78,
             ),
             const SizedBox(width: 20),
             Expanded(
@@ -412,6 +367,8 @@ class GalaxyWatchCard extends StatelessWidget {
     required IconData icon,
     required String title,
     required String value,
+    num? numericValue,
+    String? numericSuffix,
     required String subtitle,
     required Color color,
   }) {
@@ -443,16 +400,27 @@ class GalaxyWatchCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: BentoTheme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          numericValue != null
+              ? AnimatedMetricTicker(
+                  value: numericValue,
+                  suffix: numericSuffix ?? '',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : Text(
+                  value,
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
           const SizedBox(height: 2),
           Text(
             subtitle,

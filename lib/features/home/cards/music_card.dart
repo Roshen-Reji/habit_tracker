@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
 import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/home/widgets/expanded_player_sheet.dart';
@@ -25,20 +27,35 @@ class MusicCard extends StatelessWidget {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildBadge(String text, Color color) {
+  Widget _buildBadge(String text, Color color, {bool isPlaying = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+          width: 0.8,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isPlaying) ...[
+            MicroEqualizerBars(isPlaying: true, color: color),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -57,8 +74,9 @@ class MusicCard extends StatelessWidget {
           builder: (context, track, _) {
             if (!hasAccess) {
               return HomeCardFrame(
+                domain: HomeCardDomain.audio,
                 icon: LucideIcons.music,
-                title: 'MUSIC CONTROLLER',
+                title: 'Audio Hardware Deck',
                 trailing: _buildBadge('Setup Required', Colors.amber),
                 onTap: () => NowPlayingService.instance.openAccessSettings(),
                 child: Row(
@@ -105,8 +123,9 @@ class MusicCard extends StatelessWidget {
 
             if (track == null) {
               return HomeCardFrame(
-                icon: LucideIcons.music,
-                title: 'NOW PLAYING',
+                domain: HomeCardDomain.audio,
+                icon: LucideIcons.disc,
+                title: 'Audio Hardware Deck',
                 trailing: _buildBadge('Idle', BentoTheme.textSecondary),
                 onTap: () => NowPlayingService.instance.refresh(),
                 child: size == HomeCardSize.hero
@@ -114,18 +133,9 @@ class MusicCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const SizedBox(height: 16),
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: BentoTheme.surfaceElevated,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              LucideIcons.disc,
-                              color: BentoTheme.textSecondary,
-                              size: 40,
-                            ),
+                          const HardwareVinylGraphic(
+                            isPlaying: false,
+                            size: 80,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -150,18 +160,9 @@ class MusicCard extends StatelessWidget {
                       )
                     : Row(
                         children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: BentoTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              LucideIcons.disc,
-                              color: BentoTheme.textSecondary,
-                              size: 22,
-                            ),
+                          const HardwareVinylGraphic(
+                            isPlaying: false,
+                            size: 44,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -193,11 +194,15 @@ class MusicCard extends StatelessWidget {
             }
 
             return HomeCardFrame(
+              domain: HomeCardDomain.audio,
               icon: LucideIcons.music,
-              title: 'NOW PLAYING',
+              title: 'Audio Hardware Deck',
               trailing: _buildBadge(
                 track.isPlaying ? 'Active' : 'Paused',
-                track.isPlaying ? BentoTheme.accent : Colors.white38,
+                track.isPlaying
+                    ? TactileTokens.accentVermilion
+                    : Colors.white38,
+                isPlaying: track.isPlaying,
               ),
               onTap: () => ExpandedPlayerSheet.show(context),
               child: _buildTrackContent(context, track),
@@ -224,24 +229,10 @@ class MusicCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 46,
-                height: 46,
-                color: BentoTheme.surfaceElevated,
-                child:
-                    track.artworkBytes != null && track.artworkBytes!.isNotEmpty
-                        ? Image.memory(
-                            track.artworkBytes!,
-                            fit: BoxFit.cover,
-                          )
-                        : Icon(
-                            LucideIcons.music,
-                            color: BentoTheme.textSecondary,
-                            size: 20,
-                          ),
-              ),
+            HardwareVinylGraphic(
+              isPlaying: track.isPlaying,
+              artworkBytes: track.artworkBytes,
+              size: 46,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -271,31 +262,33 @@ class MusicCard extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              iconSize: 20,
-              icon: Icon(LucideIcons.skipBack, color: BentoTheme.textPrimary),
+            TactileIconButton(
+              icon: LucideIcons.skipBack,
+              size: 38,
+              iconSize: 18,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.previous),
             ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              iconSize: 22,
-              icon: Icon(
-                track.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                color: BentoTheme.accent,
-              ),
+            const SizedBox(width: 4),
+            TactileIconButton(
+              icon: track.isPlaying ? LucideIcons.pause : LucideIcons.play,
+              size: 42,
+              iconSize: 20,
+              color: track.isPlaying ? Colors.black : Colors.white,
+              backgroundColor: track.isPlaying
+                  ? TactileTokens.accentVermilion
+                  : TactileTokens.surfaceRaised,
               onPressed: () {
                 NowPlayingService.instance.send(
                   track.isPlaying ? MediaCommand.pause : MediaCommand.play,
                 );
               },
             ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              iconSize: 20,
-              icon:
-                  Icon(LucideIcons.skipForward, color: BentoTheme.textPrimary),
+            const SizedBox(width: 4),
+            TactileIconButton(
+              icon: LucideIcons.skipForward,
+              size: 38,
+              iconSize: 18,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.next),
             ),
@@ -306,7 +299,7 @@ class MusicCard extends StatelessWidget {
           ProgressBarX(
             value: track.progressRatio,
             height: 3,
-            color: BentoTheme.mediaAccent,
+            color: TactileTokens.accentVermilion,
           ),
         ],
       ],
@@ -320,24 +313,10 @@ class MusicCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 68,
-                height: 68,
-                color: BentoTheme.surfaceElevated,
-                child:
-                    track.artworkBytes != null && track.artworkBytes!.isNotEmpty
-                        ? Image.memory(
-                            track.artworkBytes!,
-                            fit: BoxFit.cover,
-                          )
-                        : Icon(
-                            LucideIcons.music,
-                            color: BentoTheme.textSecondary,
-                            size: 30,
-                          ),
-              ),
+            HardwareVinylGraphic(
+              isPlaying: track.isPlaying,
+              artworkBytes: track.artworkBytes,
+              size: 68,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -386,7 +365,7 @@ class MusicCard extends StatelessWidget {
           ProgressBarX(
             value: track.progressRatio,
             height: 4,
-            color: BentoTheme.mediaAccent,
+            color: TactileTokens.accentVermilion,
           ),
           const SizedBox(height: 6),
           Row(
@@ -397,6 +376,7 @@ class MusicCard extends StatelessWidget {
                 style: TextStyle(
                   color: BentoTheme.textSecondary,
                   fontSize: 11,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               Text(
@@ -404,6 +384,7 @@ class MusicCard extends StatelessWidget {
                 style: TextStyle(
                   color: BentoTheme.textSecondary,
                   fontSize: 11,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -413,36 +394,33 @@ class MusicCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            IconButton(
-              iconSize: 24,
-              icon: Icon(LucideIcons.skipBack, color: BentoTheme.textPrimary),
+            TactileIconButton(
+              icon: LucideIcons.skipBack,
+              size: 42,
+              iconSize: 20,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.previous),
             ),
             const SizedBox(width: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: BentoTheme.accent.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                iconSize: 28,
-                icon: Icon(
-                  track.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                  color: BentoTheme.accent,
-                ),
-                onPressed: () {
-                  NowPlayingService.instance.send(
-                    track.isPlaying ? MediaCommand.pause : MediaCommand.play,
-                  );
-                },
-              ),
+            TactileIconButton(
+              icon: track.isPlaying ? LucideIcons.pause : LucideIcons.play,
+              size: 52,
+              iconSize: 24,
+              color: track.isPlaying ? Colors.black : Colors.white,
+              backgroundColor: track.isPlaying
+                  ? TactileTokens.accentVermilion
+                  : TactileTokens.surfaceRaised,
+              onPressed: () {
+                NowPlayingService.instance.send(
+                  track.isPlaying ? MediaCommand.pause : MediaCommand.play,
+                );
+              },
             ),
             const SizedBox(width: 16),
-            IconButton(
-              iconSize: 24,
-              icon:
-                  Icon(LucideIcons.skipForward, color: BentoTheme.textPrimary),
+            TactileIconButton(
+              icon: LucideIcons.skipForward,
+              size: 42,
+              iconSize: 20,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.next),
             ),
@@ -459,24 +437,10 @@ class MusicCard extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Container(
-              width: 120,
-              height: 120,
-              color: BentoTheme.surfaceElevated,
-              child:
-                  track.artworkBytes != null && track.artworkBytes!.isNotEmpty
-                      ? Image.memory(
-                          track.artworkBytes!,
-                          fit: BoxFit.cover,
-                        )
-                      : Icon(
-                          LucideIcons.music,
-                          color: BentoTheme.textSecondary,
-                          size: 54,
-                        ),
-            ),
+          child: HardwareVinylGraphic(
+            isPlaying: track.isPlaying,
+            artworkBytes: track.artworkBytes,
+            size: 130,
           ),
         ),
         const SizedBox(height: 16),
@@ -508,7 +472,7 @@ class MusicCard extends StatelessWidget {
           ProgressBarX(
             value: track.progressRatio,
             height: 5,
-            color: BentoTheme.mediaAccent,
+            color: TactileTokens.accentVermilion,
           ),
           const SizedBox(height: 8),
           Row(
@@ -519,6 +483,7 @@ class MusicCard extends StatelessWidget {
                 style: TextStyle(
                   color: BentoTheme.textSecondary,
                   fontSize: 12,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               Text(
@@ -526,6 +491,7 @@ class MusicCard extends StatelessWidget {
                 style: TextStyle(
                   color: BentoTheme.textSecondary,
                   fontSize: 12,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -535,39 +501,33 @@ class MusicCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            IconButton(
-              iconSize: 28,
-              icon: Icon(LucideIcons.skipBack, color: BentoTheme.textPrimary),
+            TactileIconButton(
+              icon: LucideIcons.skipBack,
+              size: 46,
+              iconSize: 22,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.previous),
             ),
-            const SizedBox(width: 24),
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: BentoTheme.accent,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: IconButton(
-                iconSize: 28,
-                icon: Icon(
-                  track.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                  color: Colors.black,
-                ),
-                onPressed: () {
-                  NowPlayingService.instance.send(
-                    track.isPlaying ? MediaCommand.pause : MediaCommand.play,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 24),
-            IconButton(
+            const SizedBox(width: 20),
+            TactileIconButton(
+              icon: track.isPlaying ? LucideIcons.pause : LucideIcons.play,
+              size: 58,
               iconSize: 28,
-              icon:
-                  Icon(LucideIcons.skipForward, color: BentoTheme.textPrimary),
+              color: track.isPlaying ? Colors.black : Colors.white,
+              backgroundColor: track.isPlaying
+                  ? TactileTokens.accentVermilion
+                  : TactileTokens.surfaceRaised,
+              onPressed: () {
+                NowPlayingService.instance.send(
+                  track.isPlaying ? MediaCommand.pause : MediaCommand.play,
+                );
+              },
+            ),
+            const SizedBox(width: 20),
+            TactileIconButton(
+              icon: LucideIcons.skipForward,
+              size: 46,
+              iconSize: 22,
               onPressed: () =>
                   NowPlayingService.instance.send(MediaCommand.next),
             ),
@@ -577,3 +537,225 @@ class MusicCard extends StatelessWidget {
     );
   }
 }
+
+/// Rotating vinyl micro-graphic representing a physical hardware audio deck.
+class HardwareVinylGraphic extends StatefulWidget {
+  final bool isPlaying;
+  final Uint8List? artworkBytes;
+  final double size;
+
+  const HardwareVinylGraphic({
+    super.key,
+    required this.isPlaying,
+    this.artworkBytes,
+    this.size = 46.0,
+  });
+
+  @override
+  State<HardwareVinylGraphic> createState() => _HardwareVinylGraphicState();
+}
+
+class _HardwareVinylGraphicState extends State<HardwareVinylGraphic>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    );
+    if (widget.isPlaying) _rotationController.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant HardwareVinylGraphic oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _rotationController.repeat();
+      } else {
+        _rotationController.stop();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: RotationTransition(
+        turns: _rotationController,
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF0C0D10),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.12),
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Vinyl micro-groove rings
+              Container(
+                margin: EdgeInsets.all(widget.size * 0.14),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.all(widget.size * 0.24),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+              // Center record label / artwork
+              ClipOval(
+                child: SizedBox(
+                  width: widget.size * 0.46,
+                  height: widget.size * 0.46,
+                  child: widget.artworkBytes != null &&
+                          widget.artworkBytes!.isNotEmpty
+                      ? Image.memory(
+                          widget.artworkBytes!,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: TactileTokens.accentVermilion,
+                          child: Icon(
+                            LucideIcons.disc,
+                            size: widget.size * 0.28,
+                            color: Colors.black,
+                          ),
+                        ),
+                ),
+              ),
+              // Spindle center hole
+              Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated equalizer micro-bars showing live audio activity.
+class MicroEqualizerBars extends StatefulWidget {
+  final bool isPlaying;
+  final Color? color;
+
+  const MicroEqualizerBars({
+    super.key,
+    required this.isPlaying,
+    this.color,
+  });
+
+  @override
+  State<MicroEqualizerBars> createState() => _MicroEqualizerBarsState();
+}
+
+class _MicroEqualizerBarsState extends State<MicroEqualizerBars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    if (widget.isPlaying) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant MicroEqualizerBars oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _ctrl.repeat(reverse: true);
+      } else {
+        _ctrl.stop();
+        _ctrl.value = 0.2;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final barColor = widget.color ?? TactileTokens.accentVermilion;
+
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          final t = _ctrl.value;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildBar(barColor, widget.isPlaying ? 4.0 + (t * 8.0) : 3.0),
+              const SizedBox(width: 2.5),
+              _buildBar(barColor, widget.isPlaying ? 12.0 - (t * 7.0) : 4.0),
+              const SizedBox(width: 2.5),
+              _buildBar(barColor, widget.isPlaying ? 6.0 + (t * 6.0) : 3.0),
+              const SizedBox(width: 2.5),
+              _buildBar(barColor, widget.isPlaying ? 11.0 - (t * 8.0) : 2.5),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBar(Color color, double height) {
+    return Container(
+      width: 2.5,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(1.5),
+      ),
+    );
+  }
+}
+

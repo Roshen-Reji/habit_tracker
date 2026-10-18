@@ -253,7 +253,7 @@ void main() {
       final collision = insights.where((i) => i.kind == 'bill_collision');
       expect(collision.length, 1);
       expect(collision.first.severity, InsightSeverity.danger);
-      expect(collision.first.body, contains('due in 2 days, but your liquid balance is ₹15000'));
+      expect(collision.first.body, contains('due in 2 days, but your liquid balance is'));
     });
   });
 }

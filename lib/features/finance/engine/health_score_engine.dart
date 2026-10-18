@@ -164,12 +164,11 @@ class HealthScoreEngine {
       }
 
       if (debtParts.isNotEmpty) {
-        final avgDebtScore =
-            debtParts.reduce((a, b) => a + b) / debtParts.length;
+        final debtScore = debtParts.reduce(min);
         components.add(HealthScoreComponent(
           id: 'debt',
           name: 'Debt & Credit',
-          score: Money.r2(avgDebtScore),
+          score: Money.r2(debtScore),
           baseWeight: FinanceConstants.healthWeightDebt,
           hasData: true,
           description: descriptions.join(' • '),

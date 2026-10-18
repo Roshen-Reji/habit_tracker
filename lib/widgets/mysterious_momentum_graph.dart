@@ -14,26 +14,27 @@ class MysteriousMomentumGraph extends StatelessWidget {
       builder: (context, Box box, _) {
         List<int> xpHistory = GlobalXPService.getPast7DaysXP();
 
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: BentoContainer(
-            borderRadius: 20,
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "M O M E N T U M   S I G N A L",
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 12,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.bold,
+        return RepaintBoundary(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: BentoContainer(
+              borderRadius: 20,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "MOMENTUM SIGNAL",
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 12,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
                     Icon(Icons.grain,
                         color: BentoTheme.textSecondary, size: 16),
                   ],
@@ -75,8 +76,9 @@ class MysteriousMomentumGraph extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
+        ),
+      );
+    },
     );
   }
 

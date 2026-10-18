@@ -25,6 +25,7 @@ class TransactionDraft {
   bool isDuplicate;
   bool isSuggestedTransfer;
   int? matchedTransferIndex;
+  dynamic source;
 
   TransactionDraft({
     required this.date,
@@ -43,21 +44,29 @@ class TransactionDraft {
     this.isDuplicate = false,
     this.isSuggestedTransfer = false,
     this.matchedTransferIndex,
+    this.source,
   });
 
   String get effectiveKind => kind;
 }
 
+/// A matched transfer pair between two draft accounts
+class TransferPair {
+  final TransactionDraft fromDraft;
+  final TransactionDraft toDraft;
+
+  const TransferPair(this.fromDraft, this.toDraft);
+}
+
 /// Abstract contract for transaction capture sources (CSV, SMS) per P10-6
 abstract class TransactionSource {
+  static const String csv = 'csv';
+  static const String sms = 'sms';
   Future<List<TransactionDraft>> fetch();
 }
 
 /// Normalizer for merchant and payee descriptions
 class MerchantNormalizer {
-  static final RegExp _upiRefRegex = RegExp(
-      r'(?:upi|ref|rrn|txn|id)[:\-\s]*[0-9a-zA-Z]+',
-      caseSensitive: false);
   static final RegExp _digitsRegex = RegExp(r'\b\d+\b');
   static final RegExp _domainRegex =
       RegExp(r'\.(?:com|in|co|org|net|io|app)\b', caseSensitive: false);
@@ -66,17 +75,25 @@ class MerchantNormalizer {
   /// Normalizes a raw bank or merchant string into a clean lookup token
   static String normalize(String raw) {
     if (raw.trim().isEmpty) return '';
-    var s = raw.toLowerCase();
+    var s = raw.trim();
+
+    // Strip UPI handle like @icici
+    s = s.replaceAll(RegExp(r'@[a-zA-Z0-9._\-]+'), '');
+
+    // Strip leading prefix like UPI-, POS-, etc.
+    s = s.replaceAll(RegExp(r'^(?:upi|pos|ecom|vpa)[\-\s:]+', caseSensitive: false), '');
 
     // Remove domains
     s = s.replaceAll(_domainRegex, '');
 
-    // Remove UPI / RRN / Txn reference tokens
-    s = s.replaceAll(_upiRefRegex, '');
+    // Remove reference tokens like ref:1234, rrn:1234
+    s = s.replaceAll(RegExp(r'\b(?:ref|rrn|txn|id)[:\-\s]*[0-9]+\b', caseSensitive: false), '');
 
-    // Remove common prefixes
+    // Remove common prefixes and suffixes
     s = s.replaceAll(
-        RegExp(r'\b(?:pos|ecom|vpa|ach|neft|rtgs|imps|autopay|mandate)\b'), '');
+        RegExp(r'\b(?:pos|ecom|vpa|ach|neft|rtgs|imps|autopay|mandate|pvt|ltd)\b',
+            caseSensitive: false),
+        '');
 
     // Remove punctuation
     s = s.replaceAll(_punctRegex, ' ');
@@ -87,21 +104,19 @@ class MerchantNormalizer {
     // Normalize whitespace
     s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
 
-    // Map common merchant keywords
-    if (s.contains('swiggy')) return 'swiggy';
-    if (s.contains('zomato')) return 'zomato';
-    if (s.contains('amazon')) return 'amazon';
-    if (s.contains('flipkart')) return 'flipkart';
-    if (s.contains('uber')) return 'uber';
-    if (s.contains('ola')) return 'ola';
-    if (s.contains('netflix')) return 'netflix';
-    if (s.contains('spotify')) return 'spotify';
-    if (s.contains('starbucks')) return 'starbucks';
-    if (s.contains('blinkit') || s.contains('grofers')) return 'blinkit';
-    if (s.contains('zepto')) return 'zepto';
-    if (s.contains('instamart')) return 'instamart';
+    final upper = s.toUpperCase();
+    if (upper.contains('SWIGGY')) return 'SWIGGY';
+    if (upper.contains('NETFLIX')) return 'NETFLIX';
+    if (upper.contains('ZOMATO')) return 'ZOMATO';
+    if (upper.contains('UBER')) return 'UBER';
+    if (upper.contains('OLA')) return 'OLA';
+    if (upper.contains('SPOTIFY')) return 'SPOTIFY';
+    if (upper.contains('STARBUCKS')) return 'STARBUCKS';
+    if (upper.contains('BLINKIT') || upper.contains('GROFERS')) return 'BLINKIT';
+    if (upper.contains('ZEPTO')) return 'ZEPTO';
+    if (upper.contains('INSTAMART')) return 'INSTAMART';
 
-    return s;
+    return upper;
   }
 }
 
@@ -109,17 +124,22 @@ class MerchantNormalizer {
 class CategorizationRulesEngine {
   /// Matches a transaction against active rules, ordered by priority descending
   static String? matchCategory({
-    required String rawTitle,
-    required String? rawMerchant,
+    String? rawTitle,
+    String? rawMerchant,
+    String? merchant,
+    String? description,
     required List<CategoryRule> rules,
   }) {
+    final effectiveTitle = rawTitle ?? description ?? '';
+    final effectiveMerchant = rawMerchant ?? merchant;
     if (rules.isEmpty) return null;
 
     final sortedRules = List<CategoryRule>.from(rules)
       ..sort((a, b) => b.priority.compareTo(a.priority));
 
-    final normMerchant = MerchantNormalizer.normalize(rawMerchant ?? rawTitle);
-    final normTitle = rawTitle.toLowerCase();
+    final normMerchant =
+        MerchantNormalizer.normalize(effectiveMerchant ?? effectiveTitle);
+    final normTitle = effectiveTitle.toLowerCase();
 
     for (final rule in sortedRules) {
       final pattern = rule.pattern.toLowerCase();
@@ -127,21 +147,22 @@ class CategorizationRulesEngine {
 
       switch (rule.matchType) {
         case 'exact':
-          isMatch = (normMerchant == pattern || normTitle == pattern);
+          isMatch = (normMerchant.toLowerCase() == pattern || normTitle == pattern);
           break;
         case 'regex':
           try {
             final reg = RegExp(rule.pattern, caseSensitive: false);
-            isMatch = reg.hasMatch(rawTitle) ||
-                (rawMerchant != null && reg.hasMatch(rawMerchant));
+            isMatch = reg.hasMatch(effectiveTitle) ||
+                (effectiveMerchant != null && reg.hasMatch(effectiveMerchant)) ||
+                reg.hasMatch(normMerchant);
           } catch (_) {
             isMatch = false;
           }
           break;
         case 'contains':
         default:
-          isMatch =
-              normMerchant.contains(pattern) || normTitle.contains(pattern);
+          isMatch = normMerchant.toLowerCase().contains(pattern) ||
+              normTitle.contains(pattern);
           break;
       }
 
@@ -167,7 +188,7 @@ class CsvMappingProfile {
   final bool hasHeader;
 
   const CsvMappingProfile({
-    required this.name,
+    this.name = 'Default Profile',
     this.delimiter = ',',
     required this.dateColumn,
     this.dateFormat = 'dd/MM/yyyy',
@@ -206,6 +227,35 @@ class CsvMappingProfile {
 
 /// Robust CSV Parser handling RFC 4180, delimiter auto-detection and dedupe
 class CsvParser {
+  /// Tokenizes standard CSV content
+  static List<List<String>> tokenize(String input, [String delimiter = ',']) =>
+      parseCsv(input, delimiter: delimiter);
+
+  /// Auto-detects delimiter alias
+  static String detectDelimiter(String content) => autoDetectDelimiter(content);
+
+  /// High-level parser converting raw CSV content into drafts
+  static List<TransactionDraft> parseToDrafts({
+    required String csvContent,
+    required CsvMappingProfile profile,
+    String? targetAccountId,
+    List<dynamic> allCategories = const [],
+    List<CategoryRule> rules = const [],
+  }) {
+    final rows = parseCsv(csvContent, delimiter: profile.delimiter);
+    final drafts = parseDrafts(
+      rows: rows,
+      profile: profile,
+      accountId: targetAccountId,
+      rules: rules,
+    );
+    for (final d in drafts) {
+      d.source = TransactionSource.csv;
+      d.amount = d.amount.abs();
+    }
+    return drafts;
+  }
+
   /// Auto-detects delimiter from the first few lines of CSV content
   static String autoDetectDelimiter(String content) {
     final lines = content.split(RegExp(r'\r?\n')).take(5).toList();
@@ -405,7 +455,8 @@ class CsvParser {
   }
 
   /// Detects transfer pairs: same amount, opposite sign, different accounts, dated <= 2 days apart
-  static void detectTransferPairs(List<TransactionDraft> drafts) {
+  static List<TransferPair> detectTransferPairs(List<TransactionDraft> drafts) {
+    final pairs = <TransferPair>[];
     for (var i = 0; i < drafts.length; i++) {
       final d1 = drafts[i];
       if (d1.isSuggestedTransfer || d1.isDuplicate) continue;
@@ -414,10 +465,15 @@ class CsvParser {
         final d2 = drafts[j];
         if (d2.isSuggestedTransfer || d2.isDuplicate) continue;
 
+        final isOppositeDirection =
+            (d1.kind == 'expense' && d2.kind == 'income') ||
+            (d1.kind == 'income' && d2.kind == 'expense') ||
+            (d1.amount < 0 && d2.amount > 0) ||
+            (d1.amount > 0 && d2.amount < 0);
+
         // Opposite sign, same absolute amount
         if ((d1.amount.abs() - d2.amount.abs()).abs() < 0.01 &&
-            ((d1.amount < 0 && d2.amount > 0) ||
-                (d1.amount > 0 && d2.amount < 0))) {
+            isOppositeDirection) {
           // Different accounts (if both assigned)
           if (d1.accountId != null &&
               d2.accountId != null &&
@@ -431,11 +487,17 @@ class CsvParser {
             d1.matchedTransferIndex = j;
             d2.isSuggestedTransfer = true;
             d2.matchedTransferIndex = i;
+            final fromDraft =
+                (d1.kind == 'expense' || d1.amount < 0) ? d1 : d2;
+            final toDraft =
+                (d1.kind == 'expense' || d1.amount < 0) ? d2 : d1;
+            pairs.add(TransferPair(fromDraft, toDraft));
             break;
           }
         }
       }
     }
+    return pairs;
   }
 
   static double _cleanNumber(String raw) {
@@ -540,68 +602,77 @@ class ReceiptManager {
 
 /// Optional On-Device SMS Parser for Indian Banks & UPI (P10-5)
 class SmsTransactionParser {
-  // Common Indian Bank SMS regex patterns
-  static final RegExp _debitPattern = RegExp(
-    r'(?:debited by|spent|withdrawn|debited)\s+(?:rs\.?|inr)\s*([0-9,.]+)\s+(?:at|to|for|via)\s+([a-zA-Z0-9\s._\-*]+?)(?:\s+on|\s+ref|\s+upi|\s+avl|\s+bal|\.|$)',
-    caseSensitive: false,
-  );
-
-  static final RegExp _creditPattern = RegExp(
-    r'(?:credited with|deposited|credited)\s+(?:rs\.?|inr)\s*([0-9,.]+)\s+(?:from|by)\s+([a-zA-Z0-9\s._\-*]+?)(?:\s+on|\s+ref|\s+upi|\s+avl|\s+bal|\.|$)',
-    caseSensitive: false,
-  );
-
   static final RegExp _accountPattern = RegExp(
     r'(?:a/c|acct|ac)\s+(?:no\.?)?\s*[xX*]+([0-9]{3,4})',
     caseSensitive: false,
   );
 
   /// Parse a raw SMS text into a TransactionDraft suggestion
-  static TransactionDraft? parseSms(String body, {DateTime? receivedDate}) {
+  static TransactionDraft? parse(String body,
+      {String? defaultAccountId, DateTime? receivedDate}) {
     final clean = body.replaceAll('\n', ' ');
     final date = receivedDate ?? DateTime.now();
+
+    final isDebit = RegExp(r'\b(?:debited|spent|withdrawn)\b', caseSensitive: false)
+        .hasMatch(clean);
+    final isCredit = RegExp(r'\b(?:credited|deposited)\b', caseSensitive: false)
+        .hasMatch(clean);
+
+    if (!isDebit && !isCredit) return null;
+
+    // Extract amount: Rs. 450.00, INR 25,000.00, Rs 120.00
+    final amtMatch = RegExp(r'(?:rs\.?|inr)\s*([0-9,]+(?:\.[0-9]+)?)',
+            caseSensitive: false)
+        .firstMatch(clean);
+    if (amtMatch == null) return null;
+    final amt = double.tryParse(amtMatch.group(1)!.replaceAll(',', '')) ?? 0.0;
+    if (amt <= 0) return null;
 
     final accMatch = _accountPattern.firstMatch(clean);
     final accSuffix = accMatch != null ? ' (A/c ...${accMatch.group(1)})' : '';
 
-    // Check Debit
-    final debitMatch = _debitPattern.firstMatch(clean);
-    if (debitMatch != null) {
-      final amtStr = debitMatch.group(1)?.replaceAll(',', '') ?? '0';
-      final merchantRaw = debitMatch.group(2)?.trim() ?? 'Expense';
-      final amt = double.tryParse(amtStr) ?? 0.0;
-      if (amt > 0) {
-        final normMerchant = MerchantNormalizer.normalize(merchantRaw);
-        return TransactionDraft(
-          date: date,
-          amount: -Money.r2(amt),
-          title: merchantRaw,
-          merchant: normMerchant.isNotEmpty ? normMerchant : null,
-          kind: 'expense',
-          paymentMethod: 'UPI',
-          notes: 'Auto-parsed from SMS$accSuffix',
-        );
-      }
-    }
+    if (isDebit) {
+      // Find merchant after 'to' or 'at'
+      final merchantMatch = RegExp(
+              r'\b(?:to|at)\s+([a-zA-Z0-9\s._\-*]+?)(?:\.|\s+on|\s+avl|\s+bal|\s+ref|\s+via|$)',
+              caseSensitive: false)
+          .firstMatch(clean);
+      final rawMerchant = merchantMatch?.group(1)?.trim() ?? 'Expense';
+      final normMerchant = MerchantNormalizer.normalize(rawMerchant);
 
-    // Check Credit
-    final creditMatch = _creditPattern.firstMatch(clean);
-    if (creditMatch != null) {
-      final amtStr = creditMatch.group(1)?.replaceAll(',', '') ?? '0';
-      final senderRaw = creditMatch.group(2)?.trim() ?? 'Deposit';
-      final amt = double.tryParse(amtStr) ?? 0.0;
-      if (amt > 0) {
-        return TransactionDraft(
-          date: date,
-          amount: Money.r2(amt),
-          title: senderRaw,
-          kind: 'income',
-          paymentMethod: 'Bank Transfer',
-          notes: 'Auto-parsed from SMS',
-        );
-      }
-    }
+      return TransactionDraft(
+        date: date,
+        amount: amt,
+        title: rawMerchant,
+        merchant: normMerchant.isNotEmpty ? normMerchant : null,
+        kind: 'expense',
+        accountId: defaultAccountId,
+        paymentMethod: 'UPI',
+        notes: 'Auto-parsed from SMS$accSuffix',
+        source: TransactionSource.sms,
+      );
+    } else {
+      // Credit
+      final senderMatch = RegExp(
+              r'\b(?:by|from)\s+([a-zA-Z0-9\s._\-*]+?)(?:\.|\s+on|\s+avl|\s+bal|\s+ref|\s+via|$)',
+              caseSensitive: false)
+          .firstMatch(clean);
+      final rawSender = senderMatch?.group(1)?.trim() ?? 'Deposit';
 
-    return null;
+      return TransactionDraft(
+        date: date,
+        amount: amt,
+        title: rawSender,
+        kind: 'income',
+        accountId: defaultAccountId,
+        paymentMethod: 'Bank Transfer',
+        notes: 'Auto-parsed from SMS$accSuffix',
+        source: TransactionSource.sms,
+      );
+    }
   }
+
+  /// Alias for backward compatibility
+  static TransactionDraft? parseSms(String body, {DateTime? receivedDate}) =>
+      parse(body, receivedDate: receivedDate);
 }

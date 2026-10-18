@@ -10,6 +10,9 @@ import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/screens/home_layout_settings_page.dart';
 import 'package:habit_tracker/features/wearables/ui/wearables_settings_page.dart';
 import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/finance_privacy_data_page.dart';
+import 'package:habit_tracker/features/finance/ui/ai/ai_privacy_page.dart';
+import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/core/progression/progression_service.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/data/models/user_rank.dart';
@@ -23,9 +26,47 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = true;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initBoxes();
+  }
+
+  Future<void> _initBoxes() async {
+    try {
+      if (!Hive.isBoxOpen('settings')) {
+        await Hive.openBox('settings');
+      }
+      if (!Hive.isBoxOpen('finance_settings')) {
+        await Hive.openBox('finance_settings');
+      }
+      if (!Hive.isBoxOpen('mission_box_v4')) {
+        await Hive.openBox<Goal>('mission_box_v4');
+      }
+      if (!Hive.isBoxOpen('speech_vault')) {
+        await Hive.openBox<SpeechModel>('speech_vault');
+      }
+    } catch (e) {
+      debugPrint('Settings initialization warning: $e');
+    }
+    if (mounted) {
+      setState(() => _isInitialized = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        backgroundColor: BentoTheme.background,
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: BentoTheme.background,
       body: CustomScrollView(
@@ -40,6 +81,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildProfileSection(),
                   const SizedBox(height: 32),
                   _buildSystemConfigGroup(),
+                  const SizedBox(height: 24),
+                  _buildFinanceConfigGroup(),
                   const SizedBox(height: 24),
                   _buildAiConfigGroup(),
                   const SizedBox(height: 24),
@@ -164,7 +207,6 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (context, Box settings, _) {
           bool dynamicBackground =
               settings.get('dynamic_background', defaultValue: true);
-          String currency = settings.get('currency_symbol', defaultValue: '₹');
           bool isDarkMode =
               settings.get('theme_mode', defaultValue: 'dark') == 'dark';
 
@@ -181,17 +223,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 LucideIcons.palette, "Dynamic Background", dynamicBackground,
                 (v) {
               settings.put('dynamic_background', v);
-            }),
-            _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
-                () => _editCurrency(settings)),
-            _buildActionTile(LucideIcons.bellRing, "Finance Reminders & Alarms",
-                "Schedules, styles, permissions & test", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RemindersSettingsPage(),
-                ),
-              );
             }),
             _buildActionTile(
                 LucideIcons.layoutGrid, "Home Layout", "Reorder & toggle cards",
@@ -216,6 +247,37 @@ class _SettingsPageState extends State<SettingsPage> {
         });
   }
 
+  Widget _buildFinanceConfigGroup() {
+    return ValueListenableBuilder(
+        valueListenable: Hive.box('settings').listenable(),
+        builder: (context, Box settings, _) {
+          String currency = settings.get('currency_symbol', defaultValue: '₹');
+
+          return _buildSettingGroup("FINANCE & VAULT CONFIGURATION", [
+            _buildActionTile(LucideIcons.coins, "Finance Currency", currency,
+                () => _editCurrency(settings)),
+            _buildActionTile(LucideIcons.bellRing, "Finance Reminders & Alarms",
+                "Schedules, styles, permissions & test", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RemindersSettingsPage(),
+                ),
+              );
+            }),
+            _buildActionTile(LucideIcons.shieldCheck, "Privacy, Backup & Encryption",
+                "AES-256 data lock, JSON export & CSV/SMS import", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FinancePrivacyDataPage(),
+                ),
+              );
+            }),
+          ]);
+        });
+  }
+
   Widget _buildAiConfigGroup() {
     return ValueListenableBuilder(
         valueListenable: Hive.box('settings').listenable(),
@@ -226,6 +288,18 @@ class _SettingsPageState extends State<SettingsPage> {
               settings.get('gemini_model', defaultValue: '')?.toString() ?? '';
 
           return _buildSettingGroup("AI & HEALTH CONFIGURATION", [
+            _buildActionTile(
+                LucideIcons.shieldAlert,
+                "AI Privacy Controls",
+                "Local-first privacy, context toggles & model permissions",
+                () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AiPrivacyPage(),
+                ),
+              );
+            }),
             _buildActionTile(
                 LucideIcons.key,
                 "Gemini API Key",

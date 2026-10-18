@@ -6,10 +6,12 @@ import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/tasks/widgets/wakeup_detail_sheet.dart';
+import 'package:habit_tracker/core/motion/animated_strikethrough.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/features/wearables/engine/wake_rules.dart';
 
 class TaskCard extends StatelessWidget {
@@ -91,15 +93,14 @@ class TaskCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      goal.title,
+                    AnimatedStrikethroughText(
+                      text: goal.title,
+                      isDone: goal.isCompleted,
+                      strikeColor: _getCategoryColor(goal.category),
                       style: TextStyle(
                         color: BentoTheme.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        decoration: goal.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
                       ),
                     ),
                     if (goal.description.isNotEmpty)
@@ -161,30 +162,21 @@ class TaskCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              IconButton(
-                icon: Icon(
-                  goal.isCompleted
-                      ? LucideIcons.checkCircle2
-                      : LucideIcons.circle,
-                  color: goal.isCompleted
-                      ? BentoTheme.accent
-                      : BentoTheme.textSecondary,
-                ),
-                onPressed: () {
+              TactileCheckbox(
+                value: goal.isCompleted,
+                activeColor: _getCategoryColor(goal.category),
+                onChanged: (_) {
                   final box = Hive.box<Goal>('mission_box_v4');
                   if (!box.containsKey(goal.id)) return;
 
                   if (goal.isCompleted) {
-                    HapticFeedback.mediumImpact();
                     goal.reset();
                   } else {
-                    HapticFeedback.heavyImpact();
                     goal.complete();
                   }
                   box.put(goal.id, goal);
                 },
-              ).animate(target: goal.isCompleted ? 1 : 0).scaleXY(
-                  end: 1.2, duration: 200.ms, curve: Curves.easeOutBack),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -267,9 +259,8 @@ class TaskCard extends StatelessWidget {
 
     return BentoButton(
       onTap: () {
-        showModalBottomSheet(
+        showSpringSheet(
           context: context,
-          isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => WakeupDetailSheet(goal: goal),
         );

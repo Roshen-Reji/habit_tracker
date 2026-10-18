@@ -9,6 +9,9 @@ import 'widgets/task_card.dart';
 import 'widgets/add_task_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:habit_tracker/data/services/notification_service.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
+import 'package:habit_tracker/features/finance/finance_page.dart';
 import 'task_analytics_page.dart';
 
 import 'package:habit_tracker/core/navigation/app_nav.dart';
@@ -201,10 +204,11 @@ class _TasksPageState extends State<TasksPage>
   }
 
   Widget _buildMoneyLaunchView() {
-    return Center(
+    return FinanceDashboard(
       key: const ValueKey('finance_launch'),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -233,23 +237,15 @@ class _TasksPageState extends State<TasksPage>
               style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
+            TactileButton.icon(
               onPressed: () => AppNav.openMoney(context),
-              icon: const Icon(LucideIcons.arrowUpRight, size: 18),
-              label: const Text('Open Money OS',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BentoTheme.accent,
-                foregroundColor: Colors.black,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
+              icon: LucideIcons.arrowUpRight,
+              label: 'Open Money OS',
+              variant: TactileButtonVariant.primary,
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -396,33 +392,13 @@ class _TasksPageState extends State<TasksPage>
   }
 
   Widget _buildAddGoalButton(GoalType type) {
-    return GestureDetector(
-      onTap: () => showDialog(
+    return TactileButton(
+      height: 52,
+      variant: TactileButtonVariant.outline,
+      icon: LucideIcons.plus,
+      label: "ADD NEW MISSION",
+      onPressed: () => showSpringDialog(
           context: context, builder: (_) => AddTaskDialog(defaultType: type)),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: BentoTheme.accent.withValues(alpha: 0.5), width: 2),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(LucideIcons.plus, color: BentoTheme.accent),
-            SizedBox(width: 8),
-            Text(
-              "ADD NEW MISSION",
-              style: TextStyle(
-                color: BentoTheme.accent,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -446,7 +422,7 @@ class _TasksPageState extends State<TasksPage>
   }
 
   void _showGoalDetails(Goal goal) {
-    showModalBottomSheet(
+    showSpringSheet(
       context: context,
       backgroundColor: BentoTheme.background,
       shape: const RoundedRectangleBorder(
@@ -487,7 +463,9 @@ class _TasksPageState extends State<TasksPage>
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
+                    child: TactileButton(
+                      variant: TactileButtonVariant.primary,
+                      label: 'Add Progress',
                       onPressed: () {
                         if (missionBox.containsKey(goal.id)) {
                           goal.incrementProgress(1);
@@ -495,12 +473,13 @@ class _TasksPageState extends State<TasksPage>
                         }
                         Navigator.pop(context);
                       },
-                      child: Text('Add Progress'),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(
+                    child: TactileButton(
+                      variant: TactileButtonVariant.destructive,
+                      label: 'Delete',
                       onPressed: () {
                         NotificationService().cancelReminder(goal.key.hashCode);
                         missionBox.delete(goal.id);
@@ -513,11 +492,6 @@ class _TasksPageState extends State<TasksPage>
                           ),
                         );
                       },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.redAccent),
-                      ),
-                      child: Text('Delete',
-                          style: TextStyle(color: Colors.redAccent)),
                     ),
                   ),
                 ],

@@ -16,34 +16,39 @@ class FinanceLockService {
     if (localAuth != null) _localAuth = localAuth;
   }
 
-  Box get _settingsBox => Hive.box('finance_settings');
+  Box? get _settingsBox =>
+      Hive.isBoxOpen('finance_settings') ? Hive.box('finance_settings') : null;
 
   bool get isLockEnabled =>
-      _settingsBox.get('lock_enabled', defaultValue: false) as bool;
+      _settingsBox?.get('lock_enabled', defaultValue: false) as bool? ?? false;
   int get timeoutMinutes =>
-      _settingsBox.get('lock_timeout_minutes', defaultValue: 0) as int;
+      _settingsBox?.get('lock_timeout_minutes', defaultValue: 0) as int? ?? 0;
   bool get lockOnBackground =>
-      _settingsBox.get('lock_on_background', defaultValue: true) as bool;
+      _settingsBox?.get('lock_on_background', defaultValue: true) as bool? ?? true;
   bool get hideFromRecents =>
-      _settingsBox.get('hide_from_recents', defaultValue: false) as bool;
+      _settingsBox?.get('hide_from_recents', defaultValue: false) as bool? ?? false;
 
   Future<void> setLockEnabled(bool value) async {
-    await _settingsBox.put('lock_enabled', value);
+    final box = _settingsBox ?? await Hive.openBox('finance_settings');
+    await box.put('lock_enabled', value);
     if (!value) {
       isUnlocked.value = true;
     }
   }
 
   Future<void> setTimeoutMinutes(int minutes) async {
-    await _settingsBox.put('lock_timeout_minutes', minutes);
+    final box = _settingsBox ?? await Hive.openBox('finance_settings');
+    await box.put('lock_timeout_minutes', minutes);
   }
 
   Future<void> setLockOnBackground(bool value) async {
-    await _settingsBox.put('lock_on_background', value);
+    final box = _settingsBox ?? await Hive.openBox('finance_settings');
+    await box.put('lock_on_background', value);
   }
 
   Future<void> setHideFromRecents(bool value) async {
-    await _settingsBox.put('hide_from_recents', value);
+    final box = _settingsBox ?? await Hive.openBox('finance_settings');
+    await box.put('hide_from_recents', value);
   }
 
   void initializeAtStartup() {

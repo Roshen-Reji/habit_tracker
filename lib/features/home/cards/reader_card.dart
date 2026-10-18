@@ -9,6 +9,8 @@ import 'package:habit_tracker/features/home/cards/home_card_frame.dart';
 import 'package:habit_tracker/features/reader/pdf_reader_page.dart';
 import 'package:habit_tracker/features/reader/reader_library_page.dart';
 import 'package:habit_tracker/features/reader/widgets/book_cover_thumbnail.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -62,14 +64,15 @@ class _ReaderCardState extends State<ReaderCard> {
             displayBooks.isNotEmpty ? displayBooks.first : null;
 
         return HomeCardFrame(
+          domain: HomeCardDomain.editorial,
           icon: LucideIcons.bookOpen,
           title: 'Document Reader',
           accentColor: accent,
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const ReaderLibraryPage(),
+              PageTransitions.containerTransform(
+                const ReaderLibraryPage(),
               ),
             ).then((_) => _loadBooks());
           },
@@ -85,6 +88,7 @@ class _ReaderCardState extends State<ReaderCard> {
                 color: accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -144,74 +148,31 @@ class _ReaderCardState extends State<ReaderCard> {
                   ),
                 ],
 
-                // Quick Continue Reading bar for the top book
+                // 1-Tap Resume Reading button for the top book
                 if (mostRecentBook != null) ...[
                   const SizedBox(height: 12),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius:
-                          BorderRadius.circular(ExpressiveTokens.radiusSm),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PdfReaderPage(book: mostRecentBook),
-                          ),
-                        ).then((_) => _loadBooks());
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
+                  TactileButton(
+                    label: 'Resume: ${mostRecentBook.name}',
+                    icon: LucideIcons.playCircle,
+                    variant: TactileButtonVariant.primary,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageTransitions.containerTransform(
+                          PdfReaderPage(book: mostRecentBook),
                         ),
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.1),
-                          borderRadius:
-                              BorderRadius.circular(ExpressiveTokens.radiusSm),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              LucideIcons.playCircle,
-                              color: accent,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Continue: ${mostRecentBook.name}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    'Page ${mostRecentBook.lastPage} of ${mostRecentBook.totalPages} (${(mostRecentBook.progressFraction * 100).toInt()}%)',
-                                    style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.7),
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              LucideIcons.chevronRight,
-                              color: accent,
-                              size: 14,
-                            ),
-                          ],
-                        ),
+                      ).then((_) => _loadBooks());
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Text(
+                      'Page ${mostRecentBook.lastPage} of ${mostRecentBook.totalPages} · ${(mostRecentBook.progressFraction * 100).toInt()}% completed',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 10,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ),
@@ -234,24 +195,11 @@ class _ReaderCardState extends State<ReaderCard> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ExpressiveTokens.radiusSm),
-                          ),
-                        ),
-                        icon: const Icon(LucideIcons.filePlus, size: 15),
-                        label: const Text(
-                          'Open PDF',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: TactileButton.icon(
+                        size: TactileButtonSize.small,
+                        variant: TactileButtonVariant.primary,
+                        icon: LucideIcons.filePlus,
+                        label: 'Open PDF',
                         onPressed: () async {
                           final book =
                               await ReaderService.importPdfFromPicker();
@@ -259,8 +207,8 @@ class _ReaderCardState extends State<ReaderCard> {
                             await _loadBooks();
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => PdfReaderPage(book: book),
+                              PageTransitions.containerTransform(
+                                PdfReaderPage(book: book),
                               ),
                             ).then((_) => _loadBooks());
                           }
@@ -269,31 +217,16 @@ class _ReaderCardState extends State<ReaderCard> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: BentoTheme.textPrimary,
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ExpressiveTokens.radiusSm),
-                          ),
-                        ),
-                        icon: const Icon(LucideIcons.library, size: 15),
-                        label: const Text(
-                          'Library',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: TactileButton.icon(
+                        size: TactileButtonSize.small,
+                        variant: TactileButtonVariant.secondary,
+                        icon: LucideIcons.library,
+                        label: 'Library',
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const ReaderLibraryPage(),
+                            PageTransitions.containerTransform(
+                              const ReaderLibraryPage(),
                             ),
                           ).then((_) => _loadBooks());
                         },
@@ -304,33 +237,16 @@ class _ReaderCardState extends State<ReaderCard> {
               else
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BentoTheme.surfaceElevated,
-                      foregroundColor: BentoTheme.textPrimary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(ExpressiveTokens.radiusSm),
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(LucideIcons.library, size: 15),
-                    label: Text(
-                      'View Library (${_books.length})',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  child: TactileButton.icon(
+                    size: TactileButtonSize.small,
+                    variant: TactileButtonVariant.secondary,
+                    icon: LucideIcons.library,
+                    label: 'View Library (${_books.length})',
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const ReaderLibraryPage(),
+                        PageTransitions.containerTransform(
+                          const ReaderLibraryPage(),
                         ),
                       ).then((_) => _loadBooks());
                     },
@@ -355,8 +271,8 @@ class _ReaderCardState extends State<ReaderCard> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => PdfReaderPage(book: book),
+            PageTransitions.containerTransform(
+              PdfReaderPage(book: book),
             ),
           ).then((_) => _loadBooks());
         },
@@ -375,12 +291,25 @@ class _ReaderCardState extends State<ReaderCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Cover area with real rendered PDF thumbnail
+              // Cover area with real rendered PDF thumbnail and physical bookmark ribbon
               Expanded(
-                child: BookCoverThumbnail(
-                  book: book,
-                  showProgressBadge: true,
-                  showSpine: true,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: BookCoverThumbnail(
+                        book: book,
+                        showProgressBadge: true,
+                        showSpine: true,
+                      ),
+                    ),
+                    if (book.progressFraction > 0.05)
+                      const Positioned(
+                        top: -1,
+                        right: 12,
+                        child: BookmarkRibbon(),
+                      ),
+                  ],
                 ),
               ),
               // Bottom progress & name strip
@@ -415,3 +344,40 @@ class _ReaderCardState extends State<ReaderCard> {
     );
   }
 }
+
+/// Physical editorial bookmark ribbon indicator hanging from book cover edge.
+class BookmarkRibbon extends StatelessWidget {
+  final Color color;
+
+  const BookmarkRibbon({
+    super.key,
+    this.color = const Color(0xFFE11D48),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 20,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Container(
+          width: 2,
+          height: 12,
+          color: Colors.white.withValues(alpha: 0.35),
+        ),
+      ),
+    );
+  }
+}
+

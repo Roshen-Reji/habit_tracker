@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/utils/format_utils.dart';
@@ -47,11 +48,17 @@ class NetWorthHistoryChart extends StatelessWidget {
 
     return SizedBox(
       height: height,
-      child: LineChart(
-        LineChartData(
+      child: RepaintBoundary(
+        child: LineChart(
+          LineChartData(
           minY: minY,
           maxY: maxY,
           lineTouchData: LineTouchData(
+            touchCallback: (event, response) {
+              if (event.isInterestedForInteractions && response?.lineBarSpots != null) {
+                HapticFeedback.selectionClick();
+              }
+            },
             touchTooltipData: LineTouchTooltipData(
               getTooltipColor: (_) => BentoTheme.cardBackground,
               tooltipBorderRadius: BorderRadius.circular(10),
@@ -148,6 +155,7 @@ class NetWorthHistoryChart extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

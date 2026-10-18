@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_tokens.dart';
 import 'expressive_tokens.dart';
+import '../utils/page_transitions.dart';
 
 class AppTheme {
   // Legacy color aliases preserved for backward compatibility
@@ -47,11 +48,12 @@ class AppTheme {
         surface: AppColors.surface,
         error: AppColors.error,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: ExpressiveTokens.borderL,
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0x12FFFFFF), width: 1.0),
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -61,10 +63,10 @@ class AppTheme {
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 16,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2.0,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
         ),
-        iconTheme: IconThemeData(color: AppColors.primary),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
@@ -74,30 +76,35 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.background,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          minimumSize: const Size(48, 48),
           textStyle:
-              const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
+              const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: ExpressiveTokens.borderM,
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 1.5),
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size(48, 48),
+          side: const BorderSide(color: Color(0x18FFFFFF), width: 1.0),
           textStyle:
-              const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
+              const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: ExpressiveTokens.borderM,
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.android: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.iOS: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.windows: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.macOS: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.linux: SpringSlideFadePageTransitionsBuilder(),
         },
       ),
     );
@@ -132,9 +139,11 @@ class AppTheme {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.android: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.iOS: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.windows: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.macOS: SpringSlideFadePageTransitionsBuilder(),
+          TargetPlatform.linux: SpringSlideFadePageTransitionsBuilder(),
         },
       ),
     );

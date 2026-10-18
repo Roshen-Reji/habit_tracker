@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import '../../core/entry.dart';
 import '../../core/minor.dart';
@@ -26,9 +27,8 @@ class QuickAddSheet extends StatefulWidget {
     EntryKind initialKind = EntryKind.spent,
     Entry? editEntry,
   }) async {
-    await showModalBottomSheet(
+    await showSpringSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => QuickAddSheet(
         initialKind: editEntry != null ? editEntry.kind : initialKind,

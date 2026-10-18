@@ -23,6 +23,8 @@ class _StarBackgroundState extends State<StarBackground>
   late AnimationController _controller;
   final List<Star> _stars = List.generate(24, (index) => Star());
 
+  bool _isScrolling = false;
+
   @override
   void initState() {
     super.initState();
@@ -37,9 +39,24 @@ class _StarBackgroundState extends State<StarBackground>
     super.dispose();
   }
 
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollStartNotification) {
+      if (!_isScrolling) {
+        setState(() => _isScrolling = true);
+      }
+    } else if (notification is ScrollEndNotification) {
+      if (_isScrolling) {
+        setState(() => _isScrolling = false);
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    final shouldAnimate = !reduceMotion && isCurrent && !_isScrolling;
 
     return Stack(
       children: [
@@ -50,26 +67,31 @@ class _StarBackgroundState extends State<StarBackground>
           ),
         ),
         // 2. The Star Layer
-        TickerMode(
-          enabled: !reduceMotion,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return RepaintBoundary(
-                child: CustomPaint(
-                  painter: StarPainter(
-                    _stars,
-                    reduceMotion ? 0.5 : _controller.value,
-                    BentoTheme.accent,
+        IgnorePointer(
+          child: TickerMode(
+            enabled: shouldAnimate,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return RepaintBoundary(
+                  child: CustomPaint(
+                    painter: StarPainter(
+                      _stars,
+                      reduceMotion ? 0.5 : _controller.value,
+                      BentoTheme.accent,
+                    ),
+                    size: Size.infinite,
                   ),
-                  size: Size.infinite,
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         // 3. The Content Layer
-        widget.child,
+        NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: widget.child,
+        ),
       ],
     );
   }

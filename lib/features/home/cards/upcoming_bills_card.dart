@@ -27,6 +27,7 @@ class UpcomingBillsCard extends StatelessWidget {
         final count = size == HomeCardSize.large ? 5 : 2;
 
         return HomeCardFrame(
+          domain: HomeCardDomain.ledger,
           icon: LucideIcons.calendarClock,
           title: 'Upcoming Bills',
           onTap: () {
@@ -44,6 +45,7 @@ class UpcomingBillsCard extends StatelessWidget {
                 color: BentoTheme.accent,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -66,6 +68,7 @@ class UpcomingBillsCard extends StatelessWidget {
                           : BentoTheme.positive,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],

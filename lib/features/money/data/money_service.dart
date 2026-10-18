@@ -6,6 +6,8 @@ import '../core/minor.dart';
 import '../core/plan_engine.dart';
 import '../state/money_state.dart';
 import 'money_store.dart';
+import 'package:intl/intl.dart';
+import 'package:habit_tracker/data/services/xp_ledger.dart';
 
 /// Descriptor for the previous action to support 5-second Undo (Law L8).
 class UndoAction {
@@ -115,6 +117,8 @@ class MoneyService {
 
     try {
       await _store.saveEntry(entry);
+      final dayKey = DateFormat('yyyy-MM-dd').format(entry.date);
+      await XpLedger.set(dayKey, 'fin_log_day', 5);
     } catch (e) {
       // Rollback on failure
       _state.optimisticDeleteEntry(entry.id);
@@ -159,6 +163,8 @@ class MoneyService {
 
     try {
       await _store.saveEntry(entry);
+      final dayKey = DateFormat('yyyy-MM-dd').format(entry.date);
+      await XpLedger.set(dayKey, 'fin_log_day', 5);
     } catch (e) {
       _state.optimisticDeleteEntry(entry.id);
       rethrow;

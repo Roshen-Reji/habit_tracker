@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
 import 'package:habit_tracker/features/finance/data/finance_controller.dart';
@@ -32,9 +33,8 @@ class TransactionSheet extends StatefulWidget {
     String? initialKind,
     String? initialAccountId,
   }) {
-    return showModalBottomSheet<bool>(
+    return showSpringSheet<bool>(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => TransactionSheet(
         existingTransaction: existingTransaction,

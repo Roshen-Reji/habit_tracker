@@ -10,6 +10,7 @@ import '../../data/money_service.dart';
 import '../../data/plan_runner.dart';
 import '../../state/money_state.dart';
 import '../motion/press_scale.dart';
+import 'package:habit_tracker/core/widgets/tactile_button.dart';
 
 /// Sheet to create or configure scheduled Plans (SIP, EMI, Bills, Income).
 ///
@@ -102,14 +103,16 @@ class _AddPlanSheetState extends State<AddPlanSheet> {
           ],
         ),
         actions: [
-          TextButton(
+          TactileButton(
+            size: TactileButtonSize.small,
+            variant: TactileButtonVariant.ghost,
+            label: 'Cancel',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: BentoTheme.accent,
-                foregroundColor: Colors.white),
+          TactileButton(
+            size: TactileButtonSize.small,
+            variant: TactileButtonVariant.primary,
+            label: 'Create',
             onPressed: () async {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) return;
@@ -120,7 +123,6 @@ class _AddPlanSheetState extends State<AddPlanSheet> {
               );
               if (ctx.mounted) Navigator.of(ctx).pop(acc);
             },
-            child: const Text('Create'),
           ),
         ],
       ),
@@ -180,17 +182,17 @@ class _AddPlanSheetState extends State<AddPlanSheet> {
             style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
           ),
           actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(ctx).pop(true), // Post missed
-              child: const Text('Post missed'),
+            TactileButton(
+              size: TactileButtonSize.small,
+              variant: TactileButtonVariant.outline,
+              label: 'Post missed',
+              onPressed: () => Navigator.of(ctx).pop(true),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: BentoTheme.accent,
-                  foregroundColor: Colors.white),
-              onPressed: () =>
-                  Navigator.of(ctx).pop(false), // Start from today (default)
-              child: const Text('Start from today (Default)'),
+            TactileButton(
+              size: TactileButtonSize.small,
+              variant: TactileButtonVariant.primary,
+              label: 'Start from today',
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
           ],
         ),

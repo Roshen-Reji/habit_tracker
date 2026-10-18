@@ -7,6 +7,11 @@ import 'package:habit_tracker/features/finance/ui/insights/insights_page.dart';
 import 'package:habit_tracker/features/finance/ui/networth/net_worth_page.dart';
 import 'package:habit_tracker/features/finance/ui/reports/reports_page.dart';
 import 'package:habit_tracker/features/finance/ui/settings/finance_privacy_data_page.dart';
+import 'package:habit_tracker/features/finance/ui/calendar/finance_calendar_page.dart';
+import 'package:habit_tracker/features/finance/ui/categories/categories_page.dart';
+import 'package:habit_tracker/features/finance/ui/debt/debt_page.dart';
+import 'package:habit_tracker/features/finance/ui/split/split_groups_page.dart';
+import 'package:habit_tracker/features/finance/ui/settings/reminders_settings_page.dart';
 import '../../core/account_group.dart';
 import '../../core/ledger.dart';
 import '../../core/minor.dart';
@@ -638,6 +643,51 @@ class AccountsTab extends StatelessWidget {
                               LucideIcons.sparkles, () {
                             Navigator.of(context).push(MaterialPageRoute(
                                 builder: (_) => const InsightsPage()));
+                          }),
+                          Divider(
+                              height: 1,
+                              indent: 48,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                          _buildMoreTile(context, 'Financial Calendar',
+                              LucideIcons.calendar, () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const FinanceCalendarPage()));
+                          }),
+                          Divider(
+                              height: 1,
+                              indent: 48,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                          _buildMoreTile(context, 'Debt & Credit Cards',
+                              LucideIcons.creditCard, () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const DebtPage()));
+                          }),
+                          Divider(
+                              height: 1,
+                              indent: 48,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                          _buildMoreTile(context, 'Split & Settle',
+                              LucideIcons.users, () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const SplitGroupsPage()));
+                          }),
+                          Divider(
+                              height: 1,
+                              indent: 48,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                          _buildMoreTile(context, 'Categories & Rules',
+                              LucideIcons.tag, () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const CategoriesPage()));
+                          }),
+                          Divider(
+                              height: 1,
+                              indent: 48,
+                              color: BentoTheme.divider.withValues(alpha: 0.3)),
+                          _buildMoreTile(context, 'Reminders & Alarms',
+                              LucideIcons.bellRing, () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const RemindersSettingsPage()));
                           }),
                           Divider(
                               height: 1,

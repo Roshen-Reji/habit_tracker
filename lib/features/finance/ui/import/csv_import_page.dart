@@ -32,7 +32,7 @@ class _CsvImportPageState extends State<CsvImportPage> {
   int? _debitCol;
   int? _creditCol;
   bool _useDebitCredit = false;
-  bool _hasHeader = true;
+  final bool _hasHeader = true;
 
   String? _selectedAccountId;
   List<TransactionDraft> _drafts = [];

@@ -1,30 +1,38 @@
 import 'package:flutter/material.dart';
+import 'tactile_tokens.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF64FFDA); // tealAccent
-  static const Color primaryDark = Color(0xFF00BFA5);
+  // Neo-Hardware Signal Colors
+  static const Color primary = TactileTokens.vermilion; // Electric Vermilion (#FF4F28)
+  static const Color primaryDark = Color(0xFFE03E18);
+  static const Color tealAccent = Color(0xFF64FFDA);
 
-  static const Color background = Color(0xFF000000); // Deep Black
-  static const Color surface = Color(0xFF121212); // Slightly lighter black
-  static const Color surfaceLight = Color(0xFF1E1E1E);
-  static const Color surfaceGlass = Color(0x1AFFFFFF); // White with 10% opacity
+  // Surfaces
+  static const Color background = TactileTokens.canvas; // Deep Obsidian (#090A0C)
+  static const Color surface = TactileTokens.surface; // Matte Carbon (#121418)
+  static const Color surfaceLight = TactileTokens.surfacePressed; // Tactile Slate (#1A1D24)
+  static const Color surfaceRaised = TactileTokens.surfaceRaised; // (#16191F)
+  static const Color surfaceGlass = Color(0x14FFFFFF);
 
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary =
-      Color(0xB3FFFFFF); // White with 70% opacity
-  static const Color textTertiary = Color(0x66FFFFFF); // White with 40% opacity
+  // Typography
+  static const Color textPrimary = TactileTokens.textPrimary;
+  static const Color textSecondary = TactileTokens.textSecondary;
+  static const Color textTertiary = TactileTokens.textMuted;
 
-  static const Color error = Color(0xFFFF5252);
-  static const Color success = Color(0xFF69F0AE);
-  static const Color warning = Color(0xFFFFD740);
+  // Semantic Status
+  static const Color error = TactileTokens.crimson; // Crimson Pulse (#F43F5E)
+  static const Color success = TactileTokens.mint; // Emerald Mint (#10B981)
+  static const Color warning = TactileTokens.amber; // Amber Warning (#F59E0B)
 
   // Category Colors
-  static const Color health = Color(0xFFFF5252);
-  static const Color productivity = Color(0xFFFFAB40);
-  static const Color learning = Color(0xFF448AFF);
-  static const Color fitness = Color(0xFF69F0AE);
-  static const Color hobby = Color(0xFFE040FB);
+  static const Color health = TactileTokens.crimson;
+  static const Color productivity = TactileTokens.vermilion;
+  static const Color learning = TactileTokens.cyan;
+  static const Color fitness = TactileTokens.mint;
+  static const Color hobby = TactileTokens.violet;
 
-  static const Color glassBorder = Color(0x1AFFFFFF);
-  static const Color primaryGlow = Color(0x4D64FFDA);
+  // Specular Border & Subtle Glow
+  static const Color glassBorder = TactileTokens.specularBorder; // 1px specular rgba(255, 255, 255, 0.07)
+  static const Color primaryGlow = Color(0x33FF4F28);
 }
+

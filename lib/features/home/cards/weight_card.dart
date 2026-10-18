@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
 import 'package:habit_tracker/data/models/health_models.dart';
 import 'package:habit_tracker/features/health/health_page.dart';
 import 'package:habit_tracker/features/home/cards/home_card.dart';
@@ -42,19 +44,16 @@ class WeightCard extends StatelessWidget {
               delta = currentKg - startKg;
             }
 
-            final trailingText = currentKg != null
-                ? '${currentKg.toStringAsFixed(1)} $unit'
-                : 'No logs';
-
             return HomeCardFrame(
+              domain: HomeCardDomain.biometrics,
               icon: LucideIcons.scale,
               title: 'Weight Journey',
               accentColor: accent,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const HealthPage(initialTab: 1),
+                  PageTransitions.containerTransform(
+                    const HealthPage(initialTab: 1),
                   ),
                 );
               },
@@ -64,14 +63,25 @@ class WeightCard extends StatelessWidget {
                   color: accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  trailingText,
-                  style: const TextStyle(
-                    color: accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: currentKg != null
+                    ? AnimatedMetricTicker(
+                        value: currentKg,
+                        suffix: ' $unit',
+                        fractionDigits: 1,
+                        style: const TextStyle(
+                          color: accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    : Text(
+                        'No logs',
+                        style: const TextStyle(
+                          color: accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

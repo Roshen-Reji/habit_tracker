@@ -58,10 +58,10 @@ class Transaction extends HiveObject {
   Transaction({
     required this.title,
     required this.amount,
-    required this.category,
+    this.category = 'General',
     required this.date,
-    required this.mode,
-    required this.icon,
+    this.mode = 'expense',
+    this.icon = 'receipt',
     this.id,
     this.kind,
     this.accountId,
