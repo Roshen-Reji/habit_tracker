@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 
 /// Design tokens for the MVP 5 calm, borderless, depth design system.
 ///
@@ -34,42 +35,81 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.isDark,
   });
 
-  /// Dark mode tokens (Tactile Precision / Neo-Hardware Dark)
-  static const AppTokens dark = AppTokens(
-    background: Color(0xFF090A0C), // Deep Obsidian
-    surface: Color(0xFF121418), // Matte Carbon
-    surfaceRaised: Color(0xFF16191F), // Elevated Matte Surface
-    surfaceSunken: Color(0xFF0C0E11), // Sunken Recessed Surface
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xA3FFFFFF), // 64% white
-    textMuted: Color(0x59FFFFFF), // 35% white
-    positive: Color(0xFF10B981), // Emerald Mint
-    negative: Color(0xFFF43F5E), // Crimson Pulse
-    warning: Color(0xFFF59E0B), // Amber Warning
-    accent: Color(0xFFFF4F28), // Electric Vermilion primary signal
-    divider: Color(0x12FFFFFF), // 1px specular border rgba(255, 255, 255, 0.07)
-    isDark: true,
-  );
+  /// Factory constructing AppTokens dynamically from an AppColorSchemePreset
+  static AppTokens fromPreset(AppColorSchemePreset preset, {required bool isDark}) {
+    final palette = preset.palette;
+    if (isDark) {
+      return AppTokens(
+        background: palette.darkBackground,
+        surface: palette.darkSurface,
+        surfaceRaised: palette.darkSurfaceElevated,
+        surfaceSunken: const Color(0xFF000000),
+        textPrimary: palette.darkTextPrimary,
+        textSecondary: palette.darkTextSecondary,
+        textMuted: const Color(0xFF71717A),
+        positive: const Color(0xFF10B981),
+        negative: const Color(0xFFF43F5E),
+        warning: const Color(0xFFF59E0B),
+        accent: palette.darkPrimary,
+        divider: palette.darkBorder,
+        isDark: true,
+      );
+    } else {
+      return AppTokens(
+        background: palette.lightBackground,
+        surface: palette.lightSurface,
+        surfaceRaised: palette.lightSurfaceElevated,
+        surfaceSunken: const Color(0xFFECECF0),
+        textPrimary: palette.lightTextPrimary,
+        textSecondary: palette.lightTextSecondary,
+        textMuted: const Color(0xFFA1A1AA),
+        positive: const Color(0xFF10B981),
+        negative: const Color(0xFFF43F5E),
+        warning: const Color(0xFFF59E0B),
+        accent: palette.lightPrimary,
+        divider: palette.lightBorder,
+        isDark: false,
+      );
+    }
+  }
 
-  /// Light mode tokens
-  static const AppTokens light = AppTokens(
-    background: Color(0xFFF3F3F6),
-    surface: Color(0xFFFFFFFF),
-    surfaceRaised: Color(0xFFFFFFFF),
-    surfaceSunken: Color(0xFFECECF0),
-    textPrimary: Color(0xFF16161A),
-    textSecondary: Color(0x9E16161A), // 62%
-    textMuted: Color(0x6616161A), // 40%
+  /// Dark mode tokens (Native Black & White default)
+  static const AppTokens dark = AppTokens(
+    background: Color(0xFF000000),
+    surface: Color(0xFF0A0A0A),
+    surfaceRaised: Color(0xFF141414),
+    surfaceSunken: Color(0xFF000000),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFF8E8E93),
+    textMuted: Color(0xFF71717A),
     positive: Color(0xFF10B981),
     negative: Color(0xFFF43F5E),
     warning: Color(0xFFF59E0B),
-    accent: Color(0xFFFF4F28),
-    divider: Color(0x1416161A), // ~8% black for subtle dividers
+    accent: Color(0xFFFFFFFF),
+    divider: Color(0xFF262626),
+    isDark: true,
+  );
+
+  /// Light mode tokens (Native Black & White default)
+  static const AppTokens light = AppTokens(
+    background: Color(0xFFFFFFFF),
+    surface: Color(0xFFF4F4F5),
+    surfaceRaised: Color(0xFFFFFFFF),
+    surfaceSunken: Color(0xFFECECF0),
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color(0xFF71717A),
+    textMuted: Color(0xFFA1A1AA),
+    positive: Color(0xFF10B981),
+    negative: Color(0xFFF43F5E),
+    warning: Color(0xFFF59E0B),
+    accent: Color(0xFF000000),
+    divider: Color(0xFFE4E4E7),
     isDark: false,
   );
 
-  /// Radii (Crisp Hardware Precision)
-  static const double radiusCard = 14.0;
+  /// Radii (Crisp Hardware Precision standardized to 20.0)
+  static const double radiusLg = 20.0;
+  static const double radiusCard = 20.0;
   static const double radiusHero = 20.0;
   static const double radiusInnerChip = 10.0;
   static const double radiusPill = 999.0;

@@ -1,65 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/widgets/depth_card.dart';
 import 'package:habit_tracker/services/now_playing_service.dart';
 
-/// Legacy BentoTheme adapter that delegates directly to [AppTokens] and [DepthCard].
+/// Legacy BentoTheme adapter that delegates directly to [AppTheme], [AppTokens], and [DepthCard].
 ///
-/// Preserves existing callers while enforcing the calm, borderless MVP 5 design system.
+/// Preserves existing callers while enforcing Native Black & White and selectable color schemes.
 class BentoTheme {
-  // Base Background Color
-  static Color get background {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final tokens = isLight ? AppTokens.light : AppTokens.dark;
-    Color base = tokens.background;
-    bool dynamicBg =
-        Hive.box('settings').get('dynamic_background', defaultValue: true);
+  static bool get _isLight {
+    if (!Hive.isBoxOpen('settings')) return false;
+    return Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
+  }
 
-    if (dynamicBg &&
-        NowPlayingService.instance.currentDominantColor.value != null) {
-      return Color.alphaBlend(
-        NowPlayingService.instance.currentDominantColor.value!
-            .withValues(alpha: isLight ? 0.05 : 0.1),
-        base,
-      );
-    }
-    return base;
+  // Base Background Color (Pure native background without dynamic album art tint per AGENTS.md Task 2)
+  static Color get background {
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightBackground : p.darkBackground;
   }
 
   // Cards and surfaces
   static Color get surface {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final tokens = isLight ? AppTokens.light : AppTokens.dark;
-    return tokens.surface;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightSurface : p.darkSurface;
   }
 
   static Color get surfaceElevated {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final tokens = isLight ? AppTokens.light : AppTokens.dark;
-    return tokens.surfaceRaised;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightSurfaceElevated : p.darkSurfaceElevated;
   }
 
   static Color get surfaceRaised => surfaceElevated;
 
   static Color get surfaceSunken {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final tokens = isLight ? AppTokens.light : AppTokens.dark;
-    return tokens.surfaceSunken;
+    return _isLight ? const Color(0xFFECECF0) : const Color(0xFF000000);
   }
 
   static Color get cardBackground => surfaceElevated;
 
-  /// Neutral accent per MVP 5 design system (equals textPrimary).
+  /// Preset primary accent color
   static Color get accent {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    final tokens = isLight ? AppTokens.light : AppTokens.dark;
-    return tokens.accent;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightPrimary : p.darkPrimary;
   }
 
   /// Dynamic media accent (album art) exposed strictly for music features.
@@ -71,47 +54,26 @@ class BentoTheme {
   }
 
   static Color get textPrimary {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.textPrimary : AppTokens.dark.textPrimary;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightTextPrimary : p.darkTextPrimary;
   }
 
   static Color get textSecondary {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight
-        ? AppTokens.light.textSecondary
-        : AppTokens.dark.textSecondary;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightTextSecondary : p.darkTextSecondary;
   }
 
   static Color get textMuted {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.textMuted : AppTokens.dark.textMuted;
+    return _isLight ? const Color(0xFFA1A1AA) : const Color(0xFF71717A);
   }
 
-  static Color get positive {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.positive : AppTokens.dark.positive;
-  }
-
-  static Color get negative {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.negative : AppTokens.dark.negative;
-  }
-
-  static Color get warning {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.warning : AppTokens.dark.warning;
-  }
+  static Color get positive => const Color(0xFF10B981);
+  static Color get negative => const Color(0xFFF43F5E);
+  static Color get warning => const Color(0xFFF59E0B);
 
   static Color get divider {
-    bool isLight =
-        Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
-    return isLight ? AppTokens.light.divider : AppTokens.dark.divider;
+    final p = AppTheme.currentPreset.palette;
+    return _isLight ? p.lightBorder : p.darkBorder;
   }
 
   static Color get accentColor => accent;

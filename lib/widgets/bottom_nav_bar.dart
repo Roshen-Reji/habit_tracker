@@ -85,6 +85,7 @@ class _BottomNavBarState extends State<BottomNavBar>
           GlassTabItem(icon: LucideIcons.home, label: 'Dashboard'),
           GlassTabItem(icon: LucideIcons.target, label: 'Tasks'),
           GlassTabItem(icon: LucideIcons.utensils, label: 'Nutrition'),
+          GlassTabItem(icon: LucideIcons.settings, label: 'Settings'),
         ];
   }
 
@@ -254,90 +255,119 @@ class _BottomNavBarState extends State<BottomNavBar>
                                                 widget.selectedIndex == index;
 
                                             return Expanded(
-                                              child: Semantics(
-                                                role: SemanticsRole.tab,
-                                                selected: isSelected,
-                                                label: item.label,
-                                                hint: item.tooltip,
-                                                child: Material(
-                                                  color: Colors.transparent,
-                                                  child: InkWell(
-                                                    onTap: () {
-                                                      HapticFeedback.selectionClick();
-                                                      widget.onItemTapped(index);
-                                                      _animateToTab(index);
-                                                    },
-                                                    borderRadius:
-                                                        BorderRadius.circular(20.0),
-                                                    splashColor: Colors.transparent,
-                                                    highlightColor: Colors.transparent,
-                                                    child: SizedBox(
-                                                      height: double.infinity,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment.center,
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment.center,
-                                                        children: [
-                                                          // Active Icon: translates -3.5px upward, scales to 1.12x
-                                                          Transform.translate(
-                                                            offset: Offset(
-                                                              0,
-                                                              -3.5 * proximity,
-                                                            ),
-                                                            child: Transform.scale(
-                                                              scale: 1.0 +
-                                                                  (0.12 * proximity),
-                                                              child: Icon(
-                                                                item.icon,
-                                                                size: 20,
-                                                                color: Color.lerp(
-                                                                  TactileTokens.textMuted,
-                                                                  TactileTokens.vermilion,
-                                                                  proximity,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
+                                              child: LayoutBuilder(
+                                                builder: (context, itemConstraints) {
+                                                  const double iconWidth = 20.0;
+                                                  const double iconMargin = 6.0;
+                                                  const double horizontalItemPadding = iconWidth + iconMargin + 12.0;
+                                                  final availableTextWidth = itemConstraints.maxWidth - horizontalItemPadding;
 
-                                                          // Label Reveal: Animated width factor + horizontal slide & fade
-                                                          Flexible(
-                                                            child: ClipRect(
-                                                              child: Align(
-                                                                alignment: Alignment.centerLeft,
-                                                                widthFactor: proximity,
-                                                                child: Opacity(
-                                                                  opacity: proximity.clamp(0.0, 1.0),
-                                                                  child: Transform.translate(
-                                                                    offset: Offset(
-                                                                      4.0 * (1.0 - proximity),
-                                                                      0,
-                                                                    ),
-                                                                    child: Padding(
-                                                                      padding: const EdgeInsets.only(left: 6.0),
-                                                                      child: Text(
-                                                                        item.label,
-                                                                        style: const TextStyle(
-                                                                          fontFamily: 'Roboto',
-                                                                          fontSize: 12,
-                                                                          fontWeight: FontWeight.w700,
-                                                                          letterSpacing: -0.3,
-                                                                          color: TactileTokens.textPrimary,
-                                                                        ),
-                                                                        maxLines: 1,
-                                                                        overflow: TextOverflow.clip,
-                                                                      ),
+                                                  final effectiveLabelStyle = TextStyle(
+                                                    fontFamily: 'Roboto',
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    letterSpacing: -0.3,
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                  );
+
+                                                  final textPainter = TextPainter(
+                                                    text: TextSpan(text: item.label, style: effectiveLabelStyle),
+                                                    maxLines: 1,
+                                                    textDirection: Directionality.of(context),
+                                                    textScaler: MediaQuery.textScalerOf(context),
+                                                  )..layout(minWidth: 0, maxWidth: double.infinity);
+
+                                                  final bool cutsOff = textPainter.width > availableTextWidth;
+
+                                                  final iconWidget = Transform.translate(
+                                                    offset: Offset(
+                                                      0,
+                                                      -3.5 * proximity,
+                                                    ),
+                                                    child: Transform.scale(
+                                                      scale: 1.0 + (0.12 * proximity),
+                                                      child: Icon(
+                                                        item.icon,
+                                                        size: 20,
+                                                        color: Color.lerp(
+                                                          Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                                          Theme.of(context).colorScheme.primary,
+                                                          proximity,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+
+                                                  Widget contentWidget;
+                                                  if (cutsOff) {
+                                                    contentWidget = Tooltip(
+                                                      message: item.label,
+                                                      child: Center(
+                                                        child: iconWidget,
+                                                      ),
+                                                    );
+                                                  } else {
+                                                    contentWidget = Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      children: [
+                                                        iconWidget,
+                                                        Flexible(
+                                                          child: ClipRect(
+                                                            child: Align(
+                                                              alignment: Alignment.centerLeft,
+                                                              widthFactor: proximity,
+                                                              child: Opacity(
+                                                                opacity: proximity.clamp(0.0, 1.0),
+                                                                child: Transform.translate(
+                                                                  offset: Offset(
+                                                                    4.0 * (1.0 - proximity),
+                                                                    0,
+                                                                  ),
+                                                                  child: Padding(
+                                                                    padding: const EdgeInsets.only(left: 6.0),
+                                                                    child: Text(
+                                                                      item.label,
+                                                                      style: effectiveLabelStyle,
+                                                                      maxLines: 1,
+                                                                      softWrap: false,
+                                                                      overflow: TextOverflow.clip,
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ],
+                                                        ),
+                                                      ],
+                                                    );
+                                                  }
+
+                                                  return Semantics(
+                                                    role: SemanticsRole.tab,
+                                                    selected: isSelected,
+                                                    label: item.label,
+                                                    hint: item.tooltip,
+                                                    child: Material(
+                                                      color: Colors.transparent,
+                                                      child: InkWell(
+                                                        onTap: () {
+                                                          HapticFeedback.selectionClick();
+                                                          widget.onItemTapped(index);
+                                                          _animateToTab(index);
+                                                        },
+                                                        borderRadius:
+                                                            BorderRadius.circular(20.0),
+                                                        splashColor: Colors.transparent,
+                                                        highlightColor: Colors.transparent,
+                                                        child: SizedBox(
+                                                          height: double.infinity,
+                                                          child: contentWidget,
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ),
+                                                  );
+                                                },
                                               ),
                                             );
                                           }),

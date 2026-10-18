@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/theme/app_tokens.dart';
 
-/// A calm, borderless card with layered elevation, soft shadows, and subtle depth.
+/// A calm, crisp card with subtle tactile feedback and standardized borders.
 ///
-/// Implements MVP 5 design system requirements:
-/// - No borders or strokes
-/// - Two-layer soft shadows ([DepthElevation])
-/// - Top-light overlay in dark mode (3.5% white over top 40%)
-/// - Pressed micro-interaction: scale 0.985 + shadow step-down (120ms)
-/// - Optional 3D tilt on scroll (for hero cards)
+/// Implements AGENTS.md Task 5 & 6 standards:
+/// - Crisp 1.0px borders (`Theme.of(context).dividerColor`)
+/// - Standardized border radius ([AppTokens.radiusCard] = 20.0)
+/// - Single unified press physics via [PressScale]
+/// - Static layout container (no AnimatedContainer frame jank)
 /// - RepaintBoundary isolated
-class DepthCard extends StatefulWidget {
+class DepthCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
@@ -40,125 +40,36 @@ class DepthCard extends StatefulWidget {
     this.tiltOnScroll,
   });
 
-  @override
-  State<DepthCard> createState() => _DepthCardState();
-}
+  Decoration _buildDecoration(BuildContext context, AppTokens tokens) {
+    final borderRadius = BorderRadius.circular(radius);
+    final borderColor = Theme.of(context).dividerColor;
+    final cardBg = color ?? tokens.surface;
 
-class _DepthCardState extends State<DepthCard> {
-  bool _isPressed = false;
-
-  DepthElevation _getPressedElevation(DepthElevation base) {
-    switch (base) {
-      case DepthElevation.e4:
-        return DepthElevation.e3;
-      case DepthElevation.e3:
-        return DepthElevation.e2;
-      case DepthElevation.e2:
-        return DepthElevation.e1;
-      case DepthElevation.e1:
-        return DepthElevation.e1;
-    }
-  }
-
-  void _onTapDown(TapDownDetails details) {
-    if (widget.onTap != null || widget.onLongPress != null) {
-      setState(() => _isPressed = true);
-    }
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    if (_isPressed) {
-      setState(() => _isPressed = false);
-    }
-  }
-
-  void _onTapCancel() {
-    if (_isPressed) {
-      setState(() => _isPressed = false);
-    }
-  }
-
-  Decoration _buildDecoration(AppTokens tokens) {
-    final activeElevation =
-        _isPressed ? _getPressedElevation(widget.elevation) : widget.elevation;
-    final shadows =
-        AppElevation.shadows(activeElevation, isDark: tokens.isDark);
-    final borderRadius = BorderRadius.circular(widget.radius);
-
-    if (widget.color != null) {
-      return BoxDecoration(
-        color: widget.color,
-        borderRadius: borderRadius,
-        boxShadow: shadows,
-      );
-    }
-
-    if (tokens.isDark) {
-      // Dark mode: vertical gradient from surfaceRaised to surface with a 3.5% white top-light overlay
-      // across the top 40%.
-      final topLight =
-          Color.alphaBlend(const Color(0x09FFFFFF), tokens.surfaceRaised);
-      return BoxDecoration(
-        color: _isPressed ? const Color(0xFF1A1D24) : null,
-        borderRadius: borderRadius,
-        border: Border.all(color: const Color(0x12FFFFFF), width: 1.0),
-        gradient: _isPressed
-            ? null
-            : LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.0, 0.4, 1.0],
-                colors: [
-                  topLight,
-                  tokens.surfaceRaised,
-                  tokens.surface,
-                ],
-              ),
-        boxShadow: shadows,
-      );
-    } else {
-      // Light mode: solid surface relying on soft shadows
-      return BoxDecoration(
-        color: tokens.surface,
-        borderRadius: borderRadius,
-        boxShadow: shadows,
-      );
-    }
+    return BoxDecoration(
+      color: cardBg,
+      borderRadius: borderRadius,
+      border: Border.all(color: borderColor, width: 1.0),
+    );
   }
 
   Widget _buildCardContent(BuildContext context, AppTokens tokens) {
-    Widget card = AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
-      width: widget.width,
-      height: widget.height,
-      margin: widget.margin,
-      decoration: _buildDecoration(tokens),
-      clipBehavior: widget.clipBehavior,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          onLongPress: widget.onLongPress,
-          borderRadius: BorderRadius.circular(widget.radius),
-          splashColor: Colors.transparent,
-          highlightColor: tokens.isDark
-              ? Colors.white.withValues(alpha: 0.02)
-              : Colors.black.withValues(alpha: 0.02),
-          child: Padding(
-            padding: widget.padding,
-            child: widget.child,
-          ),
-        ),
+    Widget card = Container(
+      width: width,
+      height: height,
+      margin: margin,
+      decoration: _buildDecoration(context, tokens),
+      clipBehavior: clipBehavior,
+      child: Padding(
+        padding: padding,
+        child: child,
       ),
     );
 
-    // Micro-scale press interaction
-    if (widget.onTap != null || widget.onLongPress != null) {
-      card = AnimatedScale(
-        scale: _isPressed ? 0.985 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
+    if (onTap != null || onLongPress != null) {
+      card = PressScale.card(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: BorderRadius.circular(radius),
         child: card,
       );
     }
@@ -169,15 +80,14 @@ class _DepthCardState extends State<DepthCard> {
   @override
   Widget build(BuildContext context) {
     final tokens = AppTokens.of(context);
+    Widget result = _buildCardContent(context, tokens);
 
-    Widget result;
-    if (widget.tiltOnScroll != null) {
-      // Repaint transform without rebuilding child tree
+    if (tiltOnScroll != null) {
       result = AnimatedBuilder(
-        animation: widget.tiltOnScroll!,
+        animation: tiltOnScroll!,
         builder: (context, child) {
           double angle = 0.0;
-          final listenable = widget.tiltOnScroll;
+          final listenable = tiltOnScroll;
           if (listenable is ScrollController && listenable.hasClients) {
             const maxRadians = 1.5 * 3.141592653589793 / 180.0;
             angle = (listenable.offset / 400.0).clamp(-1.0, 1.0) * maxRadians;
@@ -190,19 +100,7 @@ class _DepthCardState extends State<DepthCard> {
             child: child,
           );
         },
-        child: GestureDetector(
-          onTapDown: _onTapDown,
-          onTapUp: _onTapUp,
-          onTapCancel: _onTapCancel,
-          child: _buildCardContent(context, tokens),
-        ),
-      );
-    } else {
-      result = GestureDetector(
-        onTapDown: _onTapDown,
-        onTapUp: _onTapUp,
-        onTapCancel: _onTapCancel,
-        child: _buildCardContent(context, tokens),
+        child: result,
       );
     }
 

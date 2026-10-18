@@ -53,14 +53,78 @@ void main() {
       final totalSize = tester.getSize(navBarFinder);
       expect(totalSize.height, equals(74.0));
 
-      // Verify tabs inside Floating Adaptive Dock
+      // Verify tabs inside Floating Adaptive Dock (Dashboard, Tasks, Nutrition, Settings)
       final tabs = find.byType(InkWell);
-      expect(tabs, findsNWidgets(3));
+      expect(tabs, findsNWidgets(4));
 
       // Verify tabs respond to taps and change selection
       await tester.tap(tabs.at(1));
       await tester.pumpAndSettle();
       expect(selectedIndex, equals(1));
+    });
+
+    testWidgets('Smart per-item fallback switches overflowing labels to icon-only with zero RenderFlex overflow',
+        (WidgetTester tester) async {
+      int selectedIndex = 0;
+
+      // Constrained narrow width of 220px with 4 tabs ensures availableTextWidth < text length
+      tester.view.physicalSize = const Size(220, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavBar(
+                selectedIndex: selectedIndex,
+                onItemTapped: (index) {
+                  selectedIndex = index;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Tooltips exist for items that collapsed to icon-only
+      expect(find.byType(Tooltip), findsWidgets);
+
+      // Verify no RenderFlex overflow error was logged
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Standard width displays labels where they fit cleanly',
+        (WidgetTester tester) async {
+      int selectedIndex = 0;
+
+      // Standard default test viewport width (800x600) allows labels to fit cleanly
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavBar(
+                selectedIndex: selectedIndex,
+                onItemTapped: (index) {
+                  selectedIndex = index;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     for (final size in [const Size(360, 640), const Size(412, 915)]) {

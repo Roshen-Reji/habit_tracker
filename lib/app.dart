@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/expressive_tokens.dart';
+import 'package:habit_tracker/core/theme/app_colors.dart';
+import 'package:habit_tracker/core/theme/app_theme.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
@@ -71,19 +71,31 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Color(0xFF121212),
+          backgroundColor: Color(0xFF000000),
           body: Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(color: Colors.white),
           ),
         ),
       );
     }
 
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(keys: ['theme_mode']),
+      valueListenable: Hive.box('settings')
+          .listenable(keys: ['theme_mode', 'color_scheme_preset']),
       builder: (context, Box settings, _) {
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
-        final mode = modeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
+        final ThemeMode mode;
+        if (modeStr == 'light') {
+          mode = ThemeMode.light;
+        } else if (modeStr == 'system') {
+          mode = ThemeMode.system;
+        } else {
+          mode = ThemeMode.dark;
+        }
+        final presetStr =
+            settings.get('color_scheme_preset', defaultValue: 'monochrome');
+        final preset =
+            AppColorSchemePreset.fromString(presetStr?.toString());
 
         return MaterialApp(
           navigatorKey: globalNavigatorKey,
@@ -100,38 +112,8 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
             physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics()),
           ),
-          theme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: BentoTheme.background,
-            fontFamily: 'Roboto',
-            colorScheme: ColorScheme.light(
-              primary: BentoTheme.accent,
-              surface: BentoTheme.background,
-            ),
-            cardTheme: const CardThemeData(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: ExpressiveTokens.borderL,
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.dark,
-            scaffoldBackgroundColor: BentoTheme.background,
-            fontFamily: 'Roboto',
-            colorScheme: ColorScheme.dark(
-              primary: BentoTheme.accent,
-              surface: BentoTheme.background,
-            ),
-            cardTheme: const CardThemeData(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: ExpressiveTokens.borderL,
-              ),
-            ),
-          ),
+          theme: AppTheme.buildLightTheme(preset),
+          darkTheme: AppTheme.buildDarkTheme(preset),
           home: const HomePage(),
           debugShowCheckedModeBanner: false,
         );

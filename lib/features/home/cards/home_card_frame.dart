@@ -38,7 +38,7 @@ class HomeCardFrame extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.accentColor,
-    this.contentPadding = const EdgeInsets.fromLTRB(18, 14, 18, 18),
+    this.contentPadding = const EdgeInsets.all(16.0),
     this.isFocused = true,
     this.domain = HomeCardDomain.telemetry,
     this.subtitle,

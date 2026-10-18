@@ -63,8 +63,8 @@ class MotionTokens {
 
   // Press Scale
   static const double buttonPressScale = 0.94;
-  static const double cardPressScale = 0.96;
-  static const double pressMinScale = 0.96;
+  static const double cardPressScale = 0.97;
+  static const double pressMinScale = 0.97;
 
   // Backwards compatibility tokens
   static const Curve enter = emphasizedDecelerate;
