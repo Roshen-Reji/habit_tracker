@@ -18,6 +18,7 @@ import 'package:habit_tracker/features/home/cards/safe_to_spend_card.dart';
 import 'package:habit_tracker/features/home/cards/net_worth_card.dart';
 import 'package:habit_tracker/features/home/cards/upcoming_bills_card.dart';
 import 'package:habit_tracker/features/home/cards/galaxy_watch_card.dart';
+import 'package:habit_tracker/features/home/cards/knowledge_vault_card.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Card sizes for wallet stack cards in MVP 5.
@@ -310,6 +311,17 @@ class HomeCardRegistry {
           const GalaxyWatchCard(size: HomeCardSize.large),
       heroBuilder: (context) => const GalaxyWatchCard(size: HomeCardSize.hero),
       defaultOrder: 17,
+      defaultVisible: true,
+    ));
+    register(HomeCardSpec(
+      id: 'knowledge_vault',
+      title: 'Knowledge Vault',
+      icon: LucideIcons.bookMarked,
+      compactBuilder: (context) =>
+          const KnowledgeVaultCard(size: HomeCardSize.compact),
+      largeBuilder: (context) =>
+          const KnowledgeVaultCard(size: HomeCardSize.large),
+      defaultOrder: 18,
       defaultVisible: true,
     ));
   }

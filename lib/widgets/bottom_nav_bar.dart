@@ -82,10 +82,11 @@ class _BottomNavBarState extends State<BottomNavBar>
   void _updateResolvedItems() {
     _resolvedItems = widget.items ??
         const [
-          GlassTabItem(icon: LucideIcons.home, label: 'Dashboard'),
-          GlassTabItem(icon: LucideIcons.target, label: 'Tasks'),
-          GlassTabItem(icon: LucideIcons.utensils, label: 'Nutrition'),
-          GlassTabItem(icon: LucideIcons.settings, label: 'Settings'),
+          GlassTabItem(icon: LucideIcons.home, label: 'Home'),
+          GlassTabItem(icon: LucideIcons.heartPulse, label: 'Health'),
+          GlassTabItem(icon: LucideIcons.utensils, label: 'Diet'),
+          GlassTabItem(icon: LucideIcons.checkCircle2, label: 'Tasks'),
+          GlassTabItem(icon: LucideIcons.wallet, label: 'Finance'),
         ];
   }
 

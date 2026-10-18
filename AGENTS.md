@@ -1,179 +1,212 @@
-# AGENTS.md — Antigravity Execution Specification (UX & Architecture Overhaul)
+# AGENTS.md — Antigravity Master Implementation Plan (Tasks OS Overhaul, Navigation & Knowledge Vault Card)
 
-## Role & Objective
-You are the Lead Flutter Systems & UX Engineer executing a high-priority stabilization and UX overhaul on `habit_tracker`. Your mission is to eliminate UI jank, enforce a Native Black & White default theme with selectable color schemes, fix the broken Settings navigation and screen, implement smart per-item text-cutoff detection in the bottom navigation bar, and strip out dynamic backgrounds.
-
-## Global Engineering Guardrails
-1. **Zero Regressions in Domain Logic:** Do NOT alter business math in `lib/features/finance/engine/`, `lib/features/money/core/`, `lib/core/progression/`, or `lib/features/wearables/engine/`.
-2. **Strict Null & Hive Safety:** Never call `Hive.box(...)` synchronously in a widget `build()` method without verifying `Hive.isBoxOpen(...)` or providing a safe fallback default.
-3. **60/120fps Frame Budget:** Avoid `BackdropFilter` inside scrolling lists (`dashboard_view.dart`). Do not animate `BoxShadow` blur radius or layout constraints (`padding`/`margin`) on every frame; use `Transform.scale` and `FadeTransition` instead.
-4. **Test-Driven Verification:** Every task below must pass `flutter analyze` and `flutter test` before completion.
-
----
-
-## Task 1: Native Black & White Theme + Selectable Color Schemes
-
-### Target Files
-- `lib/core/theme/app_colors.dart`
-- `lib/core/theme/app_theme.dart`
-- `lib/core/theme/bento_theme.dart`
-- `lib/core/theme/tactile_tokens.dart`
-- `lib/core/theme/expressive_tokens.dart`
-- `lib/app.dart`
-- `lib/screens/settings_page.dart`
-
-### Implementation Steps
-1. **Define `AppColorSchemePreset` Enum & Palettes (`lib/core/theme/app_colors.dart`):**
-   - Create an enum `AppColorSchemePreset` with IDs:
-     - `monochrome` (**Default** — Native Black & White)
-     - `obsidianEmerald` (Emerald `#10B981` accent)
-     - `cobaltPulse` (Cobalt `#3B82F6` accent)
-     - `solarAmber` (Amber `#F59E0B` accent)
-     - `crimsonEditorial` (Crimson `#F43F5E` accent)
-     - `violetNebula` (Violet `#8B5CF6` accent)
-   - For `AppColorSchemePreset.monochrome`:
-     - **Dark Mode:** `background: #000000`, `surface: #0A0A0A`, `surfaceElevated: #141414`, `border: #262626`, `primary: #FFFFFF`, `onPrimary: #000000`, `secondary: #A1A1AA`, `textPrimary: #FFFFFF`, `textSecondary: #8E8E93`.
-     - **Light Mode:** `background: #FFFFFF`, `surface: #F4F4F5`, `surfaceElevated: #FFFFFF`, `border: #E4E4E7`, `primary: #000000`, `onPrimary: #FFFFFF`, `secondary: #52525B`, `textPrimary: #000000`, `textSecondary: #71717A`.
-   - For non-monochrome presets, keep the high-contrast neutral backgrounds (`#000000` / `#0A0A0A` in dark, `#FFFFFF` / `#F4F4F5` in light) and apply the preset's primary/secondary accent colors to interactive highlights, progress bars, charts, active badges, and selection pills.
-
-2. **Persist & Broadcast Theme Selection (`lib/core/theme/app_theme.dart` & `lib/app.dart`):**
-   - Store `'color_scheme_preset'` in the settings Hive box (defaulting to `'monochrome'`).
-   - Expose a `ValueNotifier<AppColorSchemePreset>` or `ChangeNotifier` theme controller initialized at startup in `main.dart` / `app.dart`.
-   - Update `BentoTheme`, `TactileTokens`, and `ExpressiveTokens` so they dynamically resolve tokens from the active `ThemeData` / `ColorScheme` rather than hardcoded neon/glass colors.
+## 0. Agent Operating Rules (Optimized for Gemini 3.8 Flash)
+1. **Deterministic, Incremental Execution:** Execute phases in strict order (Phase 1 -> Phase 6). Do not skip files or leave `// TODO` placeholders.
+2. **Offline-First Storage Strategy:** The existing project uses `Hive` and `SharedPreferences`. Implement all new Task, Academic, Habit, and Planner repositories using **Hive boxes** (with JSON/Map serialization so no `build_runner` codegen step is required to compile) and an operation log box (`sync_op_log_box`) for offline-first sync readiness.
+3. **Zero Regressions:** Preserve all existing Finance engine math (`lib/features/finance/`, `lib/features/money/`), Health/Wearables logic, and Native Black & White theme support (`lib/core/theme/`).
+4. **Performance & Layout Safety:**
+   - Guard all `Hive.box(...)` calls with `Hive.isBoxOpen(...)`.
+   - Ensure zero `RenderFlex` overflows by using `Expanded`/`Flexible` and `LayoutBuilder`.
+   - Maintain `< 150ms` local search and `< 300ms` task completion animations with 5-second Undo snackbars.
 
 ---
 
-## Task 2: Remove Dynamic Background Everywhere
-
-### Target Files
-- `lib/widgets/star_background.dart`
-- `lib/screens/home_page.dart`
-- `lib/screens/dashboard_view.dart`
-- `lib/screens/settings_page.dart`
-- `lib/app.dart`
-
-### Implementation Steps
-1. **Unmount `StarBackground`:**
-   - Remove `StarBackground` (and any animated particle, nebula, or dynamic gradient background wrappers) from `lib/screens/home_page.dart`, `lib/screens/dashboard_view.dart`, and `lib/app.dart`.
-   - Replace the scaffold background with `Theme.of(context).scaffoldBackgroundColor` (which resolves to `#000000` in Dark Monochrome or `#FFFFFF` in Light Monochrome).
-2. **Deprecate `star_background.dart`:**
-   - Replace `StarBackground` implementation in `lib/widgets/star_background.dart` with a lightweight, no-op `SizedBox.expand(child: child)` passthrough (or remove all references to it) so no `Ticker` or `CustomPainter` runs in the background.
-3. **Remove Settings Toggle:**
-   - Remove any "Dynamic Background", "Star Background", or "Ambient Background" toggle switches from `lib/screens/settings_page.dart` and related settings state keys.
-
----
-
-## Task 3: Fix Broken Settings Tab & Overhaul `SettingsPage`
+## Phase 1: Navigation Bar Swap & Tasks Page De-Cluttering
 
 ### Target Files
 - `lib/core/navigation/app_nav.dart`
+- `lib/widgets/bottom_nav_bar.dart`
 - `lib/screens/home_page.dart`
-- `lib/widgets/bottom_nav_bar.dart`
-- `lib/screens/settings_page.dart`
+- `lib/screens/dashboard_view.dart`
+- `lib/features/tasks/tasks_page.dart`
 - `test/navigation/app_nav_test.dart`
-
-### Root Cause Diagnosis & Fix
-1. **Audit Navigation Wiring (`app_nav.dart`, `home_page.dart`, `bottom_nav_bar.dart`):**
-   - Verify that every tab destination in `AppNav` / `BottomNavBar` maps 1:1 to a valid widget in `HomePage`'s body switcher (`IndexedStack` or active view builder).
-   - Ensure that tapping the Settings tab in `BottomNavBar` OR tapping any Settings action button in the header/app bar updates the active navigation index or pushes `SettingsPage` cleanly without throwing a `RangeError` or being swallowed by an overlay (`mini_player_bar.dart`).
-2. **Eliminate Crash Vectors in `SettingsPage` (`lib/screens/settings_page.dart`):**
-   - Audit `initState()` and `build()` in `SettingsPage`.
-   - Guard all Hive box reads (e.g., settings box, user box, wearables settings) with safe fallback values if a box is not yet open or a key returns `null` or a mismatched type.
-3. **Rebuild `SettingsPage` UI:**
-   - Structure `SettingsPage` with clean monochrome Bento grouping:
-     - **Appearance Section:** Theme Mode (`System`, `Dark`, `Light`) + **Color Scheme Selector** (interactive horizontal list or grid of swatches showing `Monochrome B&W` selected by default alongside the other presets, updating the app theme immediately on tap).
-     - **Dashboard & Layout Section:** Navigation tile to `HomeLayoutSettingsPage`.
-     - **Modules & Sync Section:** Wearables Settings, Reminders Settings, AI Privacy.
-     - **Data Management Section:** Finance Privacy & Backup, Reset/Clear cache with confirmation dialogs.
-
----
-
-## Task 4: Fix Overflowing Navigation Bar (Smart Per-Item Icon-Only Fallback)
-
-### Target Files
-- `lib/widgets/bottom_nav_bar.dart`
-- `lib/core/widgets/glass_tab_bar.dart`
 - `test/widgets/bottom_nav_bar_test.dart`
 
-### Implementation Steps
-1. **Fix Container & Flex Overflow:**
-   - In `bottom_nav_bar.dart` (and `glass_tab_bar.dart` if used), ensure the outer `Row` wraps each navigation item in `Expanded` so total width never exceeds viewport width.
-   - Remove rigid horizontal padding or fixed widths that cause `RenderFlex overflowed by X pixels on the right`.
-2. **Implement Per-Item Text Cutoff Detection:**
-   - Inside each navigation bar item widget, use `LayoutBuilder` to obtain `constraints.maxWidth`.
-   - Calculate the available horizontal width for the text label:
-     `final availableTextWidth = constraints.maxWidth - horizontalItemPadding;`
-   - Measure the exact rendered width of the label string using `TextPainter`:
-     ```dart
-     final textPainter = TextPainter(
-       text: TextSpan(text: label, style: effectiveLabelStyle),
-       maxLines: 1,
-       textDirection: Directionality.of(context),
-       textScaler: MediaQuery.textScalerOf(context),
-     )..layout(minWidth: 0, maxWidth: double.infinity);
-
-     final boolutsOff = textPainter.width > availableTextWidth;
-     ```
-   - **Conditional Rendering Rule:**
-     - If `cutsOff == true` (the word would truncate, wrap, or overflow its slot): render **ONLY the `Icon`** (centered nicely with a `Tooltip(message: label)`), hiding the `Text` widget for that item.
-     - If `cutsOff == false` (the word fits cleanly on a single line): render **both `Icon` and `Text(label, maxLines: 1, softWrap: false)`**.
-3. **Update Widget Tests:**
-   - Update `test/widgets/bottom_nav_bar_test.dart` to test both standard width (labels visible where they fit) and narrow/constrained width (items with long labels automatically switch to icon-only with zero `RenderFlex` overflow errors).
+### Implementation Requirements
+1. **Replace `Settings` with `Finance` in Bottom Navigation (`app_nav.dart` & `bottom_nav_bar.dart`):**
+   - Update the 5 main navigation destinations to:
+     - Index `0`: `Home` (`Icons.home_rounded`)
+     - Index `1`: `Health` (`Icons.favorite_rounded`)
+     - Index `2`: `Diet` (`Icons.restaurant_rounded`)
+     - Index `3`: `Tasks` (`Icons.check_circle_rounded`)
+     - Index `4`: `Finance` (`Icons.account_balance_wallet_rounded`)
+   - In `lib/screens/home_page.dart`, mount `FinancePage` (which wraps `MoneyShellPage` / `MoneyShell`) at Index `4` of the main page switcher instead of `SettingsPage`.
+   - Add/verify a top-right `IconButton(icon: const Icon(Icons.settings_outlined))` in `DashboardView` / `HomePage` header that navigates to `SettingsPage` via `Navigator.of(context).push(...)` (or `AppNav.openSettings(context)`).
+   - Keep the per-item `TextPainter` width check in `BottomNavBar` so any tab label that would cut off automatically renders icon-only.
+2. **Remove Finance & Motivation/Knowledge Vault from `TasksPage`:**
+   - Remove all references, buttons, banners, or sections linking to `FinancePage`, `MoneyShell`, `SpeechVaultPage`, or `ReaderLibraryPage` from `lib/features/tasks/tasks_page.dart`.
 
 ---
 
-## Task 5: Fix Glitchy Home Page Card Animations
+## Phase 2: Interactive Knowledge Vault Card on Home Page
 
 ### Target Files
-- `lib/screens/dashboard_view.dart`
+- `lib/features/home/cards/knowledge_vault_card.dart` *(New File)*
 - `lib/features/home/cards/home_card.dart`
-- `lib/features/home/cards/home_card_frame.dart`
-- `lib/features/home/widgets/wallet_card_stack.dart`
-- `lib/core/widgets/depth_card.dart`
-- `lib/core/motion/press_scale.dart`
-- `lib/core/motion/motion_tokens.dart`
-- `lib/core/theme/app_animations.dart`
+- `lib/screens/dashboard_view.dart`
+- `lib/screens/home_layout_settings_page.dart`
+- `test/cards/home_card_registry_test.dart`
 
-### Root Cause Diagnosis & Fix
-1. **Eliminate Competing Animation Wrappers:**
-   - Inspect `HomeCard`, `HomeCardFrame`, `DepthCard`, and `PressScale`. Currently, cards suffer from nested scale/elevation/container animations fighting each other on tap and rebuild.
-   - Standardize on **one** press interaction wrapper (`PressScale` using `AnimationController` + `Transform.scale` to `0.97` over `120ms` `Curves.easeOutCubic`).
-   - Replace `AnimatedContainer` inside `HomeCardFrame` / `DepthCard` with a static `Container` or `DecoratedBox` for layout properties, using `TweenAnimationBuilder` or `AnimatedTheme` only when the theme changes.
-2. **Decouple Entrance Animations from Data Rebuilds (`dashboard_view.dart`):**
-   - Ensure staggered entrance animations run **only once** when `DashboardView` first mounts (track `_hasAnimatedEntrance = true` in `State`), NOT every time a `ValueListenableBuilder` or Hive box emits a new value.
-   - Assign a stable `ValueKey('home_card_${card.id}')` to every card in the grid/list so Flutter's Element tree updates cards in-place without unmounting and remounting their `State`.
-3. **Stabilize `WalletCardStack` & Complex Cards:**
-   - In `lib/features/home/widgets/wallet_card_stack.dart`, ensure card swap/expand transitions use a single `AnimationController` with `Curves.easeOutQuart` (`280ms`), clamp drag deltas to prevent negative/NaN matrix transforms, and keep `test/widgets/wallet_card_stack_test.dart` passing.
-   - Wrap each card in `dashboard_view.dart` with a `RepaintBoundary` to isolate repaints from `animated_metric_ticker.dart` and `momentum_sparkline.dart`.
+### Implementation Requirements
+1. **Create `KnowledgeVaultCard` (`lib/features/home/cards/knowledge_vault_card.dart`):**
+   - Build a stateful Bento card that integrates both `ReaderService` (PDF/Book library) and the Speech/Motivation Vault (`speech_box` / `notes` Hive box) directly on the card.
+   - **Card Header:**
+     - Title: `"Knowledge Vault"` with `Icons.auto_stories_rounded`.
+     - Inline Segmented Pill Toggle: `Books` | `Speeches` (switches card body state without leaving the Home page).
+     - Expand IconButton: Opens `ReaderLibraryPage` (when in `Books` mode) or `SpeechVaultPage` (when in `Speeches` mode).
+   - **When in `Books` Mode (Inline Functions on Card):**
+     - Load recent books via `ReaderService`.
+     - Display the active/last-read book title, current page vs. total pages, percentage progress bar (`ProgressBarX`), and a primary **`Resume`** button that pushes `PdfReaderPage` directly at the saved page.
+     - Provide an inline **`+ Import PDF`** button right on the card that calls `ReaderService` to pick & import a PDF and refreshes the card state immediately.
+     - Show compact quick-switch chips for up to 2 other recent PDFs.
+   - **When in `Speeches` Mode (Inline Functions on Card):**
+     - Read saved items from the `speech_box` Hive box (with fallback starter quotes/speeches if empty).
+     - Render the active speech/note title, category badge, and a 3-line scrollable/expandable preview.
+     - Provide inline **`◀ Prev`** and **`Next ▶`** buttons to cycle through vault entries directly on the card, a **`Read Full`** modal sheet trigger, and an inline **`+ Add`** button that opens a quick bottom sheet to add a new speech/note directly from the Home screen.
+2. **Register in Home Card Registry (`home_card.dart` & `dashboard_view.dart`):**
+   - Register `'knowledge_vault'` in `HomeCardRegistry` / `HomeCard` definitions as enabled by default on the Home Dashboard.
+   - Update `test/cards/home_card_registry_test.dart` to include and verify `'knowledge_vault'`.
 
 ---
 
-## Task 6: Holistic UX Polish
+## Phase 3: Tasks OS Data Models & Core Engines (Deterministic Logic)
 
 ### Target Files
-- `lib/core/theme/app_tokens.dart`
-- `lib/features/home/cards/*.dart`
-- `lib/widgets/mini_player_bar.dart`
+- `lib/features/tasks/models/task_os_models.dart` *(New File)*
+- `lib/features/tasks/data/task_os_repository.dart` *(New File)*
+- `lib/features/tasks/engine/task_nl_parser.dart` *(New File)*
+- `lib/features/tasks/engine/task_urgency_engine.dart` *(New File)*
+- `lib/features/tasks/engine/smart_scheduler_engine.dart` *(New File)*
+- `lib/features/tasks/engine/attendance_gpa_engine.dart` *(New File)*
+- `lib/features/tasks/engine/rrule_recurrence_engine.dart` *(New File)*
 
-### Implementation Steps
-1. **Consistent Card Geometry & Borders:**
-   - Standardize card border radius to `20.0` (`AppTokens.radiusLg`), internal card padding to `16.0`, and grid spacing to `12.0`.
-   - Use crisp `1.0px` borders (`Theme.of(context).dividerColor` / `#262626` in dark mode, `#E4E4E7` in light mode) instead of heavy multi-layered drop shadows.
-2. **Typography & Hierarchy:**
-   - Ensure primary metrics use tabular figures (`FontFeature.tabularFigures()`) so animated numbers in `animated_metric_ticker.dart` never jitter horizontally while counting.
-3. **Safe Area & Bottom Clearance:**
-   - Ensure `dashboard_view.dart` and all primary scroll views include bottom padding that accounts for `BottomNavBar` + `MiniPlayerBar` height so the last row of cards is never obscured.
+### Implementation Requirements
+1. **Unified Data Models (`task_os_models.dart`):**
+   - Implement clean, immutable Dart classes with `toMap()` and `fromMap()` serialization (stored in Hive box `'task_os_box'` with tombstone `deletedAt`, `createdAt`, `updatedAt`, and `deviceId` fields):
+     - `TaskItem`: `id`, `title`, `notes` (Markdown), `status` (`inbox`, `todo`, `doing`, `done`, `archived`), `priority` (`1` Urgent to `4` Low), `dueAt`, `hasDueTime`, `startAt` ("hide until"), `courseId`, `projectId`, `parentTaskId`, `subtasks` (`List<SubtaskItem>`), `tags` (`List<String>`), `estimateMin`, `actualMin`, `recurrenceRule` (RRULE string), `recurrenceMode` (`fixed`, `afterCompletion`), `reminderOffsetsMin` (`List<int>`), `weightage`, `maxMarks`, `scoreObtained`, `blockedByTaskIds`, `templateName`, `completedAt`, `deletedAt`.
+     - `CourseItem`: `id`, `semesterId`, `name`, `code`, `colorHex`, `credits`, `instructor`, `room`, `requiredAttendancePct` (default `0.75`), `gradeScale` (`cgpa10`, `gpa4`, `percentage`), `gradeComponents` (`List<GradeComponentItem>`).
+     - `TimetableSlotItem`: `id`, `courseId`, `dayOfWeek` (1-7), `startMinutes`, `endMinutes`, `room`, `weekPattern` (`every`, `weekA`, `weekB`), `batch`.
+     - `ClassSessionLog`: `id`, `slotId`, `courseId`, `dateIso`, `status` (`scheduled`, `cancelled`, `extra`, `rescheduled`), `attendance` (`present`, `absent`, `unmarked`), `notes`.
+     - `ExamItem` & `ExamTopicItem`: `id`, `courseId`, `title`, `examDate`, `venue`, `weightage`, `topics` (`id`, `title`, `confidence` `0..3`, `lastStudiedAt`, `nextReviewAt`).
+     - `ScheduledBlockItem` & `PlanProposalItem`: `id`, `taskId`, `title`, `startAt`, `endAt`, `source` (`user`, `ai`), `reason`, `status` (`proposed`, `accepted`, `done`, `skipped`).
+     - `FocusSessionLog`: `id`, `taskId`, `courseId`, `startAt`, `endAt`, `plannedMin`, `actualMin`, `interruptions`.
+     - `ForgivingHabitItem`: `id`, `name`, `targetPerWeek`, `freezesLeft`, `restDays` (`List<int>`), `completedDatesIso` (`List<String>`), `frozenDatesIso` (`List<String>`).
+     - `SchedulingRules`: `workStartHour` (default 8), `workEndHour` (default 22), `lightSundays` (true), `minBlockMin` (25), `maxContinuousMin` (90), `breakMin` (15), `deadlineBufferHours` (24), `autonomyLevel` (`manual`, `suggest`, `autoWithApproval`, `auto`).
+
+2. **Live Natural-Language Parser (`task_nl_parser.dart` — `CAP-2`):**
+   - Implement `ParsedTaskInput parseNaturalLanguageTask(String rawInput, DateTime now)`:
+     - Extracts and strips tokens from `rawInput` while returning structured `ParsedChip` items (each chip has `id`, `type`, `label`, `rawToken`, `value`):
+       - **Dates:** `today`, `tmr`/`tomorrow`, `mon`..`sun`, `next mon`..`next sun`, `in X days`, `end of month`, `DD oct`/`DD nov` etc.
+       - **Times:** `5pm`, `5:30pm`, `17:30`, `noon`, `midnight`.
+       - **Duration:** `~2h`, `~45m`, `for 45m`, `est 90min` -> `estimateMin`.
+       - **Priority:** `!1`..`!4`, `!urgent`, `!high`, `!med`, `!low` -> `priority` (1..4).
+       - **Course/Project:** `#([A-Za-z0-9_-]+)` -> `courseCode`.
+       - **Tag:** `@([A-Za-z0-9_-]+)` -> `tags`.
+       - **Recurrence:** `daily`, `every weekday`, `every mon`..`sun`, `every X weeks`, `after completion` -> `recurrenceRule` & `recurrenceMode`.
+       - **Reminder:** `remind Xd before`, `remind Xm before`, `remind Xh before` -> `reminderOffsetsMin`.
+     - If the user dismisses a chip in the UI, its `rawToken` is restored to the clean title.
+
+3. **Rule-Based Urgency Ranking Engine (`task_urgency_engine.dart` — `PLAN-1`):**
+   - Implement the exact urgency formula:
+     ```dart
+     double computeUrgency(TaskItem task, DateTime now) {
+       // 40 * dueProximity + 25 * priorityWeight + 15 * weightageFactor + 10 * overdueFactor + 10 * effortPressure
+     }
+     ```
+   - `dueProximity`: `1.0` if overdue or due today, decaying linearly toward `0.0` over 7 days (`168` hours).
+   - `priorityWeight`: P1 = `1.0`, P2 = `0.66`, P3 = `0.33`, P4 = `0.0`.
+   - `weightageFactor`: `(task.weightage ?? 0).clamp(0, 100) / 100.0`.
+   - `overdueFactor`: `(daysOverdue.clamp(0, 7)) / 7.0`.
+   - `effortPressure`: `((task.estimateMin ?? 30) / 60.0 / max(1.0, hoursUntilDue)).clamp(0.0, 1.0)`.
+   - Sort descending; break ties by oldest `createdAt`. Top task is surfaced as **"Next Up"**.
+
+4. **Deterministic Smart Scheduler & Exam Revision Engine (`smart_scheduler_engine.dart` — `PLAN-2..12`):**
+   - **Free-Time & Morning Plan Generator (`generateDailyPlan`):**
+     - Collect fixed events for the day (active `TimetableSlotItem` classes for current Week A/B + exams).
+     - Compute free windows within `SchedulingRules` working hours.
+     - Slice high-urgency open tasks into chunks between `minBlockMin` (`25m`) and `maxContinuousMin` (`90m`) with `breakMin` (`15m`) buffers.
+     - Attach a deterministic explanation string to every `ScheduledBlockItem`: e.g., `"Due tomorrow · 2h estimated · fits your free slot 14:00–15:30"`.
+     - Flag deadline conflicts if required effort exceeds available free slots before `dueAt - buffer`.
+   - **Big-Task Backwards Breakdown (`proposeBackwardsMilestones` — `PLAN-7`):**
+     - Given a task title, estimate, and due date, generate 4 editable milestone subtasks spaced backwards from `dueAt - buffer`.
+   - **Exam Spaced-Repetition Planner (`generateExamRevisionSchedule` — `PLAN-8`):**
+     - Schedules syllabus topics across available days before `examDate`, prioritizing lower-confidence topics (`confidence` 0 or 1) and spacing reviews at `1, 3, 7, 14` day intervals.
+   - **Workload Heatmap (`computeWeeklyWorkload` — `PLAN-10`):**
+     - Sums daily scheduled/due task `estimateMin` + class hours and classifies each day against user capacity (`safe`, `heavy`, `overloaded`), triggering an overload warning when capacity is exceeded or $\ge 3$ deadlines/exams fall in a 3-day window.
+
+5. **Attendance & GPA Target Engine (`attendance_gpa_engine.dart` — `ACA-7`, `ACA-8`):**
+   - **Attendance Math (`computeAttendanceStats`):**
+     - Exclude `cancelled` sessions.
+     - `total = present + absent + remaining`
+     - `attendedPct = (present + absent) == 0 ? 1.0 : present / (present + absent)`
+     - `maxMissable = max(0, (present + remaining - (req * total)).floor())`
+     - Compute `mustAttendNext` if `attendedPct < req`, and `canNoLongerReachMin = (present + remaining) < (req * total)`.
+   - **Grade & Target Calculator (`computeRequiredFinalScore`):**
+     - Given completed `GradeComponentItem` marks/weights, final exam weightage, and target course grade, calculate the exact score/percentage required on the final exam, plus running Semester GPA / CGPA.
+
+6. **Recurrence Engine (`rrule_recurrence_engine.dart` — `TSK-5`):**
+   - Support `DAILY`, `WEEKLY` (with `BYDAY`), `MONTHLY`, custom intervals, and `recurrenceMode` (`fixed` schedule vs. `afterCompletion` where next due date = `completedAt + interval`).
+   - Completing a recurring task immediately spawns only the next occurrence and logs the completed instance.
 
 ---
 
-## Verification & Acceptance Checklist
-Run the following commands and resolve all issues before concluding:
-1. `flutter analyze` — Must report **0 errors and 0 warnings**.
-2. `flutter test` — All unit and widget tests (`test/navigation/app_nav_test.dart`, `test/widgets/bottom_nav_bar_test.dart`, `test/widgets/wallet_card_stack_test.dart`, `test/cards/home_card_registry_test.dart`, and finance/service suites) must pass.
-3. **Manual Sanity Checks:**
-   - App boots into native Black & White theme by default.
-   - Tapping Settings opens `SettingsPage` immediately without errors.
-   - Selecting a different Color Scheme in Settings updates accents across the app and persists across restarts.
-   - `StarBackground` / dynamic background is completely gone.
-   - Bottom navigation bar never overflows; tabs whose labels would cut off show only their icon, while tabs that fit show icon + label.
-   - Home page cards scroll, tap, and update metrics at 60/120fps without layout jumps or animation glitches.
+## Phase 4: Tasks Page UI Overhaul (`lib/features/tasks/`)
+
+### Target Files
+- `lib/features/tasks/tasks_page.dart`
+- `lib/features/tasks/widgets/quick_add_nl_bar.dart` *(New File)*
+- `lib/features/tasks/widgets/academic_hub_view.dart` *(New File)*
+- `lib/features/tasks/widgets/smart_plan_banner.dart` *(New File)*
+- `lib/features/tasks/widgets/focus_timer_sheet.dart` *(New File)*
+- `lib/features/tasks/widgets/task_detail_sheet.dart` *(New File)*
+- `lib/features/tasks/widgets/weekly_review_shutdown_sheet.dart` *(New File)*
+
+### Implementation Requirements
+1. **Top Bar & 5-View Switcher in `TasksPage` (`tasks_page.dart`):**
+   - **Header Row:**
+     - Title: `"TASKS"` with active streak/XP badge.
+     - Instant Search Field toggle (`< 150ms` local filter across titles, notes, tags, courses) + Filter Chips (`Course`, `Priority`, `Tag`, `Overdue`).
+     - Action buttons for **Autonomy Dial** (`Manual | Suggest | Approval | Auto`), **Shutdown Ritual / Weekly Review**, and **Import/Export** (CSV / Markdown / iCal).
+   - **Primary View Tabs:**
+     1. `Today` (`VIEW-1` + `VIEW-6` List/Timeline toggle)
+     2. `Upcoming` (`VIEW-2` + `PLAN-10` 7-day Workload Heatmap & Overload Warning banner)
+     3. `Inbox` (`VIEW-3` Unsorted captures + Bulk Multi-Select toolbar `TSK-8`)
+     4. `Academic` (`M5` Courses, Week A/B Timetable, Attendance Tracker, Exams & Spaced Revision, GPA Target Calculator)
+     5. `Board` (`VIEW-7` Kanban columns: `Inbox`, `To Do`, `Doing`, `Done` + `Archive/Trash` 30-day restore `TSK-13`)
+   - **Reliability Health Check Banner (`REM-9`):**
+     - If notification permissions are disabled, show a dismissible high-contrast banner at the top guiding the user to enable exact alarms/notifications.
+
+2. **Today View Experience:**
+   - **Pinned "Next Up" Hero Card (`PLAN-1`):** Highlights the #1 urgency-ranked task with its urgency breakdown, `"Why is this here?"` explanation, **`▶ Just 5 Min`** button (`FOC-5`), and **`⏱ Focus`** button (`FOC-1`).
+   - **AI Morning Plan Card (`PLAN-3..6`, `PLAN-9`):** Shows proposed time blocks in free gaps between classes with individual `Accept` / `Reject` actions, `Approve All`, and a 1-tap **`Rebalance My Day`** button (shows before/after diff).
+   - **List vs. Visual Day Timeline Toggle (`VIEW-6`):** Switches between grouped task cards (`Overdue`, `Today's Classes`, `Due Today`) and a vertical 08:00–22:00 timeline showing classes, scheduled task blocks, breaks, and a live current-time indicator line.
+   - **Forgiving Habits Strip (`HAB-1`, `HAB-2`):** Compact horizontal row of daily/weekly habits showing current streak, available Streak Freezes (`❄️`), and 1-tap completion or freeze usage.
+
+3. **Persistent Quick-Add Bar & Brain-Dump Sheets (`quick_add_nl_bar.dart`):**
+   - Docked at the bottom of `TasksPage` (and accessible via a `+` button).
+   - Live token chips (`CAP-2`) appear as the user types; tapping a chip edits or removes it (restoring text to the title).
+   - Rapid-fire mode (`CAP-1`): pressing `Enter` / `Submit` saves the task immediately and keeps focus in the text field for the next entry.
+   - **Voice Brain-Dump (`CAP-4`) & Syllabus/Photo Capture (`CAP-6/7`):** Tapping the mic or camera/PDF icon opens a structured review modal where multi-task extractions are shown with confidence badges (`High` / `Needs Review`) and must be confirmed (`Add Selected` / `Add All`) before saving.
+
+4. **Task Detail & Big-Task Breakdown Sheet (`task_detail_sheet.dart`):**
+   - Edits all `TaskItem` fields, 1-level reorderable subtasks (`TSK-2`), RRULE recurrence (`TSK-5`), multiple reminders (`REM-1`) with snooze (`10m`, `1h`, `Tonight`, `Tomorrow`), dependencies (`blockedBy`), Markdown notes (`NOTE-1`), and attachments (`NOTE-2`).
+   - Includes a **`⚡ Break Down Big Task`** button (`PLAN-7`) that generates backwards-scheduled milestones for review before inserting them as subtasks.
+
+---
+
+## Phase 5: Unit & Widget Tests
+
+### Target Files
+- `test/features/tasks/task_os_engines_test.dart` *(New File)*
+- `test/navigation/app_nav_test.dart`
+- `test/widgets/bottom_nav_bar_test.dart`
+- `test/cards/home_card_registry_test.dart`
+
+### Implementation Requirements
+1. Write comprehensive unit tests in `test/features/tasks/task_os_engines_test.dart` covering:
+   - **Natural Language Parser (`CAP-2`):** Verify `"DBMS record fri 5pm #DBMS !high ~2h @lab"` parses title `"DBMS record"`, Friday 17:00 due date, course `"DBMS"`, priority `2` (High), `estimateMin: 120`, and tag `"lab"`.
+   - **Attendance Math (`ACA-7`):** Verify `present: 30, absent: 6, remaining: 20, req: 0.75` yields `total: 56` and `maxMissable: 8`, plus the unreachable-minimum warning case.
+   - **Urgency Ranking (`PLAN-1`):** Verify overdue high-weightage tasks rank above low-priority distant tasks.
+   - **Recurrence (`TSK-5`):** Verify both `"fixed"` and `"afterCompletion"` next-instance date calculation.
+   - **Smart Scheduler (`PLAN-3`):** Verify free-slot detection around fixed classes and deterministic chunk placement.
+2. Update `test/navigation/app_nav_test.dart`, `test/widgets/bottom_nav_bar_test.dart`, and `test/cards/home_card_registry_test.dart` to reflect the `Finance` tab replacing `Settings` in the bottom nav bar and the new `'knowledge_vault'` Home card.

@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:habit_tracker/features/health/health_page.dart';
+import 'package:habit_tracker/features/finance/finance_page.dart';
 import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
@@ -129,9 +131,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final pages = [
       DashboardView(scrollController: _dashboardScrollController),
-      const TasksPage(),
+      const HealthPage(),
       const DietPage(),
-      const SettingsPage(),
+      const TasksPage(),
+      const FinancePage(),
     ];
 
     final clampedIndex = _selectedIndex.clamp(0, pages.length - 1);

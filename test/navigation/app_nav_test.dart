@@ -7,6 +7,7 @@ import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/models/finance_model.dart';
 import 'package:habit_tracker/screens/home_page.dart';
 import 'package:habit_tracker/features/finance/finance_page.dart';
+import 'package:habit_tracker/features/finance/data/finance_storage.dart';
 
 import 'package:habit_tracker/data/models/diet_models.dart';
 
@@ -32,12 +33,12 @@ void main() {
     if (!Hive.isAdapterRegistered(23))
       Hive.registerAdapter(DietDayLogAdapter());
 
+    FinanceStorage.registerAdapters();
     final settingsBox = await Hive.openBox('settings');
     await settingsBox.put('username', 'COMMANDER');
+    final storage = FinanceStorage();
+    await storage.init();
     await Hive.openBox<Goal>('mission_box_v4');
-    await Hive.openBox<Transaction>('finance_transactions');
-    await Hive.openBox<AssetVault>('finance_vaults');
-    await Hive.openBox('finance_settings');
     await Hive.openBox<DietDayLog>('diet_logs');
     await Hive.openBox('xp_history');
   });
@@ -57,35 +58,34 @@ void main() {
   group('AppNav Unit Tests (P1-2)', () {
     test('AppNav state updates properly with goTo enum and string', () {
       expect(AppNav.instance.currentTab, 0);
-      expect(AppNav.instance.tasksSubview, 'missions');
 
-      AppNav.goTo(AppTab.tasks, sub: TasksSubview.finance);
+      AppNav.goTo(AppTab.health);
       expect(AppNav.instance.currentTab, 1);
-      expect(AppNav.instance.tasksSubview, 'finance');
 
       AppNav.goTo(AppTab.diet);
       expect(AppNav.instance.currentTab, 2);
-      expect(AppNav.instance.tasksSubview, 'finance'); // unchanged subview
 
-      AppNav.goTo(AppTab.settings);
+      AppNav.goTo(AppTab.tasks);
       expect(AppNav.instance.currentTab, 3);
 
-      AppNav.goTo('settings');
-      expect(AppNav.instance.currentTab, 3);
+      AppNav.goTo(AppTab.finance);
+      expect(AppNav.instance.currentTab, 4);
 
-      AppNav.goTo('tasks', sub: 'vault');
-      expect(AppNav.instance.currentTab, 1);
-      expect(AppNav.instance.tasksSubview, 'vault');
+      AppNav.goTo('finance');
+      expect(AppNav.instance.currentTab, 4);
+
+      AppNav.goTo('tasks');
+      expect(AppNav.instance.currentTab, 3);
 
       AppNav.goTo(0);
       expect(AppNav.instance.currentTab, 0);
     });
 
     testWidgets(
-        'Calling goTo(tasks, sub: finance) from dashboard ends on finance sub-view',
+        'Calling goTo(finance) from dashboard ends on finance page',
         (WidgetTester tester) async {
       // Set initial state to home dashboard
-      AppNav.goTo(AppTab.home, sub: TasksSubview.missions);
+      AppNav.goTo(AppTab.home);
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -95,14 +95,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Initially on Dashboard
-      expect(find.byType(FinanceDashboard), findsNothing);
+      expect(find.byType(FinancePage), findsNothing);
 
-      // Programmatically navigate to tasks with finance subview
-      AppNav.goTo(AppTab.tasks, sub: TasksSubview.finance);
+      // Programmatically navigate to finance
+      AppNav.goTo(AppTab.finance);
       await tester.pump(const Duration(milliseconds: 600));
 
-      // Verify FinanceDashboard is present on screen
-      expect(find.byType(FinanceDashboard), findsOneWidget);
+      // Verify FinancePage is present on screen
+      expect(find.byType(FinancePage), findsOneWidget);
 
       // Unmount to dispose active tickers
       await tester.pumpWidget(const SizedBox());

@@ -168,5 +168,18 @@ void main() {
       expect(layout[1].id, 'card_2');
       expect(layout[1].visible, isTrue);
     });
+
+    test('registerDefaults includes knowledge_vault and is visible by default', () {
+      HomeCardRegistry.registerDefaults();
+      final spec = HomeCardRegistry.get('knowledge_vault');
+      expect(spec, isNotNull);
+      expect(spec!.title, 'Knowledge Vault');
+      expect(spec.defaultVisible, isTrue);
+
+      final layout = HomeCardRegistry.loadLayout(settingsBox);
+      final vaultItem =
+          layout.firstWhere((item) => item.id == 'knowledge_vault');
+      expect(vaultItem.visible, isTrue);
+    });
   });
 }

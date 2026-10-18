@@ -53,9 +53,9 @@ void main() {
       final totalSize = tester.getSize(navBarFinder);
       expect(totalSize.height, equals(74.0));
 
-      // Verify tabs inside Floating Adaptive Dock (Dashboard, Tasks, Nutrition, Settings)
+      // Verify tabs inside Floating Adaptive Dock (Home, Health, Diet, Tasks, Finance)
       final tabs = find.byType(InkWell);
-      expect(tabs, findsNWidgets(4));
+      expect(tabs, findsNWidgets(5));
 
       // Verify tabs respond to taps and change selection
       await tester.tap(tabs.at(1));
@@ -123,7 +123,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Home'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

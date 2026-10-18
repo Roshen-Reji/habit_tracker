@@ -17,15 +17,18 @@ import 'package:habit_tracker/features/money/ui/shell/money_shell.dart';
 
 enum AppTab {
   home,
-  tasks,
+  health,
   diet,
-  settings,
+  tasks,
+  finance,
 }
 
 enum TasksSubview {
   missions,
-  finance,
-  vault,
+  academic,
+  upcoming,
+  inbox,
+  board,
 }
 
 /// Central application navigation coordinator.
@@ -68,12 +71,14 @@ class AppNav extends ChangeNotifier {
       index = targetTab.index;
     } else {
       final name = targetTab.toString().toLowerCase();
-      if (name.contains('task')) {
+      if (name.contains('health')) {
         index = 1;
       } else if (name.contains('diet') || name.contains('nutri')) {
         index = 2;
-      } else if (name.contains('setting')) {
+      } else if (name.contains('task')) {
         index = 3;
+      } else if (name.contains('finan') || name.contains('money')) {
+        index = 4;
       } else {
         index = 0;
       }
