@@ -5,14 +5,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
+import 'package:habit_tracker/screens/settings_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/widgets/bottom_nav_bar.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/data/services/permission_service.dart';
-import 'package:habit_tracker/widgets/star_background.dart';
-
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 
 class HomePage extends StatefulWidget {
@@ -24,7 +22,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = AppNav.instance.currentTab;
-  final Box _settingsBox = Hive.box('settings'); //
+  Box? get _settingsBox =>
+      Hive.isBoxOpen('settings') ? Hive.box('settings') : null;
   final ScrollController _dashboardScrollController = ScrollController();
 
   @override
@@ -34,7 +33,8 @@ class _HomePageState extends State<HomePage> {
     // Logic to identify user on first run
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await PermissionService.checkAndRequestPermissions(context);
-      if (_settingsBox.get('username') == null && mounted) {
+      final box = _settingsBox;
+      if (box != null && box.get('username') == null && mounted) {
         _showOnboardingDialog();
       }
     });
@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
               label: "ENGAGE",
               onPressed: () {
                 if (_nameController.text.isNotEmpty) {
-                  _settingsBox.put(
+                  _settingsBox?.put(
                       'username', _nameController.text.toUpperCase());
                   Navigator.pop(context);
                   setState(() {});
@@ -131,48 +131,36 @@ class _HomePageState extends State<HomePage> {
       DashboardView(scrollController: _dashboardScrollController),
       const TasksPage(),
       const DietPage(),
+      const SettingsPage(),
     ];
+
+    final clampedIndex = _selectedIndex.clamp(0, pages.length - 1);
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: BentoTheme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          StarBackground(
-            parallaxController: _dashboardScrollController,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              transitionBuilder: (child, animation) {
-                final slideAnim = Tween<Offset>(
-                        begin: const Offset(0, 0.05), end: Offset.zero)
-                    .animate(CurvedAnimation(
-                        parent: animation, curve: Curves.easeOutExpo));
-                final scaleAnim = Tween<double>(begin: 0.97, end: 1.0).animate(
-                    CurvedAnimation(
-                        parent: animation, curve: Curves.easeOutExpo));
-                final fadeAnim =
-                    CurvedAnimation(parent: animation, curve: Curves.easeOut);
-                return FadeTransition(
-                  opacity: fadeAnim,
-                  child: SlideTransition(
-                    position: slideAnim,
-                    child: ScaleTransition(
-                      scale: scaleAnim,
-                      child: child,
-                    ),
-                  ),
-                );
-              },
-              child: SizedBox(
-                key: ValueKey(_selectedIndex),
-                child: pages[_selectedIndex],
-              ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOut,
+                ),
+                child: child,
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(clampedIndex),
+              child: pages[clampedIndex],
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
             child: BottomNavBar(
-              selectedIndex: _selectedIndex,
+              selectedIndex: clampedIndex,
               onItemTapped: _onItemTapped,
             ),
           ),

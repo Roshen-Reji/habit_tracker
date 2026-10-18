@@ -13,28 +13,28 @@ import 'package:flutter/material.dart';
 class TactileTokens {
   const TactileTokens._();
 
-  // --- Surface Hierarchy ---
-  /// Deep Obsidian Canvas background
-  static const Color canvas = Color(0xFF090A0C);
+  // --- Surface Hierarchy (Native Black & White defaults per AGENTS.md) ---
+  /// Deep Obsidian Canvas background (#000000)
+  static const Color canvas = Color(0xFF000000);
 
-  /// Matte Carbon elevated card surface
-  static const Color surface = Color(0xFF121418);
+  /// Matte Carbon elevated card surface (#0A0A0A)
+  static const Color surface = Color(0xFF0A0A0A);
 
-  /// Elevated card surface for floating sheets and nested cards
-  static const Color surfaceRaised = Color(0xFF16191F);
+  /// Elevated card surface for floating sheets and nested cards (#141414)
+  static const Color surfaceRaised = Color(0xFF141414);
 
   /// Sunken card surface for track meters, wells, and recessed inputs
-  static const Color surfaceSunken = Color(0xFF0C0E11);
+  static const Color surfaceSunken = Color(0xFF000000);
 
   /// Tactile Slate pressed / interactive state surface
   static const Color surfacePressed = Color(0xFF1A1D24);
 
   /// Modal / sheet overlay barrier color
-  static const Color barrier = Color(0xCC090A0C);
+  static const Color barrier = Color(0xCC000000);
 
   // --- Specular & Border Tokens ---
-  /// Crisp 1px specular top/inner border (rgba(255, 255, 255, 0.07))
-  static const Color specularBorder = Color(0x12FFFFFF);
+  /// Crisp 1px border (#262626 in dark mode)
+  static const Color specularBorder = Color(0xFF262626);
 
   /// Subtle bright specular highlight for active states
   static const Color specularHighlight = Color(0x28FFFFFF);
@@ -43,11 +43,11 @@ class TactileTokens {
   static const Color borderDark = Color(0x33000000);
 
   /// Divider color between hardware segments
-  static const Color divider = Color(0x0FFFFFFF);
+  static const Color divider = Color(0xFF262626);
 
   // --- Semantic Signal Palette ---
-  /// Primary Signal / Action: Electric Vermilion
-  static const Color vermilion = Color(0xFFFF4F28);
+  /// Primary Signal / Action: Native B&W white default (#FFFFFF)
+  static const Color vermilion = Color(0xFFFFFFFF);
   static const Color primarySignal = vermilion;
 
   /// Secondary Signal: Acid Lime
@@ -88,15 +88,25 @@ class TactileTokens {
   static const Color accentCyan = cyan;
   static const Color accentViolet = violet;
 
+  // Dynamic Theme Resolution Helpers
+  static Color resolvePrimary(BuildContext context) =>
+      Theme.of(context).colorScheme.primary;
+
+  static Color resolveSurface(BuildContext context) =>
+      Theme.of(context).colorScheme.surface;
+
+  static Color resolveBorder(BuildContext context) =>
+      Theme.of(context).dividerColor;
+
   // --- Typography Colors ---
   static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xA3FFFFFF); // ~64% white
-  static const Color textMuted = Color(0x59FFFFFF); // ~35% white
-  static const Color textDisabled = Color(0x33FFFFFF); // ~20% white
+  static const Color textSecondary = Color(0xFF8E8E93); // High-contrast iOS-style secondary
+  static const Color textMuted = Color(0xFF71717A);
+  static const Color textDisabled = Color(0x40FFFFFF);
 
-  // --- Corner Radii (Crisp Hardware Form Factor) ---
+  // --- Corner Radii (Standardized to 20.0 per AGENTS.md Task 6) ---
   static const double radiusButton = 12.0;
-  static const double radiusCard = 14.0;
+  static const double radiusCard = 20.0;
   static const double radiusModal = 20.0;
   static const double radiusPill = 999.0;
   static const double radiusSmall = 8.0;

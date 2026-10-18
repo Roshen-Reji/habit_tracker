@@ -67,6 +67,12 @@ void main() {
       expect(AppNav.instance.currentTab, 2);
       expect(AppNav.instance.tasksSubview, 'finance'); // unchanged subview
 
+      AppNav.goTo(AppTab.settings);
+      expect(AppNav.instance.currentTab, 3);
+
+      AppNav.goTo('settings');
+      expect(AppNav.instance.currentTab, 3);
+
       AppNav.goTo('tasks', sub: 'vault');
       expect(AppNav.instance.currentTab, 1);
       expect(AppNav.instance.tasksSubview, 'vault');

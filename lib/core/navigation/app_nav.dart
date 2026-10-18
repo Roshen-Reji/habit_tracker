@@ -19,6 +19,7 @@ enum AppTab {
   home,
   tasks,
   diet,
+  settings,
 }
 
 enum TasksSubview {
@@ -69,8 +70,10 @@ class AppNav extends ChangeNotifier {
       final name = targetTab.toString().toLowerCase();
       if (name.contains('task')) {
         index = 1;
-      } else if (name.contains('diet')) {
+      } else if (name.contains('diet') || name.contains('nutri')) {
         index = 2;
+      } else if (name.contains('setting')) {
+        index = 3;
       } else {
         index = 0;
       }

@@ -31,6 +31,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
   late final ScrollController _scrollController;
   bool _internalController = false;
   bool _isSettling = false;
+  bool _hasAnimatedEntrance = false;
   int _activeIndex = 0;
   List<double> _focusOffsets = const [0.0];
 
@@ -68,6 +69,11 @@ class _WalletCardStackState extends State<WalletCardStack> {
       _internalController = true;
     }
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _hasAnimatedEntrance = true;
+      }
+    });
   }
 
   void _onScroll() {
@@ -129,8 +135,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
     _scrollController
         .animateTo(
       clampedTarget,
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeOutBack,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutQuart,
     )
         .whenComplete(() {
       if (mounted) _isSettling = false;
@@ -277,6 +283,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
                           final cardTop = focusOffsets[index] + focalCenterY;
 
                           return Positioned(
+                            key: ValueKey('home_card_${cardSpec.id}'),
                             top: cardTop,
                             left: 16,
                             right: 16,
@@ -291,48 +298,50 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                           _scrollController.animateTo(
                                             focusOffsets[index],
                                             duration: const Duration(
-                                                milliseconds: 380),
-                                            curve: Curves.easeOutCubic,
+                                                milliseconds: 280),
+                                            curve: Curves.easeOutQuart,
                                           );
                                         },
                                   onLongPress: () =>
                                       HomeCardSizeSheet.show(context, cardSpec),
                                   child: IgnorePointer(
                                     ignoring: index != activeClamped,
-                                    child: cardSpec
-                                        .buildWidget(context, cardSize)
-                                        .animate()
-                                        .fadeIn(
-                                          delay: Duration(
-                                              milliseconds:
-                                                  math.min(index * 25, 200)),
-                                          duration: const Duration(
-                                              milliseconds: 320),
-                                          curve:
-                                              MotionTokens.fastOutExtraSlowIn,
-                                        )
-                                        .slideY(
-                                          begin: 16.0 / cardHeight,
-                                          end: 0.0,
-                                          delay: Duration(
-                                              milliseconds:
-                                                  math.min(index * 25, 200)),
-                                          duration: const Duration(
-                                              milliseconds: 320),
-                                          curve:
-                                              MotionTokens.fastOutExtraSlowIn,
-                                        )
-                                        .scale(
-                                          begin: const Offset(0.96, 0.96),
-                                          end: const Offset(1.0, 1.0),
-                                          delay: Duration(
-                                              milliseconds:
-                                                  math.min(index * 25, 200)),
-                                          duration: const Duration(
-                                              milliseconds: 320),
-                                          curve:
-                                              MotionTokens.fastOutExtraSlowIn,
-                                        ),
+                                    child: _hasAnimatedEntrance
+                                        ? cardSpec.buildWidget(context, cardSize)
+                                        : cardSpec
+                                            .buildWidget(context, cardSize)
+                                            .animate()
+                                            .fadeIn(
+                                              delay: Duration(
+                                                  milliseconds:
+                                                      math.min(index * 25, 200)),
+                                              duration: const Duration(
+                                                  milliseconds: 320),
+                                              curve:
+                                                  MotionTokens.fastOutExtraSlowIn,
+                                            )
+                                            .slideY(
+                                              begin: 16.0 / (cardHeight > 0 ? cardHeight : 145.0),
+                                              end: 0.0,
+                                              delay: Duration(
+                                                  milliseconds:
+                                                      math.min(index * 25, 200)),
+                                              duration: const Duration(
+                                                  milliseconds: 320),
+                                              curve:
+                                                  MotionTokens.fastOutExtraSlowIn,
+                                            )
+                                            .scale(
+                                              begin: const Offset(0.96, 0.96),
+                                              end: const Offset(1.0, 1.0),
+                                              delay: Duration(
+                                                  milliseconds:
+                                                      math.min(index * 25, 200)),
+                                              duration: const Duration(
+                                                  milliseconds: 320),
+                                              curve:
+                                                  MotionTokens.fastOutExtraSlowIn,
+                                            ),
                                   ),
                                 ),
                                 builder: (context, child) {
@@ -344,14 +353,17 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                       _scrollController.hasClients
                                           ? _scrollController.offset
                                           : 0.0;
-                                  final delta =
-                                      focusOffsets[index] - scrollOffset;
-                                  final normalized = delta / cardStep;
+                                  final safeCardStep =
+                                      cardStep > 0 ? cardStep : 160.0;
+                                  final delta = (focusOffsets[index] - scrollOffset)
+                                      .clamp(-2000.0, 2000.0);
+                                  final normalized = (delta / safeCardStep)
+                                      .clamp(-5.0, 5.0);
                                   final absNormalized = normalized.abs();
 
                                   // Depth amount: 0.0 at active center, smoothly increases as card recedes
-                                  final depthAmount =
-                                      absNormalized.clamp(0.0, 1.8) / 1.8;
+                                  final depthAmount = (absNormalized.clamp(0.0, 1.8) / 1.8)
+                                      .clamp(0.0, 1.0);
 
                                   // Vertical tuck compression:
                                   // Upcoming cards tucked closer from below; previous cards tucked gently above
@@ -370,8 +382,8 @@ class _WalletCardStackState extends State<WalletCardStack> {
 
                                   final zOffset = -depthAmount * 32.0;
 
-                                  final tilt =
-                                      normalized.clamp(-1.0, 1.0) * 0.042;
+                                  final tilt = (normalized.clamp(-1.0, 1.0) * 0.042)
+                                      .clamp(-0.1, 0.1);
 
                                   final scale = (1.0 - (depthAmount * 0.085))
                                       .clamp(0.90, 1.0);
@@ -406,10 +418,12 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                                 borderRadius:
                                                     BorderRadius.circular(20),
                                                 border: Border.all(
-                                                  color: Colors.white.withValues(
+                                                  color: Theme.of(context)
+                                                      .dividerColor
+                                                      .withValues(
                                                     alpha: index == activeClamped
-                                                        ? 0.12
-                                                        : 0.05,
+                                                        ? 0.8
+                                                        : 0.3,
                                                   ),
                                                   width: 1.0,
                                                 ),
