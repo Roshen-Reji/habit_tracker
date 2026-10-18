@@ -39,6 +39,47 @@ Future<T?> showSpringSheet<T>({
   );
 }
 
+/// SpringSheet class providing standard static call signatures
+class SpringSheet {
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    bool isDismissible = true,
+    bool enableDrag = true,
+    Color? backgroundColor,
+    double? elevation,
+    ShapeBorder? shape,
+    Clip clipBehavior = Clip.antiAlias,
+    BoxConstraints? constraints,
+  }) =>
+      showSpringSheet<T>(
+        context: context,
+        builder: builder,
+        isDismissible: isDismissible,
+        enableDrag: enableDrag,
+        backgroundColor: backgroundColor,
+        elevation: elevation,
+        shape: shape,
+        clipBehavior: clipBehavior,
+        constraints: constraints,
+      );
+
+  static Future<T?> showDialog<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+    Color barrierColor = const Color(0x99000000),
+    String? barrierLabel,
+  }) =>
+      showSpringDialog<T>(
+        context: context,
+        builder: builder,
+        barrierDismissible: barrierDismissible,
+        barrierColor: barrierColor,
+        barrierLabel: barrierLabel,
+      );
+}
+
 /// Shows a dialog driven by the snappy micro-spring paired with backdrop fade.
 ///
 /// Adheres to Section 5.2 of AGENTS.md:

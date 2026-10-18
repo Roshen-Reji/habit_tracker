@@ -28,7 +28,7 @@ class AnimatedStrikethroughText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: isDone ? 1.0 : 0.0, end: isDone ? 1.0 : 0.0),
+      tween: Tween<double>(end: isDone ? 1.0 : 0.0),
       duration: duration,
       curve: curve,
       builder: (context, progress, child) {
@@ -86,3 +86,5 @@ class _StrikethroughPainter extends CustomPainter {
         oldDelegate.strokeWidth != strokeWidth;
   }
 }
+
+typedef AnimatedStrikethrough = AnimatedStrikethroughText;

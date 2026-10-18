@@ -1,12 +1,15 @@
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/data/models/goal.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
-import 'dart:math' as math;
-import 'package:fl_chart/fl_chart.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
+import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
+import 'package:habit_tracker/features/tasks/engine/attendance_gpa_engine.dart';
+import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
 class TaskAnalyticsPage extends StatelessWidget {
   const TaskAnalyticsPage({super.key});
@@ -17,60 +20,135 @@ class TaskAnalyticsPage extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          "MISSION ANALYTICS",
+          "TASK & ACADEMIC ANALYTICS",
           style: TextStyle(
-              color: AppColors.textPrimary, letterSpacing: 2, fontSize: 16),
+            color: AppColors.textPrimary,
+            letterSpacing: 2,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: BentoTheme.accent),
       ),
-      body: ValueListenableBuilder(
-        valueListenable: Hive.box<Goal>('mission_box_v4').listenable(),
-        builder: (context, Box<Goal> box, _) {
-          final goals = box.values.toList();
+      body: ListenableBuilder(
+        listenable: TaskOsRepository.instance,
+        builder: (context, _) {
+          final tasks = TaskOsRepository.instance.activeTasks;
+          final courses = TaskOsRepository.instance.activeCourses;
+          final sessionLogs = TaskOsRepository.instance.sessionLogsNotifier.value;
+          final habits = TaskOsRepository.instance.activeHabits;
+          final focusLogs = TaskOsRepository.instance.focusLogs;
 
-          if (goals.isEmpty) {
-            return const Center(
-              child: Text(
-                "No missions to analyze.",
-                style: TextStyle(color: AppColors.textTertiary),
-              ),
-            );
+          // Legacy goals if open
+          List<Goal> legacyGoals = [];
+          if (Hive.isBoxOpen('mission_box_v4')) {
+            try {
+              legacyGoals = Hive.box<Goal>('mission_box_v4').values.toList();
+            } catch (_) {}
           }
 
-          int completedCount = goals.where((g) => g.isCompleted).length;
-          double completionRate =
-              goals.isEmpty ? 0 : completedCount / goals.length;
+          final completedTasks =
+              tasks.where((t) => t.status == TaskStatus.done).length;
+          final totalTasks = tasks.length;
+          final taskRate = totalTasks == 0 ? 0.0 : completedTasks / totalTasks;
+
+          final totalFocusMin =
+              focusLogs.fold<int>(0, (sum, f) => sum + f.actualMin);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Top Master Card
                 _buildOverallProgressCard(
-                    completionRate, completedCount, goals.length),
-                const SizedBox(height: 24),
-                Text(
-                  "CATEGORY FOCUS",
-                  style: TextStyle(
-                      color: BentoTheme.accent,
-                      letterSpacing: 1.5,
-                      fontWeight: bold),
+                  taskRate,
+                  completedTasks,
+                  totalTasks,
+                  totalFocusMin,
                 ),
-                const SizedBox(height: 16),
-                _buildCategoryBreakdown(goals),
-                const SizedBox(height: 24),
-                Text(
-                  "STREAK MASTERS",
-                  style: TextStyle(
-                      color: BentoTheme.accent,
-                      letterSpacing: 1.5,
-                      fontWeight: bold),
+                const SizedBox(height: 20),
+
+                // 4-Pillar Stat Grid
+                _buildMetricPillars(
+                  completedTasks: completedTasks,
+                  totalFocusMin: totalFocusMin,
+                  activeHabitsCount: habits.length,
+                  coursesCount: courses.length,
                 ),
-                const SizedBox(height: 16),
-                _buildTopStreaks(goals),
+                const SizedBox(height: 24),
+
+                // Course Attendance Section
+                if (courses.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(LucideIcons.graduationCap,
+                          size: 16, color: BentoTheme.accent),
+                      const SizedBox(width: 8),
+                      Text(
+                        "ACADEMIC ATTENDANCE HEALTH",
+                        style: TextStyle(
+                          color: BentoTheme.accent,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCourseAttendanceList(courses, sessionLogs),
+                  const SizedBox(height: 24),
+                ],
+
+                // Habit Streaks Section
+                if (habits.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.flame,
+                          size: 16, color: Colors.orangeAccent),
+                      const SizedBox(width: 8),
+                      Text(
+                        "FORGIVING HABIT STREAKS",
+                        style: TextStyle(
+                          color: BentoTheme.accent,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHabitStreaks(habits),
+                  const SizedBox(height: 24),
+                ],
+
+                // Legacy Goals Radar Chart (if available)
+                if (legacyGoals.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(LucideIcons.radar,
+                          size: 16, color: BentoTheme.accent),
+                      const SizedBox(width: 8),
+                      Text(
+                        "MISSION CATEGORY FOCUS",
+                        style: TextStyle(
+                          color: BentoTheme.accent,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCategoryBreakdown(legacyGoals),
+                ],
               ],
             ),
           );
@@ -79,73 +157,354 @@ class TaskAnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOverallProgressCard(double rate, int completed, int total) {
+  Widget _buildOverallProgressCard(
+    double rate,
+    int completed,
+    int total,
+    int focusMin,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceGlass,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.glassBorder),
+        color: BentoTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: BentoTheme.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           SizedBox(
-            height: 100,
-            width: 100,
+            height: 96,
+            width: 96,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 CircularProgressIndicator(
-                  value: rate,
-                  strokeWidth: 8,
-                  backgroundColor: AppColors.surfaceLight,
+                  value: rate.clamp(0.0, 1.0),
+                  strokeWidth: 9,
+                  backgroundColor: BentoTheme.surfaceElevated,
                   valueColor: AlwaysStoppedAnimation<Color>(BentoTheme.accent),
                 ),
                 Center(
-                  child: Text(
-                    "${(rate * 100).toInt()}%",
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "${(rate * 100).toInt()}%",
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        "DONE",
+                        style: TextStyle(
+                          color: BentoTheme.textSecondary,
+                          fontSize: 9,
+                          letterSpacing: 1.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Total Completion",
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
                 Text(
-                  "$completed of $total Missions",
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 18,
+                  "Task Completion Velocity",
+                  style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "$completed of $total Tasks Finished",
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  rate == 1.0
-                      ? "Perfect execution. Standby for next cycle."
-                      : "Keep pushing forward.",
-                  style: const TextStyle(
-                      color: AppColors.textTertiary, fontSize: 12),
+                Row(
+                  children: [
+                    Icon(LucideIcons.timer, size: 13, color: BentoTheme.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      "$focusMin min focus logged",
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMetricPillars({
+    required int completedTasks,
+    required int totalFocusMin,
+    required int activeHabitsCount,
+    required int coursesCount,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMetricTile(
+            title: "Tasks Done",
+            value: completedTasks,
+            icon: LucideIcons.checkCheck,
+            color: const Color(0xFF10B981),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildMetricTile(
+            title: "Focus Time",
+            value: totalFocusMin,
+            suffix: "m",
+            icon: LucideIcons.hourglass,
+            color: const Color(0xFF38BDF8),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildMetricTile(
+            title: "Active Habits",
+            value: activeHabitsCount,
+            icon: LucideIcons.sparkles,
+            color: const Color(0xFFF59E0B),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildMetricTile(
+            title: "Courses",
+            value: coursesCount,
+            icon: LucideIcons.bookOpen,
+            color: const Color(0xFFA855F7),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String title,
+    required num value,
+    String suffix = '',
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: BentoTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: BentoTheme.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 8),
+          AnimatedMetricTicker(
+            value: value,
+            suffix: suffix,
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: TextStyle(
+              color: BentoTheme.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourseAttendanceList(
+      List<CourseItem> courses, List<ClassSessionLog> logs) {
+    return Column(
+      children: courses.map((course) {
+        final stats = AttendanceGpaEngine.calculateAttendanceStats(
+          course: course,
+          sessionLogs: logs,
+        );
+
+        final color = Color(int.parse(
+          course.colorHex.replaceFirst('#', '0xFF'),
+        ));
+
+        final isSafe = stats.status == AttendanceStatus.safe;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: BentoTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: BentoTheme.divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "${course.code} · ${course.name}",
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    "${stats.attendancePercentage.toStringAsFixed(1)}%",
+                    style: TextStyle(
+                      color: isSafe ? AppColors.success : AppColors.error,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ProgressBarX(
+                value: (stats.attendancePercentage / 100.0).clamp(0.0, 1.0),
+                color: isSafe ? AppColors.success : AppColors.error,
+                height: 5,
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Attended: ${stats.attendedClasses}/${stats.totalClasses} classes",
+                    style: TextStyle(
+                      color: BentoTheme.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    stats.statusMessage,
+                    style: TextStyle(
+                      color: isSafe ? BentoTheme.accent : AppColors.error,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHabitStreaks(List<ForgivingHabitItem> habits) {
+    return Column(
+      children: habits.map((habit) {
+        final streak = habit.completedDatesIso.length;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: BentoTheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: BentoTheme.divider),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      habit.name,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${habit.freezesLeft} streak freeze(s) available",
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(LucideIcons.flame,
+                      size: 16, color: Colors.orangeAccent),
+                  const SizedBox(width: 4),
+                  Text(
+                    "$streak days",
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -158,20 +517,19 @@ class TaskAnalyticsPage extends StatelessWidget {
       categoryCounts[g.category] = (categoryCounts[g.category] ?? 0) + 1;
     }
 
-    int maxCount = categoryCounts.values.reduce(math.max);
-    if (maxCount == 0) maxCount = 1;
-
     return Column(
       children: [
         SizedBox(
-          height: 250,
+          height: 220,
           child: RadarChart(
             RadarChartData(
               radarShape: RadarShape.polygon,
-              radarBorderData: const BorderSide(color: AppColors.glassBorder),
+              radarBorderData: BorderSide(color: BentoTheme.divider),
               tickBorderData: const BorderSide(color: Colors.transparent),
               gridBorderData: BorderSide(
-                  color: BentoTheme.accent.withValues(alpha: 0.2), width: 1),
+                color: BentoTheme.accent.withValues(alpha: 0.2),
+                width: 1,
+              ),
               titlePositionPercentageOffset: 0.1,
               getTitle: (index, angle) {
                 final cat = GoalCategory.values[index];
@@ -181,10 +539,11 @@ class TaskAnalyticsPage extends StatelessWidget {
                   positionPercentageOffset: 0.2,
                 );
               },
-              titleTextStyle: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold),
+              titleTextStyle: TextStyle(
+                color: BentoTheme.textSecondary,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
               dataSets: [
                 RadarDataSet(
                   fillColor: BentoTheme.accent.withValues(alpha: 0.3),
@@ -192,155 +551,17 @@ class TaskAnalyticsPage extends StatelessWidget {
                   entryRadius: 3,
                   dataEntries: GoalCategory.values.map((cat) {
                     return RadarEntry(
-                        value: (categoryCounts[cat] ?? 0).toDouble());
+                      value: (categoryCounts[cat] ?? 0).toDouble(),
+                    );
                   }).toList(),
                   borderWidth: 2,
                 ),
               ],
             ),
-            duration: const Duration(milliseconds: 400),
+            duration: const Duration(milliseconds: 320),
           ),
         ),
-        const SizedBox(height: 16),
-        ...GoalCategory.values.map((cat) {
-          int count = categoryCounts[cat] ?? 0;
-          if (count == 0) return const SizedBox.shrink();
-
-          double percent = count / goals.length;
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(cat).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(_getCategoryIcon(cat),
-                      color: _getCategoryColor(cat), size: 20),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            cat.name.toUpperCase(),
-                            style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "$count (${(percent * 100).toInt()}%)",
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ProgressBarX(
-                        value: percent,
-                        color: _getCategoryColor(cat),
-                        height: 4,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
       ],
     );
   }
-
-  Widget _buildTopStreaks(List<Goal> goals) {
-    final sortedGoals = List<Goal>.from(goals)
-      ..sort((a, b) => b.streakCount.compareTo(a.streakCount));
-    final topGoals = sortedGoals.take(3).toList();
-
-    if (topGoals.isEmpty || topGoals.first.streakCount == 0) {
-      return const Text("No streaks established yet.",
-          style: TextStyle(color: AppColors.textTertiary));
-    }
-
-    return Column(
-      children: topGoals.where((g) => g.streakCount > 0).map((g) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  g.title,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(LucideIcons.flame,
-                      color: Colors.orangeAccent, size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    "${g.streakCount} days",
-                    style: const TextStyle(
-                        color: Colors.orangeAccent,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Color _getCategoryColor(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.health:
-        return AppColors.health;
-      case GoalCategory.productivity:
-        return AppColors.productivity;
-      case GoalCategory.learning:
-        return AppColors.learning;
-      case GoalCategory.fitness:
-        return AppColors.fitness;
-      case GoalCategory.hobby:
-        return AppColors.hobby;
-    }
-  }
-
-  IconData _getCategoryIcon(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.health:
-        return LucideIcons.heart;
-      case GoalCategory.productivity:
-        return LucideIcons.zap;
-      case GoalCategory.learning:
-        return LucideIcons.bookOpen;
-      case GoalCategory.fitness:
-        return LucideIcons.dumbbell;
-      case GoalCategory.hobby:
-        return LucideIcons.puzzle;
-    }
-  }
 }
-
-const FontWeight bold = FontWeight.bold;

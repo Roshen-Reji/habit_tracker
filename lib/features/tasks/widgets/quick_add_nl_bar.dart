@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/widgets/tactile_button.dart';
+import 'package:habit_tracker/features/tasks/widgets/task_action_pill.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/task_nl_parser.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
@@ -121,148 +122,154 @@ class _QuickAddNlBarState extends State<QuickAddNlBar> {
   Widget build(BuildContext context) {
     final chips = _currentParsed?.chips ?? [];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: BentoTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: BentoTheme.divider)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        MediaQuery.of(context).viewInsets.bottom + 8,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Live token chips strip
-          if (chips.isNotEmpty) ...[
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  for (var chip in chips) ...[
-                    Container(
-                      margin: const EdgeInsets.only(right: 6, bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _chipColor(chip.type).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _chipColor(chip.type).withValues(alpha: 0.35),
-                        ),
-                      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+          // Live token chips strip with AnimatedSize and fluid spring physics
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+            child: chips.isEmpty
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(_chipIcon(chip.type),
-                              size: 11, color: _chipColor(chip.type)),
-                          const SizedBox(width: 4),
-                          Text(
-                            chip.label,
-                            style: TextStyle(
-                              color: _chipColor(chip.type),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                          for (var chip in chips) ...[
+                            Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: _chipColor(chip.type)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _chipColor(chip.type)
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(_chipIcon(chip.type),
+                                      size: 11, color: _chipColor(chip.type)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    chip.label,
+                                    style: TextStyle(
+                                      color: _chipColor(chip.type),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => _removeChip(chip),
+                                    child: Icon(
+                                      LucideIcons.x,
+                                      size: 12,
+                                      color: _chipColor(chip.type)
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: () => _removeChip(chip),
-                            child: Icon(
-                              LucideIcons.x,
-                              size: 12,
-                              color: _chipColor(chip.type).withValues(alpha: 0.7),
-                            ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                  ],
-                ],
-              ),
+                  ),
+          ),
+          // Unified Single-Row Dock (height: 52px)
+          Container(
+            height: 52,
+            margin: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF121212),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: const Color(0xFF262626)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-          // Input row
-          Row(
-            children: [
-              // Voice brain dump trigger
-              IconButton(
-                icon: const Icon(LucideIcons.mic, size: 20),
-                color: BentoTheme.textSecondary,
-                tooltip: 'Voice Brain Dump (CAP-4)',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                onPressed: _openBrainDumpModal,
-              ),
-              // Syllabus / Photo scanner trigger
-              IconButton(
-                icon: const Icon(LucideIcons.scanLine, size: 20),
-                color: BentoTheme.textSecondary,
-                tooltip: 'Syllabus / Photo Import (CAP-6/7)',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                onPressed: _openSyllabusImportModal,
-              ),
-              const SizedBox(width: 4),
-              // Text field
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _submitTask(),
-                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Add task (e.g. DBMS record fri 5pm #DBMS !high ~2h @lab)...',
-                    hintStyle: TextStyle(
-                      color: BentoTheme.textSecondary.withValues(alpha: 0.6),
-                      fontSize: 12.5,
-                    ),
-                    isDense: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    filled: true,
-                    fillColor: BentoTheme.surfaceElevated,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+            child: Row(
+              children: [
+                // Voice brain dump trigger (32x32)
+                IconButton(
+                  icon: const Icon(Icons.mic_none_rounded, size: 18),
+                  color: const Color(0xFF8E8E93),
+                  tooltip: 'Voice Brain Dump',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: _openBrainDumpModal,
+                ),
+                // Syllabus / Photo scanner trigger (32x32)
+                IconButton(
+                  icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                  color: const Color(0xFF8E8E93),
+                  tooltip: 'Syllabus / Photo Import',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: _openSyllabusImportModal,
+                ),
+                const SizedBox(width: 6),
+                // Borderless TextField
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submitTask(),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Quick add task...',
+                      hintStyle: TextStyle(
+                        color: Color(0xFF8E8E93),
+                        fontSize: 14,
+                      ),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // Rapid Submit button
-              TactileButton(
-                onPressed: _submitTask,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.accent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    LucideIcons.arrowUp,
-                    size: 18,
-                    color: Colors.black,
+                const SizedBox(width: 6),
+                // Circular 34x34 White Submit Button
+                PressScale(
+                  onTap: _submitTask,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 18,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Color _chipColor(ChipType type) {
@@ -391,7 +398,7 @@ class _BrainDumpReviewSheetState extends State<_BrainDumpReviewSheet> {
               Icon(LucideIcons.mic, color: BentoTheme.accent, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Voice Brain Dump Review (CAP-4)',
+                'Voice Brain Dump Review',
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 17,
@@ -468,25 +475,13 @@ class _BrainDumpReviewSheetState extends State<_BrainDumpReviewSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          TactileButton(
-            onPressed: _saveAll,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: BentoTheme.accent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Confirm & Add ${_extractedTasks.length} Tasks',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+          TaskActionPill(
+            label: 'Confirm & Add ${_extractedTasks.length} Tasks',
+            isPrimary: true,
+            height: 44,
+            horizontalPadding: 16,
+            borderRadius: 12,
+            onTap: _saveAll,
           ),
         ],
       ),
@@ -579,7 +574,7 @@ class _SyllabusImportSheetState extends State<_SyllabusImportSheet> {
               Icon(LucideIcons.fileSearch, color: BentoTheme.accent, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Syllabus / Photo Import (CAP-6/7)',
+                'Syllabus / Photo Import',
                 style: TextStyle(
                   color: BentoTheme.textPrimary,
                   fontSize: 17,
@@ -652,25 +647,13 @@ class _SyllabusImportSheetState extends State<_SyllabusImportSheet> {
             ),
           ],
           const SizedBox(height: 16),
-          TactileButton(
-            onPressed: _confirmImport,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: BentoTheme.accent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Confirm & Import ${_extractedItems.length} Deadlines',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+          TaskActionPill(
+            label: 'Confirm & Import ${_extractedItems.length} Deadlines',
+            isPrimary: true,
+            height: 44,
+            horizontalPadding: 16,
+            borderRadius: 12,
+            onTap: _confirmImport,
           ),
         ],
       ),

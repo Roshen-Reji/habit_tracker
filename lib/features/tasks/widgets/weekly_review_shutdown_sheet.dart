@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
-import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
 class WeeklyReviewShutdownSheet extends StatefulWidget {
   final bool isWeeklyReview; // true for weekly review, false for daily shutdown

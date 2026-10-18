@@ -25,6 +25,23 @@ class AttendanceStats {
     required this.canNoLongerReachMin,
     required this.statusLabel,
   });
+
+  double get attendancePercentage => attendedPct * 100.0;
+  int get attendedClasses => present;
+  int get totalClasses => present + absent;
+  String get status => statusLabel;
+  String get statusMessage => canNoLongerReachMin
+      ? 'Cannot reach required minimum.'
+      : (maxMissable > 0
+          ? 'Can miss up to $maxMissable more class(es).'
+          : 'Must attend next $mustAttendNext class(es)!');
+}
+
+class AttendanceStatus {
+  static const String safe = 'Safe';
+  static const String warning = 'Warning';
+  static const String danger = 'Danger';
+  static const String unreachable = 'Unreachable';
 }
 
 class GradeTargetResult {
@@ -49,6 +66,31 @@ class GradeTargetResult {
 
 /// Academic Attendance and GPA Target Engine (ACA-7, ACA-8)
 class AttendanceGpaEngine {
+  /// Computes attendance stats directly from CourseItem and session logs
+  static AttendanceStats calculateAttendanceStats({
+    required CourseItem course,
+    required List<ClassSessionLog> sessionLogs,
+    int estimatedTotalClasses = 40,
+  }) {
+    final courseLogs = sessionLogs
+        .where((l) => l.courseId == course.id || l.courseId == course.code)
+        .toList();
+    final present =
+        courseLogs.where((l) => l.attendance == 'present').length;
+    final absent = courseLogs.where((l) => l.attendance == 'absent').length;
+    final remaining = math.max(0, estimatedTotalClasses - (present + absent));
+    final req = course.requiredAttendancePct > 1.0
+        ? course.requiredAttendancePct / 100.0
+        : course.requiredAttendancePct;
+
+    return computeAttendanceStats(
+      present: present,
+      absent: absent,
+      remaining: remaining,
+      requiredPct: req,
+    );
+  }
+
   /// Computes accurate attendance metrics and risk indicators (ACA-7)
   static AttendanceStats computeAttendanceStats({
     required int present,

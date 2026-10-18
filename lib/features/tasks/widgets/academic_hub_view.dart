@@ -1,10 +1,12 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/attendance_gpa_engine.dart';
 import 'package:habit_tracker/features/tasks/engine/smart_scheduler_engine.dart';
@@ -19,19 +21,28 @@ class AcademicHubView extends StatefulWidget {
 
 class _AcademicHubViewState extends State<AcademicHubView> {
   int _subTab = 0; // 0: Attendance, 1: Timetable, 2: Exams, 3: GPA Calculator
+  String _activeWeekPattern = 'every'; // 'every', 'weekA', 'weekB'
+  int _selectedDayOfWeek = 1; // 1 = Monday
+
+  // GPA Target Calculator Interactive State
+  double _targetGradePct = 85.0;
+  double _internalScore = 42.0;
+  final double _maxInternalScore = 50.0;
+  final double _finalExamWeight = 50.0;
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<CourseItem>>(
       valueListenable: TaskOsRepository.instance.coursesNotifier,
       builder: (context, courses, _) {
-        final activeCourses = courses.where((c) => c.deletedAt == null).toList();
+        final activeCourses =
+            courses.where((c) => c.deletedAt == null).toList();
 
         return Column(
           children: [
-            // Segmented Sub-tab bar
+            // Segmented Sub-tab bar with tactile feedback
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: BentoTheme.surface,
@@ -66,7 +77,8 @@ class _AcademicHubViewState extends State<AcademicHubView> {
           setState(() => _subTab = index);
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected ? BentoTheme.accent : Colors.transparent,
@@ -87,7 +99,7 @@ class _AcademicHubViewState extends State<AcademicHubView> {
                 style: TextStyle(
                   color: isSelected ? Colors.black : BentoTheme.textSecondary,
                   fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
             ],
@@ -111,299 +123,440 @@ class _AcademicHubViewState extends State<AcademicHubView> {
     }
   }
 
-  // ================= 1. ATTENDANCE TRACKER (ACA-7) =================
+  // ================= 1. ATTENDANCE TRACKER =================
   Widget _buildAttendanceTracker(List<CourseItem> courses) {
-    if (courses.isEmpty) {
-      return _buildEmptyState(
-        title: 'No Courses Added Yet',
-        subtitle: 'Add your courses to track 75% attendance and missable classes.',
-        actionLabel: '+ Add Sample Course',
-        onAction: _addSampleCourse,
-      );
-    }
-
     final sessionLogs = TaskOsRepository.instance.sessionLogsNotifier.value;
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
       physics: const BouncingScrollPhysics(),
-      itemCount: courses.length,
-      itemBuilder: (ctx, idx) {
-        final course = courses[idx];
-        final courseLogs =
-            sessionLogs.where((l) => l.courseId == course.id || l.courseId == course.code).toList();
-
-        final present =
-            courseLogs.where((l) => l.attendance == 'present').length;
-        final absent =
-            courseLogs.where((l) => l.attendance == 'absent').length;
-        // Remaining classes estimate based on 40 classes total per semester
-        final remaining = math.max(0, 40 - (present + absent));
-
-        final stats = AttendanceGpaEngine.computeAttendanceStats(
-          present: present,
-          absent: absent,
-          remaining: remaining,
-          requiredPct: course.requiredAttendancePct,
-        );
-
-        final statusColor = stats.canNoLongerReachMin
-            ? Colors.redAccent
-            : (stats.attendedPct < stats.requiredPct
-                ? Colors.amber
-                : const Color(0xFF10B981));
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoTheme.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _parseHexColor(course.colorHex),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${course.code} · ${course.name}',
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      stats.statusLabel.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+      children: [
+        // Action Bar (+ Add Course)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'COURSES & ATTENDANCE (${courses.length})',
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text(
-                    '${(stats.attendedPct * 100).toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      color: BentoTheme.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'attendance (${stats.present}/${stats.present + stats.absent})',
-                    style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Req: ${(stats.requiredPct * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ProgressBarX(
-                value: stats.attendedPct,
-                color: statusColor,
-                customTrackColor: BentoTheme.surfaceElevated,
-                height: 6,
-              ),
-              const SizedBox(height: 12),
-              // Missable insight banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+            GestureDetector(
+              onTap: _showAddCourseSheet,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: BentoTheme.surfaceElevated,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: BentoTheme.accent.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      stats.maxMissable > 0
-                          ? LucideIcons.shieldCheck
-                          : LucideIcons.alertTriangle,
-                      size: 14,
-                      color: stats.maxMissable > 0
-                          ? BentoTheme.accent
-                          : Colors.amber,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        stats.canNoLongerReachMin
-                            ? 'Cannot reach 75% even with full attendance.'
-                            : (stats.maxMissable > 0
-                                ? 'You can safely miss up to ${stats.maxMissable} more classes.'
-                                : 'Must attend next ${stats.mustAttendNext} consecutive classes!'),
-                        style: TextStyle(
-                          color: BentoTheme.textPrimary,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    Icon(LucideIcons.plus, size: 12, color: BentoTheme.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ Add Course',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              // Fast 1-tap attendance logger
-              Row(
-                children: [
-                  Expanded(
-                    child: TactileButton(
-                      onPressed: () => _markAttendance(course.id, 'present'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.3)),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          '+ Present',
-                          style: TextStyle(
-                            color: Color(0xFF10B981),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (courses.isEmpty)
+          _buildEmptyState(
+            title: 'No Courses Added Yet',
+            subtitle:
+                'Add your academic courses to track 75% attendance and missable classes.',
+            actionLabel: '+ Add Course',
+            onAction: _showAddCourseSheet,
+          )
+        else
+          for (var course in courses) ...[
+            Builder(builder: (ctx) {
+              final stats = AttendanceGpaEngine.calculateAttendanceStats(
+                course: course,
+                sessionLogs: sessionLogs,
+              );
+
+              final color = _parseHexColor(course.colorHex);
+              final isSafe = stats.status == AttendanceStatus.safe;
+              final statusColor = isSafe ? AppColors.success : AppColors.error;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: BentoTheme.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color,
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TactileButton(
-                      onPressed: () => _markAttendance(course.id, 'absent'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: Colors.redAccent.withValues(alpha: 0.3)),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          '+ Absent',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${course.code} · ${course.name}',
+                            style: TextStyle(
+                              color: BentoTheme.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isSafe ? 'SAFE' : 'ATTENTION',
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        AnimatedMetricTicker.percentage(
+                          value: stats.attendancePercentage,
+                          style: TextStyle(
+                            color: BentoTheme.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '(${stats.attendedClasses}/${stats.totalClasses} classes)',
+                          style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Req: ${course.requiredAttendancePct.round()}%',
+                          style: TextStyle(
+                            color: BentoTheme.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ProgressBarX(
+                      value: (stats.attendancePercentage / 100.0).clamp(0.0, 1.0),
+                      color: statusColor,
+                      customTrackColor: BentoTheme.surfaceElevated,
+                      height: 6,
+                    ),
+                    const SizedBox(height: 10),
+                    // Missable / Must attend banner
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: BentoTheme.surfaceElevated,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSafe
+                                ? LucideIcons.shieldCheck
+                                : LucideIcons.alertTriangle,
+                            size: 14,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              stats.statusMessage,
+                              style: TextStyle(
+                                color: BentoTheme.textPrimary,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                    const SizedBox(height: 12),
+                    // Tactile 1-tap attendance buttons: Present, Absent, Cancelled
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TactileButton(
+                            onPressed: () =>
+                                _markAttendance(course.id, 'present'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFF10B981)
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '✓ Present',
+                                style: TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TactileButton(
+                            onPressed: () =>
+                                _markAttendance(course.id, 'absent'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFEF4444)
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '✕ Absent',
+                                style: TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TactileButton(
+                            onPressed: () =>
+                                _markAttendance(course.id, 'unmarked', status: 'cancelled'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: BentoTheme.surfaceElevated,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: BentoTheme.divider),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Cancelled',
+                                style: TextStyle(
+                                  color: BentoTheme.textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+      ],
     );
   }
 
-  // ================= 2. TIMETABLE VIEW (Week A/B) =================
+  // ================= 2. TIMETABLE VIEW =================
   Widget _buildTimetableView(List<CourseItem> courses) {
     final slots = TaskOsRepository.instance.timetableSlots;
-    if (slots.isEmpty) {
-      return _buildEmptyState(
-        title: 'Timetable is Empty',
-        subtitle: 'Configure your weekly class slots and rotating labs.',
-        actionLabel: '+ Add Sample Slot',
-        onAction: _addSampleTimetableSlot,
-      );
-    }
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: days.length,
-      itemBuilder: (ctx, dayIdx) {
-        final daySlots = slots.where((s) => s.dayOfWeek == (dayIdx + 1)).toList();
-        daySlots.sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoTheme.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                days[dayIdx].toUpperCase(),
-                style: TextStyle(
-                  color: BentoTheme.accent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        // Top control strip: Day selector + Week A/B + Add Slot
+        Row(
+          children: [
+            // Week A/B toggle
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: BentoTheme.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: BentoTheme.divider),
+              ),
+              child: Row(
+                children: [
+                  _buildWeekPatternChip('every', 'All'),
+                  _buildWeekPatternChip('weekA', 'Week A'),
+                  _buildWeekPatternChip('weekB', 'Week B'),
+                ],
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _showAddSlotSheet,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: BentoTheme.accent.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.plus, size: 12, color: BentoTheme.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ Add Slot',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              if (daySlots.isEmpty)
-                Text(
-                  'No classes scheduled',
-                  style: TextStyle(color: BentoTheme.textMuted, fontSize: 12),
-                )
-              else
-                for (var slot in daySlots) ...[
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Day of Week Pills
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              for (int i = 0; i < days.length; i++) ...[
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedDayOfWeek = i + 1);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: BentoTheme.surfaceElevated,
+                      color: _selectedDayOfWeek == (i + 1)
+                          ? BentoTheme.accent
+                          : BentoTheme.surface,
                       borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _selectedDayOfWeek == (i + 1)
+                            ? BentoTheme.accent
+                            : BentoTheme.divider,
+                      ),
                     ),
-                    child: Row(
+                    child: Text(
+                      days[i],
+                      style: TextStyle(
+                        color: _selectedDayOfWeek == (i + 1)
+                            ? Colors.black
+                            : BentoTheme.textSecondary,
+                        fontSize: 11.5,
+                        fontWeight: _selectedDayOfWeek == (i + 1)
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Builder(builder: (ctx) {
+          final daySlots = slots
+              .where((s) => s.dayOfWeek == _selectedDayOfWeek)
+              .toList()
+            ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+
+          if (daySlots.isEmpty) {
+            return _buildEmptyState(
+              title: 'No classes scheduled',
+              subtitle: 'Enjoy your free time or add a slot.',
+              actionLabel: '+ Add Slot',
+              onAction: _showAddSlotSheet,
+            );
+          }
+
+          return Column(
+            children: daySlots.map((slot) {
+              final startStr = _formatMinutes(slot.startMinutes);
+              final endStr = _formatMinutes(slot.endMinutes);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: BentoTheme.divider),
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${_formatMinutes(slot.startMinutes)}–${_formatMinutes(slot.endMinutes)}',
+                          '$startStr – $endStr',
                           style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontSize: 11,
+                            color: BentoTheme.accent,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            slot.courseId,
-                            style: TextStyle(
-                              color: BentoTheme.textPrimary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.5,
-                            ),
                           ),
                         ),
                         if (slot.room != null)
@@ -411,132 +564,331 @@ class _AcademicHubViewState extends State<AcademicHubView> {
                             slot.room!,
                             style: TextStyle(
                               color: BentoTheme.textSecondary,
-                              fontSize: 11,
+                              fontSize: 10.5,
                             ),
                           ),
                       ],
                     ),
-                  ),
-                ],
-            ],
-          ),
-        );
-      },
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        slot.courseId,
+                        style: TextStyle(
+                          color: BentoTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        }),
+      ],
     );
   }
 
-  // ================= 3. EXAMS & SPACED REVISION (PLAN-8) =================
+  Widget _buildWeekPatternChip(String key, String label) {
+    final isSelected = _activeWeekPattern == key;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _activeWeekPattern = key);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? BentoTheme.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : BentoTheme.textSecondary,
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= 3. EXAMS & SPACED REVISION =================
   Widget _buildExamsAndRevisionView(List<CourseItem> courses) {
     final exams = TaskOsRepository.instance.activeExams;
-    if (exams.isEmpty) {
-      return _buildEmptyState(
-        title: 'No Upcoming Exams',
-        subtitle: 'Add your exam dates and syllabus topics for automated revision planning.',
-        actionLabel: '+ Add Sample Exam',
-        onAction: _addSampleExam,
-      );
-    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: exams.length,
-      itemBuilder: (ctx, idx) {
-        final exam = exams[idx];
-        final daysLeft = exam.examDate.difference(DateTime.now()).inDays;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoTheme.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      exam.title,
-                      style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'UPCOMING EXAMS & REVISION (${exams.length})',
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            GestureDetector(
+              onTap: _showAddExamSheet,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: BentoTheme.accent.withValues(alpha: 0.4),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.accent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      daysLeft <= 0 ? 'Today' : 'in ${daysLeft}d',
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.plus, size: 12, color: BentoTheme.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ Add Exam',
                       style: TextStyle(
                         color: BentoTheme.accent,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Course: ${exam.courseId} · Topics: ${exam.topics.length}',
-                style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              // Spaced Repetition trigger
-              TactileButton(
-                onPressed: () => _generateRevisionSchedule(exam),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.accent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(LucideIcons.repeat, size: 14, color: Colors.black),
-                      SizedBox(width: 6),
-                      Text(
-                        'Generate Spaced Revision Plan (PLAN-8)',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (exams.isEmpty)
+          _buildEmptyState(
+            title: 'No Upcoming Exams',
+            subtitle:
+                'Add your exam dates and syllabus topics for automated revision planning.',
+            actionLabel: '+ Add Exam',
+            onAction: _showAddExamSheet,
+          )
+        else
+          for (var exam in exams) ...[
+            Builder(builder: (ctx) {
+              final daysLeft =
+                  exam.examDate.difference(DateTime.now()).inDays;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: BentoTheme.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            exam.title,
+                            style: TextStyle(
+                              color: BentoTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: BentoTheme.accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            daysLeft <= 0 ? 'Today' : 'in ${daysLeft}d',
+                            style: TextStyle(
+                              color: BentoTheme.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '#${exam.courseId} · Venue: ${exam.venue ?? 'TBA'}',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Topic confidence pills
+                    Text(
+                      'Syllabus Topics (Tap confidence to recalculate revision):',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    for (var topic in exam.topics) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                topic.title,
+                                style: TextStyle(
+                                  color: BentoTheme.textPrimary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            // Interactive Confidence Level Selector (0..3)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (int lvl = 0; lvl <= 3; lvl++) ...[
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.selectionClick();
+                                      TaskOsRepository.instance
+                                          .updateExamTopicConfidence(
+                                        exam.id,
+                                        topic.id,
+                                        lvl,
+                                      );
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(left: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: topic.confidence == lvl
+                                            ? _confidenceColor(lvl)
+                                            : BentoTheme.surfaceElevated,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        _confidenceLabel(lvl),
+                                        style: TextStyle(
+                                          color: topic.confidence == lvl
+                                              ? Colors.black
+                                              : BentoTheme.textSecondary,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
+
+                    const SizedBox(height: 12),
+                    // Spaced Repetition trigger
+                    TactileButton(
+                      onPressed: () => _generateRevisionSchedule(exam),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: BentoTheme.accent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(LucideIcons.repeat,
+                                size: 14, color: Colors.black),
+                            SizedBox(width: 6),
+                            Text(
+                              'Generate Spaced Revision Blocks',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              );
+            }),
+          ],
+      ],
     );
   }
 
-  // ================= 4. GPA TARGET CALCULATOR (ACA-8) =================
+  Color _confidenceColor(int lvl) {
+    switch (lvl) {
+      case 0:
+        return const Color(0xFFEF4444); // New
+      case 1:
+        return const Color(0xFFF97316); // Weak
+      case 2:
+        return const Color(0xFFFACC15); // Good
+      case 3:
+      default:
+        return const Color(0xFF10B981); // Mastered
+    }
+  }
+
+  String _confidenceLabel(int lvl) {
+    switch (lvl) {
+      case 0:
+        return 'New';
+      case 1:
+        return 'Weak';
+      case 2:
+        return 'Good';
+      case 3:
+      default:
+        return 'Pro';
+    }
+  }
+
+  // ================= 4. GPA TARGET CALCULATOR =================
   Widget _buildGpaTargetView(List<CourseItem> courses) {
+    // Calculate required final exam score:
+    // (Target - InternalScore) / (FinalWeight / 100)
+    final requiredScore = ((_targetGradePct - _internalScore) /
+            (_finalExamWeight / 100.0))
+        .clamp(0.0, 100.0);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: BentoTheme.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: BentoTheme.divider),
             ),
             child: Column(
@@ -544,10 +896,11 @@ class _AcademicHubViewState extends State<AcademicHubView> {
               children: [
                 Row(
                   children: [
-                    Icon(LucideIcons.target, size: 18, color: BentoTheme.accent),
+                    Icon(LucideIcons.target,
+                        size: 20, color: BentoTheme.accent),
                     const SizedBox(width: 8),
                     Text(
-                      'Target Final Exam Score (ACA-8)',
+                      'Target Final Exam Score',
                       style: TextStyle(
                         color: BentoTheme.textPrimary,
                         fontSize: 15,
@@ -556,17 +909,56 @@ class _AcademicHubViewState extends State<AcademicHubView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
-                  'Given your current assignments and internal marks, this calculates the exact percentage you must score on the final exam to secure your target grade.',
-                  style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
+                  'Adjust your target grade and internal marks to calculate the exact percentage required on the final exam.',
+                  style:
+                      TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
                 ),
                 const SizedBox(height: 16),
+
+                // Interactive Sliders
+                Text(
+                  'Desired Final Grade: ${_targetGradePct.round()}%',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Slider(
+                  value: _targetGradePct,
+                  min: 50.0,
+                  max: 100.0,
+                  activeColor: BentoTheme.accent,
+                  inactiveColor: BentoTheme.surfaceElevated,
+                  onChanged: (val) => setState(() => _targetGradePct = val),
+                ),
+
+                const SizedBox(height: 10),
+                Text(
+                  'Internal Score: ${_internalScore.round()} / ${_maxInternalScore.round()}',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Slider(
+                  value: _internalScore,
+                  min: 0.0,
+                  max: _maxInternalScore,
+                  activeColor: BentoTheme.accent,
+                  inactiveColor: BentoTheme.surfaceElevated,
+                  onChanged: (val) => setState(() => _internalScore = val),
+                ),
+
+                const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: BentoTheme.surfaceElevated,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     children: [
@@ -575,30 +967,34 @@ class _AcademicHubViewState extends State<AcademicHubView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Target Grade: 85% (A)',
+                              'Required Final Score',
+                              style: TextStyle(
+                                color: BentoTheme.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              requiredScore > 100.0
+                                  ? 'Unattainable'
+                                  : 'Target ${_targetGradePct.round()}% Grade',
                               style: TextStyle(
                                 color: BentoTheme.textPrimary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Internal Score: 42/50 · Final Weight: 50%',
-                              style: TextStyle(
-                                color: BentoTheme.textSecondary,
-                                fontSize: 11,
-                              ),
-                            ),
                           ],
                         ),
                       ),
-                      Text(
-                        '86.0%',
+                      AnimatedMetricTicker.percentage(
+                        value: requiredScore,
                         style: TextStyle(
-                          color: BentoTheme.accent,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          color: requiredScore > 90.0
+                              ? Colors.redAccent
+                              : BentoTheme.accent,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],
@@ -612,7 +1008,390 @@ class _AcademicHubViewState extends State<AcademicHubView> {
     );
   }
 
-  // ================= HELPERS & SAMPLES =================
+  // ================= MODALS & ACTIONS =================
+
+  void _showAddCourseSheet() {
+    final nameCtrl = TextEditingController();
+    final codeCtrl = TextEditingController();
+    double requiredPct = 75.0;
+
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: BentoTheme.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Add New Course',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: codeCtrl,
+                  style: TextStyle(color: BentoTheme.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Course Code (e.g. CS301)',
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary),
+                    filled: true,
+                    fillColor: BentoTheme.surfaceElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameCtrl,
+                  style: TextStyle(color: BentoTheme.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Course Name (e.g. Operating Systems)',
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary),
+                    filled: true,
+                    fillColor: BentoTheme.surfaceElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TactileButton(
+                  onPressed: () async {
+                    final code = codeCtrl.text.trim();
+                    final name = nameCtrl.text.trim();
+                    if (code.isEmpty || name.isEmpty) return;
+                    final course = CourseItem(
+                      id: 'course_${code.toLowerCase()}',
+                      name: name,
+                      code: code,
+                      colorHex: '#38BDF8',
+                      requiredAttendancePct: requiredPct,
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    );
+                    await TaskOsRepository.instance.saveCourse(course);
+                    if (mounted) Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.accent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Save Course',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAddSlotSheet() {
+    final roomCtrl = TextEditingController();
+    String? selectedCourse = TaskOsRepository.instance.activeCourses.isNotEmpty
+        ? TaskOsRepository.instance.activeCourses.first.code
+        : 'CS301';
+
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final courses = TaskOsRepository.instance.activeCourses;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: BentoTheme.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Add Timetable Slot',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (courses.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    value: selectedCourse,
+                    dropdownColor: BentoTheme.surface,
+                    style: TextStyle(color: BentoTheme.textPrimary),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: BentoTheme.surfaceElevated,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: courses.map((c) {
+                      return DropdownMenuItem(
+                        value: c.code,
+                        child: Text('${c.code} · ${c.name}'),
+                      );
+                    }).toList(),
+                    onChanged: (val) =>
+                        setSheetState(() => selectedCourse = val),
+                  ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: roomCtrl,
+                  style: TextStyle(color: BentoTheme.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Room / Lab (e.g. C-204)',
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary),
+                    filled: true,
+                    fillColor: BentoTheme.surfaceElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TactileButton(
+                  onPressed: () async {
+                    if (selectedCourse == null) return;
+                    final slot = TimetableSlotItem(
+                      id: 'slot_${DateTime.now().millisecondsSinceEpoch}',
+                      courseId: selectedCourse!,
+                      dayOfWeek: _selectedDayOfWeek,
+                      startMinutes: 540, // 09:00
+                      endMinutes: 600, // 10:00
+                      room: roomCtrl.text.trim().isNotEmpty
+                          ? roomCtrl.text.trim()
+                          : null,
+                    );
+                    await TaskOsRepository.instance.saveTimetableSlot(slot);
+                    if (mounted) Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.accent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Save Slot',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAddExamSheet() {
+    final titleCtrl = TextEditingController();
+    String selectedCourse = TaskOsRepository.instance.activeCourses.isNotEmpty
+        ? TaskOsRepository.instance.activeCourses.first.code
+        : 'CS301';
+
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: BentoTheme.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Add Upcoming Exam',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: titleCtrl,
+                  style: TextStyle(color: BentoTheme.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Exam Title (e.g. Midterm 1)',
+                    hintStyle: TextStyle(color: BentoTheme.textSecondary),
+                    filled: true,
+                    fillColor: BentoTheme.surfaceElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TactileButton(
+                  onPressed: () async {
+                    final title = titleCtrl.text.trim();
+                    if (title.isEmpty) return;
+                    final exam = ExamItem(
+                      id: 'exam_${DateTime.now().millisecondsSinceEpoch}',
+                      courseId: selectedCourse,
+                      title: title,
+                      examDate: DateTime.now().add(const Duration(days: 14)),
+                      topics: const [
+                        ExamTopicItem(id: 'tp1', title: 'Chapter 1 & 2', confidence: 1),
+                        ExamTopicItem(id: 'tp2', title: 'Chapter 3 & 4', confidence: 0),
+                      ],
+                    );
+                    await TaskOsRepository.instance.saveExam(exam);
+                    if (mounted) Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.accent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Save Exam',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _markAttendance(String courseId, String attendance,
+      {String status = 'scheduled'}) async {
+    HapticFeedback.lightImpact();
+    final todayIso = DateTime.now().toIso8601String().substring(0, 10);
+    await TaskOsRepository.instance.markAttendance(
+      slotId: 'slot_$courseId',
+      courseId: courseId,
+      dateIso: todayIso,
+      attendance: attendance,
+      status: status,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Logged $attendance for $courseId'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _generateRevisionSchedule(ExamItem exam) {
+    HapticFeedback.lightImpact();
+    final blocks = SmartSchedulerEngine.generateExamRevisionSchedule(
+      exam: exam,
+      now: DateTime.now(),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Scheduled ${blocks.length} spaced revision blocks for ${exam.title}'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
 
   Widget _buildEmptyState({
     required String title,
@@ -626,7 +1405,8 @@ class _AcademicHubViewState extends State<AcademicHubView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(LucideIcons.folderOpen, size: 40, color: BentoTheme.textMuted),
+            Icon(LucideIcons.folderOpen,
+                size: 40, color: BentoTheme.textSecondary),
             const SizedBox(height: 12),
             Text(
               title,
@@ -646,7 +1426,8 @@ class _AcademicHubViewState extends State<AcademicHubView> {
             TactileButton(
               onPressed: onAction,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: BentoTheme.accent,
                   borderRadius: BorderRadius.circular(10),
@@ -665,83 +1446,6 @@ class _AcademicHubViewState extends State<AcademicHubView> {
         ),
       ),
     );
-  }
-
-  void _markAttendance(String courseId, String status) async {
-    HapticFeedback.lightImpact();
-    final todayIso = DateTime.now().toIso8601String().substring(0, 10);
-    final log = ClassSessionLog(
-      id: 'session_${DateTime.now().millisecondsSinceEpoch}',
-      slotId: 'slot_$courseId',
-      courseId: courseId,
-      dateIso: todayIso,
-      attendance: status,
-    );
-    await TaskOsRepository.instance.logClassSession(log);
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Logged $status for $courseId'),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _generateRevisionSchedule(ExamItem exam) {
-    HapticFeedback.lightImpact();
-    final blocks = SmartSchedulerEngine.generateExamRevisionSchedule(
-      exam: exam,
-      now: DateTime.now(),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Scheduled ${blocks.length} spaced revision blocks for ${exam.title}'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _addSampleCourse() async {
-    final course = CourseItem(
-      id: 'course_dbms',
-      name: 'Database Management Systems',
-      code: 'DBMS',
-      colorHex: '#3B82F6',
-      credits: 4.0,
-      requiredAttendancePct: 0.75,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    await TaskOsRepository.instance.saveCourse(course);
-  }
-
-  void _addSampleTimetableSlot() async {
-    final slot = const TimetableSlotItem(
-      id: 'slot_sample_1',
-      courseId: 'DBMS',
-      dayOfWeek: 1, // Mon
-      startMinutes: 540, // 09:00
-      endMinutes: 600, // 10:00
-      room: 'Lab 3',
-    );
-    await TaskOsRepository.instance.saveTimetableSlot(slot);
-    setState(() {});
-  }
-
-  void _addSampleExam() async {
-    final exam = ExamItem(
-      id: 'exam_sample_1',
-      courseId: 'DBMS',
-      title: 'DBMS End-Semester Exam',
-      examDate: DateTime.now().add(const Duration(days: 12)),
-      topics: const [
-        ExamTopicItem(id: 't1', title: 'B+ Trees & Indexing', confidence: 1),
-        ExamTopicItem(id: 't2', title: 'ACID & Concurrency Control', confidence: 0),
-        ExamTopicItem(id: 't3', title: 'Relational Algebra & Normalization', confidence: 2),
-      ],
-    );
-    await TaskOsRepository.instance.saveExam(exam);
   }
 
   String _formatMinutes(int min) {

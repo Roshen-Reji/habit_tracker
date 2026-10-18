@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
-/// Offline-first repository for Tasks OS backed by Hive boxes
-class TaskOsRepository {
+/// Offline-first reactive repository for Tasks OS backed by Hive boxes.
+/// Extends [ChangeNotifier] and maintains [revision] for immediate reactivity.
+class TaskOsRepository extends ChangeNotifier {
   static final TaskOsRepository instance = TaskOsRepository._();
   TaskOsRepository._();
 
@@ -13,6 +15,8 @@ class TaskOsRepository {
 
   Box? _box;
   Box? _syncBox;
+
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
   final ValueNotifier<List<TaskItem>> tasksNotifier = ValueNotifier([]);
   final ValueNotifier<List<CourseItem>> coursesNotifier = ValueNotifier([]);
@@ -23,11 +27,18 @@ class TaskOsRepository {
   final ValueNotifier<List<ExamItem>> examsNotifier = ValueNotifier([]);
   final ValueNotifier<List<ForgivingHabitItem>> habitsNotifier =
       ValueNotifier([]);
+  final ValueNotifier<List<FocusSessionLog>> focusLogsNotifier =
+      ValueNotifier([]);
   final ValueNotifier<SchedulingRules> rulesNotifier =
       ValueNotifier(const SchedulingRules());
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
+
+  void _notifyMutation() {
+    revision.value++;
+    notifyListeners();
+  }
 
   Future<void> init({Box? overrideBox, Box? overrideSyncBox}) async {
     if (_isInitialized && overrideBox == null) return;
@@ -50,6 +61,7 @@ class TaskOsRepository {
 
     _loadFromBox();
     _isInitialized = true;
+    _notifyMutation();
   }
 
   void _loadFromBox() {
@@ -115,6 +127,16 @@ class TaskOsRepository {
     }
     habitsNotifier.value = habits;
 
+    // Load Focus Session Logs
+    final rawFocus = _box!.get('focus_logs', defaultValue: <dynamic>[]);
+    final List<FocusSessionLog> focusLogs = [];
+    if (rawFocus is List) {
+      for (var item in rawFocus) {
+        if (item is Map) focusLogs.add(FocusSessionLog.fromMap(item));
+      }
+    }
+    focusLogsNotifier.value = focusLogs;
+
     // Load Rules
     final rawRules = _box!.get('scheduling_rules');
     if (rawRules is Map) {
@@ -129,7 +151,7 @@ class TaskOsRepository {
     _syncBox!.put(logId, {
       'entityType': entityType,
       'entityId': entityId,
-      'action': action, // create, update, delete
+      'action': action,
       'timestamp': DateTime.now().toIso8601String(),
       'payload': payload,
     });
@@ -156,6 +178,52 @@ class TaskOsRepository {
 
     tasksNotifier.value = current;
     await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
+  }
+
+  Future<void> completeTask(String taskId, DateTime now) async {
+    final current = List<TaskItem>.from(tasksNotifier.value);
+    final index = current.indexWhere((t) => t.id == taskId);
+    if (index == -1) return;
+
+    final task = current[index];
+    if (task.status == TaskStatus.done) return;
+
+    current[index] = task.copyWith(
+      status: TaskStatus.done,
+      completedAt: now,
+      updatedAt: now,
+    );
+    _logSyncOp('task', taskId, 'complete', current[index].toMap());
+
+    // XP Award: +15 XP for P1/P2, +10 XP for P3/P4
+    try {
+      final xp = (task.priority <= TaskPriority.high) ? 15 : 10;
+      GlobalXPService.addXP(xp);
+    } catch (_) {}
+
+    tasksNotifier.value = current;
+    await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
+  }
+
+  Future<void> uncompleteTask(String taskId) async {
+    final current = List<TaskItem>.from(tasksNotifier.value);
+    final index = current.indexWhere((t) => t.id == taskId);
+    if (index == -1) return;
+
+    final task = current[index];
+    final now = DateTime.now();
+    current[index] = task.copyWith(
+      status: TaskStatus.todo,
+      completedAt: null,
+      updatedAt: now,
+    );
+    _logSyncOp('task', taskId, 'uncomplete', current[index].toMap());
+
+    tasksNotifier.value = current;
+    await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> deleteTask(String taskId, {bool permanent = false}) async {
@@ -176,6 +244,7 @@ class TaskOsRepository {
 
     tasksNotifier.value = current;
     await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> restoreTask(String taskId) async {
@@ -191,6 +260,7 @@ class TaskOsRepository {
 
     tasksNotifier.value = current;
     await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> toggleTaskDone(String taskId, DateTime now) async {
@@ -199,9 +269,9 @@ class TaskOsRepository {
     if (index == -1) return;
 
     final task = current[index];
-    final newStatus =
-        task.status == TaskStatus.done ? TaskStatus.todo : TaskStatus.done;
-    final completedAt = newStatus == TaskStatus.done ? now : null;
+    final isDone = task.status == TaskStatus.done;
+    final newStatus = isDone ? TaskStatus.todo : TaskStatus.done;
+    final completedAt = isDone ? null : now;
 
     current[index] = task.copyWith(
       status: newStatus,
@@ -210,8 +280,47 @@ class TaskOsRepository {
     );
     _logSyncOp('task', taskId, 'status_change', current[index].toMap());
 
+    // XP Award on marking done
+    if (!isDone) {
+      try {
+        final xp = (task.priority <= TaskPriority.high) ? 15 : 10;
+        GlobalXPService.addXP(xp);
+      } catch (_) {}
+    }
+
     tasksNotifier.value = current;
     await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
+  }
+
+  Future<void> bulkUpdateStatus(
+      List<String> taskIds, String newStatus, DateTime now) async {
+    if (taskIds.isEmpty) return;
+    final current = List<TaskItem>.from(tasksNotifier.value);
+    final idsSet = taskIds.toSet();
+
+    for (int i = 0; i < current.length; i++) {
+      if (idsSet.contains(current[i].id)) {
+        final wasDone = current[i].status == TaskStatus.done;
+        final willBeDone = newStatus == TaskStatus.done;
+        current[i] = current[i].copyWith(
+          status: newStatus,
+          completedAt: willBeDone ? now : null,
+          updatedAt: now,
+        );
+        if (!wasDone && willBeDone) {
+          try {
+            final xp = (current[i].priority <= TaskPriority.high) ? 15 : 10;
+            GlobalXPService.addXP(xp);
+          } catch (_) {}
+        }
+        _logSyncOp('task', current[i].id, 'bulk_status', current[i].toMap());
+      }
+    }
+
+    tasksNotifier.value = current;
+    await _box?.put('tasks', current.map((t) => t.toMap()).toList());
+    _notifyMutation();
   }
 
   /// Fast local search (< 150ms) across title, notes, tags, and course code
@@ -241,7 +350,8 @@ class TaskOsRepository {
 
   CourseItem? getCourseById(String courseId) {
     try {
-      return activeCourses.firstWhere((c) => c.id == courseId || c.code == courseId);
+      return activeCourses
+          .firstWhere((c) => c.id == courseId || c.code == courseId);
     } catch (_) {
       return null;
     }
@@ -262,6 +372,7 @@ class TaskOsRepository {
 
     coursesNotifier.value = current;
     await _box?.put('courses', current.map((c) => c.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> deleteCourse(String courseId) async {
@@ -289,6 +400,7 @@ class TaskOsRepository {
 
     coursesNotifier.value = current;
     await _box?.put('courses', current.map((c) => c.toMap()).toList());
+    _notifyMutation();
   }
 
   // ================= TIMETABLE & ATTENDANCE =================
@@ -308,6 +420,7 @@ class TaskOsRepository {
 
     timetableNotifier.value = current;
     await _box?.put('timetable_slots', current.map((s) => s.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> logClassSession(ClassSessionLog log) async {
@@ -323,6 +436,27 @@ class TaskOsRepository {
     _logSyncOp('session_log', log.id, 'save', log.toMap());
     sessionLogsNotifier.value = current;
     await _box?.put('session_logs', current.map((s) => s.toMap()).toList());
+    _notifyMutation();
+  }
+
+  Future<void> markAttendance({
+    required String slotId,
+    required String courseId,
+    required String dateIso,
+    required String attendance, // 'present', 'absent', 'unmarked'
+    String status = 'scheduled', // 'scheduled', 'cancelled', 'extra'
+    String? notes,
+  }) async {
+    final log = ClassSessionLog(
+      id: 'session_${slotId}_$dateIso',
+      slotId: slotId,
+      courseId: courseId,
+      dateIso: dateIso,
+      status: status,
+      attendance: attendance,
+      notes: notes,
+    );
+    await logClassSession(log);
   }
 
   // ================= EXAMS CRUD =================
@@ -343,6 +477,53 @@ class TaskOsRepository {
 
     examsNotifier.value = current;
     await _box?.put('exams', current.map((e) => e.toMap()).toList());
+    _notifyMutation();
+  }
+
+  Future<void> updateExamTopicConfidence(
+      String examId, String topicId, int newConfidence) async {
+    final current = List<ExamItem>.from(examsNotifier.value);
+    final examIndex = current.indexWhere((e) => e.id == examId);
+    if (examIndex == -1) return;
+
+    final exam = current[examIndex];
+    final updatedTopics = exam.topics.map((t) {
+      if (t.id == topicId) {
+        final now = DateTime.now();
+        // Dynamic spaced repetition intervals based on confidence
+        final nextDays = (newConfidence <= 1)
+            ? 1
+            : (newConfidence == 2 ? 3 : 7);
+        return ExamTopicItem(
+          id: t.id,
+          title: t.title,
+          confidence: newConfidence,
+          lastStudiedAt: now,
+          nextReviewAt: now.add(Duration(days: nextDays)),
+        );
+      }
+      return t;
+    }).toList();
+
+    current[examIndex] = ExamItem(
+      id: exam.id,
+      courseId: exam.courseId,
+      title: exam.title,
+      examDate: exam.examDate,
+      venue: exam.venue,
+      weightage: exam.weightage,
+      topics: updatedTopics,
+      deletedAt: exam.deletedAt,
+    );
+
+    _logSyncOp('exam', examId, 'update_topic_confidence', {
+      'topicId': topicId,
+      'confidence': newConfidence,
+    });
+
+    examsNotifier.value = current;
+    await _box?.put('exams', current.map((e) => e.toMap()).toList());
+    _notifyMutation();
   }
 
   // ================= HABITS CRUD =================
@@ -363,6 +544,7 @@ class TaskOsRepository {
 
     habitsNotifier.value = current;
     await _box?.put('habits', current.map((h) => h.toMap()).toList());
+    _notifyMutation();
   }
 
   Future<void> toggleHabitDay(
@@ -375,6 +557,7 @@ class TaskOsRepository {
     final completed = List<String>.from(habit.completedDatesIso);
     final frozen = List<String>.from(habit.frozenDatesIso);
     int freezes = habit.freezesLeft;
+    bool awardedXp = false;
 
     if (isFreeze) {
       if (frozen.contains(dateIso)) {
@@ -391,6 +574,7 @@ class TaskOsRepository {
       } else {
         frozen.remove(dateIso);
         completed.add(dateIso);
+        awardedXp = true;
       }
     }
 
@@ -401,16 +585,154 @@ class TaskOsRepository {
     );
     current[index] = updated;
 
+    if (awardedXp) {
+      try {
+        GlobalXPService.addXP(10);
+      } catch (_) {}
+    }
+
     _logSyncOp('habit', habitId, 'toggle_day', updated.toMap());
     habitsNotifier.value = current;
     await _box?.put('habits', current.map((h) => h.toMap()).toList());
+    _notifyMutation();
   }
 
-  // ================= SCHEDULING RULES =================
+  Future<void> toggleHabitToday(String habitId) async {
+    final now = DateTime.now();
+    final dateIso =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    await toggleHabitDay(habitId, dateIso, false);
+  }
+
+  Future<void> useHabitFreeze(String habitId, String dateIso) async {
+    await toggleHabitDay(habitId, dateIso, true);
+  }
+
+  // ================= SCHEDULING RULES & PLANS =================
 
   Future<void> saveSchedulingRules(SchedulingRules rules) async {
     rulesNotifier.value = rules;
     await _box?.put('scheduling_rules', rules.toMap());
     _logSyncOp('rules', 'global', 'update', rules.toMap());
+    _notifyMutation();
+  }
+
+  Future<void> saveRules(SchedulingRules rules) => saveSchedulingRules(rules);
+
+  Future<void> acceptPlanProposal(PlanProposalItem plan) async {
+    _logSyncOp('plan', plan.id, 'accept', plan.toMap());
+    _notifyMutation();
+  }
+
+  // ================= FOCUS SESSIONS CRUD =================
+
+  List<FocusSessionLog> get focusLogs => focusLogsNotifier.value;
+
+  Future<void> logFocusSession(FocusSessionLog log) async {
+    final current = List<FocusSessionLog>.from(focusLogsNotifier.value);
+    current.add(log);
+    focusLogsNotifier.value = current;
+    await _box?.put('focus_logs', current.map((l) => l.toMap()).toList());
+
+    // Award +20 XP on completed focus session
+    try {
+      GlobalXPService.addXP(20);
+    } catch (_) {}
+
+    // Update parent task actualMin if attached
+    if (log.taskId != null) {
+      final taskList = List<TaskItem>.from(tasksNotifier.value);
+      final tIndex = taskList.indexWhere((t) => t.id == log.taskId);
+      if (tIndex != -1) {
+        final existingTask = taskList[tIndex];
+        taskList[tIndex] = existingTask.copyWith(
+          actualMin: existingTask.actualMin + log.actualMin,
+          updatedAt: DateTime.now(),
+        );
+        tasksNotifier.value = taskList;
+        await _box?.put('tasks', taskList.map((t) => t.toMap()).toList());
+      }
+    }
+
+    _logSyncOp('focus_log', log.id, 'create', log.toMap());
+    _notifyMutation();
+  }
+
+  // ================= PLACEHOLDER PURGE & CLEAN SLATE =================
+
+  /// Discontinued: Auto-seeding placeholder tasks is permanently disabled.
+  Future<void> seedIfEmpty() async {
+    return;
+  }
+
+  /// Purges all pre-seeded dummy placeholder data (tasks, habits, courses, exams)
+  /// that were automatically injected into the database.
+  Future<void> purgePreseededPlaceholders() async {
+    const seedTaskIds = {'task_dbms_lab', 'task_ieee_pr', 'task_read_clean_code'};
+    const seedCourseIds = {'course_dbms', 'course_os'};
+    const seedHabitIds = {'habit_leetcode', 'habit_sys_design'};
+    const seedExamIds = {'exam_dbms_mid', 'exam_sample_1'};
+
+    bool changed = false;
+
+    // Purge tasks
+    final currentTasks = List<TaskItem>.from(tasksNotifier.value);
+    final filteredTasks =
+        currentTasks.where((t) => !seedTaskIds.contains(t.id)).toList();
+    if (filteredTasks.length != currentTasks.length) {
+      tasksNotifier.value = filteredTasks;
+      await _box?.put('tasks', filteredTasks.map((t) => t.toMap()).toList());
+      changed = true;
+    }
+
+    // Purge courses
+    final currentCourses = List<CourseItem>.from(coursesNotifier.value);
+    final filteredCourses =
+        currentCourses.where((c) => !seedCourseIds.contains(c.id)).toList();
+    if (filteredCourses.length != currentCourses.length) {
+      coursesNotifier.value = filteredCourses;
+      await _box?.put(
+          'courses', filteredCourses.map((c) => c.toMap()).toList());
+      changed = true;
+    }
+
+    // Purge habits
+    final currentHabits = List<ForgivingHabitItem>.from(habitsNotifier.value);
+    final filteredHabits =
+        currentHabits.where((h) => !seedHabitIds.contains(h.id)).toList();
+    if (filteredHabits.length != currentHabits.length) {
+      habitsNotifier.value = filteredHabits;
+      await _box?.put('habits', filteredHabits.map((h) => h.toMap()).toList());
+      changed = true;
+    }
+
+    // Purge exams
+    final currentExams = List<ExamItem>.from(examsNotifier.value);
+    final filteredExams =
+        currentExams.where((e) => !seedExamIds.contains(e.id)).toList();
+    if (filteredExams.length != currentExams.length) {
+      examsNotifier.value = filteredExams;
+      await _box?.put('exams', filteredExams.map((e) => e.toMap()).toList());
+      changed = true;
+    }
+
+    if (changed) {
+      _notifyMutation();
+    }
+  }
+
+  /// Completely clears all tasks and user data for a pristine clean slate.
+  Future<void> clearAllData() async {
+    tasksNotifier.value = [];
+    coursesNotifier.value = [];
+    timetableNotifier.value = [];
+    sessionLogsNotifier.value = [];
+    examsNotifier.value = [];
+    habitsNotifier.value = [];
+    focusLogsNotifier.value = [];
+
+    await _box?.clear();
+    await _syncBox?.clear();
+    _notifyMutation();
   }
 }

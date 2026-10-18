@@ -1,21 +1,26 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/widgets/tactile_button.dart';
-import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
+import 'package:habit_tracker/core/motion/press_scale.dart';
+import 'package:habit_tracker/core/motion/spring_sheet.dart';
+import 'package:habit_tracker/core/utils/page_transitions.dart';
+import 'package:habit_tracker/features/tasks/widgets/task_action_pill.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/smart_scheduler_engine.dart';
 import 'package:habit_tracker/features/tasks/engine/task_urgency_engine.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 import 'package:habit_tracker/features/tasks/task_analytics_page.dart';
 import 'package:habit_tracker/features/tasks/widgets/academic_hub_view.dart';
+import 'package:habit_tracker/features/tasks/widgets/animated_task_os_tile.dart';
 import 'package:habit_tracker/features/tasks/widgets/focus_timer_sheet.dart';
 import 'package:habit_tracker/features/tasks/widgets/quick_add_nl_bar.dart';
+import 'package:habit_tracker/features/tasks/widgets/sliding_workspace_pill_bar.dart';
 import 'package:habit_tracker/features/tasks/widgets/smart_plan_banner.dart';
 import 'package:habit_tracker/features/tasks/widgets/task_detail_sheet.dart';
+import 'package:habit_tracker/features/tasks/widgets/wakeup_detail_sheet.dart';
 import 'package:habit_tracker/features/tasks/widgets/weekly_review_shutdown_sheet.dart';
 
 class TasksPage extends StatefulWidget {
@@ -25,25 +30,27 @@ class TasksPage extends StatefulWidget {
   State<TasksPage> createState() => _TasksPageState();
 }
 
-class _TasksPageState extends State<TasksPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _TasksPageState extends State<TasksPage> {
+  int _selectedWorkspace = 0; // 0: Today, 1: Upcoming, 2: Inbox, 3: Academic, 4: Board
+  late final PageController _pageController;
+
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _isFiltering = false;
   String _searchQuery = '';
   String _selectedFilter = 'all'; // 'all', 'p1', 'p2', 'overdue'
 
-  bool _isTimelineMode = false; // VIEW-6: List vs Timeline toggle
-  bool _dismissedHealthBanner = false; // REM-9
+  bool _isTimelineMode = false;
   PlanProposalItem? _currentDayPlan;
 
   final Set<String> _selectedInboxTaskIds = {};
   bool _isBulkSelecting = false;
+  int _selectedUpcomingDayOffset = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _pageController = PageController(initialPage: _selectedWorkspace);
     _initRepository();
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.trim());
@@ -54,6 +61,7 @@ class _TasksPageState extends State<TasksPage>
     if (!TaskOsRepository.instance.isInitialized) {
       await TaskOsRepository.instance.init();
     }
+    await TaskOsRepository.instance.purgePreseededPlaceholders();
     _generatePlan();
     if (mounted) setState(() {});
   }
@@ -77,27 +85,32 @@ class _TasksPageState extends State<TasksPage>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _pageController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  void _onWorkspaceChanged(int index) {
+    setState(() => _selectedWorkspace = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 280),
+      curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+    );
+  }
+
   void _openTaskDetail(TaskItem task) {
     HapticFeedback.selectionClick();
-    showModalBottomSheet(
+    SpringSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => TaskDetailSheet(task: task),
     );
   }
 
   void _openFocusTimer(TaskItem task, {bool startJust5Min = false}) {
     HapticFeedback.lightImpact();
-    showModalBottomSheet(
+    SpringSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => FocusTimerSheet(
         task: task,
         startJust5Min: startJust5Min,
@@ -105,13 +118,27 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
+  void _openWakeupLog() {
+    HapticFeedback.selectionClick();
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => const WakeupDetailSheet(),
+    );
+  }
+
   void _openShutdownRitual() {
     HapticFeedback.lightImpact();
-    showModalBottomSheet(
+    SpringSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => const WeeklyReviewShutdownSheet(isWeeklyReview: false),
+    );
+  }
+
+  void _openWeeklyReview() {
+    HapticFeedback.lightImpact();
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => const WeeklyReviewShutdownSheet(isWeeklyReview: true),
     );
   }
 
@@ -144,6 +171,176 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
+  void _confirmClearAllData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BentoTheme.surface,
+        title: Text('Clear All Tasks & Data?',
+            style: TextStyle(color: BentoTheme.textPrimary)),
+        content: Text(
+          'This will remove all tasks, courses, habits, and reset the schedule to a clean state.',
+          style: TextStyle(color: BentoTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: BentoTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear All', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await TaskOsRepository.instance.clearAllData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All tasks and data cleared'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showAddHabitSheet() {
+    final nameController = TextEditingController();
+    int targetDays = 5;
+
+    SpringSheet.show(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: BentoTheme.divider),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: BentoTheme.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Create Forgiving Habit',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Habit name (e.g. Read 20m, DSA Problem)',
+                    hintStyle: TextStyle(
+                      color: BentoTheme.textSecondary.withValues(alpha: 0.6),
+                    ),
+                    filled: true,
+                    fillColor: BentoTheme.surfaceElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Target: $targetDays days / week',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(LucideIcons.minusCircle, size: 20),
+                          color: BentoTheme.accent,
+                          onPressed: targetDays > 1
+                              ? () => setSheetState(() => targetDays--)
+                              : null,
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.plusCircle, size: 20),
+                          color: BentoTheme.accent,
+                          onPressed: targetDays < 7
+                              ? () => setSheetState(() => targetDays++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TactileButton(
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+                    final habit = ForgivingHabitItem(
+                      id: 'habit_${DateTime.now().millisecondsSinceEpoch}',
+                      name: name,
+                      targetPerWeek: targetDays,
+                      freezesLeft: 2,
+                    );
+                    await TaskOsRepository.instance.saveHabit(habit);
+                    if (mounted) Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.accent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Add Habit',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   List<TaskItem> _filterTasks(List<TaskItem> list) {
     var result = list;
     if (_searchQuery.isNotEmpty) {
@@ -166,206 +363,361 @@ class _TasksPageState extends State<TasksPage>
 
   @override
   Widget build(BuildContext context) {
-    final rules = TaskOsRepository.instance.rulesNotifier.value;
+    return ListenableBuilder(
+      listenable: TaskOsRepository.instance,
+      builder: (context, _) {
+        final allTasks = TaskOsRepository.instance.tasksNotifier.value;
+        final filteredTasks = _filterTasks(allTasks);
+        final rules = TaskOsRepository.instance.rulesNotifier.value;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: TextStyle(color: BentoTheme.textPrimary, fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'Search tasks, tags, courses...',
-                  hintStyle: TextStyle(color: BentoTheme.textSecondary),
-                  border: InputBorder.none,
+        final inboxCount = allTasks
+            .where((t) => !t.isDeleted && t.status == TaskStatus.inbox)
+            .length;
+
+        final completedCount =
+            allTasks.where((t) => !t.isDeleted && t.status == TaskStatus.done).length;
+
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            toolbarHeight: 48,
+            centerTitle: false,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            titleSpacing: 16,
+            title: Row(
+              children: [
+                Text(
+                  'Tasks',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              )
-            : Row(
-                children: [
-                  Text(
-                    'TASKS',
-                    style: TextStyle(
-                      color: BentoTheme.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.accent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'AI: ${rules.autonomyLevel.toUpperCase()}',
-                      style: TextStyle(
-                        color: BentoTheme.accent,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isSearching ? LucideIcons.x : LucideIcons.search,
-              color: BentoTheme.textPrimary,
-              size: 20,
-            ),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _searchController.clear();
-                  _isSearching = false;
-                } else {
-                  _isSearching = true;
-                }
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(LucideIcons.slidersHorizontal, size: 19),
-            color: BentoTheme.textSecondary,
-            tooltip: 'Autonomy Dial',
-            onPressed: _cycleAutonomy,
-          ),
-          IconButton(
-            icon: const Icon(LucideIcons.moon, size: 19),
-            color: BentoTheme.textSecondary,
-            tooltip: 'Shutdown Ritual',
-            onPressed: _openShutdownRitual,
-          ),
-          IconButton(
-            icon: Icon(LucideIcons.barChart2, color: BentoTheme.accent),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TaskAnalyticsPage()),
-              );
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: BentoTheme.accent,
-          labelColor: BentoTheme.accent,
-          unselectedLabelColor: BentoTheme.textSecondary,
-          indicatorWeight: 3,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          tabs: const [
-            Tab(text: "TODAY"),
-            Tab(text: "UPCOMING"),
-            Tab(text: "INBOX"),
-            Tab(text: "ACADEMIC"),
-            Tab(text: "BOARD"),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              // Reliability Health Check Banner (REM-9)
-              if (!_dismissedHealthBanner) ...[
+                const SizedBox(width: 8),
                 Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: BentoTheme.surfaceElevated,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: BentoTheme.accent.withValues(alpha: 0.3)),
+                    color: const Color(0xFF141414),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF262626)),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.bellRing,
-                          size: 14, color: BentoTheme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Background alarms verified: Reminders fire on exact time.',
-                          style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () =>
-                            setState(() => _dismissedHealthBanner = true),
-                        child: Icon(LucideIcons.x,
-                            size: 14, color: BentoTheme.textSecondary),
-                      ),
-                    ],
+                  child: Text(
+                    '✓ $completedCount',
+                    style: const TextStyle(
+                      color: Color(0xFF8E8E93),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
-              // Filter Chips Row
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    _buildFilterChip('all', 'All'),
-                    _buildFilterChip('p1', '⚡ Urgent (P1)'),
-                    _buildFilterChip('p2', '🔥 High (P2)'),
-                    _buildFilterChip('overdue', '⚠️ Overdue'),
+            ),
+            actions: [
+              // 1. Search Toggle (36x36 circular)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PressScale(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _isSearching = !_isSearching;
+                      if (!_isSearching) _searchController.clear();
+                    });
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _isSearching
+                          ? BentoTheme.accent.withValues(alpha: 0.15)
+                          : const Color(0xFF141414),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isSearching
+                            ? BentoTheme.accent
+                            : const Color(0xFF262626),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      _isSearching ? LucideIcons.x : Icons.search_rounded,
+                      color: _isSearching
+                          ? BentoTheme.accent
+                          : BentoTheme.textPrimary,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              // 2. Analytics Button (36x36 circular)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PressScale(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransitions.springSlideFade(
+                          const TaskAnalyticsPage()),
+                    );
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF262626)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.bar_chart_rounded,
+                      color: BentoTheme.textPrimary,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              // 3. More / Overflow Button (36x36 circular)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: PopupMenuButton<String>(
+                  offset: const Offset(0, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFF262626)),
+                  ),
+                  color: const Color(0xFF1A1A1A),
+                  icon: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF262626)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      color: BentoTheme.textPrimary,
+                      size: 18,
+                    ),
+                  ),
+                  padding: EdgeInsets.zero,
+                  onSelected: (val) {
+                    switch (val) {
+                      case 'filter':
+                        setState(() => _isFiltering = !_isFiltering);
+                        break;
+                      case 'wake':
+                        _openWakeupLog();
+                        break;
+                      case 'autonomy':
+                        _cycleAutonomy();
+                        break;
+                      case 'shutdown':
+                        _openShutdownRitual();
+                        break;
+                      case 'weekly':
+                        _openWeeklyReview();
+                        break;
+                      case 'clear_data':
+                        _confirmClearAllData();
+                        break;
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'filter',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.filter,
+                              size: 16,
+                              color: _isFiltering
+                                  ? BentoTheme.accent
+                                  : BentoTheme.textPrimary),
+                          const SizedBox(width: 10),
+                          Text(_isFiltering ? 'Hide Filter Bar' : 'Filter Tasks'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'wake',
+                      child: Row(
+                        children: [
+                          Icon(Icons.wb_sunny_outlined,
+                              size: 16, color: Colors.amber),
+                          SizedBox(width: 10),
+                          Text('Wake-Up Log'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'autonomy',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.slidersHorizontal,
+                              size: 16, color: BentoTheme.accent),
+                          const SizedBox(width: 10),
+                          Text('AI Autonomy: ${rules.autonomyLevel.toUpperCase()}'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'shutdown',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.moon,
+                              size: 16, color: Colors.white),
+                          SizedBox(width: 10),
+                          Text('End-of-Day Shutdown Ritual'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'weekly',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.calendarCheck,
+                              size: 16, color: Colors.white),
+                          SizedBox(width: 10),
+                          Text('Weekly Review'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(height: 1),
+                    PopupMenuItem(
+                      value: 'clear_data',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.trash2,
+                              size: 16, color: Colors.redAccent),
+                          const SizedBox(width: 10),
+                          const Text('Clear All Tasks & Data',
+                              style: TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // TabBarViews
-              Expanded(
-                child: ValueListenableBuilder<List<TaskItem>>(
-                  valueListenable: TaskOsRepository.instance.tasksNotifier,
-                  builder: (context, allTasks, _) {
-                    final filtered = _filterTasks(allTasks);
-
-                    return TabBarView(
-                      controller: _tabController,
+            ],
+          ),
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  // Collapsible Search & Filter Area (AnimatedSize)
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 240),
+                    curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildTodayView(filtered),
-                        _buildUpcomingView(filtered),
+                        if (_isSearching) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 4),
+                            child: TextField(
+                              controller: _searchController,
+                              autofocus: true,
+                              style: TextStyle(
+                                  color: BentoTheme.textPrimary, fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Search tasks, notes, #course, @tags...',
+                                hintStyle: TextStyle(
+                                  color: BentoTheme.textSecondary
+                                      .withValues(alpha: 0.6),
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: BentoTheme.surface,
+                                isDense: true,
+                                prefixIcon: Icon(LucideIcons.search,
+                                    size: 16, color: BentoTheme.textSecondary),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: BentoTheme.divider),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_isFiltering) ...[
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 4),
+                            child: Row(
+                              children: [
+                                _buildFilterChip('all', 'All Tasks'),
+                                _buildFilterChip('p1', '⚡ Urgent (P1)'),
+                                _buildFilterChip('p2', '🔥 High (P2)'),
+                                _buildFilterChip('overdue', '⚠️ Overdue'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+
+
+                  // Sliding Segmented Workspace Pill Bar
+                  SlidingWorkspacePillBar(
+                    selectedIndex: _selectedWorkspace,
+                    inboxBadgeCount: inboxCount,
+                    onWorkspaceSelected: _onWorkspaceChanged,
+                  ),
+
+                  // Synchronized Workspace PageView
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const BouncingScrollPhysics(),
+                      onPageChanged: (page) {
+                        setState(() => _selectedWorkspace = page);
+                      },
+                      children: [
+                        _buildTodayView(filteredTasks),
+                        _buildUpcomingView(filteredTasks),
                         _buildInboxView(allTasks),
                         const AcademicHubView(),
                         _buildBoardView(allTasks),
                       ],
-                    );
+                    ),
+                  ),
+
+                  // Space reserved for docked QuickAddNlBar
+                  const SizedBox(height: 16),
+                ],
+              ),
+
+              // Docked QuickAddNlBar at bottom with bottom clearance
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: MediaQuery.viewInsetsOf(context).bottom > 0
+                    ? (MediaQuery.viewInsetsOf(context).bottom + 4)
+                    : (kBottomNavigationBarHeight + 28),
+                child: QuickAddNlBar(
+                  onTaskAdded: () {
+                    _generatePlan();
+                    setState(() {});
                   },
                 ),
               ),
-              // Reserve bottom space for docked QuickAddNlBar
-              const SizedBox(height: 64),
             ],
           ),
-          // Docked QuickAddNlBar at bottom
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: QuickAddNlBar(
-              onTaskAdded: () {
-                _generatePlan();
-                setState(() {});
-              },
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -381,7 +733,7 @@ class _TasksPageState extends State<TasksPage>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isSelected
-              ? BentoTheme.accent.withValues(alpha: 0.15)
+              ? BentoTheme.accent.withValues(alpha: 0.18)
               : BentoTheme.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
@@ -400,123 +752,161 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
-  // ================= 1. TODAY VIEW (PLAN-1, PLAN-3..6, VIEW-6, HAB-1) =================
+  // ================= 1. TODAY VIEW =================
   Widget _buildTodayView(List<TaskItem> tasks) {
     final now = DateTime.now();
-    final openTasks = tasks.where((t) => !t.isDone && !t.isDeleted).toList();
+    final openTasks = tasks
+        .where((t) => !t.isDone && !t.isDeleted && t.status != TaskStatus.inbox)
+        .toList();
+
     final ranked = rankTasksByUrgency(openTasks, now);
     final nextUpTask = ranked.isNotEmpty ? ranked.first : null;
+    final otherTasks = ranked.length > 1 ? ranked.sublist(1) : <TaskItem>[];
 
-    final completedToday = tasks.where((t) => t.isDone && !t.isDeleted).toList();
+    final completedToday =
+        tasks.where((t) => t.isDone && !t.isDeleted).toList();
 
     return RefreshIndicator(
       onRefresh: () async {
         _generatePlan();
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 110),
         physics: const BouncingScrollPhysics(),
         children: [
-          // Forgiving Habits Strip (HAB-1, HAB-2)
-          _buildHabitsStrip(),
-          const SizedBox(height: 8),
-
-          // Pinned "Next Up" Hero Card (PLAN-1)
-          if (nextUpTask != null) ...[
-            _buildNextUpHeroCard(nextUpTask, now),
-            const SizedBox(height: 8),
-          ],
-
-          // AI Morning Plan Card (PLAN-3..6)
-          if (_currentDayPlan != null) ...[
-            SmartPlanBanner(
-              plan: _currentDayPlan!,
-              onPlanAccepted: () {
-                setState(() {});
-              },
-              onRebalance: () {
-                _generatePlan();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          // View-6: List vs Timeline Toggle Header
-          Row(
-            children: [
-              Text(
-                'TODAY’S SCHEDULE',
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() => _isTimelineMode = !_isTimelineMode);
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: BentoTheme.divider),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isTimelineMode
-                            ? LucideIcons.list
-                            : LucideIcons.clock,
-                        size: 12,
-                        color: BentoTheme.accent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _isTimelineMode ? 'List View' : 'Timeline (08-22)',
-                        style: TextStyle(
-                          color: BentoTheme.accent,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          // Forgiving Habits Horizontal Strip
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildHabitsStrip(),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
+          // Pinned "Next Up" Hero Card
+          if (nextUpTask != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildNextUpHeroCard(nextUpTask, now),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // AI Morning Plan Card
+          if (_currentDayPlan != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SmartPlanBanner(
+                plan: _currentDayPlan!,
+                onPlanAccepted: () => setState(() {}),
+                onRebalance: () => _generatePlan(),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // List vs Visual Timeline Toggle Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Text(
+                  'AGENDA',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _isTimelineMode = !_isTimelineMode);
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: BentoTheme.divider),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isTimelineMode
+                              ? LucideIcons.list
+                              : LucideIcons.clock,
+                          size: 12,
+                          color: BentoTheme.accent,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isTimelineMode ? 'List View' : 'Timeline (08–22)',
+                          style: TextStyle(
+                            color: BentoTheme.accent,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
 
           // Either Visual Timeline or Grouped List
           if (_isTimelineMode)
-            _buildVisualTimeline(now)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildVisualTimeline(now),
+            )
           else ...[
             if (openTasks.isEmpty)
-              _buildEmptyPlaceholder('No tasks due today. You’re all clear! 🎉')
-            else
-              for (var t in openTasks) ...[
-                _buildTaskTile(t),
+              _buildEmptyPlaceholder(
+                  'No open tasks scheduled for today. You’re clear! 🎉')
+            else ...[
+              for (var t in otherTasks) ...[
+                AnimatedTaskOsTile(
+                  task: t,
+                  course: TaskOsRepository.instance.getCourseById(t.courseId ?? ''),
+                  onTap: () => _openTaskDetail(t),
+                  onToggleDone: () =>
+                      TaskOsRepository.instance.toggleTaskDone(t.id, now),
+                  onDelete: () => TaskOsRepository.instance.deleteTask(t.id),
+                  onStartFocus: () => _openFocusTimer(t),
+                ),
               ],
+            ],
+
+            // Completed Section
             if (completedToday.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text(
-                'COMPLETED TODAY (${completedToday.length})',
-                style: TextStyle(
-                  color: BentoTheme.textSecondary,
-                  fontSize: 11,
-                  letterSpacing: 1.1,
-                  fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'COMPLETED TODAY (${completedToday.length})',
+                  style: TextStyle(
+                    color: BentoTheme.textSecondary,
+                    fontSize: 11,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               for (var ct in completedToday) ...[
-                _buildTaskTile(ct),
+                AnimatedTaskOsTile(
+                  task: ct,
+                  course: TaskOsRepository.instance.getCourseById(ct.courseId ?? ''),
+                  onTap: () => _openTaskDetail(ct),
+                  onToggleDone: () =>
+                      TaskOsRepository.instance.toggleTaskDone(ct.id, now),
+                  onDelete: () => TaskOsRepository.instance.deleteTask(ct.id),
+                ),
               ],
             ],
           ],
@@ -528,17 +918,40 @@ class _TasksPageState extends State<TasksPage>
   Widget _buildNextUpHeroCard(TaskItem task, DateTime now) {
     final breakdown = computeUrgencyBreakdown(task, now);
 
+    String dueStr = '';
+    if (task.dueAt != null) {
+      final diff = task.dueAt!.difference(now);
+      if (diff.isNegative) {
+        dueStr = 'Overdue';
+      } else if (diff.inHours < 1) {
+        dueStr = 'Due in ${diff.inMinutes}m';
+      } else if (diff.inHours < 24) {
+        dueStr = 'Due in ${diff.inHours}h';
+      } else {
+        dueStr = 'Due in ${diff.inDays}d';
+      }
+    }
+
+    final metaParts = <String>[
+      if (dueStr.isNotEmpty) dueStr,
+      if (task.courseId != null && task.courseId!.isNotEmpty) '#${task.courseId}',
+      if (task.estimateMin != null) '~${task.estimateMin}m',
+    ];
+    final metaText = metaParts.isNotEmpty
+        ? metaParts.join(' · ')
+        : (breakdown.explanation.isNotEmpty ? breakdown.explanation : 'High priority');
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.35)),
         boxShadow: [
           BoxShadow(
-            color: BentoTheme.accent.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: BentoTheme.accent.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -548,28 +961,28 @@ class _TasksPageState extends State<TasksPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
                   color: BentoTheme.accent,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
-                  'NEXT UP (PLAN-1)',
+                  '🔥 NEXT UP',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
               const Spacer(),
               Text(
-                'Urgency: ${breakdown.totalScore.toStringAsFixed(0)}/100',
-                style: TextStyle(
-                  color: BentoTheme.accent,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                'Urgency ${breakdown.totalScore.round()}/100',
+                style: const TextStyle(
+                  color: Color(0xFF8E8E93),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -577,83 +990,46 @@ class _TasksPageState extends State<TasksPage>
           const SizedBox(height: 8),
           Text(
             task.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: BentoTheme.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            breakdown.explanation,
-            style: TextStyle(
-              color: BentoTheme.textSecondary,
-              fontSize: 11.5,
+            metaText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF8E8E93),
+              fontSize: 12,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Row(
             children: [
-              // Just 5 Min button (FOC-5)
               Expanded(
-                child: TactileButton(
-                  onPressed: () => _openFocusTimer(task, startJust5Min: true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: BentoTheme.accent.withValues(alpha: 0.3)),
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.zap,
-                            size: 13, color: BentoTheme.accent),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Just 5 Min (FOC-5)',
-                          style: TextStyle(
-                            color: BentoTheme.accent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: TaskActionPill(
+                  label: '5m Start',
+                  icon: const Icon(LucideIcons.zap, size: 14),
+                  isPrimary: false,
+                  height: 36,
+                  horizontalPadding: 10,
+                  onTap: () => _openFocusTimer(task, startJust5Min: true),
                 ),
               ),
               const SizedBox(width: 8),
-              // Focus timer button (FOC-1)
               Expanded(
-                child: TactileButton(
-                  onPressed: () => _openFocusTimer(task),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.accent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.play, size: 13, color: Colors.black),
-                        SizedBox(width: 4),
-                        Text(
-                          '⏱ Focus',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: TaskActionPill(
+                  label: 'Focus',
+                  icon: const Icon(LucideIcons.timer, size: 14),
+                  isPrimary: true,
+                  height: 36,
+                  horizontalPadding: 10,
+                  onTap: () => _openFocusTimer(task),
                 ),
               ),
             ],
@@ -664,96 +1040,116 @@ class _TasksPageState extends State<TasksPage>
   }
 
   Widget _buildHabitsStrip() {
-    return ValueListenableBuilder<List<ForgivingHabitItem>>(
-      valueListenable: TaskOsRepository.instance.habitsNotifier,
-      builder: (context, habits, _) {
-        final activeHabits = habits.where((h) => h.deletedAt == null).toList();
-        if (activeHabits.isEmpty) return const SizedBox.shrink();
+    final habits = TaskOsRepository.instance.activeHabits;
+    final now = DateTime.now();
+    final todayIso =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-        final todayIso = DateTime.now().toIso8601String().substring(0, 10);
-
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              for (var h in activeHabits) ...[
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    TaskOsRepository.instance.toggleHabitDay(h.id, todayIso, false);
-                  },
-                  onLongPress: () {
-                    // Freeze action
-                    HapticFeedback.heavyImpact();
-                    TaskOsRepository.instance.toggleHabitDay(h.id, todayIso, true);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: h.isCompletedOn(todayIso)
-                          ? BentoTheme.accent.withValues(alpha: 0.15)
-                          : (h.isFrozenOn(todayIso)
-                              ? Colors.lightBlue.withValues(alpha: 0.15)
-                              : BentoTheme.surface),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: h.isCompletedOn(todayIso)
-                            ? BentoTheme.accent
-                            : (h.isFrozenOn(todayIso)
-                                ? Colors.lightBlue
-                                : BentoTheme.divider),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          h.isCompletedOn(todayIso)
-                              ? LucideIcons.check
-                              : (h.isFrozenOn(todayIso)
-                                  ? LucideIcons.snowflake
-                                  : LucideIcons.circle),
-                          size: 13,
-                          color: h.isCompletedOn(todayIso)
-                              ? BentoTheme.accent
-                              : (h.isFrozenOn(todayIso)
-                                  ? Colors.lightBlue
-                                  : BentoTheme.textSecondary),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          h.name,
-                          style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '❄️${h.freezesLeft}',
-                          style: TextStyle(
-                            color: BentoTheme.textSecondary,
-                            fontSize: 9.5,
-                          ),
-                        ),
-                      ],
-                    ),
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          for (var h in habits) ...[
+            PressScale(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                TaskOsRepository.instance.toggleHabitDay(h.id, todayIso, false);
+              },
+              onLongPress: () {
+                HapticFeedback.heavyImpact();
+                TaskOsRepository.instance.toggleHabitDay(h.id, todayIso, true);
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: h.isCompletedOn(todayIso)
+                      ? BentoTheme.accent.withValues(alpha: 0.16)
+                      : (h.isFrozenOn(todayIso)
+                          ? Colors.lightBlue.withValues(alpha: 0.16)
+                          : BentoTheme.surface),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: h.isCompletedOn(todayIso)
+                        ? BentoTheme.accent
+                        : (h.isFrozenOn(todayIso)
+                            ? Colors.lightBlue
+                            : BentoTheme.divider),
                   ),
                 ),
-              ],
-            ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      h.isCompletedOn(todayIso)
+                          ? LucideIcons.check
+                          : (h.isFrozenOn(todayIso)
+                              ? LucideIcons.snowflake
+                              : LucideIcons.circle),
+                      size: 12,
+                      color: h.isCompletedOn(todayIso)
+                          ? BentoTheme.accent
+                          : (h.isFrozenOn(todayIso)
+                              ? Colors.lightBlue
+                              : BentoTheme.textSecondary),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      h.name,
+                      style: TextStyle(
+                        color: BentoTheme.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '🔥${h.completedDatesIso.length}d',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          // Add Habit Button
+          PressScale(
+            onTap: _showAddHabitSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: BentoTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: BentoTheme.divider),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.plus, size: 12, color: BentoTheme.accent),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+ Habit',
+                    style: TextStyle(
+                      color: BentoTheme.accent,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
   Widget _buildVisualTimeline(DateTime now) {
-    // 08:00 to 22:00 timeline (VIEW-6)
     final slots = TaskOsRepository.instance.timetableSlots
         .where((s) => s.dayOfWeek == now.weekday)
         .toList();
@@ -780,8 +1176,8 @@ class _TasksPageState extends State<TasksPage>
                     child: Text(
                       '${hour.toString().padLeft(2, '0')}:00',
                       style: TextStyle(
-                        color: BentoTheme.textMuted,
-                        fontSize: 10,
+                        color: BentoTheme.textSecondary,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -794,7 +1190,7 @@ class _TasksPageState extends State<TasksPage>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: _renderTimelineHourEvent(hour, slots, blocks),
                     ),
                   ),
@@ -809,7 +1205,6 @@ class _TasksPageState extends State<TasksPage>
 
   Widget _renderTimelineHourEvent(int hour, List<TimetableSlotItem> slots,
       List<ScheduledBlockItem> blocks) {
-    // Check if slot falls in this hour
     for (var s in slots) {
       if ((s.startMinutes ~/ 60) == hour) {
         return Text(
@@ -838,128 +1233,11 @@ class _TasksPageState extends State<TasksPage>
 
     return Text(
       'Free slot',
-      style: TextStyle(color: BentoTheme.textMuted, fontSize: 10),
+      style: TextStyle(color: BentoTheme.textSecondary, fontSize: 10),
     );
   }
 
-  Widget _buildTaskTile(TaskItem task) {
-    return Dismissible(
-      key: ValueKey(task.id),
-      background: Container(
-        color: const Color(0xFF10B981),
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: const Icon(LucideIcons.check, color: Colors.white),
-      ),
-      secondaryBackground: Container(
-        color: Colors.redAccent,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(LucideIcons.trash2, color: Colors.white),
-      ),
-      onDismissed: (direction) {
-        if (direction == DismissDirection.startToEnd) {
-          TaskOsRepository.instance.toggleTaskDone(task.id, DateTime.now());
-        } else {
-          TaskOsRepository.instance.deleteTask(task.id);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: BentoTheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: BentoTheme.divider),
-        ),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                TaskOsRepository.instance.toggleTaskDone(task.id, DateTime.now());
-              },
-              child: Icon(
-                task.isDone ? LucideIcons.checkCircle2 : LucideIcons.circle,
-                size: 20,
-                color: task.isDone
-                    ? BentoTheme.accent
-                    : _priorityColor(task.priority),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openTaskDetail(task),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: TextStyle(
-                        color: task.isDone
-                            ? BentoTheme.textMuted
-                            : BentoTheme.textPrimary,
-                        decoration:
-                            task.isDone ? TextDecoration.lineThrough : null,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        if (task.courseId != null) ...[
-                          Text(
-                            '#${task.courseId}',
-                            style: TextStyle(
-                              color: BentoTheme.accent,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        if (task.estimateMin != null) ...[
-                          Text(
-                            '~${task.estimateMin}m',
-                            style: TextStyle(
-                              color: BentoTheme.textSecondary,
-                              fontSize: 10.5,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        if (task.dueAt != null)
-                          Text(
-                            task.dueAt!.difference(DateTime.now()).inHours <= 24
-                                ? 'Due today'
-                                : 'Due ${task.dueAt!.day}/${task.dueAt!.month}',
-                            style: TextStyle(
-                              color: task.isOverdue(DateTime.now())
-                                  ? Colors.redAccent
-                                  : BentoTheme.textSecondary,
-                              fontSize: 10.5,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(LucideIcons.play, size: 16),
-              color: BentoTheme.textSecondary,
-              onPressed: () => _openFocusTimer(task),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= 2. UPCOMING VIEW (PLAN-10 Heatmap) =================
+  // ================= 2. UPCOMING VIEW =================
   Widget _buildUpcomingView(List<TaskItem> tasks) {
     final now = DateTime.now();
     final timetable = TaskOsRepository.instance.timetableSlots;
@@ -972,130 +1250,193 @@ class _TasksPageState extends State<TasksPage>
       exams: exams,
     );
 
+    final selectedTargetDate =
+        now.add(Duration(days: _selectedUpcomingDayOffset));
+
+    final upcomingTasks = tasks.where((t) {
+      if (t.isDone || t.isDeleted) return false;
+      if (t.dueAt == null) return true;
+      return t.dueAt!.year == selectedTargetDate.year &&
+          t.dueAt!.month == selectedTargetDate.month &&
+          t.dueAt!.day == selectedTargetDate.day;
+    }).toList();
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 110),
+      physics: const BouncingScrollPhysics(),
       children: [
-        // Overload Warning Banner (PLAN-10)
+        // Overload Warning Banner
         if (workload.hasOverloadWarning &&
             workload.overloadWarningBanner != null) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              children: [
-                const Icon(LucideIcons.alertTriangle,
-                    size: 18, color: Colors.amber),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    workload.overloadWarningBanner!,
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.alertTriangle,
+                      size: 18, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      workload.overloadWarningBanner!,
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
         ],
 
-        // 7-day Workload Heatmap
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: BentoTheme.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '7-DAY WORKLOAD HEATMAP (PLAN-10)',
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+        // 7-day Workload Capacity Heatmap Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: BentoTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: BentoTheme.divider),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '7-DAY WORKLOAD HEATMAP',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (var day in workload.days) ...[
-                    Column(
-                      children: [
-                        Text(
-                          ['M', 'T', 'W', 'T', 'F', 'S', 'S'][day.date.weekday - 1],
-                          style: TextStyle(
-                            color: BentoTheme.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (int i = 0; i < workload.days.length; i++) ...[
+                      Builder(builder: (context) {
+                        final day = workload.days[i];
+                        final isSelected = _selectedUpcomingDayOffset == i;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedUpcomingDayOffset = i);
+                          },
+                          child: Column(
+                            children: [
+                              Text(
+                                [
+                                  'M',
+                                  'T',
+                                  'W',
+                                  'T',
+                                  'F',
+                                  'S',
+                                  'S'
+                                ][day.date.weekday - 1],
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? BentoTheme.accent
+                                      : BentoTheme.textSecondary,
+                                  fontSize: 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w900
+                                      : FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: _heatColor(day.status),
+                                  shape: BoxShape.circle,
+                                  border: isSelected
+                                      ? Border.all(color: Colors.white, width: 2)
+                                      : null,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${(day.totalMinutes / 60).toStringAsFixed(0)}h',
+                                  style: TextStyle(
+                                    color: day.status == 'overloaded'
+                                        ? Colors.white
+                                        : Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: _heatColor(day.status),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${(day.totalMinutes / 60).toStringAsFixed(0)}h',
-                            style: TextStyle(
-                              color: day.status == 'overloaded'
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                        );
+                      }),
+                    ],
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          'UPCOMING TASKS',
-          style: TextStyle(
-            color: BentoTheme.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.1,
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'TASKS FOR ${DateFormat('EEEE, d MMM').format(selectedTargetDate).toUpperCase()}',
+            style: TextStyle(
+              color: BentoTheme.textPrimary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        for (var t in tasks.where((t) => !t.isDone && !t.isDeleted)) ...[
-          _buildTaskTile(t),
-        ],
+        const SizedBox(height: 8),
+
+        if (upcomingTasks.isEmpty)
+          _buildEmptyPlaceholder('No scheduled tasks for this day.')
+        else
+          for (var t in upcomingTasks) ...[
+            AnimatedTaskOsTile(
+              task: t,
+              course: TaskOsRepository.instance.getCourseById(t.courseId ?? ''),
+              onTap: () => _openTaskDetail(t),
+              onToggleDone: () =>
+                  TaskOsRepository.instance.toggleTaskDone(t.id, now),
+              onDelete: () => TaskOsRepository.instance.deleteTask(t.id),
+              onStartFocus: () => _openFocusTimer(t),
+            ),
+          ],
       ],
     );
   }
 
-  // ================= 3. INBOX VIEW (VIEW-3 + TSK-8 Bulk Selection) =================
+  // ================= 3. INBOX VIEW =================
   Widget _buildInboxView(List<TaskItem> allTasks) {
+    final now = DateTime.now();
     final inboxTasks = allTasks
-        .where((t) => !t.isDeleted && (t.status == TaskStatus.inbox || t.courseId == null))
+        .where((t) =>
+            !t.isDeleted &&
+            (t.status == TaskStatus.inbox ||
+                (t.dueAt == null && t.courseId == null && !t.isDone)))
         .toList();
 
     return Column(
       children: [
-        // Bulk toolbar
+        // Multi-select bulk action toolbar
         if (inboxTasks.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1103,28 +1444,72 @@ class _TasksPageState extends State<TasksPage>
               children: [
                 GestureDetector(
                   onTap: () {
+                    HapticFeedback.selectionClick();
                     setState(() {
                       _isBulkSelecting = !_isBulkSelecting;
                       if (!_isBulkSelecting) _selectedInboxTaskIds.clear();
                     });
                   },
-                  child: Text(
-                    _isBulkSelecting ? 'Cancel Select' : 'Select Multiple (TSK-8)',
-                    style: TextStyle(
-                      color: BentoTheme.accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: BentoTheme.divider),
+                    ),
+                    child: Text(
+                      _isBulkSelecting
+                          ? 'Cancel Select'
+                          : 'Select Multiple (${_selectedInboxTaskIds.length})',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
                 const Spacer(),
                 if (_isBulkSelecting && _selectedInboxTaskIds.isNotEmpty) ...[
+                  // 1-tap schedule all for today
+                  TactileButton(
+                    onPressed: () async {
+                      for (var id in _selectedInboxTaskIds) {
+                        final t = allTasks.firstWhere((item) => item.id == id);
+                        await TaskOsRepository.instance.saveTask(
+                          t.copyWith(
+                            status: TaskStatus.todo,
+                            dueAt: now,
+                          ),
+                        );
+                      }
+                      setState(() => _selectedInboxTaskIds.clear());
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: BentoTheme.accent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Schedule Today',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(LucideIcons.checkCheck, size: 18),
                     color: BentoTheme.accent,
                     onPressed: () async {
                       for (var id in _selectedInboxTaskIds) {
-                        await TaskOsRepository.instance.toggleTaskDone(id, DateTime.now());
+                        await TaskOsRepository.instance.toggleTaskDone(id, now);
                       }
                       setState(() => _selectedInboxTaskIds.clear());
                     },
@@ -1144,19 +1529,22 @@ class _TasksPageState extends State<TasksPage>
             ),
           ),
         ],
+
         Expanded(
           child: inboxTasks.isEmpty
-              ? _buildEmptyPlaceholder('Inbox is zero! All items organized.')
+              ? _buildEmptyPlaceholder(
+                  'Inbox Zero! All items organized and scheduled. 🚀')
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 110),
+                  physics: const BouncingScrollPhysics(),
                   itemCount: inboxTasks.length,
                   itemBuilder: (ctx, idx) {
                     final t = inboxTasks[idx];
                     final isChecked = _selectedInboxTaskIds.contains(t.id);
 
-                    return GestureDetector(
-                      onTap: () {
-                        if (_isBulkSelecting) {
+                    if (_isBulkSelecting) {
+                      return GestureDetector(
+                        onTap: () {
                           setState(() {
                             if (isChecked) {
                               _selectedInboxTaskIds.remove(t.id);
@@ -1164,27 +1552,24 @@ class _TasksPageState extends State<TasksPage>
                               _selectedInboxTaskIds.add(t.id);
                             }
                           });
-                        } else {
-                          _openTaskDetail(t);
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isChecked
-                              ? BentoTheme.accent.withValues(alpha: 0.1)
-                              : BentoTheme.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: isChecked
-                                ? BentoTheme.accent
-                                : BentoTheme.divider,
+                                ? BentoTheme.accent.withValues(alpha: 0.12)
+                                : BentoTheme.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isChecked
+                                  ? BentoTheme.accent
+                                  : BentoTheme.divider,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            if (_isBulkSelecting) ...[
+                          child: Row(
+                            children: [
                               Icon(
                                 isChecked
                                     ? LucideIcons.checkSquare
@@ -1194,21 +1579,43 @@ class _TasksPageState extends State<TasksPage>
                                     ? BentoTheme.accent
                                     : BentoTheme.textSecondary,
                               ),
-                              const SizedBox(width: 8),
-                            ],
-                            Expanded(
-                              child: Text(
-                                t.title,
-                                style: TextStyle(
-                                  color: BentoTheme.textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  t.title,
+                                  style: TextStyle(
+                                    color: BentoTheme.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      );
+                    }
+
+                    return AnimatedTaskOsTile(
+                      task: t,
+                      isInbox: true,
+                      course: TaskOsRepository.instance.getCourseById(t.courseId ?? ''),
+                      onTap: () => _openTaskDetail(t),
+                      onScheduleToday: () async {
+                        await TaskOsRepository.instance.saveTask(
+                          t.copyWith(status: TaskStatus.todo, dueAt: now),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Scheduled "${t.title}" for Today'),
+                            duration: const Duration(seconds: 3),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      onToggleDone: () =>
+                          TaskOsRepository.instance.toggleTaskDone(t.id, now),
+                      onDelete: () => TaskOsRepository.instance.deleteTask(t.id),
                     );
                   },
                 ),
@@ -1217,118 +1624,263 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
-  // ================= 5. BOARD VIEW (VIEW-7 Kanban) =================
+  // ================= 5. BOARD VIEW (KANBAN) =================
   Widget _buildBoardView(List<TaskItem> allTasks) {
     final active = allTasks.where((t) => !t.isDeleted).toList();
 
     const columns = [
+      {'title': 'Inbox', 'status': TaskStatus.inbox},
       {'title': 'To Do', 'status': TaskStatus.todo},
       {'title': 'Doing', 'status': TaskStatus.doing},
       {'title': 'Done', 'status': TaskStatus.done},
+      {'title': 'Archived', 'status': TaskStatus.archived},
     ];
 
     return ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
       children: [
         for (var col in columns) ...[
-          Container(
-            width: 260,
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: BentoTheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: BentoTheme.divider),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  col['title']!.toUpperCase(),
-                  style: TextStyle(
-                    color: BentoTheme.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (var t in active.where((t) => t.status == col['status']))
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: BentoTheme.surfaceElevated,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                t.title,
-                                style: TextStyle(
-                                  color: BentoTheme.textPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Text(
-                                    'P${t.priority}',
-                                    style: TextStyle(
-                                      color: _priorityColor(t.priority),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  GestureDetector(
-                                    onTap: () {
-                                      final nextStatus =
-                                          col['status'] == TaskStatus.todo
-                                              ? TaskStatus.doing
-                                              : TaskStatus.done;
-                                      TaskOsRepository.instance.saveTask(
-                                        t.copyWith(status: nextStatus),
-                                      );
-                                    },
-                                    child: Icon(
-                                      LucideIcons.arrowRightCircle,
-                                      size: 14,
-                                      color: BentoTheme.accent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _buildKanbanColumn(
+            title: col['title']!,
+            status: col['status']!,
+            tasks: active.where((t) => t.status == col['status']).toList(),
           ),
         ],
       ],
     );
   }
 
+  Widget _buildKanbanColumn({
+    required String title,
+    required String status,
+    required List<TaskItem> tasks,
+  }) {
+    return DragTarget<TaskItem>(
+      onWillAcceptWithDetails: (details) => details.data.status != status,
+      onAcceptWithDetails: (details) {
+        HapticFeedback.mediumImpact();
+        final now = DateTime.now();
+        final updated = details.data.copyWith(
+          status: status,
+          completedAt: status == TaskStatus.done ? now : null,
+          updatedAt: now,
+        );
+        TaskOsRepository.instance.saveTask(updated);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovered = candidateData.isNotEmpty;
+
+        return Container(
+          width: 250,
+          margin: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isHovered
+                ? BentoTheme.accent.withValues(alpha: 0.1)
+                : BentoTheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isHovered ? BentoTheme.accent : BentoTheme.divider,
+              width: isHovered ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: TextStyle(
+                      color: BentoTheme.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.surfaceElevated,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${tasks.length}',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: tasks.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No items',
+                          style: TextStyle(
+                            color: BentoTheme.textSecondary
+                                .withValues(alpha: 0.5),
+                            fontSize: 11,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: tasks.length,
+                        itemBuilder: (ctx, idx) {
+                          final t = tasks[idx];
+                          return LongPressDraggable<TaskItem>(
+                            data: t,
+                            feedback: Material(
+                              color: Colors.transparent,
+                              child: Transform.rotate(
+                                angle: 0.04,
+                                child: Container(
+                                  width: 240,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: BentoTheme.surfaceElevated,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: BentoTheme.accent),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    t.title,
+                                    style: TextStyle(
+                                      color: BentoTheme.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            childWhenDragging: Opacity(
+                              opacity: 0.3,
+                              child: _buildKanbanCard(t, status),
+                            ),
+                            child: _buildKanbanCard(t, status),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildKanbanCard(TaskItem task, String currentStatus) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: BentoTheme.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: BentoTheme.divider.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => _openTaskDetail(task),
+            child: Text(
+              task.title,
+              style: TextStyle(
+                color: BentoTheme.textPrimary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                'P${task.priority}',
+                style: TextStyle(
+                  color: _priorityColor(task.priority),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (task.courseId != null) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '#${task.courseId}',
+                  style: TextStyle(
+                    color: BentoTheme.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              // 1-tap forward status pill
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  final nextStatus = _nextStatus(currentStatus);
+                  TaskOsRepository.instance.saveTask(
+                    task.copyWith(status: nextStatus),
+                  );
+                },
+                child: Icon(
+                  LucideIcons.arrowRightCircle,
+                  size: 15,
+                  color: BentoTheme.accent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _nextStatus(String status) {
+    switch (status) {
+      case TaskStatus.inbox:
+        return TaskStatus.todo;
+      case TaskStatus.todo:
+        return TaskStatus.doing;
+      case TaskStatus.doing:
+        return TaskStatus.done;
+      case TaskStatus.done:
+        return TaskStatus.archived;
+      case TaskStatus.archived:
+      default:
+        return TaskStatus.todo;
+    }
+  }
+
   Widget _buildEmptyPlaceholder(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
           children: [
             Icon(LucideIcons.sparkles, size: 36, color: BentoTheme.accent),
             const SizedBox(height: 12),
             Text(
               message,
+              textAlign: TextAlign.center,
               style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
             ),
           ],

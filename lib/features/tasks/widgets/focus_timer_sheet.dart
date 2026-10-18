@@ -100,17 +100,13 @@ class _FocusTimerSheetState extends State<FocusTimerSheet> {
       interruptions: _interruptions,
     );
 
-    // Update actualMin on task
-    final updatedTask = widget.task.copyWith(
-      actualMin: widget.task.actualMin + log.actualMin,
-    );
-    await TaskOsRepository.instance.saveTask(updatedTask);
+    await TaskOsRepository.instance.logFocusSession(log);
 
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Focus session logged: ${log.actualMin}m for "${widget.task.title}"'),
+          content: Text('Focus session logged: ${log.actualMin}m (+20 XP) for "${widget.task.title}"'),
           behavior: SnackBarBehavior.floating,
         ),
       );

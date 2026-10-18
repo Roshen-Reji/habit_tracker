@@ -65,4 +65,8 @@ class GlobalXPService {
 
     ProgressionService.refresh();
   }
+
+  static void addXp(int amount) => addXP(amount);
 }
+
+typedef GlobalXpService = GlobalXPService;

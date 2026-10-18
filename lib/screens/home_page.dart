@@ -7,7 +7,6 @@ import 'package:habit_tracker/features/finance/finance_page.dart';
 import 'package:habit_tracker/screens/dashboard_view.dart';
 import 'package:habit_tracker/features/tasks/tasks_page.dart';
 import 'package:habit_tracker/features/diet/diet_page.dart';
-import 'package:habit_tracker/screens/settings_page.dart';
 import 'package:habit_tracker/features/home/home_chat.dart';
 import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/core/theme/tactile_tokens.dart';
@@ -167,7 +166,7 @@ class _HomePageState extends State<HomePage> {
               onItemTapped: _onItemTapped,
             ),
           ),
-          const HomeChatFAB(),
+          if (clampedIndex != 3) const HomeChatFAB(),
         ],
       ),
     );

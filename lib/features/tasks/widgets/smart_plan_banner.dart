@@ -1,12 +1,12 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/widgets/tactile_button.dart';
-import 'package:habit_tracker/features/tasks/engine/smart_scheduler_engine.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
+import 'package:habit_tracker/features/tasks/widgets/task_action_pill.dart';
 
+/// Single-line collapsible Morning Plan banner adhering to AGENTS.md Phase 3.
+/// Default collapsed state is a single 48px row that never wraps.
 class SmartPlanBanner extends StatefulWidget {
   final PlanProposalItem plan;
   final VoidCallback onPlanAccepted;
@@ -84,7 +84,7 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
     widget.onPlanAccepted();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('AI Morning Plan approved and scheduled'),
+        content: Text('Morning Plan approved and scheduled'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -100,163 +100,115 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
         _blocks.where((b) => b.status == 'proposed').length;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: BentoTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: BentoTheme.accent.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: BentoTheme.divider),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(LucideIcons.sparkles,
-                      size: 16, color: BentoTheme.accent),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Morning Plan (PLAN-3)',
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Sleek 48px Header Row (always single-row)
+            InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _isExpanded = !_isExpanded);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.sparkles,
+                      size: 16,
+                      color: BentoTheme.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Morning Plan · ${_blocks.length} time blocks',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: BentoTheme.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Text(
-                        '${_blocks.length} blocks tailored around your class timetable',
-                        style: TextStyle(
-                          color: BentoTheme.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Rebalance button
-                TactileButton(
-                  onPressed: widget.onRebalance,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: BentoTheme.divider),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(LucideIcons.refreshCw,
-                            size: 11, color: BentoTheme.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Rebalance',
-                          style: TextStyle(
-                            color: BentoTheme.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  icon: Icon(
-                    _isExpanded
-                        ? LucideIcons.chevronUp
-                        : LucideIcons.chevronDown,
-                    size: 18,
-                    color: BentoTheme.textSecondary,
-                  ),
-                  onPressed: () {
-                    setState(() => _isExpanded = !_isExpanded);
-                  },
-                ),
-              ],
-            ),
-          ),
-          // Sliced proposed blocks
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              children: [
-                for (int i = 0; i < (_isExpanded ? _blocks.length : math.min(2, _blocks.length)); i++) ...[
-                  _buildBlockTile(i, _blocks[i]),
-                ],
-              ],
-            ),
-          ),
-          // Bottom action row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-            child: Row(
-              children: [
-                if (!_isExpanded && _blocks.length > 2)
-                  GestureDetector(
-                    onTap: () => setState(() => _isExpanded = true),
-                    child: Text(
-                      '+${_blocks.length - 2} more blocks',
-                      style: TextStyle(
-                        color: BentoTheme.accent,
-                        fontSize: 11,
+                    const SizedBox(width: 8),
+                    TaskActionPill(
+                      label: 'Rebalance',
+                      icon: const Icon(LucideIcons.refreshCw, size: 11),
+                      height: 30,
+                      horizontalPadding: 10,
+                      borderRadius: 10,
+                      textStyle: const TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
+                      onTap: widget.onRebalance,
                     ),
-                  ),
-                const Spacer(),
-                if (pendingCount > 0) ...[
-                  TactileButton(
-                    onPressed: _approveAll,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: BentoTheme.accent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(LucideIcons.check, size: 12, color: Colors.black),
-                          SizedBox(width: 4),
-                          Text(
-                            'Approve All',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      _isExpanded
+                          ? LucideIcons.chevronUp
+                          : LucideIcons.chevronDown,
+                      size: 18,
+                      color: BentoTheme.textSecondary,
                     ),
-                  ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+
+            // Expanded body with proposed blocks & actions
+            if (_isExpanded) ...[
+              const Divider(height: 1, color: Color(0xFF262626)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _blocks.length; i++)
+                      _buildBlockTile(i, _blocks[i]),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      '$pendingCount pending approval',
+                      style: TextStyle(
+                        color: BentoTheme.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (pendingCount > 0)
+                      TaskActionPill(
+                        label: 'Approve All',
+                        icon: const Icon(LucideIcons.check, size: 12),
+                        isPrimary: true,
+                        height: 34,
+                        horizontalPadding: 14,
+                        borderRadius: 10,
+                        onTap: _approveAll,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -271,27 +223,26 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: isAccepted
             ? BentoTheme.accent.withValues(alpha: 0.08)
-            : BentoTheme.surfaceElevated,
+            : const Color(0xFF141414),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isAccepted
               ? BentoTheme.accent.withValues(alpha: 0.4)
-              : BentoTheme.divider,
+              : const Color(0xFF262626),
         ),
       ),
       child: Row(
         children: [
-          // Time badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: BentoTheme.surface,
+              color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: BentoTheme.divider),
+              border: Border.all(color: const Color(0xFF262626)),
             ),
             child: Text(
               '$startTimeStr–$endTimeStr',
@@ -314,7 +265,7 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
                   style: TextStyle(
                     color: BentoTheme.textPrimary,
                     fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 if (block.reason != null)
@@ -331,7 +282,6 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
             ),
           ),
           const SizedBox(width: 6),
-          // Accept / reject actions
           if (!isAccepted) ...[
             GestureDetector(
               onTap: () => _acceptBlock(index),
@@ -350,8 +300,8 @@ class _SmartPlanBannerState extends State<SmartPlanBanner> {
               onTap: () => _rejectBlock(index),
               child: Container(
                 padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: BentoTheme.surface,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E1E1E),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(LucideIcons.x,

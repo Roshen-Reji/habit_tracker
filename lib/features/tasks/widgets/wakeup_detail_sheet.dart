@@ -9,9 +9,9 @@ import 'package:habit_tracker/features/tasks/data/wake_log_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 class WakeupDetailSheet extends StatefulWidget {
-  final Goal goal;
+  final Goal? goal;
 
-  const WakeupDetailSheet({super.key, required this.goal});
+  const WakeupDetailSheet({super.key, this.goal});
 
   @override
   State<WakeupDetailSheet> createState() => _WakeupDetailSheetState();
@@ -21,13 +21,16 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
   late int _targetMinutes;
   late int _graceMinutes;
   late String _direction;
+  late int _streakCount;
 
   @override
   void initState() {
     super.initState();
-    _targetMinutes = widget.goal.targetMinutes ?? 300;
-    _graceMinutes = widget.goal.graceMinutes ?? 0;
-    _direction = (widget.goal.metricOp == '<=') ? 'by' : 'from';
+    final effectiveGoal = widget.goal ?? WakeService.instance.getWakeupGoal();
+    _targetMinutes = effectiveGoal?.targetMinutes ?? 390;
+    _graceMinutes = effectiveGoal?.graceMinutes ?? 15;
+    _direction = (effectiveGoal?.metricOp == '<=') ? 'by' : 'from';
+    _streakCount = effectiveGoal?.streakCount ?? 0;
   }
 
   String _formatMinutes(int minutes) {
@@ -93,7 +96,7 @@ class _WakeupDetailSheetState extends State<WakeupDetailSheet> {
                         ),
                       ),
                       Text(
-                        'Target: ${_formatMinutes(_targetMinutes)} · Streak: ${widget.goal.streakCount} days',
+                        'Target: ${_formatMinutes(_targetMinutes)} · Streak: $_streakCount days',
                         style: TextStyle(
                           color: BentoTheme.textSecondary,
                           fontSize: 12,

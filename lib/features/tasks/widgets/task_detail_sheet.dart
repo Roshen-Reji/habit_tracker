@@ -305,7 +305,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                             size: 12, color: BentoTheme.accent),
                         const SizedBox(width: 4),
                         Text(
-                          '⚡ Break Down (PLAN-7)',
+                          '⚡ Break Down',
                           style: TextStyle(
                             color: BentoTheme.accent,
                             fontSize: 11,
