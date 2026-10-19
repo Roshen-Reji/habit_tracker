@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
+import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
@@ -27,12 +28,30 @@ No MD. 5k=5000, 1L=100000. Goal=expensive buy.''';
 
   static String buildDietContext(double t) {
     try {
-      final log = Hive.box<DietDayLog>('diet_logs')
-          .get(DateFormat('yyyy-MM-dd').format(DateTime.now()));
-      if (log == null) return '[DIET] Tgt:$t None';
-      return '[DIET] In:${log.totalCalories} Net:${log.netCalories} Tgt:$t';
+      final repo = DietRepository.instance;
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final logs = repo.getLogsForDate(today);
+      final targets = repo.dailyTargets;
+      final consumedKcal = logs.fold(0.0, (sum, e) => sum + e.kcal).round();
+      final consumedProtein = logs.fold(0.0, (sum, e) => sum + e.proteinG).round();
+      final targetProtein = targets.proteinG.round();
+
+      if (repo.profile.hideCaloriesMode) {
+        return '[DIET-HABIT] Mode:HabitFocus Protein: $consumedProtein / $targetProtein g Water: ${repo.waterDrankMl(today).round()}ml Goal: ${repo.profile.goal.name} Allergies: ${repo.profile.allergies.join(",")}';
+      }
+
+      final targetKcal = targets.targetKcal.round();
+      final trend = repo.weightTrend.trendDirection;
+      return '[DIET] In: $consumedKcal kcal Tgt: $targetKcal kcal Prot: $consumedProtein / $targetProtein g Water: ${repo.waterDrankMl(today).round()}ml Trend: $trend Allergies: ${repo.profile.allergies.join(",")}';
     } catch (_) {
-      return '';
+      try {
+        final log = Hive.box<DietDayLog>('diet_logs')
+            .get(DateFormat('yyyy-MM-dd').format(DateTime.now()));
+        if (log == null) return '[DIET] Tgt:$t None';
+        return '[DIET] In:${log.totalCalories} Net:${log.netCalories} Tgt:$t';
+      } catch (_) {
+        return '';
+      }
     }
   }
 

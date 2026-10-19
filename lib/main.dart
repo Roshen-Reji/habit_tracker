@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/models/goal.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
+import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:habit_tracker/data/services/task_reset_service.dart';
 // import 'package:habit_tracker/data/services/sip_service.dart';
@@ -157,6 +158,7 @@ void main() async {
     // Open Diet boxes
     try {
       await Hive.openBox<DietDayLog>('diet_logs');
+      await DietRepository.instance.init();
     } catch (e) {
       debugPrint('diet_logs box warning: $e');
     }

@@ -43,7 +43,9 @@ Future<T?> showSpringSheet<T>({
 class SpringSheet {
   static Future<T?> show<T>({
     required BuildContext context,
-    required WidgetBuilder builder,
+    WidgetBuilder? builder,
+    Widget? child,
+    String? title,
     bool isDismissible = true,
     bool enableDrag = true,
     Color? backgroundColor,
@@ -51,18 +53,51 @@ class SpringSheet {
     ShapeBorder? shape,
     Clip clipBehavior = Clip.antiAlias,
     BoxConstraints? constraints,
-  }) =>
-      showSpringSheet<T>(
-        context: context,
-        builder: builder,
-        isDismissible: isDismissible,
-        enableDrag: enableDrag,
-        backgroundColor: backgroundColor,
-        elevation: elevation,
-        shape: shape,
-        clipBehavior: clipBehavior,
-        constraints: constraints,
-      );
+  }) {
+    final effectiveBuilder = builder ??
+        (BuildContext ctx) {
+          final content = child ?? const SizedBox.shrink();
+          if (title == null) return content;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(child: content),
+            ],
+          );
+        };
+
+    return showSpringSheet<T>(
+      context: context,
+      builder: effectiveBuilder,
+      isDismissible: isDismissible,
+      enableDrag: enableDrag,
+      backgroundColor: backgroundColor,
+      elevation: elevation,
+      shape: shape,
+      clipBehavior: clipBehavior,
+      constraints: constraints,
+    );
+  }
 
   static Future<T?> showDialog<T>({
     required BuildContext context,

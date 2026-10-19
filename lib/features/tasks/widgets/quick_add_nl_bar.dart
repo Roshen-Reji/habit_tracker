@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:habit_tracker/data/services/ai_service.dart';
+import 'package:habit_tracker/features/tasks/engine/native_task_ai_engine.dart';
 import 'package:habit_tracker/features/tasks/widgets/task_action_pill.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/task_nl_parser.dart';
-import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
 class QuickAddNlBar extends StatefulWidget {
   final VoidCallback? onTaskAdded;
@@ -314,7 +317,7 @@ class _QuickAddNlBarState extends State<QuickAddNlBar> {
   }
 }
 
-/// Modal review sheet for Voice Brain Dump (CAP-4)
+/// Live Interactive Voice / Dictation Brain Dump Review Sheet (Zero Placeholders)
 class _BrainDumpReviewSheet extends StatefulWidget {
   const _BrainDumpReviewSheet();
 
@@ -323,46 +326,82 @@ class _BrainDumpReviewSheet extends StatefulWidget {
 }
 
 class _BrainDumpReviewSheetState extends State<_BrainDumpReviewSheet> {
-  final TextEditingController _voiceTextController = TextEditingController(
-    text:
-        'Finish Operating Systems assignment by Friday 5pm, review DBMS chapter 4 tomorrow morning, and buy notebook',
-  );
+  final TextEditingController _voiceTextController = TextEditingController();
+  bool _isExtracting = false;
+  List<ExtractedTaskCandidate> _extractedTasks = [];
+  final Set<int> _selectedIndices = {};
 
-  List<TaskItem> _extractedTasks = [];
+  void _extractTasks() async {
+    final text = _voiceTextController.text.trim();
+    if (text.isEmpty) {
+      setState(() {
+        _extractedTasks = [];
+        _selectedIndices.clear();
+      });
+      return;
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    _extractTasks();
+    setState(() => _isExtracting = true);
+    HapticFeedback.lightImpact();
+
+    try {
+      final rawList = await AiService.instance.extractTasksWithAi(text);
+      final candidates = rawList
+          .map((m) => ExtractedTaskCandidate.fromMap(m))
+          .where((c) => c.title.trim().isNotEmpty)
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _extractedTasks = candidates;
+          _selectedIndices
+            ..clear()
+            ..addAll(List.generate(candidates.length, (i) => i));
+          _isExtracting = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        // Fallback to purely local native engine
+        final fallback = NativeTaskAiEngine.extractTasksFromBrainDump(
+          text,
+          DateTime.now(),
+        );
+        setState(() {
+          _extractedTasks = fallback;
+          _selectedIndices
+            ..clear()
+            ..addAll(List.generate(fallback.length, (i) => i));
+          _isExtracting = false;
+        });
+      }
+    }
   }
 
-  void _extractTasks() {
-    final raw = _voiceTextController.text;
-    final parts = raw.split(RegExp(r',|and\s+'));
+  void _saveSelected() async {
+    if (_selectedIndices.isEmpty) return;
+    HapticFeedback.mediumImpact();
+
     final now = DateTime.now();
-    final list = <TaskItem>[];
+    int savedCount = 0;
 
-    for (var p in parts) {
-      final trimmed = p.trim();
-      if (trimmed.isEmpty) continue;
-      final parsed = parseNaturalLanguageTask(trimmed, now);
-      list.add(parsed.toTaskItem(
-        id: 'dump_${DateTime.now().millisecondsSinceEpoch}_${list.length}',
-        now: now,
-      ));
+    for (final idx in _selectedIndices) {
+      if (idx < _extractedTasks.length) {
+        final candidate = _extractedTasks[idx];
+        final taskItem = candidate.toTaskItem(
+          id: 'dump_${DateTime.now().millisecondsSinceEpoch}_$idx',
+          now: now,
+        );
+        await TaskOsRepository.instance.saveTask(taskItem);
+        savedCount++;
+      }
     }
-    setState(() => _extractedTasks = list);
-  }
 
-  void _saveAll() async {
-    for (var task in _extractedTasks) {
-      await TaskOsRepository.instance.saveTask(task);
-    }
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added ${_extractedTasks.length} tasks from brain dump'),
+          content: Text('✨ Added $savedCount tasks from brain dump'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -377,119 +416,257 @@ class _BrainDumpReviewSheetState extends State<_BrainDumpReviewSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: BentoTheme.divider),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: BentoTheme.divider,
-                borderRadius: BorderRadius.circular(2),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: BentoTheme.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(LucideIcons.mic, color: BentoTheme.accent, size: 20),
-              const SizedBox(width: 8),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(LucideIcons.mic, color: BentoTheme.accent, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Voice & Dictation Brain Dump',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _voiceTextController,
+              maxLines: 3,
+              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                hintText:
+                    'Speak or type anything freely (e.g., "Submit OS lab by Friday 5pm #OS !high, call IEEE team at 7pm ~30m, and review trees on Friday")...',
+                hintStyle: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.6),
+                  fontSize: 12.5,
+                ),
+                filled: true,
+                fillColor: BentoTheme.surfaceElevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                TaskActionPill(
+                  label: _isExtracting ? 'Extracting...' : '✨ Extract Tasks',
+                  icon: _isExtracting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Icon(LucideIcons.sparkles, size: 14),
+                  isPrimary: true,
+                  height: 36,
+                  horizontalPadding: 14,
+                  onTap: _isExtracting ? null : _extractTasks,
+                ),
+                if (_extractedTasks.isNotEmpty) ...[
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_selectedIndices.length == _extractedTasks.length) {
+                          _selectedIndices.clear();
+                        } else {
+                          _selectedIndices.addAll(
+                              List.generate(_extractedTasks.length, (i) => i));
+                        }
+                      });
+                    },
+                    child: Text(
+                      _selectedIndices.length == _extractedTasks.length
+                          ? 'Deselect All'
+                          : 'Select All',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (_extractedTasks.isNotEmpty) ...[
+              const SizedBox(height: 14),
               Text(
-                'Voice Brain Dump Review',
+                'Extracted Tasks (${_selectedIndices.length}/${_extractedTasks.length} selected):',
                 style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 17,
+                  color: BentoTheme.textSecondary,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _voiceTextController,
-            maxLines: 2,
-            style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: BentoTheme.surfaceElevated,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onChanged: (_) => _extractTasks(),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Proposed Tasks (${_extractedTasks.length}):',
-            style: TextStyle(
-              color: BentoTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 200),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _extractedTasks.length,
-              itemBuilder: (ctx, idx) {
-                final task = _extractedTasks[idx];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: BentoTheme.surfaceElevated,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: BentoTheme.divider),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(LucideIcons.checkCircle2, size: 16, color: Colors.white54),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          task.title,
-                          style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontSize: 13,
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _extractedTasks.length,
+                  itemBuilder: (ctx, idx) {
+                    final task = _extractedTasks[idx];
+                    final isSelected = _selectedIndices.contains(idx);
+
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          if (isSelected) {
+                            _selectedIndices.remove(idx);
+                          } else {
+                            _selectedIndices.add(idx);
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? BentoTheme.accent.withValues(alpha: 0.12)
+                              : BentoTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected
+                                ? BentoTheme.accent
+                                : BentoTheme.divider,
                           ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected
+                                  ? LucideIcons.checkSquare
+                                  : LucideIcons.square,
+                              size: 16,
+                              color: isSelected
+                                  ? BentoTheme.accent
+                                  : BentoTheme.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    task.title,
+                                    style: TextStyle(
+                                      color: BentoTheme.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      if (task.courseCode != null)
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(right: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 5, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.purple
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '#${task.courseCode}',
+                                            style: const TextStyle(
+                                              color: Colors.purpleAccent,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      if (task.dueAt != null)
+                                        Text(
+                                          'Due: ${task.dueAt!.day}/${task.dueAt!.month}',
+                                          style: TextStyle(
+                                            color: BentoTheme.accent,
+                                            fontSize: 10.5,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${(task.confidence * 100).round()}%',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      if (task.dueAt != null)
-                        Text(
-                          'Due in ${task.dueAt!.difference(DateTime.now()).inDays}d',
-                          style: TextStyle(
-                            color: BentoTheme.accent,
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-          TaskActionPill(
-            label: 'Confirm & Add ${_extractedTasks.length} Tasks',
-            isPrimary: true,
-            height: 44,
-            horizontalPadding: 16,
-            borderRadius: 12,
-            onTap: _saveAll,
-          ),
-        ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              TaskActionPill(
+                label: 'Add Selected (${_selectedIndices.length}) Tasks',
+                isPrimary: true,
+                height: 42,
+                horizontalPadding: 16,
+                borderRadius: 12,
+                onTap: _selectedIndices.isEmpty ? null : _saveSelected,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Modal review sheet for Syllabus / Photo scanner (CAP-6/7)
+/// Live Syllabus / Noticeboard Document & Photo Scanner Sheet (Zero Placeholders)
 class _SyllabusImportSheet extends StatefulWidget {
   const _SyllabusImportSheet();
 
@@ -498,47 +675,127 @@ class _SyllabusImportSheet extends StatefulWidget {
 }
 
 class _SyllabusImportSheetState extends State<_SyllabusImportSheet> {
-  final List<Map<String, dynamic>> _extractedItems = [
-    {
-      'title': 'Midterm Exam - Software Engineering',
-      'type': 'Exam',
-      'date': 'Nov 12',
-      'confidence': 'High',
-    },
-    {
-      'title': 'Lab Assignment 3: Distributed Hash Table',
-      'type': 'Assignment',
-      'date': 'Oct 28',
-      'confidence': 'High',
-    },
-    {
-      'title': 'Project Proposal & Literature Survey',
-      'type': 'Milestone',
-      'date': 'Nov 04',
-      'confidence': 'Needs Review',
-    },
-  ];
+  final TextEditingController _documentTextController = TextEditingController();
+  String? _pickedFileName;
+  Uint8List? _pickedFileBytes;
+  bool _isExtracting = false;
+  List<ExtractedTaskCandidate> _extractedTasks = [];
+  final Set<int> _selectedIndices = {};
+
+  void _pickDocument() async {
+    HapticFeedback.lightImpact();
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'txt', 'png', 'jpg', 'jpeg', 'md'],
+      withData: true,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      setState(() {
+        _pickedFileName = file.name;
+        _pickedFileBytes = file.bytes;
+      });
+
+      // If text or markdown, load into controller
+      if (file.extension == 'txt' || file.extension == 'md') {
+        if (file.bytes != null) {
+          try {
+            _documentTextController.text = utf8.decode(file.bytes!);
+          } catch (_) {}
+        }
+      }
+
+      // Automatically trigger extraction
+      _extractDeadlines();
+    }
+  }
+
+  void _extractDeadlines() async {
+    final text = _documentTextController.text.trim();
+    if (text.isEmpty && (_pickedFileBytes == null || _pickedFileBytes!.isEmpty)) {
+      return;
+    }
+
+    setState(() => _isExtracting = true);
+    HapticFeedback.lightImpact();
+
+    String? mimeType;
+    if (_pickedFileName != null) {
+      final ext = _pickedFileName!.split('.').last.toLowerCase();
+      if (ext == 'pdf') {
+        mimeType = 'application/pdf';
+      } else if (ext == 'png') {
+        mimeType = 'image/png';
+      } else if (ext == 'jpg' || ext == 'jpeg') {
+        mimeType = 'image/jpeg';
+      }
+    }
+
+    try {
+      final rawList = await AiService.instance.extractTasksWithAi(
+        text.isNotEmpty
+            ? text
+            : 'Please scan and extract all syllabus deadlines from this file.',
+        imageBytes: _pickedFileBytes,
+        mimeType: mimeType,
+      );
+
+      final candidates = rawList
+          .map((m) => ExtractedTaskCandidate.fromMap(m))
+          .where((c) => c.title.trim().isNotEmpty)
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _extractedTasks = candidates;
+          _selectedIndices
+            ..clear()
+            ..addAll(List.generate(candidates.length, (i) => i));
+          _isExtracting = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        final fallback = NativeTaskAiEngine.extractTasksFromDocumentText(
+          text,
+          DateTime.now(),
+        );
+        setState(() {
+          _extractedTasks = fallback;
+          _selectedIndices
+            ..clear()
+            ..addAll(List.generate(fallback.length, (i) => i));
+          _isExtracting = false;
+        });
+      }
+    }
+  }
 
   void _confirmImport() async {
+    if (_selectedIndices.isEmpty) return;
+    HapticFeedback.mediumImpact();
+
     final now = DateTime.now();
-    for (var item in _extractedItems) {
-      final task = TaskItem(
-        id: 'syl_${DateTime.now().millisecondsSinceEpoch}_${item['title'].hashCode}',
-        title: item['title'].toString(),
-        priority: TaskPriority.high,
-        status: TaskStatus.todo,
-        dueAt: now.add(const Duration(days: 14)),
-        createdAt: now,
-        updatedAt: now,
-      );
-      await TaskOsRepository.instance.saveTask(task);
+    int importedCount = 0;
+
+    for (final idx in _selectedIndices) {
+      if (idx < _extractedTasks.length) {
+        final candidate = _extractedTasks[idx];
+        final taskItem = candidate.toTaskItem(
+          id: 'syl_${DateTime.now().millisecondsSinceEpoch}_$idx',
+          now: now,
+        );
+        await TaskOsRepository.instance.saveTask(taskItem);
+        importedCount++;
+      }
     }
 
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Imported ${_extractedItems.length} syllabus deadlines'),
+          content: Text('✨ Imported $importedCount deadlines into Tasks'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -553,109 +810,309 @@ class _SyllabusImportSheetState extends State<_SyllabusImportSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: BentoTheme.divider),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: BentoTheme.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(LucideIcons.fileSearch, color: BentoTheme.accent, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Syllabus / Photo Import',
-                style: TextStyle(
-                  color: BentoTheme.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: BentoTheme.divider,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Extracted Dates & Deadlines for Review:',
-            style: TextStyle(color: BentoTheme.textSecondary, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          for (var item in _extractedItems) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: BentoTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: BentoTheme.divider),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['title']!,
-                          style: TextStyle(
-                            color: BentoTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${item['type']} · Expected Due: ${item['date']}',
-                          style: TextStyle(
-                            color: BentoTheme.textSecondary,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(LucideIcons.fileSearch, color: BentoTheme.accent, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Syllabus & Document Scanner',
+                  style: TextStyle(
+                    color: BentoTheme.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: item['confidence'] == 'High'
-                          ? Colors.green.withValues(alpha: 0.15)
-                          : Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // File picker trigger
+            PressScale(
+              onTap: _pickDocument,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _pickedFileName != null
+                        ? BentoTheme.accent
+                        : BentoTheme.divider,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _pickedFileName != null
+                          ? LucideIcons.fileCheck
+                          : LucideIcons.uploadCloud,
+                      size: 18,
+                      color: _pickedFileName != null
+                          ? BentoTheme.accent
+                          : BentoTheme.textSecondary,
                     ),
-                    child: Text(
-                      item['confidence']!,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _pickedFileName ??
+                            'Pick PDF / Syllabus Image / Noticeboard text',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _pickedFileName != null
+                              ? BentoTheme.textPrimary
+                              : BentoTheme.textSecondary,
+                          fontSize: 13,
+                          fontWeight: _pickedFileName != null
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Browse',
                       style: TextStyle(
-                        color: item['confidence'] == 'High'
-                            ? Colors.green
-                            : Colors.amber,
-                        fontSize: 10,
+                        color: BentoTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _documentTextController,
+              maxLines: 3,
+              style: TextStyle(color: BentoTheme.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                hintText:
+                    'Or paste syllabus text, exam schedules, or assignment notices here...',
+                hintStyle: TextStyle(
+                  color: BentoTheme.textSecondary.withValues(alpha: 0.6),
+                  fontSize: 12.5,
+                ),
+                filled: true,
+                fillColor: BentoTheme.surfaceElevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                TaskActionPill(
+                  label: _isExtracting ? 'Scanning...' : '✨ Scan & Extract',
+                  icon: _isExtracting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Icon(LucideIcons.scanLine, size: 14),
+                  isPrimary: true,
+                  height: 36,
+                  horizontalPadding: 14,
+                  onTap: _isExtracting ? null : _extractDeadlines,
+                ),
+                if (_extractedTasks.isNotEmpty) ...[
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_selectedIndices.length == _extractedTasks.length) {
+                          _selectedIndices.clear();
+                        } else {
+                          _selectedIndices.addAll(
+                              List.generate(_extractedTasks.length, (i) => i));
+                        }
+                      });
+                    },
+                    child: Text(
+                      _selectedIndices.length == _extractedTasks.length
+                          ? 'Deselect All'
+                          : 'Select All',
+                      style: TextStyle(
+                        color: BentoTheme.accent,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
+            if (_extractedTasks.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                'Extracted Deadlines (${_selectedIndices.length}/${_extractedTasks.length} selected):',
+                style: TextStyle(
+                  color: BentoTheme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _extractedTasks.length,
+                  itemBuilder: (ctx, idx) {
+                    final item = _extractedTasks[idx];
+                    final isSelected = _selectedIndices.contains(idx);
+
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          if (isSelected) {
+                            _selectedIndices.remove(idx);
+                          } else {
+                            _selectedIndices.add(idx);
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? BentoTheme.accent.withValues(alpha: 0.12)
+                              : BentoTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected
+                                ? BentoTheme.accent
+                                : BentoTheme.divider,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected
+                                  ? LucideIcons.checkSquare
+                                  : LucideIcons.square,
+                              size: 16,
+                              color: isSelected
+                                  ? BentoTheme.accent
+                                  : BentoTheme.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    style: TextStyle(
+                                      color: BentoTheme.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      if (item.courseCode != null)
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(right: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 5, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.purple
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '#${item.courseCode}',
+                                            style: const TextStyle(
+                                              color: Colors.purpleAccent,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      if (item.dueAt != null)
+                                        Text(
+                                          'Due: ${item.dueAt!.day}/${item.dueAt!.month}/${item.dueAt!.year}',
+                                          style: TextStyle(
+                                            color: BentoTheme.accent,
+                                            fontSize: 10.5,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${(item.confidence * 100).round()}%',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              TaskActionPill(
+                label:
+                    'Import Selected (${_selectedIndices.length}) Deadlines',
+                isPrimary: true,
+                height: 42,
+                horizontalPadding: 16,
+                borderRadius: 12,
+                onTap: _selectedIndices.isEmpty ? null : _confirmImport,
+              ),
+            ],
           ],
-          const SizedBox(height: 16),
-          TaskActionPill(
-            label: 'Confirm & Import ${_extractedItems.length} Deadlines',
-            isPrimary: true,
-            height: 44,
-            horizontalPadding: 16,
-            borderRadius: 12,
-            onTap: _confirmImport,
-          ),
-        ],
+        ),
       ),
     );
   }

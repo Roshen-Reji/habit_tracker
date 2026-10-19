@@ -14,6 +14,9 @@ class BentoTheme {
     return Hive.box('settings').get('theme_mode', defaultValue: 'dark') == 'light';
   }
 
+  static bool get isLight => _isLight;
+  static bool get isDark => !_isLight;
+
   // Base Background Color (Pure native background without dynamic album art tint per AGENTS.md Task 2)
   static Color get background {
     final p = AppTheme.currentPreset.palette;

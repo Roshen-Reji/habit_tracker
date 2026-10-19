@@ -24,6 +24,10 @@ import 'package:habit_tracker/features/journal/data/journal_day_repository.dart'
 import 'package:habit_tracker/features/wearables/data/sync_service.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_repository.dart';
 import 'package:habit_tracker/features/wearables/data/wearable_settings.dart';
+import 'package:habit_tracker/features/tasks/engine/native_task_ai_engine.dart';
+import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
+import 'package:habit_tracker/features/diet/engine/native_diet_ai_engine.dart';
+import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -3131,6 +3135,37 @@ class AiService {
     } else {
       box.put(today, log);
     }
+
+    MealSlot slot;
+    switch (mealType) {
+      case MealType.breakfast:
+        slot = MealSlot.breakfast;
+        break;
+      case MealType.lunch:
+        slot = MealSlot.lunch;
+        break;
+      case MealType.dinner:
+        slot = MealSlot.dinner;
+        break;
+      case MealType.snack:
+        slot = MealSlot.snack;
+        break;
+    }
+
+    DietRepository.instance.logFood(
+      DietLogEntry(
+        id: entry.id,
+        dateIso: today,
+        mealSlot: slot,
+        title: entry.name,
+        quantity: 1.0,
+        gramsTotal: 100.0,
+        kcal: entry.calories,
+        proteinG: entry.protein,
+        carbsG: entry.carbs,
+        fatG: entry.fat,
+      ),
+    );
   }
 
   /// Execute a confirmed burn entry action
@@ -3677,5 +3712,314 @@ class AiService {
     } else {
       box.put(today, log);
     }
+  }
+
+  /// Extracts structured task candidates from natural language text, voice transcripts,
+  /// or document/photo OCR with Gemini cloud enrichment and NativeTaskAiEngine fallback.
+  Future<List<Map<String, dynamic>>> extractTasksWithAi(
+    String input, {
+    Uint8List? imageBytes,
+    String? mimeType,
+  }) async {
+    final now = DateTime.now();
+
+    if (isConfigured) {
+      try {
+        final client = GeminiClient();
+        final promptText = '''
+Extract all academic, project, homework, exam, or personal tasks from the following text or image.
+Current DateTime is: ${now.toIso8601String()}.
+Return a JSON array ONLY with NO markdown fences, matching this exact schema:
+[
+  {
+    "title": "Task title",
+    "dueAt": "ISO-8601 string or null",
+    "courseCode": "Course code e.g. CS301 or null",
+    "priority": 1 for Urgent, 2 for High, 3 for Medium, 4 for Low,
+    "estimateMin": 45,
+    "tags": ["academic"],
+    "confidence": 0.95
+  }
+]
+Input text:
+$input
+''';
+
+        final parts = <Map<String, dynamic>>[];
+        if (imageBytes != null && imageBytes.isNotEmpty) {
+          parts.add({
+            'inline_data': {
+              'mime_type': mimeType ?? 'image/jpeg',
+              'data': base64Encode(imageBytes),
+            }
+          });
+        }
+        parts.add({'text': promptText});
+
+        final requestBody = {
+          'contents': [
+            {'parts': parts}
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'responseMimeType': 'application/json',
+          }
+        };
+
+        final result = await client.generateContent(
+          requestBody: requestBody,
+          apiKey: activeApiKey,
+        );
+
+        if (result.isSuccess && result.text != null && result.text!.trim().isNotEmpty) {
+          final cleanJson = result.text!.replaceAll(RegExp(r'^```json\s*|```$'), '').trim();
+          final decoded = jsonDecode(cleanJson);
+          if (decoded is List) {
+            final tasks = <Map<String, dynamic>>[];
+            for (final item in decoded) {
+              if (item is Map) {
+                tasks.add(Map<String, dynamic>.from(item));
+              }
+            }
+            if (tasks.isNotEmpty) {
+              return tasks;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('extractTasksWithAi cloud call failed, using native engine: $e');
+      }
+    }
+
+    // Instant offline fallback using NativeTaskAiEngine
+    final candidates = input.contains('\n') ||
+            input.toLowerCase().contains('assignment') ||
+            input.toLowerCase().contains('exam') ||
+            input.toLowerCase().contains('quiz') ||
+            input.toLowerCase().contains('syllabus')
+        ? NativeTaskAiEngine.extractTasksFromDocumentText(input, now)
+        : NativeTaskAiEngine.extractTasksFromBrainDump(input, now);
+
+    return candidates.map((c) => c.toMap()).toList();
+  }
+
+  /// Parses natural meal descriptions, photos, or packaged nutrition labels into
+  /// draft [DietLogEntry] items with Gemini cloud AI and NativeDietAiEngine fallback.
+  Future<List<DietLogEntry>> parseMealDescriptionWithAi(
+    String input, {
+    Uint8List? imageBytes,
+    String? mimeType,
+    MealSlot defaultSlot = MealSlot.lunch,
+    String? dateIso,
+  }) async {
+    final effectiveDate = dateIso ??
+        DateTime.now().toIso8601String().split('T').first;
+    final repo = DietRepository.instance;
+
+    if (isConfigured) {
+      try {
+        final client = GeminiClient();
+        final promptText = '''
+You are a precision clinical and sports dietitian. Parse the following meal description, photo, or nutrition label into individual food items.
+Consider Indian regional foods (Kerala, South/North Indian) and household units (katori, cup, roti, appam, dosa, idli, glass, piece, tbsp, g).
+Return a JSON array ONLY with NO markdown fences, following this exact schema:
+[
+  {
+    "title": "Kerala Appam",
+    "quantity": 2.0,
+    "unit": "appam",
+    "gramsTotal": 110.0,
+    "kcal": 192.0,
+    "proteinG": 2.8,
+    "carbsG": 39.6,
+    "fatG": 2.0,
+    "fibreG": 1.3,
+    "confidence": "approximate",
+    "allergenWarnings": []
+  }
+]
+Input text:
+$input
+''';
+
+        final parts = <Map<String, dynamic>>[];
+        if (imageBytes != null && imageBytes.isNotEmpty) {
+          parts.add({
+            'inline_data': {
+              'mime_type': mimeType ?? 'image/jpeg',
+              'data': base64Encode(imageBytes),
+            }
+          });
+        }
+        parts.add({'text': promptText});
+
+        final requestBody = {
+          'contents': [
+            {'parts': parts}
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'responseMimeType': 'application/json',
+          }
+        };
+
+        final result = await client.generateContent(
+          requestBody: requestBody,
+          apiKey: activeApiKey,
+        );
+
+        if (result.isSuccess && result.text != null && result.text!.trim().isNotEmpty) {
+          final cleanJson = result.text!.replaceAll(RegExp(r'^```json\s*|```$'), '').trim();
+          final decoded = jsonDecode(cleanJson);
+          if (decoded is List) {
+            final draftList = <DietLogEntry>[];
+            int counter = 0;
+            for (final item in decoded) {
+              if (item is Map) {
+                final m = Map<String, dynamic>.from(item);
+                draftList.add(
+                  DietLogEntry(
+                    id: 'draft_ai_${DateTime.now().millisecondsSinceEpoch}_${counter++}',
+                    dateIso: effectiveDate,
+                    mealSlot: defaultSlot,
+                    title: m['title']?.toString() ?? 'Logged Item',
+                    quantity: (m['quantity'] as num?)?.toDouble() ?? 1.0,
+                    unit: HouseholdUnit.fromString(m['unit']?.toString() ?? 'serving'),
+                    gramsTotal: (m['gramsTotal'] as num?)?.toDouble() ?? 100.0,
+                    kcal: (m['kcal'] as num?)?.toDouble() ?? 150.0,
+                    proteinG: (m['proteinG'] as num?)?.toDouble() ?? 5.0,
+                    carbsG: (m['carbsG'] as num?)?.toDouble() ?? 20.0,
+                    fatG: (m['fatG'] as num?)?.toDouble() ?? 5.0,
+                    fibreG: (m['fibreG'] as num?)?.toDouble() ?? 2.0,
+                    confidence: FoodConfidence.approximate,
+                    allergenWarnings: List<String>.from(m['allergenWarnings'] ?? const []),
+                    notes: 'Parsed via Gemini Cloud AI',
+                  ),
+                );
+              }
+            }
+            if (draftList.isNotEmpty) {
+              return draftList;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('parseMealDescriptionWithAi cloud call failed, using native engine: $e');
+      }
+    }
+
+    // Offline native AI fallback
+    return NativeDietAiEngine.parseMealTextToDraftLogs(
+      text: input,
+      db: repo.foods,
+      dateIso: effectiveDate,
+      defaultSlot: defaultSlot,
+      userAllergies: repo.profile.allergies,
+    );
+  }
+
+  /// Generates a complete daily or weekly meal plan with Gemini cloud AI
+  /// and NativeDietAiEngine fallback.
+  Future<List<PlannedMealItem>> generateSmartMealPlanWithAi({
+    required NutritionProfile profile,
+    required List<String> pantryItems,
+    String? dateIso,
+  }) async {
+    final effectiveDate = dateIso ??
+        DateTime.now().toIso8601String().split('T').first;
+    final repo = DietRepository.instance;
+
+    if (isConfigured) {
+      try {
+        final client = GeminiClient();
+        final promptText = '''
+You are a sports nutritionist. Generate a balanced 1-day meal plan (breakfast, lunch, snack, dinner) for this user:
+Goal: ${profile.goal.label}
+Pantry ingredients available: ${pantryItems.join(', ')}
+Dietary pattern: ${profile.dietaryPattern.label}
+Allergies/Avoid: ${profile.allergies.join(', ')}
+Max cook time: ${profile.maxCookTimeMin} minutes
+Return a JSON array ONLY with NO markdown fences, following this exact schema:
+[
+  {
+    "mealSlot": "breakfast",
+    "title": "Steamed Idli with Sambar",
+    "servings": 1.0,
+    "kcal": 320.0,
+    "proteinG": 12.0,
+    "carbsG": 55.0,
+    "fatG": 4.5,
+    "fibreG": 6.0,
+    "prepTimeMin": 15,
+    "estimatedCostInr": 35.0,
+    "whySuggested": "High fibre and gentle on morning digestion"
+  }
+]
+''';
+
+        final requestBody = {
+          'contents': [
+            {
+              'parts': [
+                {'text': promptText}
+              ]
+            }
+          ],
+          'generationConfig': {
+            'temperature': 0.2,
+            'responseMimeType': 'application/json',
+          }
+        };
+
+        final result = await client.generateContent(
+          requestBody: requestBody,
+          apiKey: activeApiKey,
+        );
+
+        if (result.isSuccess && result.text != null && result.text!.trim().isNotEmpty) {
+          final cleanJson = result.text!.replaceAll(RegExp(r'^```json\s*|```$'), '').trim();
+          final decoded = jsonDecode(cleanJson);
+          if (decoded is List) {
+            final plan = <PlannedMealItem>[];
+            int counter = 0;
+            for (final item in decoded) {
+              if (item is Map) {
+                final m = Map<String, dynamic>.from(item);
+                plan.add(
+                  PlannedMealItem(
+                    id: 'plan_cloud_${DateTime.now().millisecondsSinceEpoch}_${counter++}',
+                    dateIso: effectiveDate,
+                    mealSlot: MealSlot.fromString(m['mealSlot']?.toString() ?? 'lunch'),
+                    title: m['title']?.toString() ?? 'Balanced Meal',
+                    servings: (m['servings'] as num?)?.toDouble() ?? 1.0,
+                    kcal: (m['kcal'] as num?)?.toDouble() ?? 400.0,
+                    proteinG: (m['proteinG'] as num?)?.toDouble() ?? 20.0,
+                    carbsG: (m['carbsG'] as num?)?.toDouble() ?? 50.0,
+                    fatG: (m['fatG'] as num?)?.toDouble() ?? 12.0,
+                    fibreG: (m['fibreG'] as num?)?.toDouble() ?? 6.0,
+                    prepTimeMin: (m['prepTimeMin'] as num?)?.toInt() ?? 20,
+                    estimatedCostInr: (m['estimatedCostInr'] as num?)?.toDouble() ?? 50.0,
+                    whySuggested: m['whySuggested']?.toString() ?? 'Optimized for your targets',
+                  ),
+                );
+              }
+            }
+            if (plan.isNotEmpty) {
+              return plan;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('generateSmartMealPlanWithAi cloud call failed, using native engine: $e');
+      }
+    }
+
+    // Offline native AI fallback
+    return NativeDietAiEngine.generatePlanFromPantry(
+      availableIngredients: pantryItems,
+      profile: profile,
+      foods: repo.foods,
+      dateIso: effectiveDate,
+    );
   }
 }
