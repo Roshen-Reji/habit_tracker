@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
 
 /// Apple iOS 18 / ColorOS 15 style sliding segmented control for workspace switching.
 ///
@@ -11,13 +10,12 @@ class SlidingWorkspacePillBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onWorkspaceSelected;
   final int inboxBadgeCount;
+  final List<String> titles;
 
-  static const List<String> workspaceTitles = [
-    'Today',
-    'Upcoming',
-    'Inbox',
-    'Academic',
-    'Board',
+  static const List<String> defaultWorkspaceTitles = [
+    'Tasks',
+    'Habits',
+    'Academics',
   ];
 
   const SlidingWorkspacePillBar({
@@ -25,26 +23,27 @@ class SlidingWorkspacePillBar extends StatelessWidget {
     required this.selectedIndex,
     required this.onWorkspaceSelected,
     this.inboxBadgeCount = 0,
+    this.titles = defaultWorkspaceTitles,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      height: 40,
+      height: 44,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: BentoTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: BentoTheme.divider),
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: colorScheme.outlineVariant, width: 1),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tabCount = workspaceTitles.length;
+          final tabCount = titles.length;
           final tabWidth = constraints.maxWidth / tabCount;
 
-          // Convert selectedIndex (0..tabCount-1) to an Alignment.x between -1.0 and 1.0
-          // x = -1.0 + (2.0 / (tabCount - 1)) * selectedIndex
           final alignmentX = tabCount > 1
               ? -1.0 + (2.0 / (tabCount - 1)) * selectedIndex
               : 0.0;
@@ -58,17 +57,10 @@ class SlidingWorkspacePillBar extends StatelessWidget {
                 curve: const Cubic(0.22, 1.0, 0.36, 1.0),
                 child: Container(
                   width: tabWidth,
-                  height: 34,
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: BentoTheme.accent,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: BentoTheme.accent.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
               ),
@@ -76,7 +68,7 @@ class SlidingWorkspacePillBar extends StatelessWidget {
               Row(
                 children: List.generate(tabCount, (index) {
                   final isSelected = selectedIndex == index;
-                  final title = workspaceTitles[index];
+                  final title = titles[index];
                   final isInbox = title == 'Inbox';
 
                   return Expanded(
@@ -89,7 +81,7 @@ class SlidingWorkspacePillBar extends StatelessWidget {
                         }
                       },
                       child: Container(
-                        height: 34,
+                        height: 36,
                         alignment: Alignment.center,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -103,8 +95,8 @@ class SlidingWorkspacePillBar extends StatelessWidget {
                                   curve: Curves.easeOutCubic,
                                   style: TextStyle(
                                     color: isSelected
-                                        ? Colors.black
-                                        : BentoTheme.textSecondary,
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
                                     fontSize: 13,
                                     fontWeight: isSelected
                                         ? FontWeight.w800
@@ -119,21 +111,22 @@ class SlidingWorkspacePillBar extends StatelessWidget {
                               const SizedBox(width: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1.5,
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Colors.black.withValues(alpha: 0.2)
-                                      : BentoTheme.accent.withValues(alpha: 0.2),
+                                      ? colorScheme.onPrimaryContainer
+                                          .withValues(alpha: 0.2)
+                                      : colorScheme.secondaryContainer,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   '$inboxBadgeCount',
                                   style: TextStyle(
                                     color: isSelected
-                                        ? Colors.black
-                                        : BentoTheme.accent,
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSecondaryContainer,
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
                                   ),

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 
 /// Pure Dart native on-device AI engine for meal parsing, smart swaps,

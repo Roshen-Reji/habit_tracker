@@ -1,5 +1,4 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -153,19 +152,14 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
           context,
           MaterialPageRoute(
               builder: (context) => SamsungVideoAssistant(speech: speech))),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surface.withValues(alpha: 0.4),
-              gradient: AppTheme.glassGradient,
-              borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
-            ),
-            child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1.0),
+        ),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
@@ -204,9 +198,7 @@ class _SpeechVaultPageState extends State<SpeechVaultPage> {
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 }
 
@@ -525,22 +517,16 @@ class _SamsungVideoAssistantState extends State<SamsungVideoAssistant> {
   // Helper method for the beautiful glass UI buttons
   Widget _buildGlassButton(IconData icon, VoidCallback onTap,
       {Color color = Colors.white}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2F363C),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF454E56)),
         ),
+        child: Icon(icon, color: color, size: 24),
       ),
     );
   }

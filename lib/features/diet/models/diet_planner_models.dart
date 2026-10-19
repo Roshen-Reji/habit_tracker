@@ -184,6 +184,15 @@ class NutritionProfile {
   final int sleepHour;
   final double? customProteinTargetG;
   final double? customFibreTargetG;
+  final double? targetCalories;
+  final double? targetProteinG;
+  final double? targetCarbsG;
+  final double? targetFatG;
+  final double? targetWaterMl;
+
+  // Convenience aliases for domain specification compliance
+  double get weightKg => currentWeightKg;
+  String get gender => sex.name;
 
   const NutritionProfile({
     this.age = 24,
@@ -211,6 +220,11 @@ class NutritionProfile {
     this.sleepHour = 23,
     this.customProteinTargetG,
     this.customFibreTargetG,
+    this.targetCalories,
+    this.targetProteinG,
+    this.targetCarbsG,
+    this.targetFatG,
+    this.targetWaterMl,
   });
 
   NutritionProfile copyWith({
@@ -235,6 +249,11 @@ class NutritionProfile {
     int? sleepHour,
     double? customProteinTargetG,
     double? customFibreTargetG,
+    double? targetCalories,
+    double? targetProteinG,
+    double? targetCarbsG,
+    double? targetFatG,
+    double? targetWaterMl,
   }) {
     return NutritionProfile(
       age: age ?? this.age,
@@ -258,6 +277,11 @@ class NutritionProfile {
       sleepHour: sleepHour ?? this.sleepHour,
       customProteinTargetG: customProteinTargetG ?? this.customProteinTargetG,
       customFibreTargetG: customFibreTargetG ?? this.customFibreTargetG,
+      targetCalories: targetCalories ?? this.targetCalories,
+      targetProteinG: targetProteinG ?? this.targetProteinG,
+      targetCarbsG: targetCarbsG ?? this.targetCarbsG,
+      targetFatG: targetFatG ?? this.targetFatG,
+      targetWaterMl: targetWaterMl ?? this.targetWaterMl,
     );
   }
 
@@ -283,6 +307,11 @@ class NutritionProfile {
         'sleepHour': sleepHour,
         'customProteinTargetG': customProteinTargetG,
         'customFibreTargetG': customFibreTargetG,
+        'targetCalories': targetCalories,
+        'targetProteinG': targetProteinG,
+        'targetCarbsG': targetCarbsG,
+        'targetFatG': targetFatG,
+        'targetWaterMl': targetWaterMl,
       };
 
   factory NutritionProfile.fromJson(Map<String, dynamic> json) {
@@ -321,8 +350,138 @@ class NutritionProfile {
       sleepHour: (json['sleepHour'] as num?)?.toInt() ?? 23,
       customProteinTargetG: (json['customProteinTargetG'] as num?)?.toDouble(),
       customFibreTargetG: (json['customFibreTargetG'] as num?)?.toDouble(),
+      targetCalories: (json['targetCalories'] as num?)?.toDouble(),
+      targetProteinG: (json['targetProteinG'] as num?)?.toDouble(),
+      targetCarbsG: (json['targetCarbsG'] as num?)?.toDouble(),
+      targetFatG: (json['targetFatG'] as num?)?.toDouble(),
+      targetWaterMl: (json['targetWaterMl'] as num?)?.toDouble(),
     );
   }
+}
+
+/// User-saved custom food item for fast 1-tap logging.
+class CustomFoodItem {
+  final String id;
+  final String name;
+  final String servingLabel;
+  final double calories;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+
+  const CustomFoodItem({
+    required this.id,
+    required this.name,
+    this.servingLabel = '1 serving',
+    required this.calories,
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'servingLabel': servingLabel,
+        'calories': calories,
+        'proteinG': proteinG,
+        'carbsG': carbsG,
+        'fatG': fatG,
+      };
+
+  factory CustomFoodItem.fromJson(Map<String, dynamic> json) => CustomFoodItem(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        servingLabel: json['servingLabel'] as String? ?? '1 serving',
+        calories: (json['calories'] as num?)?.toDouble() ?? 0.0,
+        proteinG: (json['proteinG'] as num?)?.toDouble() ?? 0.0,
+        carbsG: (json['carbsG'] as num?)?.toDouble() ?? 0.0,
+        fatG: (json['fatG'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Structured meal log entry per slot.
+class MealLogEntry {
+  final String id;
+  final String dateKey; // YYYY-MM-DD
+  final MealSlot mealSlot;
+  final String name;
+  final double servings;
+  final double calories;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+  final DateTime loggedAt;
+
+  MealLogEntry({
+    required this.id,
+    required this.dateKey,
+    required this.mealSlot,
+    required this.name,
+    this.servings = 1.0,
+    required this.calories,
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
+    DateTime? loggedAt,
+  }) : loggedAt = loggedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'dateKey': dateKey,
+        'mealSlot': mealSlot.name,
+        'name': name,
+        'servings': servings,
+        'calories': calories,
+        'proteinG': proteinG,
+        'carbsG': carbsG,
+        'fatG': fatG,
+        'loggedAt': loggedAt.toIso8601String(),
+      };
+
+  factory MealLogEntry.fromJson(Map<String, dynamic> json) => MealLogEntry(
+        id: json['id'] as String,
+        dateKey: json['dateKey'] as String? ?? json['dateIso'] as String? ?? '',
+        mealSlot: MealSlot.fromString(json['mealSlot'] as String? ?? 'lunch'),
+        name: json['name'] as String? ?? json['title'] as String? ?? '',
+        servings: (json['servings'] as num?)?.toDouble() ??
+            (json['quantity'] as num?)?.toDouble() ??
+            1.0,
+        calories: (json['calories'] as num?)?.toDouble() ??
+            (json['kcal'] as num?)?.toDouble() ??
+            0.0,
+        proteinG: (json['proteinG'] as num?)?.toDouble() ?? 0.0,
+        carbsG: (json['carbsG'] as num?)?.toDouble() ?? 0.0,
+        fatG: (json['fatG'] as num?)?.toDouble() ?? 0.0,
+        loggedAt: DateTime.tryParse(json['loggedAt'] as String? ?? '') ?? DateTime.now(),
+      );
+
+  DietLogEntry toDietLogEntry() => DietLogEntry(
+        id: id,
+        dateIso: dateKey,
+        mealSlot: mealSlot,
+        title: name,
+        quantity: servings,
+        gramsTotal: servings * 100.0,
+        kcal: calories,
+        proteinG: proteinG,
+        carbsG: carbsG,
+        fatG: fatG,
+        loggedAt: loggedAt,
+      );
+
+  factory MealLogEntry.fromDietLogEntry(DietLogEntry entry) => MealLogEntry(
+        id: entry.id,
+        dateKey: entry.dateIso,
+        mealSlot: entry.mealSlot,
+        name: entry.title,
+        servings: entry.quantity,
+        calories: entry.kcal,
+        proteinG: entry.proteinG,
+        carbsG: entry.carbsG,
+        fatG: entry.fatG,
+        loggedAt: entry.loggedAt,
+      );
 }
 
 /// Food database master record.

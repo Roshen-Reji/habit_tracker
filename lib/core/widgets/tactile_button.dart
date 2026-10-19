@@ -158,72 +158,67 @@ class _TactileButtonState extends State<TactileButton>
     }
   }
 
-  Color _backgroundColor() {
-    if (!_isEnabled) return const Color(0xFF1E2127);
+  Color _backgroundColor(ColorScheme cs) {
+    if (!_isEnabled) return cs.surfaceContainerHighest;
 
     switch (widget.variant) {
       case TactileButtonVariant.primary:
         return _isPressed
-            ? const Color(0xFFE03E18)
-            : TactileTokens.vermilion;
+            ? cs.primary.withValues(alpha: 0.85)
+            : cs.primary;
       case TactileButtonVariant.secondary:
         return _isPressed
-            ? TactileTokens.surfacePressed
-            : TactileTokens.surfaceRaised;
+            ? cs.surfaceContainerHighest
+            : cs.secondaryContainer;
       case TactileButtonVariant.destructive:
         return _isPressed
-            ? const Color(0xFFD62947)
-            : TactileTokens.destructive;
+            ? cs.error.withValues(alpha: 0.85)
+            : cs.error;
       case TactileButtonVariant.ghost:
         return _isPressed
-            ? const Color(0x14FFFFFF)
+            ? cs.surfaceContainerHighest
             : Colors.transparent;
       case TactileButtonVariant.outline:
         return _isPressed
-            ? TactileTokens.surfacePressed
-            : const Color(0xFF121418);
+            ? cs.surfaceContainerHighest
+            : cs.surfaceContainer;
     }
   }
 
-  Color _foregroundColor() {
-    if (!_isEnabled) return TactileTokens.textDisabled;
+  Color _foregroundColor(ColorScheme cs) {
+    if (!_isEnabled) return cs.onSurface.withValues(alpha: 0.38);
 
     switch (widget.variant) {
       case TactileButtonVariant.primary:
+        return cs.onPrimary;
       case TactileButtonVariant.destructive:
-        return Colors.white;
+        return cs.onError;
       case TactileButtonVariant.secondary:
+        return cs.onSecondaryContainer;
       case TactileButtonVariant.outline:
-        return TactileTokens.textPrimary;
       case TactileButtonVariant.ghost:
-        return TactileTokens.textPrimary;
+        return cs.onSurface;
     }
   }
 
-  Border? _border() {
+  Border? _border(ColorScheme cs) {
     if (!_isEnabled) {
-      return Border.all(color: const Color(0x0AFFFFFF), width: 1.0);
+      return Border.all(color: cs.outlineVariant.withValues(alpha: 0.5), width: 1.0);
     }
 
     switch (widget.variant) {
       case TactileButtonVariant.primary:
-        return Border.all(
-          color: Colors.white.withValues(alpha: 0.25),
-          width: 1.0,
-        );
+        return null;
       case TactileButtonVariant.secondary:
         return Border.all(
-          color: const Color(0x18FFFFFF),
+          color: cs.outlineVariant,
           width: 1.0,
         );
       case TactileButtonVariant.destructive:
-        return Border.all(
-          color: Colors.white.withValues(alpha: 0.20),
-          width: 1.0,
-        );
+        return null;
       case TactileButtonVariant.outline:
         return Border.all(
-          color: const Color(0x22FFFFFF),
+          color: cs.outlineVariant,
           width: 1.0,
         );
       case TactileButtonVariant.ghost:
@@ -233,7 +228,8 @@ class _TactileButtonState extends State<TactileButton>
 
   @override
   Widget build(BuildContext context) {
-    final fg = _foregroundColor();
+    final cs = Theme.of(context).colorScheme;
+    final fg = _foregroundColor(cs);
 
     Widget content;
     if (widget.isLoading) {
@@ -301,37 +297,37 @@ class _TactileButtonState extends State<TactileButton>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            final progress = _controller.value.clamp(0.0, 1.2);
+            final progress = _controller.value.clamp(0.0, 1.0);
             final scale = 1.0 - (progress * (1.0 - MotionTokens.buttonPressScale));
+            final currentRadius = widget.borderRadius + (14.0 - widget.borderRadius) * progress;
             return Transform.scale(
               scale: scale,
-              child: child,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOutCubic,
+                width: widget.width,
+                height: _resolvedHeight,
+                padding: _resolvedPadding,
+                decoration: BoxDecoration(
+                  color: _backgroundColor(cs),
+                  borderRadius: BorderRadius.circular(currentRadius),
+                  border: _border(cs),
+                  boxShadow: _isEnabled &&
+                          widget.variant != TactileButtonVariant.ghost &&
+                          !_isPressed
+                      ? [
+                          const BoxShadow(
+                            color: Color(0x38000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(child: content),
+              ),
             );
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            curve: Curves.easeOutCubic,
-            width: widget.width,
-            height: _resolvedHeight,
-            padding: _resolvedPadding,
-            decoration: BoxDecoration(
-              color: _backgroundColor(),
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-              border: _border(),
-              boxShadow: _isEnabled &&
-                      widget.variant != TactileButtonVariant.ghost &&
-                      !_isPressed
-                  ? [
-                      const BoxShadow(
-                        color: Color(0x38000000),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Center(child: content),
-          ),
         ),
       ),
     );
@@ -399,13 +395,14 @@ class _TactileIconButtonState extends State<TactileIconButton>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isEnabled = widget.onPressed != null;
     final fg = widget.color ??
-        (isEnabled ? TactileTokens.textPrimary : TactileTokens.textDisabled);
+        (isEnabled ? cs.onSurface : cs.onSurface.withValues(alpha: 0.38));
     final bg = widget.backgroundColor ??
         (_isPressed
-            ? TactileTokens.surfacePressed
-            : TactileTokens.surfaceRaised);
+            ? cs.surfaceContainerHighest
+            : cs.surfaceContainerHigh);
 
     Widget button = ConstrainedBox(
       constraints: const BoxConstraints(
@@ -547,7 +544,8 @@ class _TactileCheckboxState extends State<TactileCheckbox>
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = widget.activeColor ?? TactileTokens.mint;
+    final cs = Theme.of(context).colorScheme;
+    final activeColor = widget.activeColor ?? cs.primary;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(
@@ -572,12 +570,12 @@ class _TactileCheckboxState extends State<TactileCheckbox>
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: widget.value ? activeColor : TactileTokens.surfaceSunken,
-                borderRadius: BorderRadius.circular(6.0),
+                color: widget.value ? activeColor : cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(widget.value ? 6.0 : 11.0),
                 border: Border.all(
                   color: widget.value
                       ? activeColor
-                      : const Color(0x33FFFFFF),
+                      : cs.outlineVariant,
                   width: 1.2,
                 ),
                 boxShadow: widget.value

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
@@ -9,7 +6,8 @@ import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 import 'package:habit_tracker/features/diet/engine/nutrition_science_engine.dart';
 
 /// Modal bottom sheet for configuring the user's physiological profile,
-/// dietary pattern, allergies, budget, cook time, and Habit Focus (Hide Calories) mode.
+/// body metrics, auto-calculated targets with clinical safety floor,
+/// and direct manual calorie/macro targets editing.
 class NutritionProfileSheet extends StatefulWidget {
   const NutritionProfileSheet({super.key});
 
@@ -28,49 +26,47 @@ class NutritionProfileSheet extends StatefulWidget {
 class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
   late NutritionProfile _profile;
 
+  // Body Metrics
   late TextEditingController _ageCtrl;
   late TextEditingController _heightCtrl;
   late TextEditingController _currentWeightCtrl;
   late TextEditingController _targetWeightCtrl;
-  late TextEditingController _budgetCtrl;
-  late TextEditingController _cookTimeCtrl;
-  late TextEditingController _customProteinCtrl;
 
-  static const List<String> _commonAllergens = [
-    'Gluten',
-    'Dairy',
-    'Nuts',
-    'Eggs',
-    'Fish',
-    'Soy',
-    'Shellfish',
-  ];
-
-  static const List<String> _commonCuisines = [
-    'Kerala / South Indian',
-    'North Indian',
-    'High-Protein Quick',
-    'Mediterranean',
-  ];
+  // Daily Targets (Manual Overrides or Auto-Calculated)
+  late TextEditingController _targetCaloriesCtrl;
+  late TextEditingController _targetProteinCtrl;
+  late TextEditingController _targetCarbsCtrl;
+  late TextEditingController _targetFatCtrl;
+  late TextEditingController _targetWaterCtrl;
 
   @override
   void initState() {
     super.initState();
     _profile = DietRepository.instance.profile;
+    final targets = DietRepository.instance.dailyTargets;
+
     _ageCtrl = TextEditingController(text: _profile.age.toString());
     _heightCtrl = TextEditingController(text: _profile.heightCm.toStringAsFixed(0));
     _currentWeightCtrl =
         TextEditingController(text: _profile.currentWeightKg.toStringAsFixed(1));
     _targetWeightCtrl =
         TextEditingController(text: _profile.targetWeightKg.toStringAsFixed(1));
-    _budgetCtrl =
-        TextEditingController(text: _profile.weeklyBudgetInr.toStringAsFixed(0));
-    _cookTimeCtrl =
-        TextEditingController(text: _profile.maxCookTimeMin.toString());
-    _customProteinCtrl = TextEditingController(
-        text: _profile.customProteinTargetG != null
-            ? _profile.customProteinTargetG!.toStringAsFixed(0)
-            : '');
+
+    _targetCaloriesCtrl = TextEditingController(
+      text: (_profile.targetCalories ?? targets.targetKcal).round().toString(),
+    );
+    _targetProteinCtrl = TextEditingController(
+      text: (_profile.targetProteinG ?? targets.proteinG).round().toString(),
+    );
+    _targetCarbsCtrl = TextEditingController(
+      text: (_profile.targetCarbsG ?? targets.carbsG).round().toString(),
+    );
+    _targetFatCtrl = TextEditingController(
+      text: (_profile.targetFatG ?? targets.fatG).round().toString(),
+    );
+    _targetWaterCtrl = TextEditingController(
+      text: (_profile.targetWaterMl ?? targets.waterMl).round().toString(),
+    );
   }
 
   @override
@@ -79,14 +75,48 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
     _heightCtrl.dispose();
     _currentWeightCtrl.dispose();
     _targetWeightCtrl.dispose();
-    _budgetCtrl.dispose();
-    _cookTimeCtrl.dispose();
-    _customProteinCtrl.dispose();
+    _targetCaloriesCtrl.dispose();
+    _targetProteinCtrl.dispose();
+    _targetCarbsCtrl.dispose();
+    _targetFatCtrl.dispose();
+    _targetWaterCtrl.dispose();
     super.dispose();
   }
 
-  DailyTargets _previewTargets() {
-    return NutritionScienceEngine.computeDailyTargets(_profile);
+  void _autoCalculateFromMetrics() {
+    final age = int.tryParse(_ageCtrl.text) ?? _profile.age;
+    final height = double.tryParse(_heightCtrl.text) ?? _profile.heightCm;
+    final currentWeight =
+        double.tryParse(_currentWeightCtrl.text) ?? _profile.currentWeightKg;
+    final targetWeight =
+        double.tryParse(_targetWeightCtrl.text) ?? _profile.targetWeightKg;
+
+    final tempProfile = _profile.copyWith(
+      age: age,
+      heightCm: height,
+      currentWeightKg: currentWeight,
+      targetWeightKg: targetWeight,
+    );
+
+    final auto = NutritionScienceEngine.calculateTargetsFromMetrics(tempProfile);
+
+    setState(() {
+      _profile = tempProfile;
+      _targetCaloriesCtrl.text = auto.targetKcal.round().toString();
+      _targetProteinCtrl.text = auto.proteinG.round().toString();
+      _targetCarbsCtrl.text = auto.carbsG.round().toString();
+      _targetFatCtrl.text = auto.fatG.round().toString();
+      _targetWaterCtrl.text = auto.waterMl.round().toString();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Calculated: ${auto.targetKcal.round()} kcal (${auto.explanation})',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _saveProfile() async {
@@ -96,18 +126,24 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
         double.tryParse(_currentWeightCtrl.text) ?? _profile.currentWeightKg;
     final targetWeight =
         double.tryParse(_targetWeightCtrl.text) ?? _profile.targetWeightKg;
-    final budget = double.tryParse(_budgetCtrl.text) ?? _profile.weeklyBudgetInr;
-    final cookTime = int.tryParse(_cookTimeCtrl.text) ?? _profile.maxCookTimeMin;
-    final customProtein = double.tryParse(_customProteinCtrl.text);
+
+    final targetCalories = double.tryParse(_targetCaloriesCtrl.text);
+    final targetProtein = double.tryParse(_targetProteinCtrl.text);
+    final targetCarbs = double.tryParse(_targetCarbsCtrl.text);
+    final targetFat = double.tryParse(_targetFatCtrl.text);
+    final targetWater = double.tryParse(_targetWaterCtrl.text);
 
     final updated = _profile.copyWith(
       age: age,
       heightCm: height,
       currentWeightKg: currentWeight,
       targetWeightKg: targetWeight,
-      weeklyBudgetInr: budget,
-      maxCookTimeMin: cookTime,
-      customProteinTargetG: customProtein,
+      targetCalories: targetCalories,
+      targetProteinG: targetProtein,
+      customProteinTargetG: targetProtein,
+      targetCarbsG: targetCarbs,
+      targetFatG: targetFat,
+      targetWaterMl: targetWater,
     );
 
     await DietRepository.instance.updateProfile(updated);
@@ -116,123 +152,61 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final preview = _previewTargets();
-    final accent = BentoTheme.accent;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Dynamic calculation banner
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: accent.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(LucideIcons.sparkles, size: 18, color: accent),
-                    const SizedBox(width: 8),
-                    Text(
-                      _profile.hideCaloriesMode
-                          ? 'Habit Focus Mode Active'
-                          : 'Target: ${preview.targetKcal.round()} kcal / day',
-                      style: TextStyle(
-                        color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+          // Section 1: Physical Metrics
+          _sectionHeader('BODY METRICS', Icons.straighten_rounded),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _m3TextField(
+                  label: 'Age',
+                  controller: _ageCtrl,
+                  suffix: 'yrs',
+                  keyboardType: TextInputType.number,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  preview.explanation,
-                  style: TextStyle(
-                    color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _macroPreviewPill('Protein', '${preview.proteinG.round()}g', AppColors.primary),
-                    _macroPreviewPill('Fibre', '${preview.fibreG.round()}g', AppColors.success),
-                    _macroPreviewPill('Carbs', '${preview.carbsG.round()}g', AppColors.warning),
-                    _macroPreviewPill('Fats', '${preview.fatG.round()}g', const Color(0xFFE57373)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Habit Mode (Hide Calories) Switch
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: BentoTheme.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: _profile.hideCaloriesMode
-                    ? accent.withValues(alpha: 0.6)
-                    : (BentoTheme.isDark ? Colors.white10 : Colors.black12),
               ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Habit Focus Mode (Hide Calories)',
-                        style: TextStyle(
-                          color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Focuses on plate balance, protein portions, and regularity without displaying calorie numbers.',
-                        style: TextStyle(
-                          color: BentoTheme.isDark ? Colors.white60 : Colors.black45,
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _m3TextField(
+                  label: 'Height',
+                  controller: _heightCtrl,
+                  suffix: 'cm',
+                  keyboardType: TextInputType.number,
                 ),
-                Switch(
-                  value: _profile.hideCaloriesMode,
-                  activeColor: accent,
-                  onChanged: (val) {
-                    setState(() {
-                      _profile = _profile.copyWith(hideCaloriesMode: val);
-                    });
-                  },
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _m3TextField(
+                  label: 'Weight',
+                  controller: _currentWeightCtrl,
+                  suffix: 'kg',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // Biological Sex
-          _sectionTitle('Biological Sex (Mifflin-St Jeor)'),
-          const SizedBox(height: 8),
+          Text(
+            'Biological Sex (BMR Calculation)',
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
           Row(
             children: BiologicalSex.values.map((sex) {
-              final isSel = _profile.sex == sex;
+              final isSelected = _profile.sex == sex;
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -241,20 +215,24 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: isSel ? accent : BentoTheme.surface,
-                        borderRadius: BorderRadius.circular(10),
+                        color: isSelected
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isSel
-                              ? accent
-                              : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant,
                         ),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         sex.name[0].toUpperCase() + sex.name.substring(1),
                         style: TextStyle(
-                          color: isSel ? Colors.black : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? colorScheme.onPrimaryContainer
+                              : colorScheme.onSurface,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           fontSize: 13,
                         ),
                       ),
@@ -266,124 +244,71 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
           ),
           const SizedBox(height: 16),
 
-          // Physical metrics row
-          _sectionTitle('Physical Metrics'),
+          // Goal (Cut / Maintain / Bulk)
+          _sectionHeader('PRIMARY GOAL', Icons.flag_rounded),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                child: _inputBox(
-                  label: 'Age',
-                  ctrl: _ageCtrl,
-                  suffix: 'yrs',
-                  onChanged: (v) {
-                    final n = int.tryParse(v);
-                    if (n != null) setState(() => _profile = _profile.copyWith(age: n));
-                  },
-                ),
-              ),
+              _goalPill('Cut', DietGoal.gradualLoss, 'Fat Loss'),
               const SizedBox(width: 8),
-              Expanded(
-                child: _inputBox(
-                  label: 'Height',
-                  ctrl: _heightCtrl,
-                  suffix: 'cm',
-                  onChanged: (v) {
-                    final n = double.tryParse(v);
-                    if (n != null) setState(() => _profile = _profile.copyWith(heightCm: n));
-                  },
-                ),
-              ),
+              _goalPill('Maintain', DietGoal.maintain, 'Maintain'),
               const SizedBox(width: 8),
-              Expanded(
-                child: _inputBox(
-                  label: 'Weight',
-                  ctrl: _currentWeightCtrl,
-                  suffix: 'kg',
-                  onChanged: (v) {
-                    final n = double.tryParse(v);
-                    if (n != null) setState(() => _profile = _profile.copyWith(currentWeightKg: n));
-                  },
-                ),
-              ),
+              _goalPill('Bulk', DietGoal.gradualGain, 'Muscle Gain'),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Primary Goal
-          _sectionTitle('Primary Goal'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: DietGoal.values.map((goal) {
-              final isSel = _profile.goal == goal;
-              return PressScale(
-                onTap: () => setState(() => _profile = _profile.copyWith(goal: goal)),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSel ? accent.withValues(alpha: 0.2) : BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
-                    ),
-                  ),
-                  child: Text(
-                    goal.label,
-                    style: TextStyle(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                      fontSize: 12,
-                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-
           // Activity Level
-          _sectionTitle('Activity Level (Training & Work)'),
+          _sectionHeader('ACTIVITY LEVEL', Icons.fitness_center_rounded),
           const SizedBox(height: 8),
           ...PhysicalActivityLevel.values.map((lvl) {
-            final isSel = _profile.activityLevel == lvl;
+            final isSelected = _profile.activityLevel == lvl;
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: PressScale(
                 onTap: () => setState(() => _profile = _profile.copyWith(activityLevel: lvl)),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? accent.withValues(alpha: 0.15) : BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
+                    color: isSelected
+                        ? colorScheme.primaryContainer
+                        : colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white10 : Colors.black12),
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.outlineVariant,
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        isSel ? LucideIcons.checkCircle2 : LucideIcons.circle,
-                        size: 16,
-                        color: isSel ? accent : Colors.grey,
+                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        size: 18,
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           lvl.label,
                           style: TextStyle(
-                            color: BentoTheme.isDark ? Colors.white : Colors.black87,
+                            color: isSelected
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onSurface,
                             fontSize: 12,
-                            fontWeight: isSel ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           ),
                         ),
                       ),
                       Text(
                         '${lvl.multiplier}x',
                         style: TextStyle(
-                          color: isSel ? accent : Colors.grey,
-                          fontSize: 11,
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -395,165 +320,140 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
           }),
           const SizedBox(height: 16),
 
-          // Dietary Pattern
-          _sectionTitle('Dietary Pattern'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: DietaryPattern.values.map((pat) {
-              final isSel = _profile.dietaryPattern == pat;
-              return PressScale(
-                onTap: () => setState(() => _profile = _profile.copyWith(dietaryPattern: pat)),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSel ? accent : BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
-                    ),
-                  ),
-                  child: Text(
-                    pat.label,
-                    style: TextStyle(
-                      color: isSel ? Colors.black : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                      fontSize: 12,
-                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
+          // Section 2: Daily Targets & Auto-Calculation
+          Row(
+            children: [
+              _sectionHeader('DAILY TARGETS', Icons.restaurant_rounded),
+              const Spacer(),
+              // Auto-Calculate CTA
+              FilledButton.tonalIcon(
+                onPressed: _autoCalculateFromMetrics,
+                icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+                label: const Text('Auto-Calculate'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  visualDensity: VisualDensity.compact,
                 ),
-              );
-            }).toList(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Target Calories input (Big Callout)
+          _m3TextField(
+            label: 'Daily Calories (kcal)',
+            controller: _targetCaloriesCtrl,
+            suffix: 'kcal',
+            keyboardType: TextInputType.number,
+            isHighlight: true,
+          ),
+          const SizedBox(height: 10),
+
+          // Macro Row: Protein, Carbs, Fats
+          Row(
+            children: [
+              Expanded(
+                child: _m3TextField(
+                  label: 'Protein',
+                  controller: _targetProteinCtrl,
+                  suffix: 'g',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _m3TextField(
+                  label: 'Carbs',
+                  controller: _targetCarbsCtrl,
+                  suffix: 'g',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _m3TextField(
+                  label: 'Fats',
+                  controller: _targetFatCtrl,
+                  suffix: 'g',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Water Target
+          _m3TextField(
+            label: 'Daily Hydration Target (ml)',
+            controller: _targetWaterCtrl,
+            suffix: 'ml',
+            keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 16),
 
-          // Allergies & Intolerances
-          _sectionTitle('Allergens to Avoid (Strict Filter)'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _commonAllergens.map((alg) {
-              final isSel = _profile.allergies.contains(alg);
-              return PressScale(
-                onTap: () {
-                  final list = List<String>.from(_profile.allergies);
-                  if (isSel) {
-                    list.remove(alg);
-                  } else {
-                    list.add(alg);
-                  }
-                  setState(() => _profile = _profile.copyWith(allergies: list));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSel ? AppColors.error.withValues(alpha: 0.2) : BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSel ? AppColors.error : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+          // Habit Mode Toggle
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isSel) ...[
-                        Icon(LucideIcons.alertTriangle, size: 12, color: AppColors.error),
-                        const SizedBox(width: 4),
-                      ],
                       Text(
-                        alg,
+                        'Habit Focus Mode (Hide Calories)',
                         style: TextStyle(
-                          color: isSel ? AppColors.error : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                          fontSize: 12,
+                          color: colorScheme.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Hides numbers to focus purely on plate balance and habit consistency.',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-
-          // Preferred Cuisines
-          _sectionTitle('Preferred Cuisines'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _commonCuisines.map((c) {
-              final isSel = _profile.preferredCuisines.contains(c);
-              return PressScale(
-                onTap: () {
-                  final list = List<String>.from(_profile.preferredCuisines);
-                  if (isSel) {
-                    list.remove(c);
-                  } else {
-                    list.add(c);
-                  }
-                  setState(() => _profile = _profile.copyWith(preferredCuisines: list));
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSel ? accent.withValues(alpha: 0.2) : BentoTheme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
-                    ),
-                  ),
-                  child: Text(
-                    c,
-                    style: TextStyle(
-                      color: isSel ? accent : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                      fontSize: 12,
-                    ),
-                  ),
+                Switch(
+                  value: _profile.hideCaloriesMode,
+                  activeColor: colorScheme.primary,
+                  onChanged: (val) {
+                    setState(() => _profile = _profile.copyWith(hideCaloriesMode: val));
+                  },
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-
-          // Budget & Cook time row
-          Row(
-            children: [
-              Expanded(
-                child: _inputBox(
-                  label: 'Weekly Budget',
-                  ctrl: _budgetCtrl,
-                  suffix: '₹',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _inputBox(
-                  label: 'Max Cook Time',
-                  ctrl: _cookTimeCtrl,
-                  suffix: 'min',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
-          // Save button
-          PressScale(
-            onTap: _saveProfile,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(14),
+          // Save Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: _saveProfile,
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              alignment: Alignment.center,
               child: const Text(
-                'Save Profile & Recalculate Targets',
+                'Save Profile & Targets',
                 style: TextStyle(
-                  color: Colors.black,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -565,100 +465,121 @@ class _NutritionProfileSheetState extends State<NutritionProfileSheet> {
     );
   }
 
-  Widget _sectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.5,
-      ),
-    );
-  }
-
-  Widget _inputBox({
-    required String label,
-    required TextEditingController ctrl,
-    required String suffix,
-    ValueChanged<String>? onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _sectionHeader(String title, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Icon(icon, size: 16, color: colorScheme.primary),
+        const SizedBox(width: 6),
         Text(
-          label,
+          title,
           style: TextStyle(
-            color: BentoTheme.isDark ? Colors.white60 : Colors.black45,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: BentoTheme.isDark ? Colors.white12 : Colors.black12,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: ctrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(
-                    color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  onChanged: onChanged,
-                ),
-              ),
-              Text(
-                suffix,
-                style: TextStyle(
-                  color: BentoTheme.isDark ? Colors.white38 : Colors.black38,
-                  fontSize: 11,
-                ),
-              ),
-            ],
+            color: colorScheme.onSurface,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
           ),
         ),
       ],
     );
   }
 
-  Widget _macroPreviewPill(String name, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            name,
-            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              color: BentoTheme.isDark ? Colors.white : Colors.black87,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+  Widget _goalPill(String title, DietGoal goal, String subtitle) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = _profile.goal == goal;
+    return Expanded(
+      child: PressScale(
+        onTap: () => setState(() => _profile = _profile.copyWith(goal: goal)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
             ),
           ),
-        ],
+          alignment: Alignment.center,
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
+                      : colorScheme.onSurfaceVariant,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _m3TextField({
+    required String label,
+    required TextEditingController controller,
+    required String suffix,
+    TextInputType keyboardType = TextInputType.text,
+    bool isHighlight = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: isHighlight ? 16 : 14,
+        fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: isHighlight ? colorScheme.primary : colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+        suffixText: suffix,
+        suffixStyle: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+        filled: true,
+        fillColor: isHighlight
+            ? colorScheme.primaryContainer.withValues(alpha: 0.25)
+            : colorScheme.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isHighlight ? colorScheme.primary : colorScheme.outlineVariant,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
       ),
     );
   }

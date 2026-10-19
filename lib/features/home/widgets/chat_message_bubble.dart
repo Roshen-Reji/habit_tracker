@@ -69,7 +69,7 @@ class ChatMessageBubble extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.sparkles, color: accent, size: 12),
+                        Icon(Icons.psychology_rounded, color: accent, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           "AI ASSISTANT",
@@ -232,6 +232,16 @@ class _ActionConfirmCard extends StatelessWidget {
         label = 'DAY JOURNAL';
         color = const Color(0xFF64B5F6);
         break;
+      case 'diet_water':
+        icon = LucideIcons.droplets;
+        label = 'HYDRATION LOG';
+        color = const Color(0xFF00E5FF);
+        break;
+      case 'habit_create':
+        icon = LucideIcons.repeat;
+        label = 'RECURRING HABIT';
+        color = const Color(0xFF69F0AE);
+        break;
       default:
         icon = LucideIcons.info;
         label = 'ACTION';
@@ -255,8 +265,25 @@ class _ActionConfirmCard extends StatelessWidget {
         if (action.isConfirmed)
           Row(
             children: [
-              if (action.type == 'wakeup_log' &&
-                  action.payload['undone'] != true) ...[
+              if (action.payload['undone'] == true) ...[
+                const Icon(LucideIcons.undo2,
+                    color: AppColors.textTertiary, size: 14),
+                const SizedBox(width: 4),
+                const Text("Undone",
+                    style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ] else ...[
+                const Icon(LucideIcons.checkCircle2,
+                    color: AppColors.success, size: 14),
+                const SizedBox(width: 4),
+                const Text("Done",
+                    style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: onReject,
                   child: Container(
@@ -284,26 +311,6 @@ class _ActionConfirmCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-              ],
-              if (action.payload['undone'] == true) ...[
-                const Icon(LucideIcons.undo2,
-                    color: AppColors.textTertiary, size: 14),
-                const SizedBox(width: 4),
-                const Text("Undone",
-                    style: TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-              ] else ...[
-                const Icon(LucideIcons.checkCircle2,
-                    color: AppColors.success, size: 14),
-                const SizedBox(width: 4),
-                const Text("Done",
-                    style: TextStyle(
-                        color: AppColors.success,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
               ],
             ],
           ),
@@ -313,6 +320,41 @@ class _ActionConfirmCard extends StatelessWidget {
 
   Widget _buildContent() {
     switch (action.type) {
+      case 'diet_water':
+        final ml = (action.payload['ml'] ?? 250);
+        return Row(
+          children: [
+            const Icon(LucideIcons.droplets, color: Color(0xFF00E5FF), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              "+$ml ml water recorded",
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        );
+
+      case 'habit_create':
+        return Row(
+          children: [
+            const Icon(LucideIcons.repeat, color: Color(0xFF69F0AE), size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "${action.payload['title'] ?? 'Habit'} (${action.payload['frequency'] ?? 'daily'})",
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        );
+
       case 'food_entry':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

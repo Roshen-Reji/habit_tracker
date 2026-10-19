@@ -28,6 +28,11 @@ import 'package:habit_tracker/features/tasks/engine/native_task_ai_engine.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/engine/native_diet_ai_engine.dart';
 import 'package:habit_tracker/features/diet/data/diet_repository.dart';
+import 'package:habit_tracker/features/tasks/models/scanner_models.dart';
+import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
+import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
+import 'package:habit_tracker/features/tasks/engine/task_nl_parser.dart';
+import 'package:habit_tracker/features/finance/engine/capture_engine.dart';
 
 // --- AI Response Model ---
 class AiResponse {
@@ -47,11 +52,15 @@ class AiResponse {
 class AiAction {
   final String type; // 'food_entry', 'burn_entry', 'task_create', 'music_play'
   final Map<String, dynamic> payload;
+  final String? sector;
+  final String? op;
   bool isConfirmed;
 
   AiAction({
     required this.type,
     required this.payload,
+    this.sector,
+    this.op,
     this.isConfirmed = false,
   });
 }
@@ -2873,6 +2882,313 @@ class AiService {
 
   // System prompt moved to AiContext
 
+  /// Tier 1 — On-Device Deterministic Fast-Path (0 API Tokens)
+  Future<AiResponse?> tryHandleOnDevice(String userMessage) async {
+    final trimmed = userMessage.trim();
+    if (trimmed.isEmpty) return null;
+    final lower = trimmed.toLowerCase();
+
+    // 1. Diet Pattern: Hydration (e.g., "drank 500ml water", "drink 250 ml water", "drank 2 glasses of water")
+    final waterMatch = RegExp(
+      r'(?:drank|drink|had|logged)\s+(\d+(?:\.\d+)?)\s*(ml|liters?|l|glasses?|glass)?(?:\s+(?:of\s+)?water)?',
+      caseSensitive: false,
+    ).firstMatch(lower);
+    if (waterMatch != null && (lower.contains('water') || lower.contains('ml') || lower.contains('glass'))) {
+      final amount = double.tryParse(waterMatch.group(1) ?? '250') ?? 250.0;
+      final unit = (waterMatch.group(2) ?? 'ml').toLowerCase();
+      double ml = amount;
+      if (unit.startsWith('glass')) {
+        ml = amount * 250.0;
+      } else if (unit.startsWith('l')) {
+        ml = amount * 1000.0;
+      }
+      await DietRepository.instance.addWater(ml);
+      final action = AiAction(
+        type: 'diet_water',
+        payload: {'ml': ml},
+        isConfirmed: true,
+        sector: 'diet',
+        op: 'log_water',
+      );
+      return AiResponse(
+        message: 'Logged ${ml.round()} ml of water intake.',
+        intent: 'diet_log',
+        actions: [action],
+      );
+    }
+
+    // 2. Diet Pattern: Food Log (e.g. "log 400 cal oats 15g protein for breakfast")
+    final isDietKeyword = lower.startsWith('log ') || lower.startsWith('ate ') || lower.startsWith('eat ') || lower.startsWith('had ');
+    if (isDietKeyword && (lower.contains('cal') || lower.contains('kcal') || lower.contains('protein') || lower.contains('for breakfast') || lower.contains('for lunch') || lower.contains('for dinner') || lower.contains('for snack'))) {
+      final calMatch = RegExp(r'(\d+(?:\.\d+)?)\s*(?:cal|kcal|calories)').firstMatch(lower);
+      final cal = calMatch != null ? double.tryParse(calMatch.group(1)!) ?? 0.0 : 0.0;
+
+      final pMatch = RegExp(r'(\d+(?:\.\d+)?)\s*g?\s*protein').firstMatch(lower);
+      final protein = pMatch != null ? double.tryParse(pMatch.group(1)!) ?? 0.0 : 0.0;
+
+      final cMatch = RegExp(r'(\d+(?:\.\d+)?)\s*g?\s*carbs?').firstMatch(lower);
+      final carbs = cMatch != null ? double.tryParse(cMatch.group(1)!) ?? 0.0 : 0.0;
+
+      final fMatch = RegExp(r'(\d+(?:\.\d+)?)\s*g?\s*fats?').firstMatch(lower);
+      final fat = fMatch != null ? double.tryParse(fMatch.group(1)!) ?? 0.0 : 0.0;
+
+      MealSlot slot = MealSlot.snack;
+      if (lower.contains('breakfast')) {
+        slot = MealSlot.breakfast;
+      } else if (lower.contains('lunch')) {
+        slot = MealSlot.lunch;
+      } else if (lower.contains('dinner')) {
+        slot = MealSlot.dinner;
+      }
+
+      String name = trimmed
+          .replaceAll(RegExp(r'^(?:log|ate|eat|had)\s+', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(?:\.\d+)?\s*(?:cal|kcal|calories)\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(?:\.\d+)?\s*g?\s*protein\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(?:\.\d+)?\s*g?\s*carbs?\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(?:\.\d+)?\s*g?\s*fats?\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\bfor\s+(?:breakfast|lunch|dinner|snack|snacks)\b', caseSensitive: false), '')
+          .trim();
+      if (name.isEmpty) name = 'Quick Food Entry';
+
+      final entryId = 'log_${DateTime.now().millisecondsSinceEpoch}';
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final entry = DietLogEntry(
+        id: entryId,
+        dateIso: today,
+        mealSlot: slot,
+        title: name,
+        quantity: 1.0,
+        gramsTotal: 100,
+        kcal: cal,
+        proteinG: protein,
+        carbsG: carbs,
+        fatG: fat,
+      );
+
+      await DietRepository.instance.logFood(entry);
+      final action = AiAction(
+        type: 'food_entry',
+        payload: {
+          'id': entry.id,
+          'log_id': entry.id,
+          'name': entry.title,
+          'calories': entry.kcal,
+          'protein': entry.proteinG,
+          'carbs': entry.carbsG,
+          'fat': entry.fatG,
+          'meal_type': entry.mealSlot,
+        },
+        isConfirmed: true,
+        sector: 'diet',
+        op: 'log_meal',
+      );
+      return AiResponse(
+        message: 'Logged "${entry.title}" (${entry.kcal.round()} kcal, ${entry.proteinG.round()}g P) for ${entry.mealSlot}.',
+        intent: 'diet_log',
+        actions: [action],
+      );
+    }
+
+    // 3. Finance Pattern (e.g. "spent 120 onshawarma", "spent 120 on shawarma", "paid 50 auto")
+    final expenseMatch = RegExp(
+      r'^(?:spent|paid|bought|reduce)\s+(?:rs|₹)?\s*(\d+(?:\.\d+)?)(?:rs|₹)?\s+(?:on|for)?\s*(.*)',
+      caseSensitive: false,
+    ).firstMatch(lower);
+
+    final incomeMatch = RegExp(
+      r'^(?:add|got|received|earned|made)\s+(?:rs|₹)?\s*(\d+(?:\.\d+)?)(?:rs|₹)?\s*(?:to\s+(?:my\s+)?income|\s+income|\s+from\s+(.*))?',
+      caseSensitive: false,
+    ).firstMatch(lower);
+
+    if (expenseMatch != null) {
+      final amount = double.tryParse(expenseMatch.group(1) ?? '0') ?? 0.0;
+      String rawTitle = (expenseMatch.group(2) ?? '').trim();
+      if (rawTitle.isEmpty) rawTitle = 'Expense';
+      final cleanMerchant = MerchantNormalizer.normalize(rawTitle);
+      final title = cleanMerchant.isNotEmpty ? cleanMerchant : rawTitle;
+
+      String cat = 'Other';
+      final rules = FinanceRepository().storage.ruleBox.values.toList();
+      final matchedCatId = CategorizationRulesEngine.matchCategory(
+        description: title,
+        rules: rules,
+      );
+      if (matchedCatId != null && matchedCatId.isNotEmpty) {
+        cat = matchedCatId;
+      } else {
+        final tLow = title.toLowerCase();
+        if (tLow.contains('shawarma') || tLow.contains('food') || tLow.contains('lunch') || tLow.contains('dinner') || tLow.contains('coffee') || tLow.contains('tea') || tLow.contains('pepsi') || tLow.contains('snack')) {
+          cat = 'Food';
+        } else if (tLow.contains('auto') || tLow.contains('uber') || tLow.contains('ola') || tLow.contains('cab') || tLow.contains('metro') || tLow.contains('bus') || tLow.contains('petrol') || tLow.contains('fuel')) {
+          cat = 'Transport';
+        } else if (tLow.contains('recharge') || tLow.contains('wifi') || tLow.contains('electricity') || tLow.contains('bill')) {
+          cat = 'Bills';
+        }
+      }
+
+      final draft = TxDraft(
+        title: title[0].toUpperCase() + title.substring(1),
+        amount: -amount,
+        date: DateTime.now(),
+        mode: 'expense',
+        category: cat,
+        icon: cat == 'Food' ? 'utensils' : (cat == 'Transport' ? 'car' : 'shopping-cart'),
+        kind: 'expense',
+      );
+      final tx = await FinanceRepository().addTransaction(draft);
+      final action = AiAction(
+        type: 'finance_transaction',
+        payload: {
+          'tx_id': tx.id,
+          'title': draft.title,
+          'amount': amount,
+          'mode': 'expense',
+          'category': cat,
+        },
+        isConfirmed: true,
+        sector: 'finance',
+        op: 'add_tx',
+      );
+      return AiResponse(
+        message: 'Recorded ₹${amount.toStringAsFixed(0)} expense for ${draft.title} under $cat.',
+        intent: 'finance_transaction',
+        actions: [action],
+      );
+    }
+
+    if (incomeMatch != null && (lower.contains('income') || lower.contains('received') || lower.contains('earned') || lower.contains('salary'))) {
+      final amount = double.tryParse(incomeMatch.group(1) ?? '0') ?? 0.0;
+      String source = (incomeMatch.group(2) ?? 'Income').trim();
+      if (source.isEmpty) source = 'Income';
+
+      final draft = TxDraft(
+        title: source[0].toUpperCase() + source.substring(1),
+        amount: amount,
+        date: DateTime.now(),
+        mode: 'income',
+        category: 'Income',
+        icon: 'wallet',
+        kind: 'income',
+      );
+      final tx = await FinanceRepository().addTransaction(draft);
+      final action = AiAction(
+        type: 'finance_transaction',
+        payload: {
+          'tx_id': tx.id,
+          'title': draft.title,
+          'amount': amount,
+          'mode': 'income',
+          'category': 'Income',
+        },
+        isConfirmed: true,
+        sector: 'finance',
+        op: 'add_tx',
+      );
+      return AiResponse(
+        message: 'Added ₹${amount.toStringAsFixed(0)} income to your wallet.',
+        intent: 'finance_transaction',
+        actions: [action],
+      );
+    }
+
+    // 4. Habit Pattern: Strictly Recurring Routines (e.g. "add habit code 1 hour every day")
+    final isHabitCommand = lower.startsWith('add habit ') || lower.startsWith('create habit ');
+    if (isHabitCommand || ((lower.startsWith('add ') || lower.startsWith('create ')) && (lower.contains('every day') || lower.contains('everyday') || lower.contains('daily')))) {
+      String habitTitle = trimmed
+          .replaceAll(RegExp(r'^(?:add|create)\s+habit\s+', caseSensitive: false), '')
+          .replaceAll(RegExp(r'^(?:add|create)\s+', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+(?:everyday|every\s+day|daily)$', caseSensitive: false), '')
+          .trim();
+      if (habitTitle.isEmpty) habitTitle = 'New Routine';
+
+      final habitId = 'habit_${DateTime.now().millisecondsSinceEpoch}';
+      final habit = ForgivingHabitItem(
+        id: habitId,
+        name: habitTitle,
+        category: 'Routines',
+        frequency: 'daily',
+        targetPerWeek: 7,
+      );
+      final pairedTask = TaskItem(
+        id: 'task_${habit.id}',
+        title: habitTitle,
+        status: TaskStatus.todo,
+        priority: TaskPriority.medium,
+        isHabit: true,
+        recurrenceFrequency: 'daily',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await TaskOsRepository.instance.saveHabit(habit);
+      await TaskOsRepository.instance.saveTask(pairedTask);
+
+      final action = AiAction(
+        type: 'habit_create',
+        payload: {
+          'id': habit.id,
+          'habit_id': habit.id,
+          'title': habit.title,
+          'frequency': 'daily',
+        },
+        isConfirmed: true,
+        sector: 'habits',
+        op: 'add_habit',
+      );
+      return AiResponse(
+        message: 'Created daily recurring habit "$habitTitle".',
+        intent: 'habit_create',
+        actions: [action],
+      );
+    }
+
+    // 5. Task Pattern: Strictly One-Time Task (e.g. "add task finish OS record today")
+    if (lower.startsWith('add task ') || lower.startsWith('create task ') || lower.startsWith('todo ') || lower.startsWith('remind me to ')) {
+      final rawTask = trimmed
+          .replaceAll(RegExp(r'^(?:add\s+task|create\s+task|todo|remind\s+me\s+to)\s+', caseSensitive: false), '');
+      final parsed = parseNaturalLanguageTask(rawTask, DateTime.now());
+      final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
+      final taskDate = DateFormat('yyyy-MM-dd').format(parsed.dueAt ?? DateTime.now());
+
+      final task = TaskItem(
+        id: taskId,
+        title: parsed.cleanTitle.isNotEmpty ? parsed.cleanTitle : rawTask,
+        status: TaskStatus.todo,
+        priority: parsed.priority,
+        dueAt: parsed.dueAt ?? DateTime.now(),
+        hasDueTime: parsed.hasDueTime,
+        isHabit: false, // STRICTLY ONE-TIME
+        recurrenceFrequency: 'none',
+        recurrenceRule: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await TaskOsRepository.instance.saveTask(task);
+      final action = AiAction(
+        type: 'task_create',
+        payload: {
+          'id': task.id,
+          'task_id': task.id,
+          'title': task.title,
+          'date': task.scheduledDate,
+          'isHabit': false,
+        },
+        isConfirmed: true,
+        sector: 'tasks',
+        op: 'add_task',
+      );
+      return AiResponse(
+        message: 'Created one-time task "${task.title}" for $taskDate.',
+        intent: 'task_create',
+        actions: [action],
+      );
+    }
+
+    return null;
+  }
+
   /// Process a user message and return an AI response
   Future<AiResponse> processMessage(String userMessage,
       {String? contextHint, Uint8List? imageBytes}) async {
@@ -2881,15 +3197,31 @@ class AiService {
     }
 
     try {
-      // Smart intent detection - only attach relevant context
-      final detectedIntent = detectIntent(
-        userMessage,
-        hasImage: imageBytes != null,
-        contextHint: contextHint,
-      );
-
-      // Attempt to handle locally using Regex NLP engine first (saves time and tokens)
+      // Tier 1: On-Device Deterministic Fast-Path (0 Tokens)
       if (imageBytes == null) {
+        final fastPath = await tryHandleOnDevice(userMessage);
+        if (fastPath != null) {
+          _messagesHistory.add({
+            'role': 'user',
+            'parts': [
+              {'text': userMessage}
+            ]
+          });
+          _messagesHistory.add({
+            'role': 'model',
+            'parts': [
+              {'text': fastPath.message}
+            ]
+          });
+          return fastPath;
+        }
+
+        final detectedIntent = detectIntent(
+          userMessage,
+          hasImage: false,
+          contextHint: contextHint,
+        );
+
         if (detectedIntent == 'music') {
           final mediaResponse = await handleMediaIntent(userMessage);
           if (mediaResponse != null) {
@@ -2911,7 +3243,6 @@ class AiService {
 
         final localResponse = await _handleLocally(userMessage, detectedIntent);
         if (localResponse != null) {
-          // Add to history so future Gemini calls know what happened
           _messagesHistory.add({
             'role': 'user',
             'parts': [
@@ -2932,31 +3263,17 @@ class AiService {
       if (apiKey.isEmpty) {
         return AiResponse(
           message:
-              'I can handle common task, finance, diet, music, and vault commands locally, but this request needs Gemini. Add the Gemini API key in Settings for fallback reasoning. Settings keys are used before environment keys.',
+              'I can handle common task, habit, finance, diet, music, and vault commands locally, but this request needs Gemini. Add the Gemini API key in Settings for fallback reasoning.',
           intent: 'error',
         );
       }
 
-      // Build minimal context based on detected intent
-      String contextData = '';
-      if (detectedIntent == 'diet') {
-        contextData = AiContext.buildDietContext(_getCalorieTarget());
-      } else if (detectedIntent == 'finance') {
-        contextData = AiContext.buildFinanceContext();
-      } else if (detectedIntent == 'tasks') {
-        contextData = AiContext.buildTaskContext();
-      }
+      // Tier 2: Intent-Scoped Delta Context (<150 tokens)
+      final sectors = AiContext.classifyPromptSectors(userMessage);
+      final deltaContext = AiContext.buildDeltaContext(sectors);
 
-      final wearCtx = AiContext.buildWearContext();
-      if (wearCtx.isNotEmpty) {
-        contextData =
-            contextData.isNotEmpty ? '$contextData $wearCtx' : wearCtx;
-      }
-      // 'music' intent is handled on-device - never reaches AI
-      // 'general' intent gets no context - saves tokens
-
-      final fullMessage = contextData.isNotEmpty
-          ? '[CONTEXT]\n$contextData\n[USER MESSAGE]\n$userMessage'
+      final fullMessage = deltaContext.isNotEmpty
+          ? '[DELTA_CONTEXT]\n$deltaContext\n[USER MESSAGE]\n$userMessage'
           : userMessage;
 
       // Build Gemini API request parts
@@ -2973,7 +3290,7 @@ class AiService {
         });
       }
 
-      // Add user message to history (text only for history)
+      // Add user message to history
       _messagesHistory.add({
         'role': 'user',
         'parts': [
@@ -2987,10 +3304,6 @@ class AiService {
             _messagesHistory.sublist(_messagesHistory.length - 2);
       }
 
-      // Do NOT prepend system prompt to user message text.
-      // Instead, pass it properly in the generationConfig or systemInstruction
-
-      // Build Gemini API request
       final requestBody = {
         'system_instruction': {
           'parts': [
@@ -3002,7 +3315,7 @@ class AiService {
               0, _messagesHistory.length > 0 ? _messagesHistory.length - 1 : 0),
           {
             'role': 'user',
-            'parts': parts, // Use parts with image if present
+            'parts': parts,
           }
         ],
         'generationConfig': {
@@ -3021,7 +3334,6 @@ class AiService {
       if (result.isSuccess && result.text != null) {
         final responseText = result.text!;
 
-        // Append assistant response to history
         _messagesHistory.add({
           'role': 'model',
           'parts': [
@@ -3029,7 +3341,14 @@ class AiService {
           ],
         });
 
-        return _parseResponse(responseText);
+        final parsed = _parseResponse(responseText);
+
+        // Execute all returned actions automatically across repositories
+        for (final act in parsed.actions) {
+          await executeAction(act);
+        }
+
+        return parsed;
       } else {
         return AiResponse(
           message: result.errorMessage ?? 'Gemini request failed.',
@@ -3048,7 +3367,6 @@ class AiService {
 
   AiResponse _parseResponse(String responseText) {
     try {
-      // Clean up response - remove markdown code fences if present
       String cleaned = responseText.trim();
       if (cleaned.startsWith('```json')) {
         cleaned = cleaned.substring(7);
@@ -3065,21 +3383,45 @@ class AiService {
       final actions = <AiAction>[];
       if (json['actions'] != null) {
         for (var action in (json['actions'] as List)) {
-          actions.add(AiAction(
-            type: action['type'] ?? 'unknown',
-            payload: Map<String, dynamic>.from(action['payload'] ?? {}),
-          ));
+          if (action is Map) {
+            final sector = action['sector']?.toString();
+            final op = action['op']?.toString();
+            final data = Map<String, dynamic>.from(action['data'] ?? action['payload'] ?? {});
+
+            String type = action['type']?.toString() ?? 'unknown';
+            if (type == 'unknown' && sector != null) {
+              if (sector == 'diet') {
+                type = op == 'log_water' ? 'diet_water' : 'food_entry';
+              } else if (sector == 'finance') {
+                type = 'finance_transaction';
+              } else if (sector == 'tasks') {
+                type = 'task_create';
+              } else if (sector == 'habits') {
+                type = 'habit_create';
+              } else if (sector == 'journal') {
+                type = 'journal_note';
+              }
+            }
+
+            actions.add(AiAction(
+              type: type,
+              payload: data,
+              sector: sector,
+              op: op,
+              isConfirmed: false,
+            ));
+          }
         }
       }
 
+      final reply = json['reply'] ?? json['message'] ?? 'No response generated.';
       return AiResponse(
-        message: json['message'] ?? 'No response generated.',
+        message: reply.toString(),
         intent: json['intent'] ?? 'general_chat',
         actions: actions,
         data: json['data'] as Map<String, dynamic>?,
       );
     } catch (e) {
-      // If JSON parsing fails, treat as general chat text
       return AiResponse(
         message: responseText,
         intent: 'general_chat',
@@ -3594,49 +3936,180 @@ class AiService {
   }
 
   /// Confirm and execute an action
-  void executeAction(AiAction action) {
-    switch (action.type) {
-      case 'food_entry':
-        executeFoodAction(action);
-        break;
-      case 'burn_entry':
-        executeBurnAction(action);
-        break;
-      case 'task_create':
-        executeTaskAction(action);
-        break;
-      case 'finance_transaction':
-        executeFinanceAction(action);
-        break;
-      case 'finance_budget':
-        _executeFinanceBudgetAction(action);
-        break;
-      case 'finance_commitment':
-        _executeFinanceCommitmentAction(action);
-        break;
-      case 'finance_sip':
-        _executeFinanceSipAction(action);
-        break;
-      case 'finance_goal':
-        _executeFinanceGoalAction(action);
-        break;
-      case 'finance_transfer':
-        _executeFinanceTransferAction(action);
-        break;
-      case 'finance_recurring':
-        _executeFinanceRecurringAction(action);
-        break;
-      case 'wear_sync':
-        SyncService.instance.sync();
-        break;
-      case 'wakeup_log':
-      case 'wakeup_task_create':
-      case 'journal_note':
-      case 'finance_whatif':
-      case 'finance_query':
-        break;
+  Future<void> executeAction(AiAction action) async {
+    final payload = action.payload;
+    final type = action.type;
+
+    if (type == 'food_entry' || (action.sector == 'diet' && action.op == 'log_meal')) {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final slotStr = (payload['meal_type'] ?? payload['slot'] ?? 'snack').toString().toLowerCase();
+      final id = payload['log_id']?.toString() ?? payload['id']?.toString() ?? 'log_${DateTime.now().millisecondsSinceEpoch}';
+      payload['log_id'] = id;
+      payload['id'] = id;
+
+      MealSlot slot = MealSlot.snack;
+      if (slotStr == 'breakfast') slot = MealSlot.breakfast;
+      else if (slotStr == 'lunch') slot = MealSlot.lunch;
+      else if (slotStr == 'dinner') slot = MealSlot.dinner;
+
+      final entry = DietLogEntry(
+        id: id,
+        dateIso: today,
+        mealSlot: slot,
+        title: (payload['name'] ?? payload['title'] ?? 'Food Entry').toString(),
+        quantity: 1.0,
+        gramsTotal: 100.0,
+        kcal: (payload['calories'] ?? payload['cal'] ?? 0).toDouble(),
+        proteinG: (payload['protein'] ?? payload['p'] ?? 0).toDouble(),
+        carbsG: (payload['carbs'] ?? payload['c'] ?? 0).toDouble(),
+        fatG: (payload['fat'] ?? payload['f'] ?? 0).toDouble(),
+      );
+      await DietRepository.instance.logFood(entry);
+    } else if (type == 'diet_water' || (action.sector == 'diet' && action.op == 'log_water')) {
+      final ml = (payload['ml'] ?? 250).toDouble();
+      await DietRepository.instance.addWater(ml);
+    } else if (type == 'finance_transaction' || (action.sector == 'finance' && action.op == 'add_tx')) {
+      final amount = (payload['amount'] ?? 0).toDouble();
+      final isExp = payload['is_expense'] == true || (payload['mode'] ?? 'expense').toString().toLowerCase() == 'expense';
+      final title = (payload['title'] ?? payload['name'] ?? 'Transaction').toString();
+      final cat = (payload['category'] ?? (isExp ? 'Other' : 'Income')).toString();
+
+      final draft = TxDraft(
+        title: title,
+        amount: isExp ? -amount.abs() : amount.abs(),
+        date: DateTime.now(),
+        mode: isExp ? 'expense' : 'income',
+        category: cat,
+        icon: isExp ? 'shopping-cart' : 'wallet',
+        kind: isExp ? 'expense' : 'income',
+      );
+      final tx = await FinanceRepository().addTransaction(draft);
+      payload['tx_id'] = tx.id;
+    } else if (type == 'task_create' || (action.sector == 'tasks' && action.op == 'add_task')) {
+      final id = payload['task_id']?.toString() ?? payload['id']?.toString() ?? 'task_${DateTime.now().millisecondsSinceEpoch}';
+      payload['task_id'] = id;
+      payload['id'] = id;
+      final title = (payload['title'] ?? 'Task').toString();
+      final date = (payload['date'] ?? payload['scheduledDate'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now())).toString();
+
+      final task = TaskItem(
+        id: id,
+        title: title,
+        status: TaskStatus.todo,
+        priority: TaskPriority.medium,
+        isHabit: false,
+        dueAt: DateTime.tryParse(date) ?? DateTime.now(),
+        recurrenceFrequency: 'none',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await TaskOsRepository.instance.saveTask(task);
+    } else if (type == 'habit_create' || (action.sector == 'habits' && action.op == 'add_habit')) {
+      final id = payload['habit_id']?.toString() ?? payload['id']?.toString() ?? 'habit_${DateTime.now().millisecondsSinceEpoch}';
+      payload['habit_id'] = id;
+      payload['id'] = id;
+      final title = (payload['title'] ?? 'Habit').toString();
+      final freq = (payload['frequency'] ?? 'daily').toString();
+
+      final habit = ForgivingHabitItem(
+        id: id,
+        name: title,
+        frequency: freq,
+        category: 'Routines',
+        targetPerWeek: freq == 'daily' ? 7 : 3,
+      );
+      final pairedTask = TaskItem(
+        id: 'task_$id',
+        title: title,
+        status: TaskStatus.todo,
+        priority: TaskPriority.medium,
+        isHabit: true,
+        recurrenceFrequency: freq,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await TaskOsRepository.instance.saveHabit(habit);
+      await TaskOsRepository.instance.saveTask(pairedTask);
+    } else if (type == 'journal_note' || (action.sector == 'journal' && action.op == 'add_note')) {
+      final text = (payload['text'] ?? '').toString();
+      if (text.isNotEmpty) {
+        final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        await JournalDayRepository.instance.appendNote(today, text);
+      }
+    } else {
+      switch (action.type) {
+        case 'burn_entry':
+          executeBurnAction(action);
+          break;
+        case 'finance_budget':
+          _executeFinanceBudgetAction(action);
+          break;
+        case 'finance_commitment':
+          _executeFinanceCommitmentAction(action);
+          break;
+        case 'finance_sip':
+          _executeFinanceSipAction(action);
+          break;
+        case 'finance_goal':
+          _executeFinanceGoalAction(action);
+          break;
+        case 'finance_transfer':
+          _executeFinanceTransferAction(action);
+          break;
+        case 'finance_recurring':
+          _executeFinanceRecurringAction(action);
+          break;
+        case 'wear_sync':
+          SyncService.instance.sync();
+          break;
+        case 'wakeup_log':
+        case 'wakeup_task_create':
+        case 'finance_whatif':
+        case 'finance_query':
+          break;
+      }
     }
     action.isConfirmed = true;
+  }
+
+  /// Revert an executed action (1-tap Undo)
+  Future<void> undoAction(AiAction action) async {
+    final type = action.type;
+    final payload = action.payload;
+
+    try {
+      if (type == 'food_entry' || (action.sector == 'diet' && action.op == 'log_meal')) {
+        final id = payload['log_id']?.toString() ?? payload['id']?.toString();
+        if (id != null) {
+          await DietRepository.instance.deleteFoodLog(id);
+        }
+      } else if (type == 'diet_water' || (action.sector == 'diet' && action.op == 'log_water')) {
+        final ml = (payload['ml'] ?? 250).toDouble();
+        await DietRepository.instance.addWater(-ml);
+      } else if (type == 'finance_transaction' || (action.sector == 'finance' && action.op == 'add_tx')) {
+        final txId = payload['tx_id'] ?? payload['id'];
+        if (txId != null) {
+          await FinanceRepository().deleteTransaction(txId);
+        }
+      } else if (type == 'task_create' || (action.sector == 'tasks' && action.op == 'add_task')) {
+        final taskId = payload['task_id']?.toString() ?? payload['id']?.toString();
+        if (taskId != null) {
+          await TaskOsRepository.instance.deleteTask(taskId, permanent: true);
+        }
+      } else if (type == 'habit_create' || (action.sector == 'habits' && action.op == 'add_habit')) {
+        final habitId = payload['habit_id']?.toString() ?? payload['id']?.toString();
+        if (habitId != null) {
+          await TaskOsRepository.instance.deleteHabit(habitId, permanent: true);
+          await TaskOsRepository.instance.deleteTask('task_$habitId', permanent: true);
+        }
+      } else if (type == 'wakeup_log') {
+        final dayKey = payload['day_key'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+        await WakeService.instance.undo(dayKey);
+      }
+    } catch (e) {
+      debugPrint('Undo error: $e');
+    }
+    payload['undone'] = true;
   }
 
   double _getCalorieTarget() {
@@ -3801,6 +4274,334 @@ $input
         : NativeTaskAiEngine.extractTasksFromBrainDump(input, now);
 
     return candidates.map((c) => c.toMap()).toList();
+  }
+
+  /// Context-Aware Digital Scanner & Classifier Pipeline (Phase 4).
+  /// Parses document text (PDF/OCR) or image with user context filter (e.g. "CS S3")
+  /// and automatically routes items to their respective modules.
+  Future<ScannedDocumentResult> parseDocumentWithFilter({
+    required String rawText,
+    required String contextFilter,
+    Uint8List? imageBytes,
+    String? mimeType,
+  }) async {
+    final cleanFilter = contextFilter.trim().toLowerCase();
+    final filterTokens = cleanFilter
+        .split(RegExp(r'\s+'))
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    // 1. Detect Category Heuristically
+    final lowerText = rawText.toLowerCase();
+    ScanDocCategory detectedCat = ScanDocCategory.tasks;
+    String detectedDest = 'Tasks';
+
+    if (lowerText.contains('timetable') ||
+        (lowerText.contains('slot') && lowerText.contains('period')) ||
+        (lowerText.contains('monday') &&
+            lowerText.contains('tuesday') &&
+            lowerText.contains('room'))) {
+      detectedCat = ScanDocCategory.timetable;
+      detectedDest = 'Academics → Timetable';
+    } else if (lowerText.contains('syllabus') ||
+        lowerText.contains('course outcome') ||
+        lowerText.contains('module 1') ||
+        lowerText.contains('prerequisites') ||
+        (lowerText.contains('course code') && lowerText.contains('credits'))) {
+      detectedCat = ScanDocCategory.syllabus;
+      detectedDest = 'Academics → Courses';
+    } else if (lowerText.contains('exam schedule') ||
+        lowerText.contains('midterm') ||
+        lowerText.contains('end semester exam') ||
+        lowerText.contains('date sheet') ||
+        lowerText.contains('examination')) {
+      detectedCat = ScanDocCategory.examSchedule;
+      detectedDest = 'Tasks (Dated Exams)';
+    } else if (lowerText.contains('invoice') ||
+        lowerText.contains('receipt') ||
+        lowerText.contains('total amount') ||
+        lowerText.contains('gst') ||
+        lowerText.contains('subtotal') ||
+        lowerText.contains('bill to')) {
+      detectedCat = ScanDocCategory.expenses;
+      detectedDest = 'Finance → Transactions';
+    }
+
+    // 2. Try Gemini Cloud AI if configured
+    if (isConfigured) {
+      try {
+        final client = GeminiClient();
+        final promptText = '''
+You are a precision digital document parser and smart auto-router.
+Given the following document text and/or image:
+1. Detect document type: "timetable", "examSchedule", "syllabus", "tasks", or "expenses".
+2. User's Context Filter is: "$contextFilter".
+   - If the user specifies "$contextFilter" (e.g. "CS S3" or "Computer Science Semester 3"):
+     Evaluate each extracted row. If it belongs to the user's branch/semester (e.g. CS, CSE, S3, or relevant slot/course), set "isRelevant": true.
+     If it belongs to another branch/semester (e.g. ME, EC, CE, S5, S7), set "isRelevant": false.
+   - If context filter is empty, set "isRelevant": true for all items.
+3. For each item specify targetModule: "timetable" | "course" | "task" | "habit" | "finance".
+4. Extract structured fields where applicable:
+   - title, subtitle, targetModule, isRelevant, matchedContextTag (e.g. "$contextFilter"),
+   - code (course code e.g. CS301), venue (room/hall), slot (e.g. Slot A),
+   - dayOfWeek (1 for Mon .. 7 for Sun), startMinutes (minutes from midnight, e.g. 540 for 9:00 AM), durationMinutes (e.g. 50),
+   - dateStr (YYYY-MM-DD), timeStr (e.g. 10:00 AM), amount (number for expenses), category, credits (integer).
+
+Return a JSON object ONLY with NO markdown fences, following this exact schema:
+{
+  "detectedCategory": "timetable" | "examSchedule" | "syllabus" | "tasks" | "expenses",
+  "detectedDestination": "Academics → Timetable" | "Academics → Courses" | "Tasks" | "Finance",
+  "items": [
+    {
+      "id": "1",
+      "title": "Data Structures",
+      "subtitle": "Slot A · Mon 9:00 AM · Hall 101",
+      "targetModule": "timetable",
+      "isRelevant": true,
+      "matchedContextTag": "$contextFilter",
+      "code": "CS301",
+      "venue": "Hall 101",
+      "slot": "Slot A",
+      "dayOfWeek": 1,
+      "startMinutes": 540,
+      "durationMinutes": 50,
+      "credits": 4
+    }
+  ]
+}
+
+Document Text:
+$rawText
+''';
+
+        final parts = <Map<String, dynamic>>[];
+        if (imageBytes != null && imageBytes.isNotEmpty) {
+          parts.add({
+            'inline_data': {
+              'mime_type': mimeType ?? 'image/jpeg',
+              'data': base64Encode(imageBytes),
+            }
+          });
+        }
+        parts.add({'text': promptText});
+
+        final requestBody = {
+          'contents': [
+            {'parts': parts}
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'responseMimeType': 'application/json',
+          }
+        };
+
+        final result = await client.generateContent(
+          requestBody: requestBody,
+          apiKey: activeApiKey,
+        );
+
+        if (result.isSuccess &&
+            result.text != null &&
+            result.text!.trim().isNotEmpty) {
+          final cleanJson =
+              result.text!.replaceAll(RegExp(r'^```json\s*|```$'), '').trim();
+          final decoded = jsonDecode(cleanJson);
+          if (decoded is Map) {
+            final catStr = decoded['detectedCategory']?.toString() ?? '';
+            ScanDocCategory cat = detectedCat;
+            if (catStr == 'timetable') cat = ScanDocCategory.timetable;
+            if (catStr == 'syllabus') cat = ScanDocCategory.syllabus;
+            if (catStr == 'examSchedule') cat = ScanDocCategory.examSchedule;
+            if (catStr == 'expenses') cat = ScanDocCategory.expenses;
+            if (catStr == 'tasks') cat = ScanDocCategory.tasks;
+
+            final destStr =
+                decoded['detectedDestination']?.toString() ?? detectedDest;
+            final rawItems = decoded['items'];
+            final List<ScannedExtractItem> items = [];
+
+            if (rawItems is List) {
+              for (int i = 0; i < rawItems.length; i++) {
+                final itemMap = rawItems[i];
+                if (itemMap is Map) {
+                  final map = Map<String, dynamic>.from(itemMap);
+                  if (!map.containsKey('id') || map['id'] == null) {
+                    map['id'] =
+                        'scan_${DateTime.now().millisecondsSinceEpoch}_$i';
+                  }
+                  final isRel = map['isRelevant'] == true;
+                  map['isSelected'] = isRel;
+                  items.add(ScannedExtractItem.fromMap(map));
+                }
+              }
+            }
+
+            if (items.isNotEmpty) {
+              return ScannedDocumentResult(
+                detectedCategory: cat,
+                detectedDestination: destStr,
+                items: items,
+                rawExtractedText: rawText,
+              );
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('parseDocumentWithFilter cloud call error: $e');
+      }
+    }
+
+    // 3. Deterministic Local On-Device Fallback (0 tokens)
+    return _parseDocumentLocally(
+        rawText, cleanFilter, filterTokens, detectedCat, detectedDest);
+  }
+
+  ScannedDocumentResult _parseDocumentLocally(
+    String rawText,
+    String cleanFilter,
+    List<String> filterTokens,
+    ScanDocCategory detectedCat,
+    String detectedDest,
+  ) {
+    final lines = rawText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.length > 3)
+        .toList();
+
+    final List<ScannedExtractItem> items = [];
+    int idx = 0;
+
+    for (final line in lines) {
+      final lower = line.toLowerCase();
+      if (lower.startsWith('page ') ||
+          lower.startsWith('printed on') ||
+          lower.startsWith('table of contents')) {
+        continue;
+      }
+
+      bool isRel = true;
+      if (filterTokens.isNotEmpty) {
+        final containsAny = filterTokens.any((tok) => lower.contains(tok));
+        final isCsFilter = filterTokens.any((t) => t == 'cs' || t == 'cse');
+        final hasConflictingBranch = isCsFilter &&
+            (lower.contains(' ec ') ||
+                lower.contains(' me ') ||
+                lower.contains(' ce ') ||
+                lower.contains(' ee ') ||
+                lower.startsWith('ec') ||
+                lower.startsWith('me') ||
+                lower.startsWith('ce'));
+
+        isRel = containsAny && !hasConflictingBranch;
+      }
+
+      String targetMod = 'task';
+      String title = line;
+      String subtitle = '';
+      String? code;
+      String? slot;
+      String? venue;
+      int? dayOfWeek;
+      int? startMinutes;
+      int? durationMinutes;
+      int? credits;
+      double? amount;
+
+      if (detectedCat == ScanDocCategory.timetable) {
+        targetMod = 'timetable';
+        if (lower.contains('mon')) dayOfWeek = 1;
+        if (lower.contains('tue')) dayOfWeek = 2;
+        if (lower.contains('wed')) dayOfWeek = 3;
+        if (lower.contains('thu')) dayOfWeek = 4;
+        if (lower.contains('fri')) dayOfWeek = 5;
+        if (lower.contains('sat')) dayOfWeek = 6;
+
+        final slotMatch = RegExp(
+                r'\b(slot\s*[a-z0-9]|batch\s*[a-z0-9]|\b[a-f]\s*slot)\b',
+                caseSensitive: false)
+            .firstMatch(line);
+        if (slotMatch != null) slot = slotMatch.group(0);
+
+        final codeMatch =
+            RegExp(r'\b([A-Z]{2,4}\s*\d{3,4})\b').firstMatch(line);
+        if (codeMatch != null) code = codeMatch.group(0)?.replaceAll(' ', '');
+
+        final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(line);
+        if (timeMatch != null) {
+          final h = int.tryParse(timeMatch.group(1)!) ?? 9;
+          final m = int.tryParse(timeMatch.group(2)!) ?? 0;
+          startMinutes = h * 60 + m;
+          durationMinutes = 50;
+        }
+
+        final roomMatch = RegExp(r'\b(hall|room|lab|lh)\s*[a-z0-9\-]+\b',
+                caseSensitive: false)
+            .firstMatch(line);
+        if (roomMatch != null) venue = roomMatch.group(0);
+
+        subtitle = [
+          if (slot != null) slot,
+          if (code != null) code,
+          if (venue != null) venue,
+        ].join(' · ');
+      } else if (detectedCat == ScanDocCategory.syllabus) {
+        targetMod = 'course';
+        final codeMatch =
+            RegExp(r'\b([A-Z]{2,4}\s*\d{3,4})\b').firstMatch(line);
+        if (codeMatch != null) code = codeMatch.group(0)?.replaceAll(' ', '');
+
+        final credMatch = RegExp(r'(\d)\s*(credits?|cr)\b', caseSensitive: false)
+            .firstMatch(line);
+        if (credMatch != null) credits = int.tryParse(credMatch.group(1)!);
+
+        subtitle = [
+          if (code != null) 'Code: $code',
+          if (credits != null) '$credits Credits',
+        ].join(' · ');
+      } else if (detectedCat == ScanDocCategory.expenses) {
+        targetMod = 'finance';
+        final amtMatch = RegExp(
+                r'(?:₹|\$|rs\.?|inr)?\s*(\d+(?:[.,]\d{2})?)',
+                caseSensitive: false)
+            .firstMatch(line);
+        if (amtMatch != null) {
+          amount = double.tryParse(amtMatch.group(1)!.replaceAll(',', ''));
+        }
+        subtitle = amount != null
+            ? '₹${amount.toStringAsFixed(0)} · Scanned Expense'
+            : 'Expense item';
+      } else {
+        targetMod = 'task';
+        subtitle = 'One-time task candidate';
+      }
+
+      items.add(ScannedExtractItem(
+        id: 'item_${DateTime.now().millisecondsSinceEpoch}_$idx',
+        title: title,
+        subtitle: subtitle,
+        targetModule: targetMod,
+        matchedContextTag: isRel ? cleanFilter : null,
+        isRelevant: isRel,
+        isSelected: isRel,
+        code: code,
+        slot: slot,
+        venue: venue,
+        dayOfWeek: dayOfWeek,
+        startMinutes: startMinutes,
+        durationMinutes: durationMinutes,
+        credits: credits,
+        amount: amount,
+      ));
+      idx++;
+    }
+
+    return ScannedDocumentResult(
+      detectedCategory: detectedCat,
+      detectedDestination: detectedDest,
+      items: items,
+      rawExtractedText: rawText,
+    );
   }
 
   /// Parses natural meal descriptions, photos, or packaged nutrition labels into

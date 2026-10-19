@@ -72,6 +72,8 @@ class RruleRecurrenceEngine {
     required TaskItem task,
     required DateTime completedAt,
   }) {
+    // One-time tasks (isHabit == false) must strictly NEVER spawn a next recurring instance
+    if (!task.isHabit) return null;
     if (!task.isRecurring) return null;
 
     final nextDue = computeNextDueDate(task: task, completedAt: completedAt);

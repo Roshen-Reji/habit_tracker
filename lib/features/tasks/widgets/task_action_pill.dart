@@ -27,19 +27,19 @@ class TaskActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final Color bgColor = isPrimary
-        ? (isDark ? Colors.white : Colors.black)
-        : (isDark ? const Color(0xFF141414) : const Color(0xFFF4F4F5));
+        ? colorScheme.primary
+        : colorScheme.secondaryContainer;
 
     final Color fgColor = isPrimary
-        ? (isDark ? Colors.black : Colors.white)
-        : (isDark ? Colors.white : Colors.black);
+        ? colorScheme.onPrimary
+        : colorScheme.onSecondaryContainer;
 
     final Border? border = isPrimary
         ? null
-        : Border.all(color: const Color(0xFF262626), width: 1);
+        : Border.all(color: colorScheme.outlineVariant, width: 1);
 
     return PressScale(
       onTap: onTap,

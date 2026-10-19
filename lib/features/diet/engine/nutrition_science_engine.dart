@@ -7,15 +7,11 @@ import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 class NutritionScienceEngine {
   const NutritionScienceEngine._();
 
-  /// Mifflin-St Jeor BMR + Safe Activity Multiplier + Goal Deficit/Surplus.
-  /// Strictly enforces clinical safety floors (>=1300 kcal F / >=1500 kcal M).
-  static DailyTargets computeDailyTargets(
+  /// Auto-calculates daily targets purely from physiological body metrics (Mifflin-St Jeor + Gym science).
+  static DailyTargets calculateTargetsFromMetrics(
     NutritionProfile profile, {
     double activeBurnKcal = 0.0,
   }) {
-    // 1. Mifflin-St Jeor BMR calculation
-    // Men: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) + 5
-    // Women: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) - 161
     final weightKg = profile.currentWeightKg > 0 ? profile.currentWeightKg : 70.0;
     final heightCm = profile.heightCm > 0 ? profile.heightCm : 175.0;
     final age = profile.age > 0 ? profile.age : 25;
@@ -30,18 +26,15 @@ class NutritionScienceEngine {
         bmr = bmrBase - 161.0;
         break;
       case BiologicalSex.other:
-        bmr = bmrBase - 78.0; // Midpoint
+        bmr = bmrBase - 78.0;
         break;
     }
 
-    // 2. Total Daily Energy Expenditure (TDEE)
     final double rawTdee = (bmr * profile.activityLevel.multiplier) + activeBurnKcal;
 
-    // 3. Goal Calorie Adjustment
     double deltaKcal = 0.0;
     switch (profile.goal) {
       case DietGoal.gradualLoss:
-        // 0.25 kg/wk ~ 275 kcal deficit; 0.5 kg/wk ~ 500 kcal deficit
         deltaKcal = profile.paceKgPerWeek <= 0.3 ? -275.0 : -450.0;
         break;
       case DietGoal.gradualGain:
@@ -54,9 +47,6 @@ class NutritionScienceEngine {
     }
 
     double calculatedTarget = rawTdee + deltaKcal;
-
-    // 4. Clinical Safety Floor Enforcement
-    // Medical ethics: Never prescribe starvation diets that damage thyroid & metabolic rate.
     final double clinicalFloor =
         profile.sex == BiologicalSex.female ? 1300.0 : 1500.0;
     bool floorApplied = false;
@@ -74,50 +64,33 @@ class NutritionScienceEngine {
 
     final double finalKcal = calculatedTarget;
 
-    // 5. Evidence-Based Macro Split (Gym Trainer + Sports Nutrition)
-    // Protein: 1.6 - 2.0g per kg of body weight for active/loss/gain goals
-    final double proteinG;
-    if (profile.customProteinTargetG != null && profile.customProteinTargetG! > 0) {
-      proteinG = profile.customProteinTargetG!;
-    } else {
-      final double proteinPerKg;
-      switch (profile.activityLevel) {
-        case PhysicalActivityLevel.sedentary:
-          proteinPerKg = 1.2;
-          break;
-        case PhysicalActivityLevel.light:
-          proteinPerKg = 1.4;
-          break;
-        case PhysicalActivityLevel.moderate:
-          proteinPerKg = 1.7;
-          break;
-        case PhysicalActivityLevel.active:
-        case PhysicalActivityLevel.athlete:
-          proteinPerKg = 2.0;
-          break;
-      }
-      proteinG = (weightKg * proteinPerKg).clamp(65.0, 220.0);
+    final double proteinPerKg;
+    switch (profile.activityLevel) {
+      case PhysicalActivityLevel.sedentary:
+        proteinPerKg = 1.2;
+        break;
+      case PhysicalActivityLevel.light:
+        proteinPerKg = 1.4;
+        break;
+      case PhysicalActivityLevel.moderate:
+        proteinPerKg = 1.7;
+        break;
+      case PhysicalActivityLevel.active:
+      case PhysicalActivityLevel.athlete:
+        proteinPerKg = 2.0;
+        break;
     }
+    final double proteinG = (weightKg * proteinPerKg).clamp(65.0, 220.0);
 
-    // Fibre: 14g per 1000 kcal, clamped between 28g and 35g
-    final double fibreG;
-    if (profile.customFibreTargetG != null && profile.customFibreTargetG! > 0) {
-      fibreG = profile.customFibreTargetG!;
-    } else {
-      fibreG = ((finalKcal / 1000.0) * 14.0).clamp(28.0, 38.0);
-    }
-
-    // Healthy Fats: 25% to 30% of target energy (9 kcal/g)
+    final double fibreG = ((finalKcal / 1000.0) * 14.0).clamp(28.0, 38.0);
     final double fatCalories = finalKcal * 0.28;
     final double fatG = (fatCalories / 9.0).clamp(40.0, 100.0);
 
-    // Remaining calories for Complex Carbohydrates (4 kcal/g)
     final double proteinCalories = proteinG * 4.0;
     final double remainingCarbCalories =
         math.max(200.0, finalKcal - proteinCalories - fatCalories);
     final double carbsG = (remainingCarbCalories / 4.0).clamp(60.0, 450.0);
 
-    // Hydration Target: 35ml per kg + 500ml for training
     final double waterMl =
         ((weightKg * 35.0) + (activeBurnKcal > 0 ? 500.0 : 250.0)).clamp(2000.0, 4000.0);
 
@@ -131,6 +104,60 @@ class NutritionScienceEngine {
       calciumMg: 1000.0,
       waterMl: waterMl,
       clinicalFloorApplied: floorApplied,
+      explanation: explanation,
+    );
+  }
+
+  /// Mifflin-St Jeor BMR + Safe Activity Multiplier + Goal Deficit/Surplus.
+  /// Respects user-configured manual target overrides when present.
+  static DailyTargets computeDailyTargets(
+    NutritionProfile profile, {
+    double activeBurnKcal = 0.0,
+  }) {
+    // If user set custom targets directly, prioritize them
+    final autoTargets = calculateTargetsFromMetrics(profile, activeBurnKcal: activeBurnKcal);
+
+    final targetKcal = (profile.targetCalories != null && profile.targetCalories! > 0)
+        ? profile.targetCalories!
+        : autoTargets.targetKcal;
+
+    final proteinG = (profile.targetProteinG != null && profile.targetProteinG! > 0)
+        ? profile.targetProteinG!
+        : (profile.customProteinTargetG != null && profile.customProteinTargetG! > 0)
+            ? profile.customProteinTargetG!
+            : autoTargets.proteinG;
+
+    final carbsG = (profile.targetCarbsG != null && profile.targetCarbsG! > 0)
+        ? profile.targetCarbsG!
+        : autoTargets.carbsG;
+
+    final fatG = (profile.targetFatG != null && profile.targetFatG! > 0)
+        ? profile.targetFatG!
+        : autoTargets.fatG;
+
+    final waterMl = (profile.targetWaterMl != null && profile.targetWaterMl! > 0)
+        ? profile.targetWaterMl!
+        : autoTargets.waterMl;
+
+    final fibreG = (profile.customFibreTargetG != null && profile.customFibreTargetG! > 0)
+        ? profile.customFibreTargetG!
+        : autoTargets.fibreG;
+
+    final isManual = profile.targetCalories != null && profile.targetCalories! > 0;
+    final explanation = isManual
+        ? 'Custom user targets applied: ${targetKcal.round()} kcal with tailored macronutrient balance.'
+        : autoTargets.explanation;
+
+    return DailyTargets(
+      targetKcal: targetKcal,
+      proteinG: proteinG,
+      carbsG: carbsG,
+      fatG: fatG,
+      fibreG: fibreG,
+      ironMg: autoTargets.ironMg,
+      calciumMg: autoTargets.calciumMg,
+      waterMl: waterMl,
+      clinicalFloorApplied: autoTargets.clinicalFloorApplied,
       explanation: explanation,
     );
   }

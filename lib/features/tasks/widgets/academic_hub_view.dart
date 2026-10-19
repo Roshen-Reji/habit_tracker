@@ -7,10 +7,12 @@ import 'package:habit_tracker/core/widgets/tactile_button.dart';
 import 'package:habit_tracker/core/widgets/progress_bar_x.dart';
 import 'package:habit_tracker/core/motion/animated_metric_ticker.dart';
 import 'package:habit_tracker/core/motion/spring_sheet.dart';
+import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/attendance_gpa_engine.dart';
 import 'package:habit_tracker/features/tasks/engine/smart_scheduler_engine.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
+import 'package:habit_tracker/features/tasks/widgets/smart_scanner_sheet.dart';
 
 class AcademicHubView extends StatefulWidget {
   const AcademicHubView({super.key});
@@ -40,9 +42,52 @@ class _AcademicHubViewState extends State<AcademicHubView> {
 
         return Column(
           children: [
+            // Smart Scanner CTA
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+              child: PressScale(
+                onTap: () => SmartScannerSheet.show(context),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.document_scanner_rounded,
+                        size: 16,
+                        color:
+                            Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Smart Scanner & Auto-Router',
+                        style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             // Segmented Sub-tab bar with tactile feedback
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: BentoTheme.surface,

@@ -23,8 +23,8 @@ class TaskResetService {
 
       switch (goal.type) {
         case GoalType.today:
-          // Today tasks disappear or reset next day
-          shouldReset = !_isSameDay(now, goal.lastCompletedDate!);
+          // Strictly one-time: never reset or regenerate tomorrow
+          shouldReset = false;
           break;
         case GoalType.daily:
           shouldReset = !_isSameDay(now, goal.lastCompletedDate!);

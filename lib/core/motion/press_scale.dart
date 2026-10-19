@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import 'motion_scope.dart';
 import 'motion_tokens.dart';
@@ -66,43 +67,31 @@ class PressScale extends StatefulWidget {
 class _PressScaleState extends State<PressScale>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late Animation<double> _scaleAnimation;
   bool _isDown = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _controller = AnimationController.unbounded(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      value: 0.0,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: widget.minScale,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
-  }
-
-  @override
-  void didUpdateWidget(PressScale oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.minScale != widget.minScale) {
-      _scaleAnimation = Tween<double>(
-        begin: 1.0,
-        end: widget.minScale,
-      ).animate(CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ));
-    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _runSpring(double target, {double velocity = 0.0}) {
+    final simulation = SpringSimulation(
+      MotionTokens.snappyMicro,
+      _controller.value,
+      target,
+      velocity,
+    );
+    _controller.animateWith(simulation);
   }
 
   void _onTapDown(TapDownDetails _) {
@@ -112,19 +101,19 @@ class _PressScaleState extends State<PressScale>
     if (widget.enableHaptics) {
       HapticFeedback.lightImpact();
     }
-    _controller.forward();
+    _runSpring(1.0, velocity: 1.5);
   }
 
   void _onTapUp(TapUpDetails _) {
     if (!_isDown) return;
     _isDown = false;
-    _controller.reverse();
+    _runSpring(0.0, velocity: -2.0);
   }
 
   void _onTapCancel() {
     if (!_isDown) return;
     _isDown = false;
-    _controller.reverse();
+    _runSpring(0.0, velocity: -1.0);
   }
 
   void _handleTap() {
@@ -154,8 +143,8 @@ class _PressScaleState extends State<PressScale>
         builder: (context, child) {
           if (disabled) return child!;
 
-          final scale = _scaleAnimation.value;
-          final progress = _controller.value;
+          final progress = _controller.value.clamp(0.0, 1.2);
+          final scale = 1.0 - (progress * (1.0 - widget.minScale));
 
           Widget result = Transform.scale(
             scale: scale,

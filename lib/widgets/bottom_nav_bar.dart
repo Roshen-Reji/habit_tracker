@@ -1,9 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/motion/motion_tokens.dart';
-import 'package:habit_tracker/core/theme/tactile_tokens.dart';
 import 'package:habit_tracker/core/widgets/glass_tab_bar.dart' show GlassTabItem;
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -146,7 +144,12 @@ class _BottomNavBarState extends State<BottomNavBar>
           child: RepaintBoundary(
             child: Container(
               decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(26.0),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1.0,
+                ),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x66000000),
@@ -155,149 +158,136 @@ class _BottomNavBarState extends State<BottomNavBar>
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26.0),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: TactileTokens.surface.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(26.0),
-                      border: Border.all(
-                        color: TactileTokens.specularBorder,
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Integrated Top-Lip Mini-Player Dock
-                        if (widget.showMiniPlayer)
-                          const MiniPlayerDockLip(),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Integrated Top-Lip Mini-Player Dock
+                    if (widget.showMiniPlayer)
+                      const MiniPlayerDockLip(),
 
-                        // Tab Navigation Row with Spring Indicator & Choreography
-                        Container(
-                          height: widget.height - 2.0,
-                          padding: const EdgeInsets.all(6.0),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final totalWidth = constraints.maxWidth;
-                              final itemCount = _resolvedItems.length;
-                              if (itemCount == 0) return const SizedBox.shrink();
+                    // Tab Navigation Row with Spring Indicator & Choreography
+                    Container(
+                      height: widget.height - 2.0,
+                      padding: const EdgeInsets.all(6.0),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final totalWidth = constraints.maxWidth;
+                          final itemCount = _resolvedItems.length;
+                          if (itemCount == 0) return const SizedBox.shrink();
 
-                              final itemWidth = totalWidth / itemCount;
+                          final itemWidth = totalWidth / itemCount;
 
-                              return AnimatedBuilder(
-                                animation: _positionController,
-                                builder: (context, _) {
-                                  final pos = _positionController.value;
-                                  final velocity = _positionController.velocity;
-                                  final stretchFactor = (velocity.abs() * 0.05).clamp(0.0, 0.40);
-                                  final indicatorWidth = itemWidth * (1.0 + stretchFactor);
-                                  final center = (pos * itemWidth) + (itemWidth / 2);
-                                  final indicatorLeft = (center - (indicatorWidth / 2)).clamp(
-                                    0.0,
-                                    (totalWidth - indicatorWidth).clamp(0.0, totalWidth),
-                                  );
+                          return AnimatedBuilder(
+                            animation: _positionController,
+                            builder: (context, _) {
+                              final pos = _positionController.value;
+                              final velocity = _positionController.velocity;
+                              final stretchFactor = (velocity.abs() * 0.05).clamp(0.0, 0.40);
+                              final indicatorWidth = itemWidth * (1.0 + stretchFactor);
+                              final center = (pos * itemWidth) + (itemWidth / 2);
+                              final indicatorLeft = (center - (indicatorWidth / 2)).clamp(
+                                0.0,
+                                (totalWidth - indicatorWidth).clamp(0.0, totalWidth),
+                              );
 
-                                  return GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onHorizontalDragStart: (details) {
-                                      _handleDrag(details.localPosition, totalWidth);
-                                    },
-                                    onHorizontalDragUpdate: (details) {
-                                      _handleDrag(details.localPosition, totalWidth);
-                                    },
-                                    onHorizontalDragEnd: (_) {
-                                      if (_scrubIndex != null) {
-                                        widget.onItemTapped(_scrubIndex!);
-                                        _scrubIndex = null;
-                                      }
-                                    },
-                                    onHorizontalDragCancel: () {
-                                      _scrubIndex = null;
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        // Spring-Driven Elastic Morphing Sliding Indicator
-                                        Positioned(
-                                          left: indicatorLeft,
-                                          top: 0,
-                                          bottom: 0,
-                                          width: indicatorWidth,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: TactileTokens.surfacePressed,
-                                              borderRadius:
-                                                  BorderRadius.circular(20.0),
-                                              border: Border.all(
-                                                color: const Color(0x28FFFFFF),
-                                                width: 1.0,
-                                              ),
-                                              boxShadow: const [
-                                                BoxShadow(
-                                                  color: Color(0x40000000),
-                                                  blurRadius: 8,
-                                                  offset: Offset(0, 2),
-                                                ),
-                                              ],
-                                            ),
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onHorizontalDragStart: (details) {
+                                  _handleDrag(details.localPosition, totalWidth);
+                                },
+                                onHorizontalDragUpdate: (details) {
+                                  _handleDrag(details.localPosition, totalWidth);
+                                },
+                                onHorizontalDragEnd: (_) {
+                                  if (_scrubIndex != null) {
+                                    widget.onItemTapped(_scrubIndex!);
+                                    _scrubIndex = null;
+                                  }
+                                },
+                                onHorizontalDragCancel: () {
+                                  _scrubIndex = null;
+                                },
+                                child: Stack(
+                                  children: [
+                                    // Spring-Driven Elastic Morphing Sliding Indicator
+                                    Positioned(
+                                      left: indicatorLeft,
+                                      top: 0,
+                                      bottom: 0,
+                                      width: indicatorWidth,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primaryContainer,
+                                          borderRadius:
+                                              BorderRadius.circular(20.0),
+                                          border: Border.all(
+                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                                            width: 1.0,
                                           ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x30000000),
+                                              blurRadius: 6,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
                                         ),
+                                      ),
+                                    ),
 
-                                        // Tab Items Row with Icon & Label Choreography
-                                        Row(
-                                          children: List.generate(itemCount, (index) {
-                                            final item = _resolvedItems[index];
-                                            final proximity = (1.0 -
-                                                    (index - pos).abs())
-                                                .clamp(0.0, 1.0);
-                                            final isSelected =
-                                                widget.selectedIndex == index;
+                                    // Tab Items Row with Icon & Label Choreography
+                                    Row(
+                                      children: List.generate(itemCount, (index) {
+                                        final item = _resolvedItems[index];
+                                        final proximity = (1.0 -
+                                                (index - pos).abs())
+                                            .clamp(0.0, 1.0);
+                                        final isSelected =
+                                            widget.selectedIndex == index;
 
-                                            return Expanded(
-                                              child: LayoutBuilder(
-                                                builder: (context, itemConstraints) {
-                                                  const double iconWidth = 20.0;
-                                                  const double iconMargin = 6.0;
-                                                  const double horizontalItemPadding = iconWidth + iconMargin + 12.0;
-                                                  final availableTextWidth = itemConstraints.maxWidth - horizontalItemPadding;
+                                        return Expanded(
+                                          child: LayoutBuilder(
+                                            builder: (context, itemConstraints) {
+                                              const double iconWidth = 20.0;
+                                              const double iconMargin = 6.0;
+                                              const double horizontalItemPadding = iconWidth + iconMargin + 12.0;
+                                              final availableTextWidth = itemConstraints.maxWidth - horizontalItemPadding;
 
-                                                  final effectiveLabelStyle = TextStyle(
-                                                    fontFamily: 'Roboto',
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w700,
-                                                    letterSpacing: -0.3,
-                                                    color: Theme.of(context).colorScheme.onSurface,
-                                                  );
+                                              final activeColor = Theme.of(context).colorScheme.onPrimaryContainer;
+                                              final inactiveColor = Theme.of(context).colorScheme.onSurfaceVariant;
+                                              final itemColor = Color.lerp(inactiveColor, activeColor, proximity) ?? inactiveColor;
 
-                                                  final textPainter = TextPainter(
-                                                    text: TextSpan(text: item.label, style: effectiveLabelStyle),
-                                                    maxLines: 1,
-                                                    textDirection: Directionality.of(context),
-                                                    textScaler: MediaQuery.textScalerOf(context),
-                                                  )..layout(minWidth: 0, maxWidth: double.infinity);
+                                              final effectiveLabelStyle = TextStyle(
+                                                fontFamily: 'Roboto',
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: -0.3,
+                                                color: itemColor,
+                                              );
 
-                                                  final bool cutsOff = textPainter.width > availableTextWidth;
+                                              final textPainter = TextPainter(
+                                                text: TextSpan(text: item.label, style: effectiveLabelStyle),
+                                                maxLines: 1,
+                                                textDirection: Directionality.of(context),
+                                                textScaler: MediaQuery.textScalerOf(context),
+                                              )..layout(minWidth: 0, maxWidth: double.infinity);
 
-                                                  final iconWidget = Transform.translate(
-                                                    offset: Offset(
-                                                      0,
-                                                      -3.5 * proximity,
-                                                    ),
-                                                    child: Transform.scale(
-                                                      scale: 1.0 + (0.12 * proximity),
-                                                      child: Icon(
-                                                        item.icon,
-                                                        size: 20,
-                                                        color: Color.lerp(
-                                                          Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-                                                          Theme.of(context).colorScheme.primary,
-                                                          proximity,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  );
+                                              final bool cutsOff = textPainter.width > availableTextWidth;
+
+                                              final iconWidget = Transform.translate(
+                                                offset: Offset(
+                                                  0,
+                                                  -3.5 * proximity,
+                                                ),
+                                                child: Transform.scale(
+                                                  scale: 1.0 + (0.12 * proximity),
+                                                  child: Icon(
+                                                    item.icon,
+                                                    size: 20,
+                                                    color: itemColor,
+                                                  ),
+                                                ),
+                                              );
 
                                                   Widget contentWidget;
                                                   if (cutsOff) {
@@ -345,7 +335,7 @@ class _BottomNavBarState extends State<BottomNavBar>
                                                   }
 
                                                   return Semantics(
-                                                    role: SemanticsRole.tab,
+                                                    button: true,
                                                     selected: isSelected,
                                                     label: item.label,
                                                     hint: item.tooltip,
@@ -387,9 +377,6 @@ class _BottomNavBarState extends State<BottomNavBar>
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

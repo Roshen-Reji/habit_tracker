@@ -6,6 +6,7 @@ import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 import 'package:habit_tracker/features/diet/widgets/manual_food_input.dart';
+import 'package:habit_tracker/features/diet/widgets/nutrition_profile_sheet.dart';
 
 /// Legacy macro color tokens and helper bar.
 class MacroBreakdownBar extends StatelessWidget {
@@ -36,7 +37,8 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
   @override
   Widget build(BuildContext context) {
     final repo = DietRepository.instance;
-    final accent = BentoTheme.accent;
+    final colorScheme = Theme.of(context).colorScheme;
+    final accent = colorScheme.primary;
     final isDark = BentoTheme.isDark;
 
     return AnimatedBuilder(
@@ -59,23 +61,23 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
         return Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(20),
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark ? Colors.white12 : Colors.black12,
+              color: colorScheme.outlineVariant,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Row: Goal / Mode Pill
+              // Header Row: Goal / Mode Pill + Edit Targets Button
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -85,7 +87,7 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
                               ? LucideIcons.heartPulse
                               : LucideIcons.flame,
                           size: 13,
-                          color: accent,
+                          color: colorScheme.onPrimaryContainer,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -93,7 +95,7 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
                               ? 'HABIT FOCUS MODE'
                               : 'TARGET: ${targetKcal.round()} KCAL',
                           style: TextStyle(
-                            color: accent,
+                            color: colorScheme.onPrimaryContainer,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.8,
@@ -103,26 +105,18 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
                     ),
                   ),
                   const Spacer(),
-                  if (!profile.hideCaloriesMode)
-                    Text(
-                      remainingKcal >= 0
-                          ? '$remainingKcal kcal remaining'
-                          : '${remainingKcal.abs()} kcal over target',
-                      style: TextStyle(
-                        color: remainingKcal >= 0 ? Colors.grey : AppColors.warning,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
-                  else
-                    const Text(
-                      'Balanced Plate Tracking',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  // High contrast Edit Targets CTA
+                  FilledButton.tonalIcon(
+                    onPressed: () => NutritionProfileSheet.show(context),
+                    icon: const Icon(Icons.tune_rounded, size: 14),
+                    label: const Text('Edit Targets'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.secondaryContainer,
+                      foregroundColor: colorScheme.onSecondaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      visualDensity: VisualDensity.compact,
                     ),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -577,6 +571,7 @@ class HydrationAndQuickWeightStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = DietRepository.instance;
+    final colorScheme = Theme.of(context).colorScheme;
     final today = DateTime.now().toIso8601String().split('T').first;
 
     return AnimatedBuilder(
@@ -587,12 +582,12 @@ class HydrationAndQuickWeightStrip extends StatelessWidget {
 
         return Container(
           margin: const EdgeInsets.only(top: 14),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            color: colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: BentoTheme.isDark ? Colors.white10 : Colors.black12,
+              color: colorScheme.outlineVariant,
             ),
           ),
           child: Column(
@@ -600,13 +595,13 @@ class HydrationAndQuickWeightStrip extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.droplets, size: 16, color: Color(0xFF64B5F6)),
+                  Icon(Icons.water_drop_rounded, size: 18, color: colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Hydration',
                     style: TextStyle(
-                      color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-                      fontSize: 12,
+                      color: colorScheme.onSurface,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -614,64 +609,44 @@ class HydrationAndQuickWeightStrip extends StatelessWidget {
                   Text(
                     '${water.round()} / ${targetWater.round()} ml',
                     style: TextStyle(
-                      color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                      fontSize: 12,
+                      color: colorScheme.onSurface,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  PressScale(
-                    onTap: () => repo.addWater(250),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF64B5F6).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        '+250 ml',
-                        style: TextStyle(
-                          color: Color(0xFF64B5F6),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  FilledButton.tonal(
+                    onPressed: () => repo.addWater(250),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.secondaryContainer,
+                      foregroundColor: colorScheme.onSecondaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      visualDensity: VisualDensity.compact,
                     ),
+                    child: const Text('+250 ml'),
                   ),
                   const SizedBox(width: 8),
-                  PressScale(
-                    onTap: () => repo.addWater(500),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF64B5F6).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        '+500 ml',
-                        style: TextStyle(
-                          color: Color(0xFF64B5F6),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  FilledButton.tonal(
+                    onPressed: () => repo.addWater(500),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.secondaryContainer,
+                      foregroundColor: colorScheme.onSecondaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      visualDensity: VisualDensity.compact,
                     ),
+                    child: const Text('+500 ml'),
                   ),
                   const SizedBox(width: 8),
                   if (water >= 250)
-                    PressScale(
-                      onTap: () => repo.addWater(-250),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: BentoTheme.isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(LucideIcons.undo2, size: 14, color: Colors.grey),
+                    IconButton.filledTonal(
+                      onPressed: () => repo.addWater(-250),
+                      icon: const Icon(Icons.undo_rounded, size: 16),
+                      style: IconButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                 ],
@@ -685,7 +660,7 @@ class HydrationAndQuickWeightStrip extends StatelessWidget {
 }
 
 /// ---------------------------------------------------------------------------
-/// 4. MEAL SLOT CARDS WITH LOGGED ITEMS & 1-TAP PLANNED LOGGING
+/// 4. MEAL SLOT CARDS WITH LOGGED ITEMS & ADD FOOD CTA
 /// ---------------------------------------------------------------------------
 class TodayMealSlotsView extends StatelessWidget {
   const TodayMealSlotsView({super.key});
@@ -693,43 +668,28 @@ class TodayMealSlotsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = DietRepository.instance;
-    final accent = BentoTheme.accent;
+    final colorScheme = Theme.of(context).colorScheme;
     final today = DateTime.now().toIso8601String().split('T').first;
 
     return AnimatedBuilder(
       animation: repo,
       builder: (context, _) {
         final logs = repo.getLogsForDate(today);
-        final plannedMeals = repo.getPlannedMealsForDate(today);
 
         return Column(
           children: MealSlot.values.map((slot) {
             final slotLogs = logs.where((l) => l.mealSlot == slot).toList();
-            final slotPlanned = plannedMeals.firstWhere(
-              (m) => m.mealSlot == slot,
-              orElse: () => PlannedMealItem(
-                id: 'none',
-                dateIso: today,
-                mealSlot: slot,
-                title: '',
-                kcal: 0,
-                proteinG: 0,
-                carbsG: 0,
-                fatG: 0,
-              ),
-            );
-
             final slotKcal = slotLogs.fold(0.0, (sum, e) => sum + e.kcal);
             final slotProtein = slotLogs.fold(0.0, (sum, e) => sum + e.proteinG);
 
             return Container(
               margin: const EdgeInsets.only(top: 14),
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: BentoTheme.surface,
-                borderRadius: BorderRadius.circular(16),
+                color: colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: BentoTheme.isDark ? Colors.white10 : Colors.black12,
+                  color: colorScheme.outlineVariant,
                 ),
               ),
               child: Column(
@@ -741,8 +701,8 @@ class TodayMealSlotsView extends StatelessWidget {
                       Text(
                         '${slot.emoji} ${slot.title}',
                         style: TextStyle(
-                          color: accent,
-                          fontSize: 13,
+                          color: colorScheme.onSurface,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -751,124 +711,49 @@ class TodayMealSlotsView extends StatelessWidget {
                         Text(
                           '${slotKcal.round()} kcal · P: ${slotProtein.round()}g',
                           style: TextStyle(
-                            color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-                            fontSize: 11,
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       const SizedBox(width: 8),
-                      PressScale(
-                        onTap: () => ManualFoodInputWidget.show(context, defaultSlot: slot),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(LucideIcons.plus, size: 12, color: accent),
-                              const SizedBox(width: 3),
-                              Text(
-                                'Log',
-                                style: TextStyle(
-                                  color: accent,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                      // High-contrast Add Food Pill
+                      FilledButton.tonalIcon(
+                        onPressed: () => ManualFoodInputWidget.show(context, defaultSlot: slot),
+                        icon: const Icon(Icons.add_rounded, size: 14),
+                        label: const Text('Add Food'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.secondaryContainer,
+                          foregroundColor: colorScheme.onSecondaryContainer,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                     ],
                   ),
 
-                  // Planned Meal for this slot (if assigned)
-                  if (slotPlanned.kcal > 0) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: BentoTheme.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.calendarCheck, size: 14, color: Colors.grey),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Planned: ${slotPlanned.title}',
-                                  style: TextStyle(
-                                    color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  '${slotPlanned.kcal.round()} kcal · P: ${slotPlanned.proteinG.round()}g',
-                                  style: TextStyle(
-                                    color: BentoTheme.isDark ? Colors.white54 : Colors.black45,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (slotPlanned.status != PlannedMealStatus.eaten)
-                            PressScale(
-                              onTap: () => repo.updateMealStatus(slotPlanned.id, PlannedMealStatus.eaten),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Mark Eaten',
-                                  style: TextStyle(
-                                    color: AppColors.success,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            Text(
-                              '✓ Eaten',
-                              style: TextStyle(
-                                color: AppColors.success,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-
                   // Logged food entries
                   if (slotLogs.isNotEmpty) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     ...slotLogs.map((entry) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Row(
                           children: [
                             Container(
                               width: 6,
                               height: 6,
                               decoration: BoxDecoration(
-                                color: accent,
+                                color: colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -876,15 +761,15 @@ class TodayMealSlotsView extends StatelessWidget {
                                   Text(
                                     '${entry.quantity}x ${entry.title}',
                                     style: TextStyle(
-                                      color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurface,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   Text(
-                                    '${entry.unit.symbol} · ${entry.gramsTotal.round()}g',
+                                    '${entry.unit.symbol} · ${entry.gramsTotal.round()}g · P: ${entry.proteinG.round()}g',
                                     style: TextStyle(
-                                      color: BentoTheme.isDark ? Colors.white38 : Colors.black38,
+                                      color: colorScheme.onSurfaceVariant,
                                       fontSize: 10,
                                     ),
                                   ),
@@ -895,26 +780,29 @@ class TodayMealSlotsView extends StatelessWidget {
                               Text(
                                 '${entry.kcal.round()} kcal',
                                 style: TextStyle(
-                                  color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-                                  fontSize: 11,
+                                  color: colorScheme.onSurface,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => repo.deleteFoodLog(entry.id),
-                              child: const Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                            IconButton(
+                              icon: Icon(Icons.close_rounded, size: 16, color: colorScheme.onSurfaceVariant),
+                              onPressed: () => repo.deleteFoodLog(entry.id),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),
                       );
                     }),
-                  ] else if (slotPlanned.kcal == 0) ...[
-                    const SizedBox(height: 6),
+                  ] else ...[
+                    const SizedBox(height: 8),
                     Text(
                       'No foods logged yet.',
                       style: TextStyle(
-                        color: BentoTheme.isDark ? Colors.white38 : Colors.black38,
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 11,
                       ),
                     ),

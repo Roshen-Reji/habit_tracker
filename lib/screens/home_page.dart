@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -61,60 +60,58 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: AlertDialog(
-          backgroundColor: TactileTokens.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: TactileTokens.specularBorder, width: 1.0),
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1.0),
+        ),
+        title: const Text(
+          "Welcome",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
-          title: const Text(
-            "Welcome",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "enter your name",
+              style: TextStyle(color: TactileTokens.textSecondary),
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "enter your name",
-                style: TextStyle(color: TactileTokens.textSecondary),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: "Enter Name...",
+                hintStyle: TextStyle(color: Colors.white24),
+                enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white24)),
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white)),
               ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: "Enter Name...",
-                  hintStyle: TextStyle(color: Colors.white24),
-                  enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TactileButton(
-              size: TactileButtonSize.small,
-              variant: TactileButtonVariant.primary,
-              label: "ENGAGE",
-              onPressed: () {
-                if (_nameController.text.isNotEmpty) {
-                  _settingsBox?.put(
-                      'username', _nameController.text.toUpperCase());
-                  Navigator.pop(context);
-                  setState(() {});
-                }
-              },
             ),
           ],
         ),
+        actions: [
+          TactileButton(
+            size: TactileButtonSize.small,
+            variant: TactileButtonVariant.primary,
+            label: "ENGAGE",
+            onPressed: () {
+              if (_nameController.text.isNotEmpty) {
+                _settingsBox?.put(
+                    'username', _nameController.text.toUpperCase());
+                Navigator.pop(context);
+                setState(() {});
+              }
+            },
+          ),
+        ],
       ),
     );
   }

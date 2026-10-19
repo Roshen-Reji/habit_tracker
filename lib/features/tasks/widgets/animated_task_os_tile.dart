@@ -161,6 +161,7 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final now = DateTime.now();
     final isDone = widget.task.status == TaskStatus.done || _isCompleting;
     final isOverdue = widget.task.isOverdue(now) && !isDone;
@@ -181,26 +182,15 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
             color: isDone
-                ? BentoTheme.surface.withValues(alpha: 0.5)
-                : BentoTheme.surface,
+                ? colorScheme.surfaceContainerLow
+                : colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isOverdue
-                  ? AppColors.error.withValues(alpha: 0.6)
-                  : (isDone
-                      ? BentoTheme.divider.withValues(alpha: 0.3)
-                      : BentoTheme.divider),
+                  ? colorScheme.error
+                  : colorScheme.outlineVariant,
               width: isOverdue ? 1.4 : 1.0,
             ),
-            boxShadow: isDone
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +199,7 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Circular Interactive Checkbox
+                  // Morphing Interactive Checkbox (28dp circle -> 6dp squircle)
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: _handleCheckboxTap,
@@ -223,26 +213,26 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
                                 ? _checkScaleAnimation.value
                                 : 1.0,
                             child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
+                              duration: const Duration(milliseconds: 200),
                               width: 22,
                               height: 22,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
+                                borderRadius: BorderRadius.circular(isDone ? 6 : 11),
                                 color: isDone
-                                    ? BentoTheme.accent
+                                    ? colorScheme.primary
                                     : Colors.transparent,
                                 border: Border.all(
                                   color: isDone
-                                      ? BentoTheme.accent
+                                      ? colorScheme.primary
                                       : priorityColor,
                                   width: 2.0,
                                 ),
                               ),
                               child: isDone
-                                  ? const Icon(
+                                  ? Icon(
                                       Icons.check,
                                       size: 14,
-                                      color: Colors.black,
+                                      color: colorScheme.onPrimary,
                                     )
                                   : null,
                             ),
@@ -260,11 +250,11 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
                         AnimatedStrikethrough(
                           text: widget.task.title,
                           isDone: isDone,
-                          strikeColor: BentoTheme.accent,
+                          strikeColor: colorScheme.primary,
                           style: TextStyle(
                             color: isDone
-                                ? BentoTheme.textSecondary
-                                : BentoTheme.textPrimary,
+                                ? colorScheme.onSurfaceVariant
+                                : colorScheme.onSurface,
                             fontSize: 14.5,
                             fontWeight: isDone
                                 ? FontWeight.normal
@@ -278,8 +268,7 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
                           Text(
                             widget.task.notes!,
                             style: TextStyle(
-                              color: BentoTheme.textSecondary
-                                  .withValues(alpha: 0.7),
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 11.5,
                             ),
                             maxLines: 1,
@@ -301,16 +290,16 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
                         padding: const EdgeInsets.all(6),
                         margin: const EdgeInsets.only(left: 6),
                         decoration: BoxDecoration(
-                          color: BentoTheme.surfaceElevated,
+                          color: colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: BentoTheme.accent.withValues(alpha: 0.3),
+                            color: colorScheme.outlineVariant,
                           ),
                         ),
                         child: Icon(
                           LucideIcons.timer,
                           size: 14,
-                          color: BentoTheme.accent,
+                          color: colorScheme.onSecondaryContainer,
                         ),
                       ),
                     ),

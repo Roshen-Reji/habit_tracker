@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/engine/nutrition_science_engine.dart';
 import 'package:habit_tracker/features/diet/engine/native_diet_ai_engine.dart';
-import 'package:habit_tracker/features/diet/data/indian_regional_food_db.dart';
 import 'package:habit_tracker/features/tasks/engine/native_task_ai_engine.dart';
 
 void main() {
@@ -111,7 +110,69 @@ void main() {
   });
 
   group('NativeDietAiEngine Tests', () {
-    final testDb = IndianRegionalFoodDb.defaultFoods;
+    final testDb = const <FoodItemData>[
+      FoodItemData(
+        id: 'appam',
+        name: 'Appam',
+        category: FoodCategory.grains,
+        kcalPer100g: 130.0,
+        proteinPer100g: 2.2,
+        carbsPer100g: 28.0,
+        fatPer100g: 0.8,
+        defaultUnit: HouseholdUnit.piece,
+        gramsPerDefaultUnit: 55.0,
+        dietaryTags: ['veg', 'vegan'],
+      ),
+      FoodItemData(
+        id: 'egg_roast',
+        name: 'Egg Roast',
+        category: FoodCategory.protein,
+        kcalPer100g: 155.0,
+        proteinPer100g: 11.0,
+        carbsPer100g: 5.0,
+        fatPer100g: 10.0,
+        defaultUnit: HouseholdUnit.cup,
+        gramsPerDefaultUnit: 150.0,
+        dietaryTags: ['egg'],
+        allergens: ['Egg'],
+      ),
+      FoodItemData(
+        id: 'chai',
+        name: 'Chai',
+        category: FoodCategory.snacks,
+        kcalPer100g: 65.0,
+        proteinPer100g: 2.0,
+        carbsPer100g: 9.0,
+        fatPer100g: 2.2,
+        defaultUnit: HouseholdUnit.glass,
+        gramsPerDefaultUnit: 150.0,
+        dietaryTags: ['veg'],
+      ),
+      FoodItemData(
+        id: 'idli_steamed',
+        name: 'Steamed Idli',
+        category: FoodCategory.grains,
+        kcalPer100g: 135.0,
+        proteinPer100g: 4.1,
+        carbsPer100g: 28.5,
+        fatPer100g: 0.6,
+        defaultUnit: HouseholdUnit.piece,
+        gramsPerDefaultUnit: 60.0,
+        dietaryTags: ['veg', 'vegan'],
+      ),
+      FoodItemData(
+        id: 'paneer_bhurji',
+        name: 'Paneer Bhurji',
+        category: FoodCategory.protein,
+        kcalPer100g: 240.0,
+        proteinPer100g: 14.0,
+        carbsPer100g: 4.0,
+        fatPer100g: 19.0,
+        defaultUnit: HouseholdUnit.katori,
+        gramsPerDefaultUnit: 150.0,
+        dietaryTags: ['veg'],
+      ),
+    ];
 
     test('Parses multi-item natural meal descriptions into structured draft entries', () {
       final drafts = NativeDietAiEngine.parseMealTextToDraftLogs(
@@ -157,7 +218,7 @@ void main() {
       final swaps = NativeDietAiEngine.suggestMealSwaps(
         current: current,
         profile: profile,
-        foods: IndianRegionalFoodDb.defaultFoods,
+        foods: testDb,
       );
 
       expect(swaps.isNotEmpty, isTrue);
@@ -170,7 +231,7 @@ void main() {
     });
 
     test('Consolidates grocery list across planned meals and normalizes quantities', () {
-      final foods = IndianRegionalFoodDb.defaultFoods;
+      final foods = testDb;
       final plan = [
         const PlannedMealItem(
           id: 'm1',

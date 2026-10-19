@@ -4,7 +4,6 @@ import 'package:hive/hive.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/engine/nutrition_science_engine.dart';
 import 'package:habit_tracker/features/diet/engine/native_diet_ai_engine.dart';
-import 'package:habit_tracker/features/diet/data/indian_regional_food_db.dart';
 import 'package:habit_tracker/data/models/diet_models.dart';
 
 /// Single source of truth for the Diet Planner OS.
@@ -21,6 +20,7 @@ class DietRepository extends ChangeNotifier {
   // In-memory reactive state
   NutritionProfile _profile = const NutritionProfile();
   final List<FoodItemData> _foods = [];
+  final List<CustomFoodItem> _customFoods = [];
   final List<DietLogEntry> _logs = [];
   final List<PlannedMealItem> _plannedMeals = [];
   final List<GroceryItem> _groceryList = [];
@@ -35,7 +35,9 @@ class DietRepository extends ChangeNotifier {
   bool get isInitialized => _initialized;
   NutritionProfile get profile => _profile;
   List<FoodItemData> get foods => List.unmodifiable(_foods);
+  List<CustomFoodItem> get customFoods => List.unmodifiable(_customFoods);
   List<DietLogEntry> get logs => List.unmodifiable(_logs);
+  List<DietLogEntry> get todayLogs => getLogsForDate(_todayKey());
   List<PlannedMealItem> get plannedMeals => List.unmodifiable(_plannedMeals);
   List<GroceryItem> get groceryList => List.unmodifiable(_groceryList);
   List<WeightProgressEntry> get weightEntries => List.unmodifiable(_weightEntries);
@@ -78,9 +80,8 @@ class DietRepository extends ChangeNotifier {
   Future<void> init() async {
     if (_initialized) return;
 
-    // Load default seeded food and recipes
+    // Clean slate: Zero preloaded food clutter.
     _foods.clear();
-    _foods.addAll(IndianRegionalFoodDb.defaultFoods);
 
     try {
       if (Hive.isBoxOpen('diet_os_box')) {
@@ -111,7 +112,18 @@ class DietRepository extends ChangeNotifier {
       _profile = const NutritionProfile();
     }
 
-    // 2. Food Logs
+    // 2. Custom Foods
+    _customFoods.clear();
+    final rawCustom = _box!.get('custom_foods');
+    if (rawCustom is List) {
+      for (final item in rawCustom) {
+        if (item is Map) {
+          _customFoods.add(CustomFoodItem.fromJson(Map<String, dynamic>.from(item)));
+        }
+      }
+    }
+
+    // 3. Food Logs
     _logs.clear();
     final rawLogs = _box!.get('logs');
     if (rawLogs is List) {
@@ -122,7 +134,7 @@ class DietRepository extends ChangeNotifier {
       }
     }
 
-    // 3. Planned Meals (purge any legacy placeholder entries)
+    // 4. Planned Meals (purge any legacy placeholder entries)
     _plannedMeals.clear();
     final rawPlanned = _box!.get('planned_meals');
     if (rawPlanned is List) {
@@ -136,10 +148,10 @@ class DietRepository extends ChangeNotifier {
       }
     }
 
-    // 4. Recipes (remove box key permanently)
+    // 5. Recipes (remove box key permanently)
     _box!.delete('recipes');
 
-    // 5. Grocery List (purge any legacy placeholder entries)
+    // 6. Grocery List (purge any legacy placeholder entries)
     _groceryList.clear();
     final rawGrocery = _box!.get('grocery_items');
     if (rawGrocery is List) {
@@ -153,7 +165,7 @@ class DietRepository extends ChangeNotifier {
       }
     }
 
-    // 6. Weight Progress (purge any legacy placeholder fake weigh-ins)
+    // 7. Weight Progress (purge any legacy placeholder fake weigh-ins)
     _weightEntries.clear();
     final rawWeights = _box!.get('weight_entries');
     if (rawWeights is List) {
@@ -167,7 +179,7 @@ class DietRepository extends ChangeNotifier {
       }
     }
 
-    // 7. Water Logs
+    // 8. Water Logs
     _waterLogs.clear();
     final rawWater = _box!.get('water_logs');
     if (rawWater is Map) {
@@ -180,10 +192,12 @@ class DietRepository extends ChangeNotifier {
     _box!.put('planned_meals', _plannedMeals.map((e) => e.toJson()).toList());
     _box!.put('grocery_items', _groceryList.map((e) => e.toJson()).toList());
     _box!.put('weight_entries', _weightEntries.map((e) => e.toJson()).toList());
+    _box!.put('custom_foods', _customFoods.map((e) => e.toJson()).toList());
   }
 
   void _loadDefaultsInMemory() {
     _profile = const NutritionProfile();
+    _customFoods.clear();
     _plannedMeals.clear();
     _groceryList.clear();
     _weightEntries.clear();
@@ -214,6 +228,28 @@ class DietRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Alias conforming to domain specification.
+  Future<void> saveNutritionProfile(NutritionProfile newProfile) => updateProfile(newProfile);
+
+  /// Upserts user custom food item into local reactive storage.
+  Future<void> upsertCustomFood(CustomFoodItem item) async {
+    final idx = _customFoods.indexWhere((f) => f.id == item.id);
+    if (idx != -1) {
+      _customFoods[idx] = item;
+    } else {
+      _customFoods.add(item);
+    }
+    await _box?.put('custom_foods', _customFoods.map((e) => e.toJson()).toList());
+    notifyListeners();
+  }
+
+  /// Deletes user custom food item.
+  Future<void> deleteCustomFood(String id) async {
+    _customFoods.removeWhere((f) => f.id == id);
+    await _box?.put('custom_foods', _customFoods.map((e) => e.toJson()).toList());
+    notifyListeners();
+  }
+
   /// Logs a food entry with a 500ms duplicate-tap debouncer.
   Future<bool> logFood(DietLogEntry entry) async {
     final signature = '${entry.dateIso}_${entry.title}_${entry.gramsTotal.round()}';
@@ -241,6 +277,20 @@ class DietRepository extends ChangeNotifier {
     return true;
   }
 
+  /// Conforming alias for logFood.
+  Future<bool> logMeal(DietLogEntry entry) => logFood(entry);
+
+  /// Updates an existing logged food item.
+  Future<void> updateMealLog(DietLogEntry entry) async {
+    final idx = _logs.indexWhere((l) => l.id == entry.id);
+    if (idx != -1) {
+      _logs[idx] = entry;
+      await _box?.put('logs', _logs.map((e) => e.toJson()).toList());
+      _syncFoodEntryToLegacy(entry);
+      notifyListeners();
+    }
+  }
+
   /// Deletes a logged food item.
   Future<void> deleteFoodLog(String logId) async {
     final idx = _logs.indexWhere((l) => l.id == logId);
@@ -251,6 +301,9 @@ class DietRepository extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Conforming alias for deleteFoodLog.
+  Future<void> deleteMealLog(String id) => deleteFoodLog(id);
 
   /// Adds water in ml for a given date (defaults to today).
   Future<void> addWater(double ml, {String? dateIso}) async {
@@ -362,13 +415,6 @@ class DietRepository extends ChangeNotifier {
     _plannedMeals.removeWhere((m) => m.dateIso == dateIso);
     _plannedMeals.addAll(meals);
     await _box?.put('planned_meals', _plannedMeals.map((e) => e.toJson()).toList());
-    notifyListeners();
-  }
-
-  /// Generates a fresh grocery list from current meal plan.
-  Future<void> regenerateGroceryList() async {
-    _regenerateGroceryList();
-    await _box?.put('grocery_items', _groceryList.map((e) => e.toJson()).toList());
     notifyListeners();
   }
 

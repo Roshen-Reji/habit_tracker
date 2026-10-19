@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -391,9 +390,6 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                   final opacity = (1.0 - (depthAmount * 0.20))
                                       .clamp(0.72, 1.0);
 
-                                  final blurSigma =
-                                      (depthAmount * 3.6).clamp(0.0, 4.2);
-
                                   final transform = Matrix4.identity()
                                     ..setEntry(3, 2, _perspective)
                                     ..translate(0.0, 0.0, zOffset)
@@ -443,18 +439,7 @@ class _WalletCardStackState extends State<WalletCardStack> {
                                                   ),
                                                 ],
                                               ),
-                                              child: blurSigma > 0.1
-                                                  ? ImageFiltered(
-                                                      imageFilter:
-                                                          ImageFilter.blur(
-                                                        sigmaX: blurSigma,
-                                                        sigmaY: blurSigma,
-                                                        tileMode:
-                                                            TileMode.decal,
-                                                      ),
-                                                      child: child!,
-                                                    )
-                                                  : child!,
+                                              child: child!,
                                             ),
                                           ),
                                         ),

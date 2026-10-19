@@ -1,20 +1,13 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/motion/spring_sheet.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/data/diet_repository.dart';
-import 'package:habit_tracker/data/services/ai_service.dart';
 
-/// Interactive Fast Food Logging & AI Draft Sheet.
-/// Provides 3 clean modes:
-/// 1. Search & Indian Regional DB with Household portion units and allergen alerts
-/// 2. ✨ AI Multimodal Text / Meal Photo / Packaged Label Draft Logger
-/// 3. Fast Custom Entry with a 500ms duplicate tap guard
+/// Clean Material 3 Meal Logging Sheet.
+/// Features 2 fast modes:
+/// 1. Quick Entry Form (Food Name, Calories, Protein, Carbs, Fats, Servings, Save to My Foods)
+/// 2. My Saved Foods (User's own CustomFoodItem library for 1-tap logging)
 class ManualFoodInputWidget extends StatefulWidget {
   final MealSlot defaultSlot;
   final String? dateIso;
@@ -49,28 +42,18 @@ class ManualFoodInputWidget extends StatefulWidget {
 }
 
 class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
-  int _activeMode = 0; // 0: Database Search, 1: AI Prompt/Snap, 2: Custom Entry
+  int _activeTab = 0; // 0: Quick Entry, 1: My Saved Foods
   late MealSlot _selectedSlot;
 
-  // Mode 0: Search & Portion
-  final _searchCtrl = TextEditingController();
-  FoodItemData? _selectedFood;
-  double _portionQty = 1.0;
-  HouseholdUnit _selectedUnit = HouseholdUnit.serving;
+  // Quick Entry controllers
+  final _nameCtrl = TextEditingController();
+  final _kcalCtrl = TextEditingController();
+  final _proteinCtrl = TextEditingController();
+  final _carbsCtrl = TextEditingController();
+  final _fatCtrl = TextEditingController();
 
-  // Mode 1: AI Draft
-  final _aiPromptCtrl = TextEditingController();
-  Uint8List? _selectedImageBytes;
-  bool _isAnalyzingAi = false;
-  List<DietLogEntry> _aiDrafts = [];
-
-  // Mode 2: Custom
-  final _customNameCtrl = TextEditingController();
-  final _customKcalCtrl = TextEditingController();
-  final _customProteinCtrl = TextEditingController();
-  final _customCarbsCtrl = TextEditingController();
-  final _customFatCtrl = TextEditingController();
-  final _customFibreCtrl = TextEditingController();
+  double _servings = 1.0;
+  bool _saveToMyFoods = false;
 
   @override
   void initState() {
@@ -80,144 +63,109 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
 
   @override
   void dispose() {
-    _searchCtrl.dispose();
-    _aiPromptCtrl.dispose();
-    _customNameCtrl.dispose();
-    _customKcalCtrl.dispose();
-    _customProteinCtrl.dispose();
-    _customCarbsCtrl.dispose();
-    _customFatCtrl.dispose();
-    _customFibreCtrl.dispose();
+    _nameCtrl.dispose();
+    _kcalCtrl.dispose();
+    _proteinCtrl.dispose();
+    _carbsCtrl.dispose();
+    _fatCtrl.dispose();
     super.dispose();
   }
 
   String get _effectiveDate =>
       widget.dateIso ?? DateTime.now().toIso8601String().split('T').first;
 
-  // ---------------------------------------------------------------------------
-  // ACTIONS
-  // ---------------------------------------------------------------------------
-
-  void _logSelectedFood() async {
-    if (_selectedFood == null) return;
-
-    final portion = _selectedFood!.computePortionNutrition(_portionQty, _selectedUnit);
-    final warnings = <String>[];
-    for (final alg in _selectedFood!.allergens) {
-      if (DietRepository.instance.profile.allergies
-          .any((u) => u.toLowerCase() == alg.toLowerCase())) {
-        warnings.add('Contains $alg');
-      }
+  Future<void> _logQuickMeal() async {
+    final name = _nameCtrl.text.trim();
+    final kcal = double.tryParse(_kcalCtrl.text) ?? 0.0;
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter food name')),
+      );
+      return;
     }
+    if (kcal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid calories (kcal)')),
+      );
+      return;
+    }
+
+    final protein = double.tryParse(_proteinCtrl.text) ?? 0.0;
+    final carbs = double.tryParse(_carbsCtrl.text) ?? 0.0;
+    final fat = double.tryParse(_fatCtrl.text) ?? 0.0;
+
+    // Scale by servings
+    final totalKcal = kcal * _servings;
+    final totalProtein = protein * _servings;
+    final totalCarbs = carbs * _servings;
+    final totalFat = fat * _servings;
 
     final entry = DietLogEntry(
       id: 'log_${DateTime.now().millisecondsSinceEpoch}',
       dateIso: _effectiveDate,
       mealSlot: _selectedSlot,
-      foodId: _selectedFood!.id,
-      title: _selectedFood!.name,
-      quantity: _portionQty,
-      unit: _selectedUnit,
-      gramsTotal: portion['grams'] ?? 100.0,
-      kcal: portion['kcal'] ?? 100.0,
-      proteinG: portion['proteinG'] ?? 0.0,
-      carbsG: portion['carbsG'] ?? 0.0,
-      fatG: portion['fatG'] ?? 0.0,
-      fibreG: portion['fibreG'] ?? 0.0,
-      confidence: _selectedFood!.confidence,
-      allergenWarnings: warnings,
+      title: name,
+      quantity: _servings,
+      unit: HouseholdUnit.serving,
+      gramsTotal: 100.0 * _servings,
+      kcal: totalKcal,
+      proteinG: totalProtein,
+      carbsG: totalCarbs,
+      fatG: totalFat,
+      confidence: FoodConfidence.userSubmitted,
     );
 
-    final success = await DietRepository.instance.logFood(entry);
-    if (success && mounted) {
-      widget.onFoodAdded?.call();
-      Navigator.pop(context);
-    }
-  }
+    await DietRepository.instance.logFood(entry);
 
-  void _runAiAnalysis() async {
-    final text = _aiPromptCtrl.text.trim();
-    if (text.isEmpty && _selectedImageBytes == null) return;
-
-    setState(() => _isAnalyzingAi = true);
-
-    try {
-      final drafts = await AiService.instance.parseMealDescriptionWithAi(
-        text.isNotEmpty ? text : 'Parsed meal photo',
-        imageBytes: _selectedImageBytes,
-        defaultSlot: _selectedSlot,
-        dateIso: _effectiveDate,
+    if (_saveToMyFoods) {
+      final customItem = CustomFoodItem(
+        id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        servingLabel: '1 serving',
+        calories: kcal,
+        proteinG: protein,
+        carbsG: carbs,
+        fatG: fat,
       );
-      if (mounted) {
-        setState(() {
-          _aiDrafts = drafts;
-          _isAnalyzingAi = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isAnalyzingAi = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('AI analysis note: $e')),
-        );
-      }
+      await DietRepository.instance.upsertCustomFood(customItem);
     }
-  }
 
-  void _logAiDrafts() async {
-    for (final d in _aiDrafts) {
-      await DietRepository.instance.logFood(d);
-    }
     if (mounted) {
       widget.onFoodAdded?.call();
       Navigator.pop(context);
     }
   }
 
-  void _logCustomFood() async {
-    final name = _customNameCtrl.text.trim();
-    final kcal = double.tryParse(_customKcalCtrl.text) ?? 0.0;
-    if (name.isEmpty || kcal <= 0) return;
-
+  Future<void> _logFromCustomFood(CustomFoodItem item) async {
     final entry = DietLogEntry(
-      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'log_${DateTime.now().millisecondsSinceEpoch}',
       dateIso: _effectiveDate,
       mealSlot: _selectedSlot,
-      title: name,
+      title: item.name,
       quantity: 1.0,
       unit: HouseholdUnit.serving,
-      gramsTotal: 120.0,
-      kcal: kcal,
-      proteinG: double.tryParse(_customProteinCtrl.text) ?? 0.0,
-      carbsG: double.tryParse(_customCarbsCtrl.text) ?? 0.0,
-      fatG: double.tryParse(_customFatCtrl.text) ?? 0.0,
-      fibreG: double.tryParse(_customFibreCtrl.text) ?? 0.0,
+      gramsTotal: 100.0,
+      kcal: item.calories,
+      proteinG: item.proteinG,
+      carbsG: item.carbsG,
+      fatG: item.fatG,
       confidence: FoodConfidence.userSubmitted,
     );
 
-    final success = await DietRepository.instance.logFood(entry);
-    if (success && mounted) {
+    await DietRepository.instance.logFood(entry);
+
+    if (mounted) {
       widget.onFoodAdded?.call();
       Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logged ${item.name} to ${_selectedSlot.title}!')),
+      );
     }
   }
-
-  void _pickMealImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, maxWidth: 1024);
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      setState(() => _selectedImageBytes = bytes);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // BUILD
-  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final accent = BentoTheme.accent;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -227,7 +175,7 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
           // Meal slot selector chips
           Row(
             children: MealSlot.values.map((s) {
-              final isSel = _selectedSlot == s;
+              final isSelected = _selectedSlot == s;
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -236,21 +184,25 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSel ? accent : BentoTheme.surface,
+                        color: isSelected
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSel
-                              ? accent
-                              : (BentoTheme.isDark ? Colors.white10 : Colors.black12),
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant,
                         ),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         '${s.emoji} ${s.name[0].toUpperCase() + s.name.substring(1)}',
                         style: TextStyle(
-                          color: isSel ? Colors.black : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
+                          color: isSelected
+                              ? colorScheme.onPrimaryContainer
+                              : colorScheme.onSurface,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           fontSize: 11,
-                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -259,718 +211,370 @@ class _ManualFoodInputWidgetState extends State<ManualFoodInputWidget> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // 3-Mode switcher
+          // Sliding Tab Switcher: Quick Entry vs My Saved Foods
           Container(
-            padding: const EdgeInsets.all(4),
+            height: 40,
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: BentoTheme.surface,
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
             child: Row(
               children: [
-                _modeTab('Search & Regional', 0, LucideIcons.search),
-                _modeTab('✨ AI Prompt/Snap', 1, LucideIcons.sparkles),
-                _modeTab('Quick Custom', 2, LucideIcons.plusCircle),
+                _tabPill(index: 0, title: 'Quick Entry', icon: Icons.bolt_rounded),
+                _tabPill(index: 1, title: 'My Saved Foods', icon: Icons.bookmark_rounded),
               ],
             ),
           ),
           const SizedBox(height: 16),
 
-          if (_activeMode == 0) _buildSearchMode(accent),
-          if (_activeMode == 1) _buildAiMode(accent),
-          if (_activeMode == 2) _buildCustomMode(accent),
-        ],
-      ),
-    );
-  }
+          // Mode 0: Quick Entry
+          if (_activeTab == 0) ...[
+            _m3TextField(
+              label: 'Food Name',
+              controller: _nameCtrl,
+              hint: 'e.g. Scrambled Eggs with Toast',
+            ),
+            const SizedBox(height: 10),
 
-  Widget _modeTab(String label, int index, IconData icon) {
-    final isSel = _activeMode == index;
-    final accent = BentoTheme.accent;
-    return Expanded(
-      child: PressScale(
-        onTap: () => setState(() => _activeMode = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSel ? (BentoTheme.isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08)) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: isSel ? accent : Colors.grey),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSel
-                      ? (BentoTheme.isDark ? Colors.white : Colors.black)
-                      : Colors.grey,
-                  fontSize: 11,
-                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // MODE 0: SEARCH & REGIONAL DB
-  // ---------------------------------------------------------------------------
-
-  Widget _buildSearchMode(Color accent) {
-    final query = _searchCtrl.text.toLowerCase().trim();
-    final allFoods = DietRepository.instance.foods;
-    final filtered = query.isEmpty
-        ? allFoods.take(12).toList()
-        : allFoods
-            .where((f) =>
-                f.name.toLowerCase().contains(query) ||
-                f.aliases.any((a) => a.toLowerCase().contains(query)) ||
-                f.cuisine.toLowerCase().contains(query))
-            .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: BentoTheme.isDark ? Colors.white12 : Colors.black12),
-          ),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.search, size: 16, color: Colors.grey),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _searchCtrl,
-                  style: TextStyle(color: BentoTheme.isDark ? Colors.white : Colors.black87, fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: 'Search Appam, Puttu, Roti, Chicken, Eggs...',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              if (_searchCtrl.text.isNotEmpty)
-                GestureDetector(
-                  onTap: () => setState(() => _searchCtrl.clear()),
-                  child: const Icon(LucideIcons.x, size: 14, color: Colors.grey),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        if (_selectedFood != null) ...[
-          // Selected Food portion customization card
-          _buildPortionConfigCard(accent),
-          const SizedBox(height: 16),
-        ],
-
-        // Food results list
-        Text(
-          _selectedFood != null ? 'Or select another item:' : 'Popular & Regional Dishes:',
-          style: TextStyle(color: BentoTheme.isDark ? Colors.white60 : Colors.black45, fontSize: 11),
-        ),
-        const SizedBox(height: 8),
-        ...filtered.map((food) {
-          final isSelected = _selectedFood?.id == food.id;
-          final hasAllergyConflict = food.allergens.any((alg) =>
-              DietRepository.instance.profile.allergies
-                  .any((u) => u.toLowerCase() == alg.toLowerCase()));
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: PressScale(
-              onTap: () {
-                setState(() {
-                  _selectedFood = food;
-                  _selectedUnit = food.defaultUnit;
-                  _portionQty = 1.0;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? accent.withValues(alpha: 0.15) : BentoTheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected
-                        ? accent
-                        : (hasAllergyConflict
-                            ? AppColors.error.withValues(alpha: 0.5)
-                            : (BentoTheme.isDark ? Colors.white10 : Colors.black12)),
+            Row(
+              children: [
+                Expanded(
+                  child: _m3TextField(
+                    label: 'Calories (kcal)',
+                    controller: _kcalCtrl,
+                    suffix: 'kcal',
+                    keyboardType: TextInputType.number,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                food.name,
-                                style: TextStyle(
-                                  color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (hasAllergyConflict) ...[
-                                const SizedBox(width: 6),
-                                Icon(LucideIcons.alertTriangle, size: 12, color: AppColors.error),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${food.cuisine} · ${food.defaultUnit.description}',
-                            style: TextStyle(
-                              color: BentoTheme.isDark ? Colors.white54 : Colors.black45,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _m3TextField(
+                    label: 'Protein',
+                    controller: _proteinCtrl,
+                    suffix: 'g',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _m3TextField(
+                    label: 'Carbs',
+                    controller: _carbsCtrl,
+                    suffix: 'g',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _m3TextField(
+                    label: 'Fats',
+                    controller: _fatCtrl,
+                    suffix: 'g',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Servings stepper
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Servings',
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton.filledTonal(
+                    onPressed: _servings > 0.5
+                        ? () => setState(() => _servings = (_servings - 0.5).clamp(0.5, 10.0))
+                        : null,
+                    icon: const Icon(Icons.remove, size: 16),
+                    style: IconButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '${_servings == _servings.roundToDouble() ? _servings.toInt() : _servings}x',
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${food.kcalPer100g.round()} kcal',
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'P: ${food.proteinPer100g}g / 100g',
-                          style: TextStyle(
-                            color: BentoTheme.isDark ? Colors.white60 : Colors.black45,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                  ),
+                  IconButton.filledTonal(
+                    onPressed: () =>
+                        setState(() => _servings = (_servings + 0.5).clamp(0.5, 10.0)),
+                    icon: const Icon(Icons.plus_one, size: 16),
+                    style: IconButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        }),
-      ],
-    );
-  }
+            const SizedBox(height: 10),
 
-  Widget _buildPortionConfigCard(Color accent) {
-    final food = _selectedFood!;
-    final portion = food.computePortionNutrition(_portionQty, _selectedUnit);
-    final hasAllergyConflict = food.allergens.any((alg) =>
-        DietRepository.instance.profile.allergies
-            .any((u) => u.toLowerCase() == alg.toLowerCase()));
+            // Save to My Foods checkbox
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _saveToMyFoods,
+              onChanged: (val) => setState(() => _saveToMyFoods = val ?? false),
+              title: Text(
+                'Save to My Foods for 1-tap logging',
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              activeColor: colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
+            // Log Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: _logQuickMeal,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
                 child: Text(
-                  food.name,
-                  style: TextStyle(
-                    color: BentoTheme.isDark ? Colors.white : Colors.black87,
+                  'Log ${_selectedSlot.title}',
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: () => setState(() => _selectedFood = null),
-                child: const Icon(LucideIcons.x, size: 16, color: Colors.grey),
-              ),
-            ],
-          ),
-          if (hasAllergyConflict) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(LucideIcons.alertTriangle, size: 12, color: AppColors.error),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Allergen Warning: Contains ${food.allergens.join(", ")}',
-                    style: TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
             ),
-          ],
-          const SizedBox(height: 12),
-
-          // Unit Picker & Gram Equivalent
-          Row(
-            children: [
-              Text(
-                'Unit:',
-                style: TextStyle(
-                  color: BentoTheme.isDark ? Colors.white70 : Colors.black54,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 8),
-              DropdownButton<HouseholdUnit>(
-                value: _selectedUnit,
-                dropdownColor: BentoTheme.surface,
-                isDense: true,
-                underline: const SizedBox(),
-                items: HouseholdUnit.values.map((u) {
-                  return DropdownMenuItem(
-                    value: u,
-                    child: Text(
-                      '${u.description} (~${u.defaultGrams.round()}g)',
-                      style: TextStyle(
-                        color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                        fontSize: 12,
-                      ),
+          ] else ...[
+            // Mode 1: My Saved Foods
+            AnimatedBuilder(
+              animation: DietRepository.instance,
+              builder: (context, _) {
+                final savedFoods = DietRepository.instance.customFoods;
+                if (savedFoods.isEmpty) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.restaurant_menu_rounded,
+                          size: 40,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Saved Foods Yet',
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Save meals from Quick Entry with the "Save to My Foods" checkbox for instant 1-tap logging.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedUnit = val);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+                }
 
-          // Portion multiplier pills
-          Row(
-            children: [0.5, 1.0, 1.5, 2.0, 3.0].map((m) {
-              final isSel = _portionQty == m;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: PressScale(
-                  onTap: () => setState(() => _portionQty = m),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isSel ? accent : BentoTheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSel ? accent : (BentoTheme.isDark ? Colors.white12 : Colors.black12),
+                return Column(
+                  children: savedFoods.map((food) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: colorScheme.outlineVariant),
                       ),
-                    ),
-                    child: Text(
-                      '${m}x',
-                      style: TextStyle(
-                        color: isSel ? Colors.black : (BentoTheme.isDark ? Colors.white70 : Colors.black87),
-                        fontSize: 11,
-                        fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  food.name,
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${food.calories.round()} kcal · P: ${food.proteinG.round()}g · C: ${food.carbsG.round()}g · F: ${food.fatG.round()}g',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Log CTA
+                          FilledButton.tonal(
+                            onPressed: () => _logFromCustomFood(food),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colorScheme.primaryContainer,
+                              foregroundColor: colorScheme.onPrimaryContainer,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text('Log'),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, size: 18, color: colorScheme.error),
+                            onPressed: () => DietRepository.instance.deleteCustomFood(food.id),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-
-          // Live Macro breakdown
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _macroPortionChip('Energy', '${portion['kcal']?.round()} kcal', accent),
-              _macroPortionChip('Protein', '${portion['proteinG']?.toStringAsFixed(1)}g', AppColors.primary),
-              _macroPortionChip('Carbs', '${portion['carbsG']?.toStringAsFixed(1)}g', AppColors.warning),
-              _macroPortionChip('Fat', '${portion['fatG']?.toStringAsFixed(1)}g', const Color(0xFFE57373)),
-              _macroPortionChip('Fibre', '${portion['fibreG']?.toStringAsFixed(1)}g', AppColors.success),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Confirm Log Button
-          PressScale(
-            onTap: _logSelectedFood,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Log ${_portionQty}x ${food.name} (${portion['grams']?.round()}g)',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _macroPortionChip(String title, String val, Color c) {
-    return Column(
-      children: [
-        Text(title, style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
-        Text(
-          val,
-          style: TextStyle(
-            color: BentoTheme.isDark ? Colors.white : Colors.black87,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // MODE 1: AI MULTIMODAL DRAFT LOGGER
-  // ---------------------------------------------------------------------------
-
-  Widget _buildAiMode(Color accent) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Speak, type, or snap your meal or packaged nutrition label:',
-          style: TextStyle(color: BentoTheme.isDark ? Colors.white70 : Colors.black54, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-
-        // Text prompt box
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  Widget _tabPill({
+    required int index,
+    required String title,
+    required IconData icon,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = _activeTab == index;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _activeTab = index),
+        child: Container(
           decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: BentoTheme.isDark ? Colors.white12 : Colors.black12),
+            color: isSelected ? colorScheme.primaryContainer : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
           ),
-          child: Column(
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextField(
-                controller: _aiPromptCtrl,
-                maxLines: 3,
-                style: TextStyle(color: BentoTheme.isDark ? Colors.white : Colors.black87, fontSize: 13),
-                decoration: const InputDecoration(
-                  hintText: 'e.g., "2 appam with 1 cup egg roast and a glass of tea"',
-                  border: InputBorder.none,
-                  isDense: true,
-                ),
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
               ),
-              if (_selectedImageBytes != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(
-                        _selectedImageBytes!,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Image attached', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => setState(() => _selectedImageBytes = null),
-                      child: const Icon(LucideIcons.trash2, size: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-              const Divider(height: 16),
-              Row(
-                children: [
-                  PressScale(
-                    onTap: () => _pickMealImage(ImageSource.camera),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: BentoTheme.isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(LucideIcons.camera, size: 13, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text('Camera', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  PressScale(
-                    onTap: () => _pickMealImage(ImageSource.gallery),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: BentoTheme.isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(LucideIcons.image, size: 13, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text('Gallery', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  PressScale(
-                    onTap: _isAnalyzingAi ? null : _runAiAnalysis,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: accent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: _isAnalyzingAi
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                            )
-                          : const Row(
-                              children: [
-                                Icon(LucideIcons.sparkles, size: 13, color: Colors.black),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Analyze & Draft',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Generated Draft Items (Requiring user confirmation before saving)
-        if (_aiDrafts.isNotEmpty) ...[
-          Row(
-            children: [
+              const SizedBox(width: 6),
               Text(
-                'AI Drafted Items (${_aiDrafts.length})',
+                title,
                 style: TextStyle(
-                  color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 ),
-              ),
-              const Spacer(),
-              Text(
-                'Review before logging',
-                style: TextStyle(color: accent, fontSize: 11),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ..._aiDrafts.map((d) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: BentoTheme.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: BentoTheme.isDark ? Colors.white12 : Colors.black12),
-              ),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.checkCircle2, size: 16, color: accent),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${d.quantity}x ${d.title}',
-                          style: TextStyle(
-                            color: BentoTheme.isDark ? Colors.white : Colors.black87,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '${d.unit.symbol} · ${d.gramsTotal.round()}g · ${d.confidence.label}',
-                          style: TextStyle(
-                            color: BentoTheme.isDark ? Colors.white54 : Colors.black45,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${d.kcal.round()} kcal\nP: ${d.proteinG.round()}g',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: 14),
-          PressScale(
-            onTap: _logAiDrafts,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Confirm & Log ${_aiDrafts.length} Items',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // MODE 2: CUSTOM MANUAL ENTRY
-  // ---------------------------------------------------------------------------
-
-  Widget _buildCustomMode(Color accent) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _customInput('Food Name / Description', _customNameCtrl, TextInputType.text),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _customInput('Calories (kcal)', _customKcalCtrl, TextInputType.number)),
-            const SizedBox(width: 8),
-            Expanded(child: _customInput('Protein (g)', _customProteinCtrl, TextInputType.number)),
-          ],
+  Widget _m3TextField({
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    String? suffix,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+        hintText: hint,
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 13),
+        suffixText: suffix,
+        suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _customInput('Carbs (g)', _customCarbsCtrl, TextInputType.number)),
-            const SizedBox(width: 8),
-            Expanded(child: _customInput('Fat (g)', _customFatCtrl, TextInputType.number)),
-            const SizedBox(width: 8),
-            Expanded(child: _customInput('Fibre (g)', _customFibreCtrl, TextInputType.number)),
-          ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
-        const SizedBox(height: 20),
-        PressScale(
-          onTap: _logCustomFood,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'Add Custom Food Entry',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
-      ],
-    );
-  }
-
-  Widget _customInput(String label, TextEditingController ctrl, TextInputType kb) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: BentoTheme.isDark ? Colors.white60 : Colors.black54,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: BentoTheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: BentoTheme.isDark ? Colors.white12 : Colors.black12),
-          ),
-          child: TextField(
-            controller: ctrl,
-            keyboardType: kb,
-            style: TextStyle(color: BentoTheme.isDark ? Colors.white : Colors.black87, fontSize: 13),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 8),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

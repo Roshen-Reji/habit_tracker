@@ -73,45 +73,45 @@ class AppTokens extends ThemeExtension<AppTokens> {
     }
   }
 
-  /// Dark mode tokens (Native Black & White default)
+  /// Dark mode tokens (M3 Expressive default)
   static const AppTokens dark = AppTokens(
-    background: Color(0xFF000000),
-    surface: Color(0xFF0A0A0A),
-    surfaceRaised: Color(0xFF141414),
-    surfaceSunken: Color(0xFF000000),
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFF8E8E93),
+    background: Color(0xFF0E1113),
+    surface: Color(0xFF1B2024),
+    surfaceRaised: Color(0xFF242A2F),
+    surfaceSunken: Color(0xFF090B0D),
+    textPrimary: Color(0xFFF1F4F7),
+    textSecondary: Color(0xFFA2ACB5),
     textMuted: Color(0xFF71717A),
     positive: Color(0xFF10B981),
-    negative: Color(0xFFF43F5E),
+    negative: Color(0xFFFFB4AB),
     warning: Color(0xFFF59E0B),
-    accent: Color(0xFFFFFFFF),
-    divider: Color(0xFF262626),
+    accent: Color(0xFF5CE1E6),
+    divider: Color(0xFF282F35),
     isDark: true,
   );
 
-  /// Light mode tokens (Native Black & White default)
+  /// Light mode tokens (M3 Expressive default)
   static const AppTokens light = AppTokens(
-    background: Color(0xFFFFFFFF),
-    surface: Color(0xFFF4F4F5),
-    surfaceRaised: Color(0xFFFFFFFF),
-    surfaceSunken: Color(0xFFECECF0),
-    textPrimary: Color(0xFF000000),
-    textSecondary: Color(0xFF71717A),
+    background: Color(0xFFF7F9FC),
+    surface: Color(0xFFEBEEF3),
+    surfaceRaised: Color(0xFFE3E7ED),
+    surfaceSunken: Color(0xFFFFFFFF),
+    textPrimary: Color(0xFF111417),
+    textSecondary: Color(0xFF444C54),
     textMuted: Color(0xFFA1A1AA),
     positive: Color(0xFF10B981),
-    negative: Color(0xFFF43F5E),
+    negative: Color(0xFFBA1A1A),
     warning: Color(0xFFF59E0B),
-    accent: Color(0xFF000000),
-    divider: Color(0xFFE4E4E7),
+    accent: Color(0xFF006874),
+    divider: Color(0xFFC2C7CE),
     isDark: false,
   );
 
-  /// Radii (Crisp Hardware Precision standardized to 20.0)
-  static const double radiusLg = 20.0;
-  static const double radiusCard = 20.0;
-  static const double radiusHero = 20.0;
-  static const double radiusInnerChip = 10.0;
+  /// Radii (M3 Expressive 24dp resting card)
+  static const double radiusLg = 24.0;
+  static const double radiusCard = 24.0;
+  static const double radiusHero = 24.0;
+  static const double radiusInnerChip = 12.0;
   static const double radiusPill = 999.0;
 
   /// Spacing 4-pt grid

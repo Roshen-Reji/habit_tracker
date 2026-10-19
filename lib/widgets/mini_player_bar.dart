@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/tactile_tokens.dart';
@@ -237,32 +236,28 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
               HapticFeedback.lightImpact();
               ExpandedPlayerSheet.show(context);
             },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  constraints:
-                      const BoxConstraints(maxWidth: 240, minWidth: 180),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: TactileTokens.surface.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: TactileTokens.specularBorder,
-                      width: 1,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x66000000),
-                        blurRadius: 16,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
+            child: Container(
+              constraints:
+                  const BoxConstraints(maxWidth: 240, minWidth: 180),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x66000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                     children: [
                       // Thumbnail
                       ClipRRect(
@@ -344,9 +339,7 @@ class _GlobalFloatingPlayerState extends State<GlobalFloatingPlayer> {
                   ),
                 ),
               ),
-            ),
-          ),
-        );
+            );
       },
     );
   }

@@ -1,6 +1,5 @@
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
@@ -11,8 +10,6 @@ import 'package:habit_tracker/models/speech_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:habit_tracker/features/wearables/data/wake_service.dart';
 
 class HomeChatFAB extends StatefulWidget {
   const HomeChatFAB({super.key});
@@ -63,8 +60,6 @@ class _HomeChatFABState extends State<HomeChatFAB>
 
   @override
   Widget build(BuildContext context) {
-    final accent = BentoTheme.accent;
-
     return Positioned(
       bottom: 84,
       right: 16,
@@ -76,16 +71,16 @@ class _HomeChatFABState extends State<HomeChatFAB>
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [accent, accent.withValues(alpha: 0.7)],
-            ),
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 1,
+            ),
           ),
-          child: const Icon(
-            LucideIcons.sparkles,
-            color: Colors.black,
+          child: Icon(
+            Icons.psychology_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
             size: 26,
           ),
         ),
@@ -222,17 +217,15 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
   }
 
   Future<void> _rejectAction(AiAction action) async {
-    if (action.type == 'wakeup_log') {
-      final dayKey = action.payload['day_key'] ??
-          DateFormat('yyyy-MM-dd').format(DateTime.now());
-      await WakeService.instance.undo(dayKey);
+    if (action.isConfirmed) {
+      await AiService.instance.undoAction(action);
       setState(() {
         action.payload['undone'] = true;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Wake-up log reverted and XP undone'),
+            content: Text('Action reverted'),
             backgroundColor: AppColors.warning,
             duration: Duration(seconds: 2),
           ),
@@ -250,6 +243,10 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
 
   String _getConfirmText(AiAction action) {
     switch (action.type) {
+      case 'diet_water':
+        return '✓ Recorded ${action.payload['ml']?.round() ?? 250} ml water';
+      case 'habit_create':
+        return '✓ Created habit: ${action.payload['title']}';
       case 'food_entry':
         return '✓ Added ${action.payload['name']} to food log';
       case 'burn_entry':
@@ -312,18 +309,17 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Material(
         type: MaterialType.transparency,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              height: height,
-              decoration: BoxDecoration(
-                color: AppColors.background.withValues(alpha: 0.95),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
+        child: Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1.0),
+          ),
+          child: Column(
                 children: [
                   // Handle
                   Container(
@@ -341,7 +337,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Icon(LucideIcons.sparkles, color: accent, size: 20),
+                        Icon(Icons.psychology_rounded, color: accent, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           "AI ASSISTANT",
@@ -515,10 +511,8 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                 ],
               ),
             ),
-          ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildEmptyState(Color accent) {

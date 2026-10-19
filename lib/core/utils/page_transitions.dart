@@ -105,13 +105,13 @@ class PageTransitions {
     final curvedAnimation = CurvedAnimation(
       parent: animation,
       curve: const Cubic(0.2, 0.0, 0.0, 1.0),
-      reverseCurve: Curves.easeInCubic,
+      reverseCurve: const Cubic(0.3, 0.0, 0.8, 0.15),
     );
 
     final secondaryCurved = CurvedAnimation(
       parent: secondaryAnimation,
       curve: const Cubic(0.2, 0.0, 0.0, 1.0),
-      reverseCurve: Curves.easeInCubic,
+      reverseCurve: const Cubic(0.3, 0.0, 0.8, 0.15),
     );
 
     final slideAnim = Tween<Offset>(
@@ -160,8 +160,8 @@ class PageTransitions {
   }) {
     final curvedAnimation = CurvedAnimation(
       parent: animation,
-      curve: Curves.fastEaseInToSlowEaseOut,
-      reverseCurve: Curves.fastOutSlowIn,
+      curve: const Cubic(0.2, 0.0, 0.0, 1.0),
+      reverseCurve: const Cubic(0.3, 0.0, 0.8, 0.15),
     );
 
     final slideAnim = Tween<Offset>(

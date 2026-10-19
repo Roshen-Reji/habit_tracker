@@ -15,6 +15,9 @@ class StarBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.expand(child: child);
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: child,
+    );
   }
 }

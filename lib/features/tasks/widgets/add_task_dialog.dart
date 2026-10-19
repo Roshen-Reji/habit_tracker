@@ -1,754 +1,874 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/data/models/goal.dart';
-import 'package:habit_tracker/core/theme/bento_theme.dart';
-import 'package:habit_tracker/core/theme/app_colors.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:habit_tracker/data/services/notification_service.dart';
-import 'package:habit_tracker/data/services/ai_service.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:habit_tracker/features/wearables/data/wake_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:habit_tracker/data/models/goal.dart';
+import 'package:habit_tracker/data/services/notification_service.dart';
+import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
+import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
+/// Modal dialog for creating strictly separated One-Time Tasks vs. Recurring Habits.
+/// Adheres strictly to Material 3 Expressive guidelines:
+/// - High-contrast tonal surfaces (surfaceContainer, surfaceContainerHigh)
+/// - Segmented pill switch: One-Time Task vs. Recurring Habit
+/// - Solid secondaryContainer fill for all secondary chips and date/time pickers
+/// - Full-width high-contrast FilledButton primary CTA (colorScheme.primary)
 class AddTaskDialog extends StatefulWidget {
   final GoalType defaultType;
+  final bool initialIsHabit;
+  final DateTime? initialDate;
 
-  const AddTaskDialog({super.key, required this.defaultType});
+  const AddTaskDialog({
+    super.key,
+    this.defaultType = GoalType.daily,
+    this.initialIsHabit = false,
+    this.initialDate,
+  });
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
 }
 
 class _AddTaskDialogState extends State<AddTaskDialog> {
-  final titleController = TextEditingController();
-  final targetController = TextEditingController();
-  GoalCategory selectedCategory = GoalCategory.productivity;
-  GoalType selectedType = GoalType.daily;
-  TimeOfDay? selectedReminderTime;
-  bool _isAiMode = false;
-  bool _isAiLoading = false;
-  final _aiController = TextEditingController();
-  DateTime? selectedEndDate;
-  bool _isWakeup = false;
-  TimeOfDay _wakeupTargetTime = const TimeOfDay(hour: 5, minute: 0);
-  String? _metricKey;
-  String? _metricOp;
+  late bool _isHabit;
+
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  // One-Time Task State
+  late DateTime _selectedDate;
+  TimeOfDay? _selectedTime;
+  int _selectedPriority = TaskPriority.medium;
+  int _estimateMin = 30;
+
+  // Recurring Habit State
+  String _selectedFrequency = 'daily'; // 'daily', 'weekly', 'monthly'
+  final Set<int> _selectedDaysOfWeek = {1, 2, 3, 4, 5, 6, 7}; // 1 = Mon .. 7 = Sun
+  int _selectedDayOfMonth = 1;
+  GoalCategory _selectedCategory = GoalCategory.productivity;
+  TimeOfDay? _habitReminderTime;
 
   @override
   void initState() {
     super.initState();
-    selectedType = widget.defaultType;
+    _isHabit = widget.initialIsHabit ||
+        (widget.defaultType != GoalType.today &&
+            widget.defaultType == GoalType.daily);
+    _selectedDate = widget.initialDate ?? DateTime.now();
   }
 
-  String _getCategoryName(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.health:
-        return 'Health & Wellness';
-      case GoalCategory.productivity:
-        return 'Productivity';
-      case GoalCategory.learning:
-        return 'Learning & Growth';
-      case GoalCategory.fitness:
-        return 'Fitness';
-      case GoalCategory.hobby:
-        return 'Hobbies & Fun';
-    }
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 
-  IconData _getCategoryIcon(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.health:
-        return LucideIcons.heartPulse;
-      case GoalCategory.productivity:
-        return LucideIcons.zap;
-      case GoalCategory.learning:
-        return LucideIcons.bookOpen;
-      case GoalCategory.fitness:
-        return LucideIcons.dumbbell;
-      case GoalCategory.hobby:
-        return LucideIcons.puzzle;
-    }
-  }
-
-  Color _getCategoryColor(GoalCategory category) {
-    switch (category) {
-      case GoalCategory.health:
-        return AppColors.health;
-      case GoalCategory.productivity:
-        return AppColors.productivity;
-      case GoalCategory.learning:
-        return AppColors.learning;
-      case GoalCategory.fitness:
-        return AppColors.fitness;
-      case GoalCategory.hobby:
-        return AppColors.hobby;
+  Future<void> _pickDate() async {
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365 * 3)),
+      builder: (context, child) => child ?? const SizedBox.shrink(),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
   }
 
   Future<void> _pickTime() async {
-    final TimeOfDay? time = await showTimePicker(
+    HapticFeedback.selectionClick();
+    final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: AppColors.background,
-              surface: AppColors.surface,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+      builder: (context, child) => child ?? const SizedBox.shrink(),
     );
-    if (time != null) {
-      setState(() {
-        selectedReminderTime = time;
-      });
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
     }
   }
 
-  Future<void> _pickEndDate() async {
-    final DateTime? date = await showDatePicker(
+  Future<void> _pickHabitReminder() async {
+    HapticFeedback.selectionClick();
+    final picked = await showTimePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: AppColors.background,
-              surface: AppColors.surface,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      initialTime: _habitReminderTime ?? const TimeOfDay(hour: 8, minute: 0),
+      builder: (context, child) => child ?? const SizedBox.shrink(),
     );
-    if (date != null) {
-      setState(() {
-        selectedEndDate = date;
-      });
+    if (picked != null) {
+      setState(() => _habitReminderTime = picked);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.mediumImpact();
+
+    final title = _titleController.text.trim();
+    final notes = _notesController.text.trim();
+    final now = DateTime.now();
+
+    if (!_isHabit) {
+      // 1. Create One-Time Task (Strictly single day, no recurrence)
+      DateTime? dueAt;
+      if (_selectedTime != null) {
+        dueAt = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime!.hour,
+          _selectedTime!.minute,
+        );
+      } else {
+        dueAt = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          23,
+          59,
+        );
+      }
+
+      final task = TaskItem(
+        id: 'task_${now.millisecondsSinceEpoch}',
+        title: title,
+        notes: notes.isNotEmpty ? notes : null,
+        status: TaskStatus.todo,
+        priority: _selectedPriority,
+        dueAt: dueAt,
+        hasDueTime: _selectedTime != null,
+        estimateMin: _estimateMin,
+        isHabit: false,
+        recurrenceRule: null,
+        recurrenceFrequency: 'none',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await TaskOsRepository.instance.saveTask(task);
+
+      // Save to mission_box_v4 for legacy widgets
+      try {
+        final box = Hive.box<Goal>('mission_box_v4');
+        final legacyGoal = Goal(
+          id: task.id,
+          title: title,
+          type: GoalType.today,
+          category: _selectedCategory,
+          targetValue: 1.0,
+          unit: 'task',
+          createdDate: now,
+          endDate: dueAt,
+        );
+        await box.put(legacyGoal.id, legacyGoal);
+      } catch (_) {}
+    } else {
+      // 2. Create Recurring Habit
+      final targetPerWeek = _selectedFrequency == 'daily'
+          ? 7
+          : (_selectedFrequency == 'weekly'
+              ? _selectedDaysOfWeek.length.clamp(1, 7)
+              : 1);
+
+      final habit = ForgivingHabitItem(
+        id: 'habit_${now.millisecondsSinceEpoch}',
+        name: title,
+        targetPerWeek: targetPerWeek,
+        freezesLeft: 2,
+        restDays: _selectedDaysOfWeek.length < 7
+            ? [1, 2, 3, 4, 5, 6, 7]
+                .where((d) => !_selectedDaysOfWeek.contains(d))
+                .toList()
+            : const [7],
+        completedDatesIso: const [],
+        frozenDatesIso: const [],
+        frequency: _selectedFrequency,
+        daysOfWeek: _selectedDaysOfWeek.toList()..sort(),
+        dayOfMonth:
+            _selectedFrequency == 'monthly' ? _selectedDayOfMonth : null,
+        reminderTime: _habitReminderTime != null
+            ? '${_habitReminderTime!.hour.toString().padLeft(2, '0')}:${_habitReminderTime!.minute.toString().padLeft(2, '0')}'
+            : null,
+        category: _selectedCategory.name,
+      );
+
+      await TaskOsRepository.instance.saveHabit(habit);
+
+      // Save to mission_box_v4 for legacy widgets
+      try {
+        final box = Hive.box<Goal>('mission_box_v4');
+        final reminderDt = _habitReminderTime != null
+            ? DateTime(now.year, now.month, now.day, _habitReminderTime!.hour,
+                _habitReminderTime!.minute)
+            : null;
+
+        final legacyGoal = Goal(
+          id: habit.id,
+          title: title,
+          type: _selectedFrequency == 'monthly'
+              ? GoalType.monthly
+              : (_selectedFrequency == 'weekly'
+                  ? GoalType.weekly
+                  : GoalType.daily),
+          category: _selectedCategory,
+          targetValue: targetPerWeek.toDouble(),
+          unit: 'days',
+          createdDate: now,
+          reminderTime: reminderDt,
+        );
+        await box.put(legacyGoal.id, legacyGoal);
+        if (legacyGoal.reminderTime != null) {
+          NotificationService().scheduleTaskReminder(legacyGoal);
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop(true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      child: BentoContainer(
-        borderRadius: 24,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Text(
-                    _isAiMode ? "AI MISSION" : "NEW MISSION",
-                    style: TextStyle(
-                        color: BentoTheme.textPrimary,
-                        letterSpacing: 1.5,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => setState(() => _isAiMode = !_isAiMode),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _isAiMode
-                          ? BentoTheme.accent.withValues(alpha: 0.15)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isAiMode
-                            ? BentoTheme.accent
-                            : BentoTheme.textSecondary.withValues(alpha: 0.3),
+                // Header Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _isHabit ? 'New Habit' : 'New Task',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          LucideIcons.sparkles,
-                          color: _isAiMode
-                              ? BentoTheme.accent
-                              : BentoTheme.textSecondary,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "AI",
-                          style: TextStyle(
-                            color: _isAiMode
-                                ? BentoTheme.accent
-                                : BentoTheme.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      color: colorScheme.onSurfaceVariant,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Top Segmented Switcher: One-Time Task vs Recurring Habit
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _isHabit = false);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: !_isHabit
+                                  ? colorScheme.primaryContainer
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'One-Time Task',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: !_isHabit
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _isHabit = true);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _isHabit
+                                  ? colorScheme.primaryContainer
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Recurring Habit',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: _isHabit
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 20),
+
+                // Title Input
+                TextFormField(
+                  controller: _titleController,
+                  autofocus: true,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: _isHabit ? 'Habit Title' : 'Task Title',
+                    hintText: _isHabit
+                        ? 'e.g. Read 20 pages, Gym Workout'
+                        : 'e.g. Finish OS Record, Submit Assignment',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a title';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Conditional Form: One-Time Task vs Recurring Habit
+                if (!_isHabit)
+                  _buildOneTimeTaskControls(colorScheme)
+                else
+                  _buildRecurringHabitControls(colorScheme),
+
+                const SizedBox(height: 24),
+
+                // Action Buttons: Cancel & High-Contrast Primary FilledButton
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          _isHabit ? 'Create Habit' : 'Create Task',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Flexible(
-              child: SingleChildScrollView(
-                child: _isAiMode ? _buildAiContent() : _buildManualContent(),
-              ),
-            ),
-            if (!_isAiMode) ...[
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("CANCEL",
-                        style: TextStyle(color: BentoTheme.textSecondary)),
-                  ),
-                  const SizedBox(width: 8),
-                  BentoButton(
-                    onTap: () {
-                      if (_isWakeup) {
-                        final targetMinutes = _wakeupTargetTime.hour * 60 +
-                            _wakeupTargetTime.minute;
-                        WakeService.instance.createOrUpdateWakeupTask(
-                          targetMinutes: targetMinutes,
-                          title: titleController.text.isNotEmpty
-                              ? titleController.text
-                              : null,
-                        );
-                        Navigator.pop(context);
-                        return;
-                      }
-
-                      final title = titleController.text;
-                      final target = double.tryParse(targetController.text);
-
-                      if (title.isNotEmpty && target != null && target > 0) {
-                        DateTime? reminderDate;
-                        if (selectedReminderTime != null) {
-                          final now = DateTime.now();
-                          reminderDate = DateTime(
-                              now.year,
-                              now.month,
-                              now.day,
-                              selectedReminderTime!.hour,
-                              selectedReminderTime!.minute);
-                        }
-
-                        final newGoal = Goal(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          title: title,
-                          type: selectedType,
-                          category: selectedCategory,
-                          targetValue: target,
-                          unit: _metricKey == 'steps'
-                              ? 'steps'
-                              : (_metricKey?.contains('minutes') == true
-                                  ? 'mins'
-                                  : 'units'),
-                          createdDate: DateTime.now(),
-                          reminderTime: reminderDate,
-                          endDate: selectedEndDate,
-                          kind: _isWakeup
-                              ? 'wakeup'
-                              : (_metricKey != null ? 'metric' : null),
-                          metricKey: _metricKey,
-                          metricOp: _metricOp ?? '>=',
-                        );
-                        Hive.box<Goal>('mission_box_v4')
-                            .put(newGoal.id, newGoal);
-                        if (newGoal.reminderTime != null) {
-                          NotificationService().scheduleTaskReminder(newGoal);
-                        }
-                        Navigator.pop(context);
-                      }
-                    },
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    child: Text("ENGAGE",
-                        style: TextStyle(
-                            color: BentoTheme.accent,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildManualContent() {
+  // ================= 1. ONE-TIME TASK CONTROLS =================
+  Widget _buildOneTimeTaskControls(ColorScheme colorScheme) {
+    final isToday = DateUtils.isSameDay(_selectedDate, DateTime.now());
+    final dateLabel = isToday
+        ? 'Today (${DateFormat('MMM d').format(_selectedDate)})'
+        : DateFormat('EEE, MMM d, yyyy').format(_selectedDate);
+
+    final timeLabel = _selectedTime != null
+        ? _selectedTime!.format(context)
+        : 'Optional Time';
+
     return Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
+        // Scheduled Date & Time Row
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickDate,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                    border:
+                        Border.all(color: colorScheme.outlineVariant, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded,
+                          size: 16, color: colorScheme.onSecondaryContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          dateLabel,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSecondaryContainer,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: _pickTime,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _selectedTime != null
+                      ? colorScheme.primaryContainer
+                      : colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                  border:
+                      Border.all(color: colorScheme.outlineVariant, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 16,
+                      color: _selectedTime != null
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      timeLabel,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: _selectedTime != null
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Priority Selector (P1..P4)
+        Text(
+          'Priority',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildPriorityChip(TaskPriority.urgent, 'P1 Urgent',
+                const Color(0xFFEF4444), colorScheme),
+            const SizedBox(width: 6),
+            _buildPriorityChip(TaskPriority.high, 'P2 High',
+                const Color(0xFFF97316), colorScheme),
+            const SizedBox(width: 6),
+            _buildPriorityChip(TaskPriority.medium, 'P3 Med',
+                const Color(0xFF3B82F6), colorScheme),
+            const SizedBox(width: 6),
+            _buildPriorityChip(TaskPriority.low, 'P4 Low',
+                const Color(0xFF10B981), colorScheme),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Estimate duration chips
+        Text(
+          'Estimate Duration',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [15, 30, 45, 60].map((min) {
+            final isSelected = _estimateMin == min;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text('${min}m'),
+                selected: isSelected,
+                selectedColor: colorScheme.primaryContainer,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 12,
+                ),
+                onSelected: (_) => setState(() => _estimateMin = min),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriorityChip(
+      int priority, String label, Color accentColor, ColorScheme colorScheme) {
+    final isSelected = _selectedPriority == priority;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedPriority = priority);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? accentColor.withValues(alpha: 0.22)
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? accentColor : colorScheme.outlineVariant,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? accentColor : colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= 2. RECURRING HABIT CONTROLS =================
+  Widget _buildRecurringHabitControls(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Frequency Selector: Daily vs Weekly vs Monthly
+        Text(
+          'Recurrence Frequency',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildFreqOption('daily', 'Every Day', colorScheme),
+            const SizedBox(width: 8),
+            _buildFreqOption('weekly', 'Specific Days', colorScheme),
+            const SizedBox(width: 8),
+            _buildFreqOption('monthly', 'Monthly', colorScheme),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Day of Week Selector if Weekly
+        if (_selectedFrequency == 'weekly') ...[
+          Text(
+            'Active Days of Week (${_selectedDaysOfWeek.length} days / week)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              FilterChip(
-                selected: _isWakeup,
-                avatar: Icon(
-                  LucideIcons.alarmClock,
-                  size: 14,
-                  color: _isWakeup ? Colors.black : BentoTheme.accent,
-                ),
-                label: const Text('Wake-Up Task'),
-                selectedColor: BentoTheme.accent,
-                backgroundColor: BentoTheme.background,
-                labelStyle: TextStyle(
-                  color: _isWakeup ? Colors.black : BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    _isWakeup = val;
-                    if (val) {
-                      _metricKey = null;
-                      selectedType = GoalType.daily;
-                      selectedCategory = GoalCategory.health;
-                      final h =
-                          _wakeupTargetTime.hour.toString().padLeft(2, '0');
-                      final m =
-                          _wakeupTargetTime.minute.toString().padLeft(2, '0');
-                      titleController.text = 'Wake up at $h:$m';
-                      targetController.text = '1';
-                    }
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _metricKey == 'steps',
-                avatar: Icon(
-                  LucideIcons.footprints,
-                  size: 14,
-                  color:
-                      _metricKey == 'steps' ? Colors.black : BentoTheme.accent,
-                ),
-                label: const Text('10,000 steps'),
-                selectedColor: BentoTheme.accent,
-                backgroundColor: BentoTheme.background,
-                labelStyle: TextStyle(
-                  color: _metricKey == 'steps'
-                      ? Colors.black
-                      : BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    _isWakeup = false;
-                    _metricKey = val ? 'steps' : null;
-                    _metricOp = '>=';
-                    if (val) {
-                      selectedType = GoalType.daily;
-                      selectedCategory = GoalCategory.fitness;
-                      titleController.text = '10,000 steps';
-                      targetController.text = '10000';
-                    }
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _metricKey == 'active_minutes',
-                avatar: Icon(
-                  LucideIcons.flame,
-                  size: 14,
-                  color: _metricKey == 'active_minutes'
-                      ? Colors.black
-                      : BentoTheme.accent,
-                ),
-                label: const Text('30 active mins'),
-                selectedColor: BentoTheme.accent,
-                backgroundColor: BentoTheme.background,
-                labelStyle: TextStyle(
-                  color: _metricKey == 'active_minutes'
-                      ? Colors.black
-                      : BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    _isWakeup = false;
-                    _metricKey = val ? 'active_minutes' : null;
-                    _metricOp = '>=';
-                    if (val) {
-                      selectedType = GoalType.daily;
-                      selectedCategory = GoalCategory.fitness;
-                      titleController.text = '30 active minutes';
-                      targetController.text = '30';
-                    }
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _metricKey == 'sleep_minutes',
-                avatar: Icon(
-                  LucideIcons.moon,
-                  size: 14,
-                  color: _metricKey == 'sleep_minutes'
-                      ? Colors.black
-                      : BentoTheme.accent,
-                ),
-                label: const Text('Sleep 7 h'),
-                selectedColor: BentoTheme.accent,
-                backgroundColor: BentoTheme.background,
-                labelStyle: TextStyle(
-                  color: _metricKey == 'sleep_minutes'
-                      ? Colors.black
-                      : BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    _isWakeup = false;
-                    _metricKey = val ? 'sleep_minutes' : null;
-                    _metricOp = '>=';
-                    if (val) {
-                      selectedType = GoalType.daily;
-                      selectedCategory = GoalCategory.health;
-                      titleController.text = 'Sleep 7 h';
-                      targetController.text = '420';
-                    }
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _metricKey == 'workout_minutes',
-                avatar: Icon(
-                  LucideIcons.dumbbell,
-                  size: 14,
-                  color: _metricKey == 'workout_minutes'
-                      ? Colors.black
-                      : BentoTheme.accent,
-                ),
-                label: const Text('Workout today'),
-                selectedColor: BentoTheme.accent,
-                backgroundColor: BentoTheme.background,
-                labelStyle: TextStyle(
-                  color: _metricKey == 'workout_minutes'
-                      ? Colors.black
-                      : BentoTheme.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    _isWakeup = false;
-                    _metricKey = val ? 'workout_minutes' : null;
-                    _metricOp = '>=';
-                    if (val) {
-                      selectedType = GoalType.daily;
-                      selectedCategory = GoalCategory.fitness;
-                      titleController.text = 'Workout today';
-                      targetController.text = '30';
-                    }
-                  });
-                },
-              ),
-              if (_isWakeup) ...[
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () async {
-                    final picked = await showTimePicker(
-                      context: context,
-                      initialTime: _wakeupTargetTime,
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        _wakeupTargetTime = picked;
-                        final h = picked.hour.toString().padLeft(2, '0');
-                        final m = picked.minute.toString().padLeft(2, '0');
-                        titleController.text = 'Wake up at $h:$m';
-                      });
-                    }
-                  },
-                  icon: const Icon(LucideIcons.clock, size: 14),
-                  label: Text('${_wakeupTargetTime.format(context)} (Target)'),
-                ),
-              ],
+              _buildDayCircle(1, 'M', colorScheme),
+              _buildDayCircle(2, 'T', colorScheme),
+              _buildDayCircle(3, 'W', colorScheme),
+              _buildDayCircle(4, 'T', colorScheme),
+              _buildDayCircle(5, 'F', colorScheme),
+              _buildDayCircle(6, 'S', colorScheme),
+              _buildDayCircle(7, 'S', colorScheme),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<GoalType>(
-          initialValue: selectedType,
-          dropdownColor: BentoTheme.background,
-          onChanged: (GoalType? newValue) {
-            if (newValue != null) setState(() => selectedType = newValue);
-          },
-          decoration: InputDecoration(
-              labelText: 'Mission Cycle',
-              labelStyle: TextStyle(color: BentoTheme.textSecondary)),
-          items: GoalType.values.map((type) {
-            return DropdownMenuItem(
-              value: type,
-              child: Text(type.name.toUpperCase(),
-                  style: TextStyle(color: BentoTheme.textPrimary)),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: titleController,
-          style: TextStyle(color: BentoTheme.textPrimary),
-          decoration: InputDecoration(
-            hintText: "Mission title...",
-            hintStyle: TextStyle(color: BentoTheme.textSecondary),
-            enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                    color: BentoTheme.textSecondary.withValues(alpha: 0.3))),
-            focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: BentoTheme.accent)),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: targetController,
-          keyboardType: TextInputType.number,
-          style: TextStyle(color: BentoTheme.textPrimary),
-          decoration: InputDecoration(
-            hintText: "Target value (e.g., 20)...",
-            hintStyle: TextStyle(color: BentoTheme.textSecondary),
-            enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                    color: BentoTheme.textSecondary.withValues(alpha: 0.3))),
-            focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: BentoTheme.accent)),
-          ),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<GoalCategory>(
-          initialValue: selectedCategory,
-          dropdownColor: BentoTheme.background,
-          onChanged: (GoalCategory? newValue) {
-            if (newValue != null) setState(() => selectedCategory = newValue);
-          },
-          decoration: InputDecoration(
-              labelText: 'Category',
-              labelStyle: TextStyle(color: BentoTheme.textSecondary)),
-          items: GoalCategory.values.map((category) {
-            return DropdownMenuItem(
-              value: category,
-              child: Row(
+          const SizedBox(height: 16),
+        ],
+
+        // Day of Month Selector if Monthly
+        if (_selectedFrequency == 'monthly') ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Day of Month: $_selectedDayOfMonth',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              Row(
                 children: [
-                  Icon(_getCategoryIcon(category),
-                      color: _getCategoryColor(category), size: 20),
-                  const SizedBox(width: 8),
-                  Text(_getCategoryName(category),
-                      style: TextStyle(color: BentoTheme.textPrimary)),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline_rounded),
+                    color: colorScheme.primary,
+                    onPressed: _selectedDayOfMonth > 1
+                        ? () => setState(() => _selectedDayOfMonth--)
+                        : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                    color: colorScheme.primary,
+                    onPressed: _selectedDayOfMonth < 31
+                        ? () => setState(() => _selectedDayOfMonth++)
+                        : null,
+                  ),
                 ],
               ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Reminder Alert",
-                style: TextStyle(color: BentoTheme.textSecondary)),
-            TextButton.icon(
-              onPressed: _pickTime,
-              icon: Icon(LucideIcons.alarmClock,
-                  color: BentoTheme.accent, size: 20),
-              label: Text(
-                selectedReminderTime != null
-                    ? selectedReminderTime!.format(context)
-                    : "Set Time",
-                style: TextStyle(color: BentoTheme.accent),
-              ),
-            )
-          ],
-        ),
-        if (selectedReminderTime != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text("Plays default system notification sound.",
-                style: TextStyle(
-                    color: BentoTheme.textSecondary,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic)),
+            ],
           ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Mission Deadline",
-                style: TextStyle(color: BentoTheme.textSecondary)),
-            TextButton.icon(
-              onPressed: _pickEndDate,
-              icon: Icon(LucideIcons.calendar,
-                  color: BentoTheme.accent, size: 20),
-              label: Text(
-                selectedEndDate != null
-                    ? "${selectedEndDate!.day}/${selectedEndDate!.month}/${selectedEndDate!.year}"
-                    : "Set End Date",
-                style: TextStyle(color: BentoTheme.accent),
-              ),
-            )
-          ],
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 16),
+        ],
 
-  Widget _buildAiContent() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Describe your mission in natural language",
-          style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _aiController,
-          style: TextStyle(color: BentoTheme.textPrimary),
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: "e.g., Today I want to finish 2 lectures of physics",
-            hintStyle: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                  color: BentoTheme.textSecondary.withValues(alpha: 0.3)),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
+        // Category & Reminder Row
+        Row(
+          children: [
+            // Category Dropdown
+            Expanded(
+              child: DropdownButtonFormField<GoalCategory>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: GoalCategory.values.map((cat) {
+                  return DropdownMenuItem(
+                    value: cat,
+                    child: Text(
+                      _categoryName(cat),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedCategory = val);
+                },
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: BentoTheme.accent),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
-            ),
-            contentPadding: const EdgeInsets.all(14),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: BentoButton(
-            onTap: _isAiLoading ? () {} : _processAiTask,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_isAiLoading)
-                  SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: BentoTheme.accent))
-                else
-                  Icon(LucideIcons.sparkles,
-                      size: 18, color: BentoTheme.accent),
-                const SizedBox(width: 8),
-                Text(
-                  _isAiLoading ? "ANALYZING..." : "CREATE MISSION",
-                  style: TextStyle(
-                      color: BentoTheme.accent, fontWeight: FontWeight.bold),
+            const SizedBox(width: 12),
+
+            // Reminder Time Picker
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickHabitReminder,
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: _habitReminderTime != null
+                        ? colorScheme.primaryContainer
+                        : colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                    border:
+                        Border.all(color: colorScheme.outlineVariant, width: 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        LucideIcons.alarmClock,
+                        size: 16,
+                        color: _habitReminderTime != null
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _habitReminderTime != null
+                            ? _habitReminderTime!.format(context)
+                            : 'Reminder',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _habitReminderTime != null
+                              ? colorScheme.onPrimaryContainer
+                              : colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            _buildQuickSuggestion("Wake up at 5:00 AM"),
-            _buildQuickSuggestion("10,000 steps"),
-            _buildQuickSuggestion("30 active minutes"),
-            _buildQuickSuggestion("Sleep 7 h"),
-            _buildQuickSuggestion("Workout today"),
-            _buildQuickSuggestion("Study 3 chapters today"),
-            _buildQuickSuggestion("Workout 5hrs this week"),
-            _buildQuickSuggestion("Read 20 pages daily"),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildQuickSuggestion(String text) {
+  Widget _buildFreqOption(String key, String label, ColorScheme colorScheme) {
+    final isSelected = _selectedFrequency == key;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedFrequency = key);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected
+                  ? colorScheme.onPrimaryContainer
+                  : colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayCircle(int dayIndex, String label, ColorScheme colorScheme) {
+    final isSelected = _selectedDaysOfWeek.contains(dayIndex);
     return GestureDetector(
       onTap: () {
-        _aiController.text = text;
-        _processAiTask();
+        HapticFeedback.selectionClick();
+        setState(() {
+          if (isSelected) {
+            if (_selectedDaysOfWeek.length > 1) {
+              _selectedDaysOfWeek.remove(dayIndex);
+            }
+          } else {
+            _selectedDaysOfWeek.add(dayIndex);
+          }
+        });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: BentoTheme.accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: BentoTheme.accent.withValues(alpha: 0.15)),
+          color: isSelected
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
+            width: 1.2,
+          ),
         ),
-        child: Text(text,
-            style: TextStyle(color: BentoTheme.accent, fontSize: 11)),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _processAiTask() async {
-    if (_aiController.text.trim().isEmpty) return;
-
-    setState(() => _isAiLoading = true);
-
-    final response = await AiService.instance.processMessage(
-      _aiController.text,
-      contextHint: 'tasks',
-    );
-
-    setState(() => _isAiLoading = false);
-
-    // Find task_create actions and execute them
-    bool created = false;
-    for (var action in response.actions) {
-      if (action.type == 'task_create') {
-        AiService.instance.executeTaskAction(action);
-        created = true;
-      }
-    }
-
-    if (created && mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "✓ Mission created: ${response.actions.first.payload['title'] ?? 'New Mission'}"),
-          backgroundColor: BentoTheme.accent,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response.message),
-          backgroundColor: BentoTheme.background,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+  String _categoryName(GoalCategory cat) {
+    switch (cat) {
+      case GoalCategory.health:
+        return 'Health & Wellness';
+      case GoalCategory.productivity:
+        return 'Productivity';
+      case GoalCategory.learning:
+        return 'Learning & Academics';
+      case GoalCategory.fitness:
+        return 'Fitness & Sport';
+      case GoalCategory.hobby:
+        return 'Hobbies & Lifestyle';
     }
   }
 }

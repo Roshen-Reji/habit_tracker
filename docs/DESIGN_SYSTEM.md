@@ -1,101 +1,73 @@
-# Design System Specification
+# DESIGN_SYSTEM.md — Material 3 Expressive & Fluid Motion System
 
-## 1. Core Principles
-1. **Calm & Borderless**: Surfaces and cards have no borders. Depth and separation are achieved exclusively through layered surfaces, soft two-layer shadows (`AppElevation`), and a faint top-light overlay, never through strokes.
-2. **Performance First (No Blur on Lists)**: Avoid `BackdropFilter` or `ImageFilter` across scrollable lists and repeated items. The single allowed blur is the floating navigation bar. All cards use `RepaintBoundary`.
-3. **Color Discipline & Neutral Accent**: One neutral accent (`BentoTheme.accent` = textPrimary). Semantic indicators are muted and peaceful (`#6BB58A` positive, `#E07A7A` negative, `#D9AE6B` warning). Neon and flashy colors are eliminated. Media accent (`BentoTheme.mediaAccent`) is strictly scoped to music playback surfaces.
-4. **Typographic Hierarchy**: High-contrast, tabular numbers for all monetary figures (`FontFeature.tabularFigures()`). Large hero numerals (44/48 700) with generous breathing room.
+## 1. Anti-"AI Slop" Manifesto (Strictly Enforced)
+To ensure the application feels like a flagship native OS experience (Samsung One UI 7 / OxygenOS 15 / Google Pixel Material 3 Expressive), the following patterns are **BANNED** across the entire codebase:
 
----
-
-## 2. Tokens Reference
-
-### Color Tokens
-
-| Token | Dark Mode | Light Mode | Description |
-|---|---|---|---|
-| `background` | `#0A0A0B` | `#F3F3F6` | Deep base canvas |
-| `surface` | `#151517` | `#FFFFFF` | Standard card and container background |
-| `surfaceRaised` | `#1B1B1E` | `#FFFFFF` | Elevated components, top gradient layer |
-| `surfaceSunken` | `#101011` | `#ECECF0` | Text input fields and recessed zones |
-| `textPrimary` | `#FFFFFF` (100%) | `#16161A` (100%) | Headings, primary metrics |
-| `textSecondary`| `rgba(255,255,255,0.64)` | `rgba(22,22,26,0.62)` | Subtitles, labels, descriptions |
-| `textMuted` | `rgba(255,255,255,0.40)` | `rgba(22,22,26,0.40)` | Disabled items, hints |
-| `positive` | `#6BB58A` | `#2F8F5B` | Muted green for inflow & surplus |
-| `negative` | `#E07A7A` | `#C0504D` | Muted red/coral for expense & deficit |
-| `warning` | `#D9AE6B` | `#B8873A` | Muted amber for upcoming dues & alerts |
-| `accent` | Neutral (White / `#16161A`)| Neutral | Universal interface accent |
-| `mediaAccent` | Dynamic dominant album art | Dynamic | Scoped to music player & mini player |
-| `divider` | `rgba(255,255,255,0.06)` | `rgba(22,22,26,0.06)` | Hairline dividers |
-
-### Radii
-- `card`: 20.0px (`BorderRadius.circular(20)`)
-- `hero`: 28.0px (`BorderRadius.circular(28)`)
-- `innerChip`: 14.0px (`BorderRadius.circular(14)`)
-- `pill`: 999.0px (`BorderRadius.circular(999)`)
-
-### Spacing Grid (4px Base)
-- `xs`: 4.0px
-- `sm`: 8.0px
-- `md`: 12.0px
-- `lg`: 16.0px
-- `xl`: 20.0px
-- `xxl`: 24.0px
-- `huge`: 32.0px
-
-### Typography Scale
-- **Hero Number**: 44px, height 48px, weight 700 (`tabularFigures`)
-- **Headline / Section Title**: 20px, weight 600
-- **Body**: 15px, weight 400
-- **Overline / Category Label**: 11px, weight 700, letterSpacing 1.1 (all-caps)
+1. **NO Glassmorphism:** Do not use `BackdropFilter`, `ImageFilter.blur`, or semi-transparent card backgrounds (`Colors.white.withOpacity(0.04)`).
+2. **NO "AI Borders":** Do not use multi-color gradient borders (`LinearGradient` or `SweepGradient` strokes in purple/cyan/magenta) on any card, input field, or button.
+3. **NO Sparkle Spam:** Remove decorative `✨` emojis and `Icons.auto_awesome` from navigation bars, section headers, and buttons. Reserve a single clean geometric icon for the unified assistant.
+4. **NO Invisible/Ghost Buttons:** Never use low-opacity text buttons or dark-on-dark outlines for primary or secondary actions. Every interactive control must have an unmistakable tonal fill and high-contrast label.
+5. **NO Starfield/Particle Backgrounds:** Disable and remove `StarBackground` (`lib/widgets/star_background.dart`) from all screens.
 
 ---
 
-## 3. Elevation Levels (`AppElevation`)
+## 2. Material 3 Expressive Color & Surface Hierarchy
+Update `lib/core/theme/app_colors.dart` and `lib/core/theme/app_theme.dart` to use solid, high-contrast tonal surfaces:
 
-Depth is rendered using dual-layer soft ambient shadows with spread reduction:
+### Dark Theme (Default Flagship Palette)
+- `surface`: `#0E1113` (Deep carbon-slate base canvas)
+- `surfaceContainerLowest`: `#090B0D`
+- `surfaceContainerLow`: `#161A1D` (Secondary grouping container)
+- `surfaceContainer`: `#1C2126` (Standard card fill — replaces glass cards)
+- `surfaceContainerHigh`: `#252B31` (Elevated interactive cards, dialogs, bottom sheets)
+- `surfaceContainerHighest`: `#30373F` (Input fields, unselected pills, chip backgrounds)
+- `onSurface`: `#F2F5F8` (Primary text — crisp, 100% opaque)
+- `onSurfaceVariant`: `#A6B0BB` (Secondary labels & subtitles — minimum 7:1 / 4.5:1 contrast)
+- `outline`: `#444D56` (Visible control borders)
+- `outlineVariant`: `#2A3138` (Subtle structural dividers, 1px solid)
 
-1. **e1 (List rows & nested items)**:
-   - Dark: `0 1 2` black at 35% opacity
-   - Light: `0 1 2` black at 6% opacity
-2. **e2 (Standard Cards & Bento Containers)**:
-   - Dark: `0 1 2` black at 40% + `0 8 24` spread -6 at 55%
-   - Light: `0 1 2` black at 6% + `0 10 28` spread -8 at 14%
-3. **e3 (Hero & Focused Cards)**:
-   - Dark: e2 + `0 18 40` spread -12 at 55%
-   - Light: e2 + `0 18 40` spread -12 at 18%
-4. **e4 (Floating Nav Bar & Modal Sheets)**:
-   - Dark: `0 14 32` spread -8 at 60%
-   - Light: `0 14 32` spread -8 at 20%
-
-In Dark Mode, card backgrounds render a subtle vertical gradient from `surfaceRaised` to `surface`, complemented by a 3.5% white top-light overlay across the top 40% of the surface.
-
----
-
-## 4. Key Components
-
-### `DepthCard` (`lib/core/widgets/depth_card.dart`)
-- Drop-in card container replacing stroked containers.
-- Supports elevation levels `e1`, `e2`, `e3`, and `e4`.
-- Integrated micro-scale press interaction (scales to `0.985`, steps down shadow, 120ms animation).
-- Wrapped in `RepaintBoundary` for zero paint invalidation of neighbors.
-- Optional 3D tilt on scroll (`tiltOnScroll: true`) for hero elements.
-
-### `ProgressBarX` (`lib/core/widgets/progress_bar_x.dart`)
-- Replaces uncalibrated linear progress bars across the application.
-- Clamped, NaN-safe progress handling via `ProgressMath.ratio(current, target)`.
-- Semantic color mapping: `neutral`, `positive`, `warning`, `negative`, `over`.
-- Animated with `TweenAnimationBuilder` (400ms `easeOutCubic`).
-- 8% opacity background track.
-- `XpProgressBar` variant binds directly to `ProgressionService` for synchronized leveling.
-
-### `BentoContainer` (`lib/core/theme/bento_theme.dart`)
-- Preserves the legacy API while internally rendering an e2 `DepthCard`.
-- Stripped of all 5% white borders and harsh glow shadows.
+### Expressive Accent Tokens
+- `primary`: `#67E8F9` -> Tonal M3 Teal/Cyan `#4FD8EB` (`onPrimary`: `#00363D`, `primaryContainer`: `#004F58`, `onPrimaryContainer`: `#97F0FF`)
+- `secondary`: `#B4C8DF` (`onSecondary`: `#1F3244`, `secondaryContainer`: `#35485B`, `onSecondaryContainer`: `#D0E4FB`)
+- `tertiary` (Warm Energy / Habits): `#FFB784` (`onTertiary`: `#4F2500`, `tertiaryContainer`: `#6F3800`, `onTertiaryContainer`: `#FFDCC5`)
+- `error`: `#FFB4AB` (`onError`: `#690005`, `errorContainer`: `#93000A`, `onErrorContainer`: `#FFDAD6`)
 
 ---
 
-## 5. Implementation Rules
-1. **Surfaces and cards have NO border**: Never call `Border.all` on card containers. Only `// allowed: input focus` rings and 1px dividers at 6% opacity (`BentoTheme.divider`) are permitted.
-2. **Never read Hive during build or theme lookups**: All tokens are resolved once per theme change via `ThemeExtension` (`AppTokens`).
-3. **Zero Neon**: Replace all `Colors.greenAccent`, `Colors.redAccent`, neon cyan, or saturated blues with semantic tokens (`positive`, `negative`, `warning`, `accent`).
+## 3. Expressive Shape Morphing & Geometry
+Material 3 Expressive uses tension between generous curves and crisp squircles to communicate state changes without relying on color alone:
+
+- **Resting Card Radius:** `24.0` (`BorderRadius.circular(24)`)
+- **Grouped List Item Radius:**
+  - Top item in group: `BorderRadius.vertical(top: Radius.circular(24), bottom: Radius.circular(6))`
+  - Middle item in group: `BorderRadius.circular(6)`
+  - Bottom item in group: `BorderRadius.vertical(top: Radius.circular(6), bottom: Radius.circular(24))`
+- **Interactive Shape Morphing (`TactileButton`, `TaskActionPill`, Filter Chips):**
+  - **Unselected / Resting State:** Stadium/Pill (`BorderRadius.circular(28)`)
+  - **Pressed / Selected State:** Morphs smoothly over `220ms` to a squircle (`BorderRadius.circular(12)`)
+
+---
+
+## 4. OxygenOS / One UI Physics & Motion System
+Update `lib/core/motion/motion_tokens.dart`, `lib/core/motion/press_scale.dart`, and `lib/core/motion/spring_sheet.dart`:
+
+1. **Micro-Interaction Spring (Buttons, Checkboxes, Toggles):**
+   - `SpringDescription(mass: 1.0, stiffness: 420.0, damping: 28.0)`
+   - Scale down to `0.96` on pointer down (`TapDownDetails`), release with spring velocity on pointer up/cancel.
+   - Trigger `HapticFeedback.lightImpact()` on state toggle.
+2. **Spatial / Layout Spring (Bottom Sheets, Card Expansion, Tab Indicators):**
+   - `SpringDescription(mass: 1.0, stiffness: 300.0, damping: 26.0)`
+   - No linear curves (`Curves.linear` is banned). For non-simulation tweens, use `Cubic(0.2, 0.0, 0.0, 1.0)` (M3 Emphasized Decelerate).
+3. **Staggered List Choreography:**
+   - When switching tabs or dates, list items animate in with a subtle vertical slide (`Offset(0, 0.06)` $\rightarrow$ `Offset.zero`) + fade (`240ms`), staggered by `25ms` per item (capped at the first 6 visible items so long lists never lag).
+
+---
+
+## 5. Typography & Button Visibility Standards
+- **Display / Hero Metrics:** `36sp`, `FontWeight.w800`, `letterSpacing: -0.8`, tabular figures (`FontFeature.tabularFigures()`).
+- **Section Headers:** `20sp`, `FontWeight.w700`, `letterSpacing: -0.3`.
+- **Card Titles:** `16sp`, `FontWeight.w600`.
+- **Button Rules (Mandatory):**
+  - **Primary CTA:** `FilledButton` with `backgroundColor: colorScheme.primary`, `foregroundColor: colorScheme.onPrimary`, minimum height `52dp`, `FontWeight.w700`.
+  - **Secondary CTA:** `FilledButton.tonal` with `backgroundColor: colorScheme.secondaryContainer`, `foregroundColor: colorScheme.onSecondaryContainer`, minimum height `48dp`.
+  - **Icon Buttons:** Always wrapped in a tonal container (`surfaceContainerHighest`) so they never disappear against the page background.

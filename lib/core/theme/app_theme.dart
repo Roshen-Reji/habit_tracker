@@ -31,25 +31,16 @@ class AppTheme {
     }
   }
 
-  // Legacy compile-time color aliases preserved for backward compatibility (Native Black & White defaults)
-  static const Color primary = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFF000000);
-  static const Color surface = Color(0xFF0A0A0A);
-  static const Color surfaceLight = Color(0xFF141414);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF8E8E93);
+  // Static aliases
+  static const Color primary = AppColors.darkPrimary;
+  static const Color background = AppColors.darkSurface;
+  static const Color surface = AppColors.darkSurfaceContainer;
+  static const Color surfaceLight = AppColors.darkSurfaceContainerHigh;
+  static const Color textPrimary = AppColors.darkOnSurface;
+  static const Color textSecondary = AppColors.darkOnSurfaceVariant;
   static const Color textFaded = Color(0xFF71717A);
 
-  // Gradients
-  static const LinearGradient glassGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0x26FFFFFF), // 15% white
-      Color(0x0AFFFFFF), // 4% white
-    ],
-  );
-
+  // Solid accent gradient
   static LinearGradient get accentGradient {
     final p = currentPreset.palette;
     return LinearGradient(
@@ -62,9 +53,39 @@ class AppTheme {
     );
   }
 
-  /// Expressive Dark Theme (Material 3 Expressive base with Native Black & White default)
+  /// Expressive Dark Theme (Material 3 Expressive base)
   static ThemeData buildDarkTheme([AppColorSchemePreset? preset]) {
     final p = (preset ?? currentPreset).palette;
+
+    final colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: p.darkPrimary,
+      onPrimary: p.darkOnPrimary,
+      primaryContainer: p.darkPrimaryContainer,
+      onPrimaryContainer: p.darkOnPrimaryContainer,
+      secondary: p.darkSecondary,
+      onSecondary: const Color(0xFF1F3244),
+      secondaryContainer: const Color(0xFF324655),
+      onSecondaryContainer: const Color(0xFFCEE5F6),
+      tertiary: const Color(0xFFFFB784),
+      onTertiary: const Color(0xFF4F2500),
+      tertiaryContainer: const Color(0xFF5C3B1E),
+      onTertiaryContainer: const Color(0xFFFFDCC2),
+      error: const Color(0xFFFFB4AB),
+      onError: const Color(0xFF690005),
+      errorContainer: const Color(0xFF93000A),
+      onErrorContainer: const Color(0xFFFFDAD6),
+      surface: p.darkBackground,
+      onSurface: p.darkTextPrimary,
+      onSurfaceVariant: p.darkTextSecondary,
+      outline: const Color(0xFF454E56),
+      outlineVariant: p.darkBorder,
+      surfaceContainerLowest: const Color(0xFF090B0D),
+      surfaceContainerLow: const Color(0xFF15191C),
+      surfaceContainer: p.darkSurface,
+      surfaceContainerHigh: p.darkSurfaceElevated,
+      surfaceContainerHighest: const Color(0xFF2F363C),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -74,18 +95,12 @@ class AppTheme {
       dividerColor: p.darkBorder,
       fontFamily: 'Roboto',
       extensions: [AppTokens.fromPreset(p.preset, isDark: true)],
-      colorScheme: ColorScheme.dark(
-        primary: p.darkPrimary,
-        onPrimary: p.darkOnPrimary,
-        secondary: p.darkSecondary,
-        surface: p.darkSurface,
-        error: AppColors.error,
-      ),
+      colorScheme: colorScheme,
       cardTheme: CardThemeData(
         color: p.darkSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusLg),
+          borderRadius: BorderRadius.circular(24.0),
           side: BorderSide(color: p.darkBorder, width: 1.0),
         ),
       ),
@@ -102,9 +117,22 @@ class AppTheme {
         iconTheme: IconThemeData(color: p.darkTextPrimary),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: p.darkSurface,
+        backgroundColor: p.darkSurfaceElevated,
         selectedItemColor: p.darkPrimary,
         unselectedItemColor: p.darkTextSecondary,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.darkPrimary,
+          foregroundColor: p.darkOnPrimary,
+          elevation: 0,
+          minimumSize: const Size(48, 52),
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -115,7 +143,7 @@ class AppTheme {
           textStyle:
               const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -127,9 +155,52 @@ class AppTheme {
           textStyle:
               const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: p.darkPrimary,
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.darkPrimary,
+        foregroundColor: p.darkOnPrimary,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFF2F363C),
+        selectedColor: p.darkPrimaryContainer,
+        labelStyle:
+            TextStyle(color: p.darkTextPrimary, fontWeight: FontWeight.w600),
+        secondaryLabelStyle: TextStyle(
+            color: p.darkOnPrimaryContainer, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        side: BorderSide(color: p.darkBorder, width: 1.0),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF2F363C),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF454E56), width: 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: p.darkBorder, width: 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: p.darkPrimary, width: 1.5),
+        ),
+        labelStyle: TextStyle(color: p.darkTextSecondary),
+        hintStyle: TextStyle(color: p.darkTextSecondary),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -143,9 +214,39 @@ class AppTheme {
     );
   }
 
-  /// Expressive Light Theme (Material 3 Expressive base with Native Black & White default)
+  /// Expressive Light Theme (Material 3 Expressive base)
   static ThemeData buildLightTheme([AppColorSchemePreset? preset]) {
     final p = (preset ?? currentPreset).palette;
+
+    final colorScheme = ColorScheme(
+      brightness: Brightness.light,
+      primary: p.lightPrimary,
+      onPrimary: p.lightOnPrimary,
+      primaryContainer: p.lightPrimaryContainer,
+      onPrimaryContainer: p.lightOnPrimaryContainer,
+      secondary: p.lightSecondary,
+      onSecondary: const Color(0xFF0D1E2A),
+      secondaryContainer: const Color(0xFFCFE6F7),
+      onSecondaryContainer: const Color(0xFF0D1E2A),
+      tertiary: const Color(0xFF8B5000),
+      onTertiary: const Color(0xFFFFFFFF),
+      tertiaryContainer: const Color(0xFFFFDCC2),
+      onTertiaryContainer: const Color(0xFF2E1500),
+      error: const Color(0xFFBA1A1A),
+      onError: const Color(0xFFFFFFFF),
+      errorContainer: const Color(0xFFFFDAD6),
+      onErrorContainer: const Color(0xFF410002),
+      surface: p.lightBackground,
+      onSurface: p.lightTextPrimary,
+      onSurfaceVariant: p.lightTextSecondary,
+      outline: const Color(0xFF72787E),
+      outlineVariant: p.lightBorder,
+      surfaceContainerLowest: const Color(0xFFFFFFFF),
+      surfaceContainerLow: const Color(0xFFF1F4F8),
+      surfaceContainer: p.lightSurface,
+      surfaceContainerHigh: p.lightSurfaceElevated,
+      surfaceContainerHighest: const Color(0xFFDCE1E8),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -155,18 +256,12 @@ class AppTheme {
       dividerColor: p.lightBorder,
       fontFamily: 'Roboto',
       extensions: [AppTokens.fromPreset(p.preset, isDark: false)],
-      colorScheme: ColorScheme.light(
-        primary: p.lightPrimary,
-        onPrimary: p.lightOnPrimary,
-        secondary: p.lightSecondary,
-        surface: p.lightSurface,
-        error: AppColors.error,
-      ),
+      colorScheme: colorScheme,
       cardTheme: CardThemeData(
         color: p.lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusLg),
+          borderRadius: BorderRadius.circular(24.0),
           side: BorderSide(color: p.lightBorder, width: 1.0),
         ),
       ),
@@ -183,9 +278,22 @@ class AppTheme {
         iconTheme: IconThemeData(color: p.lightTextPrimary),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: p.lightSurface,
+        backgroundColor: p.lightSurfaceElevated,
         selectedItemColor: p.lightPrimary,
         unselectedItemColor: p.lightTextSecondary,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.lightPrimary,
+          foregroundColor: p.lightOnPrimary,
+          elevation: 0,
+          minimumSize: const Size(48, 52),
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -196,7 +304,7 @@ class AppTheme {
           textStyle:
               const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -208,9 +316,52 @@ class AppTheme {
           textStyle:
               const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: p.lightPrimary,
+          textStyle:
+              const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.lightPrimary,
+        foregroundColor: p.lightOnPrimary,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFFDCE1E8),
+        selectedColor: p.lightPrimaryContainer,
+        labelStyle:
+            TextStyle(color: p.lightTextPrimary, fontWeight: FontWeight.w600),
+        secondaryLabelStyle: TextStyle(
+            color: p.lightOnPrimaryContainer, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        side: BorderSide(color: p.lightBorder, width: 1.0),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFDCE1E8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF72787E), width: 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: p.lightBorder, width: 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: p.lightPrimary, width: 1.5),
+        ),
+        labelStyle: TextStyle(color: p.lightTextSecondary),
+        hintStyle: TextStyle(color: p.lightTextSecondary),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

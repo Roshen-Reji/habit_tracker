@@ -159,6 +159,35 @@ class ReaderService {
     }
   }
 
+  /// Extracts raw text from a PDF file or bytes using pdfrx native text layer.
+  /// Returns empty string if no text layer exists (e.g. image-only PDF).
+  static Future<String> extractTextFromPdf(dynamic fileOrBytes) async {
+    await ensurePdfrxInitialized();
+    PdfDocument? doc;
+    try {
+      if (fileOrBytes is String) {
+        doc = await PdfDocument.openFile(fileOrBytes);
+      } else if (fileOrBytes is Uint8List) {
+        doc = await PdfDocument.openData(fileOrBytes);
+      } else {
+        return '';
+      }
+
+      final buffer = StringBuffer();
+      for (final page in doc.pages) {
+        final textObj = await page.loadText();
+        if (textObj != null && textObj.fullText.trim().isNotEmpty) {
+          buffer.writeln(textObj.fullText);
+        }
+      }
+      await doc.dispose();
+      return buffer.toString().trim();
+    } catch (e) {
+      debugPrint('ReaderService.extractTextFromPdf error: $e');
+      return '';
+    }
+  }
+
   /// Ensures that a PDF file is accessible to the app. If the file is on external storage
   /// or inaccessible via native posix, it copies or links it into the app's persistent sandbox.
   static Future<String> ensureFileInSandbox(String originalPath) async {

@@ -14,6 +14,7 @@ import 'package:habit_tracker/features/tasks/engine/task_urgency_engine.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 import 'package:habit_tracker/features/tasks/task_analytics_page.dart';
 import 'package:habit_tracker/features/tasks/widgets/academic_hub_view.dart';
+import 'package:habit_tracker/features/tasks/widgets/add_task_dialog.dart';
 import 'package:habit_tracker/features/tasks/widgets/animated_task_os_tile.dart';
 import 'package:habit_tracker/features/tasks/widgets/focus_timer_sheet.dart';
 import 'package:habit_tracker/features/tasks/widgets/quick_add_nl_bar.dart';
@@ -31,7 +32,8 @@ class TasksPage extends StatefulWidget {
 }
 
 class _TasksPageState extends State<TasksPage> {
-  int _selectedWorkspace = 0; // 0: Today, 1: Upcoming, 2: Inbox, 3: Academic, 4: Board
+  int _selectedWorkspace = 0; // 0: Tasks, 1: Habits, 2: Academic
+  int _tasksSubSection = 0; // 0: Today, 1: Upcoming, 2: Inbox, 3: Board
   late final PageController _pageController;
 
   final TextEditingController _searchController = TextEditingController();
@@ -208,136 +210,18 @@ class _TasksPageState extends State<TasksPage> {
   }
 
   void _showAddHabitSheet() {
-    final nameController = TextEditingController();
-    int targetDays = 5;
-
-    SpringSheet.show(
+    HapticFeedback.lightImpact();
+    showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          return Container(
-            decoration: BoxDecoration(
-              color: BentoTheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: BentoTheme.divider),
-            ),
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: BentoTheme.divider,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Create Forgiving Habit',
-                  style: TextStyle(
-                    color: BentoTheme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  style: TextStyle(color: BentoTheme.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Habit name (e.g. Read 20m, DSA Problem)',
-                    hintStyle: TextStyle(
-                      color: BentoTheme.textSecondary.withValues(alpha: 0.6),
-                    ),
-                    filled: true,
-                    fillColor: BentoTheme.surfaceElevated,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Target: $targetDays days / week',
-                      style: TextStyle(
-                        color: BentoTheme.textSecondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(LucideIcons.minusCircle, size: 20),
-                          color: BentoTheme.accent,
-                          onPressed: targetDays > 1
-                              ? () => setSheetState(() => targetDays--)
-                              : null,
-                        ),
-                        IconButton(
-                          icon: const Icon(LucideIcons.plusCircle, size: 20),
-                          color: BentoTheme.accent,
-                          onPressed: targetDays < 7
-                              ? () => setSheetState(() => targetDays++)
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TactileButton(
-                  onPressed: () async {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) return;
-                    final habit = ForgivingHabitItem(
-                      id: 'habit_${DateTime.now().millisecondsSinceEpoch}',
-                      name: name,
-                      targetPerWeek: targetDays,
-                      freezesLeft: 2,
-                    );
-                    await TaskOsRepository.instance.saveHabit(habit);
-                    if (mounted) Navigator.pop(ctx);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: BentoTheme.accent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Add Habit',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (ctx) => const AddTaskDialog(initialIsHabit: true),
+    );
+  }
+
+  void _showAddTaskDialog({bool isHabit = false}) {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (ctx) => AddTaskDialog(initialIsHabit: isHabit),
     );
   }
 
@@ -417,6 +301,42 @@ class _TasksPageState extends State<TasksPage> {
               ],
             ),
             actions: [
+              // High-contrast Add CTA
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PressScale(
+                  onTap: () =>
+                      _showAddTaskDialog(isHabit: _selectedWorkspace == 1),
+                  child: Container(
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_rounded,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _selectedWorkspace == 1 ? 'Habit' : 'Task',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               // 1. Search Toggle (36x36 circular)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -686,11 +606,9 @@ class _TasksPageState extends State<TasksPage> {
                         setState(() => _selectedWorkspace = page);
                       },
                       children: [
-                        _buildTodayView(filteredTasks),
-                        _buildUpcomingView(filteredTasks),
-                        _buildInboxView(allTasks),
+                        _buildTasksWorkspace(filteredTasks, allTasks),
+                        _buildHabitsWorkspace(),
                         const AcademicHubView(),
-                        _buildBoardView(allTasks),
                       ],
                     ),
                   ),
@@ -723,6 +641,7 @@ class _TasksPageState extends State<TasksPage> {
 
   Widget _buildFilterChip(String key, String label) {
     final isSelected = _selectedFilter == key;
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -733,22 +652,444 @@ class _TasksPageState extends State<TasksPage> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isSelected
-              ? BentoTheme.accent.withValues(alpha: 0.18)
-              : BentoTheme.surface,
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? BentoTheme.accent : BentoTheme.divider,
+            color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary,
+            color: isSelected
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),
       ),
+    );
+  }
+
+  // ================= TASKS WORKSPACE (One-Time Tasks) =================
+  Widget _buildTasksWorkspace(
+      List<TaskItem> filteredTasks, List<TaskItem> allTasks) {
+    final oneTimeFiltered = filteredTasks.where((t) => !t.isHabit).toList();
+    final oneTimeAll = allTasks.where((t) => !t.isHabit).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(
+            children: [
+              _buildTaskSubPill(0, 'Today'),
+              _buildTaskSubPill(1, 'Upcoming'),
+              _buildTaskSubPill(2, 'Inbox'),
+              _buildTaskSubPill(3, 'Board'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: IndexedStack(
+            index: _tasksSubSection,
+            children: [
+              _buildTodayView(oneTimeFiltered),
+              _buildUpcomingView(oneTimeFiltered),
+              _buildInboxView(oneTimeAll),
+              _buildBoardView(oneTimeAll),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTaskSubPill(int index, String label) {
+    final isSelected = _tasksSubSection == index;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: PressScale(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _tasksSubSection = index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(isSelected ? 14 : 28),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary.withValues(alpha: 0.5)
+                  : colorScheme.outlineVariant,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? colorScheme.onPrimaryContainer
+                  : colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= HABITS WORKSPACE (Recurring Routines) =================
+  Widget _buildHabitsWorkspace() {
+    final habits = TaskOsRepository.instance.activeHabits;
+    final colorScheme = Theme.of(context).colorScheme;
+    final now = DateTime.now();
+    final todayIso =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final completedToday =
+        habits.where((h) => h.isCompletedOn(todayIso)).length;
+    final totalHabits = habits.length;
+    final completionPct =
+        totalHabits > 0 ? (completedToday / totalHabits * 100).round() : 0;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        // Habit Summary Hero Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'HABITS TRACKER',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$completionPct% Today',
+                      style: TextStyle(
+                        color: colorScheme.onPrimaryContainer,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$completedToday of $totalHabits',
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'Routines completed today',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TactileButton(
+                    onPressed: () => _showAddTaskDialog(isHabit: true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded,
+                              size: 16, color: colorScheme.onPrimary),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Add Habit',
+                            style: TextStyle(
+                              color: colorScheme.onPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        if (habits.isEmpty)
+          _buildEmptyPlaceholder(
+              'No recurring habits yet. Tap Add Habit to build a routine!')
+        else ...[
+          for (var habit in habits) ...[
+            _buildHabitCard(habit, colorScheme),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildHabitCard(ForgivingHabitItem habit, ColorScheme colorScheme) {
+    final streak = habit.currentStreak;
+    final bestStreak = habit.bestStreak;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      habit.name,
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatHabitRecurrence(habit),
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colorScheme.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '🔥 $streak',
+                      style: TextStyle(
+                        color: colorScheme.onTertiaryContainer,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (bestStreak > streak) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '(Best: $bestStreak)',
+                        style: TextStyle(
+                          color: colorScheme.onTertiaryContainer
+                              .withValues(alpha: 0.8),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(LucideIcons.trash2, size: 16),
+                color: colorScheme.error,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Habit?'),
+                      content: Text(
+                          'Are you sure you want to delete "${habit.name}"?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colorScheme.error,
+                            foregroundColor: colorScheme.onError,
+                          ),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await TaskOsRepository.instance.deleteHabit(habit.id);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildHabit7DayRow(habit),
+        ],
+      ),
+    );
+  }
+
+  String _formatHabitRecurrence(ForgivingHabitItem habit) {
+    if (habit.frequency == 'weekly') {
+      if (habit.daysOfWeek.isEmpty) return 'Weekly';
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final days = habit.daysOfWeek
+          .where((d) => d >= 1 && d <= 7)
+          .map((d) => dayNames[d - 1])
+          .join(', ');
+      return 'Weekly: $days';
+    } else if (habit.frequency == 'monthly') {
+      return 'Monthly on day ${habit.dayOfMonth}';
+    }
+    return 'Every day';
+  }
+
+  Widget _buildHabit7DayRow(ForgivingHabitItem habit) {
+    final now = DateTime.now();
+    final days =
+        List.generate(7, (i) => now.subtract(Duration(days: 6 - i)));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: days.map((date) {
+        final dateIso =
+            '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final isDone = habit.isCompletedOn(dateIso);
+        final isFrozen = habit.isFrozenOn(dateIso);
+        final isToday = date.day == now.day &&
+            date.month == now.month &&
+            date.year == now.year;
+        final weekdayChar =
+            ['M', 'T', 'W', 'T', 'F', 'S', 'S'][date.weekday - 1];
+
+        return Column(
+          children: [
+            Text(
+              weekdayChar,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                color: isToday
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            PressScale(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                TaskOsRepository.instance
+                    .toggleHabitDay(habit.id, dateIso, false);
+              },
+              onLongPress: () {
+                HapticFeedback.heavyImpact();
+                TaskOsRepository.instance
+                    .toggleHabitDay(habit.id, dateIso, true);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isDone
+                      ? colorScheme.primary
+                      : (isFrozen
+                          ? colorScheme.tertiaryContainer
+                          : colorScheme.surfaceContainerHighest),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isToday
+                        ? colorScheme.primary
+                        : (isDone || isFrozen
+                            ? Colors.transparent
+                            : colorScheme.outlineVariant),
+                    width: isToday ? 1.5 : 1.0,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: isDone
+                    ? Icon(Icons.check_rounded,
+                        size: 16, color: colorScheme.onPrimary)
+                    : (isFrozen
+                        ? Icon(LucideIcons.snowflake,
+                            size: 14,
+                            color: colorScheme.onTertiaryContainer)
+                        : Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          )),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -1871,17 +2212,19 @@ class _TasksPageState extends State<TasksPage> {
   }
 
   Widget _buildEmptyPlaceholder(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
           children: [
-            Icon(LucideIcons.sparkles, size: 36, color: BentoTheme.accent),
+            Icon(Icons.check_circle_outline_rounded,
+                size: 36, color: colorScheme.primary),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: BentoTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ),

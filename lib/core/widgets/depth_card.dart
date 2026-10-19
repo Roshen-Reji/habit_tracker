@@ -42,8 +42,11 @@ class DepthCard extends StatelessWidget {
 
   Decoration _buildDecoration(BuildContext context, AppTokens tokens) {
     final borderRadius = BorderRadius.circular(radius);
-    final borderColor = Theme.of(context).dividerColor;
-    final cardBg = color ?? tokens.surface;
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    final cardBg = color ??
+        (elevation == DepthElevation.e1
+            ? Theme.of(context).colorScheme.surfaceContainer
+            : Theme.of(context).colorScheme.surfaceContainerHigh);
 
     return BoxDecoration(
       color: cardBg,

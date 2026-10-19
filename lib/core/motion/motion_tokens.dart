@@ -13,33 +13,33 @@ class MotionTokens {
   // --- Exact Physics Standards (Section 1) ---
 
   /// Snappy Micro-Spring: Buttons, toggles, checkboxes, pills.
-  /// Instantaneous response with crisp, subtle settle.
+  /// Touch/Press Spring (stiffness: 420, damping: 28)
   static const SpringDescription snappyMicro = SpringDescription(
     mass: 1.0,
-    stiffness: 520.0,
+    stiffness: 420.0,
     damping: 28.0,
   );
 
   /// Fluid Spatial Spring: Bottom nav indicator, sheet expansion, card morphing.
-  /// Slight elastic overshoot (~3%) that gives hardware weight to moving containers.
+  /// Sheet/Spatial Spring (stiffness: 300, damping: 26)
   static const SpringDescription fluidSpatial = SpringDescription(
     mass: 1.0,
-    stiffness: 360.0,
+    stiffness: 300.0,
     damping: 26.0,
   );
 
   /// Heavy Architectural Spring: Page transitions, modal sheets, wallet stack fling.
   /// Critically damped—smooth deceleration with zero distracting bounce.
   static const SpringDescription heavyArchitectural = SpringDescription(
-    mass: 1.1,
-    stiffness: 280.0,
-    damping: 28.0,
+    mass: 1.0,
+    stiffness: 300.0,
+    damping: 26.0,
   );
 
   // --- High-Velocity Cubic Curves (For Opacity & Color Interpolation Only) ---
 
-  /// emphasizedDecelerate: Cubic(0.05, 0.7, 0.1, 1.0)
-  static const Cubic emphasizedDecelerate = Cubic(0.05, 0.7, 0.1, 1.0);
+  /// emphasizedDecelerate: Cubic(0.2, 0.0, 0.0, 1.0) per M3 Expressive
+  static const Cubic emphasizedDecelerate = Cubic(0.2, 0.0, 0.0, 1.0);
 
   /// emphasizedAccelerate: Cubic(0.3, 0.0, 0.8, 0.15)
   static const Cubic emphasizedAccelerate = Cubic(0.3, 0.0, 0.8, 0.15);

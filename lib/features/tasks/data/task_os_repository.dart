@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:habit_tracker/data/services/global_xp_service.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
+import 'package:habit_tracker/features/tasks/data/task_day_log_repository.dart';
+import 'package:habit_tracker/features/tasks/models/task_day_log.dart';
+import 'package:habit_tracker/features/tasks/engine/rrule_recurrence_engine.dart';
 
 /// Offline-first reactive repository for Tasks OS backed by Hive boxes.
 /// Extends [ChangeNotifier] and maintains [revision] for immediate reactivity.
@@ -162,6 +165,24 @@ class TaskOsRepository extends ChangeNotifier {
   List<TaskItem> get activeTasks =>
       tasksNotifier.value.where((t) => !t.isDeleted).toList();
 
+  /// Strictly one-time tasks (isHabit == false)
+  List<TaskItem> get oneTimeTasks =>
+      activeTasks.where((t) => !t.isHabit).toList();
+
+  /// Recurring tasks / habits stored in tasks list (isHabit == true)
+  List<TaskItem> get recurringTasks =>
+      activeTasks.where((t) => t.isHabit).toList();
+
+  /// One-time tasks scheduled for a specific date ('YYYY-MM-DD')
+  List<TaskItem> getTasksForDate(String dateIso) {
+    return oneTimeTasks.where((t) => t.scheduledDate == dateIso).toList();
+  }
+
+  /// Incomplete one-time tasks whose scheduled date / due date has passed
+  List<TaskItem> getOverdueTasks(DateTime now) {
+    return oneTimeTasks.where((t) => t.isOverdue(now)).toList();
+  }
+
   Future<void> saveTask(TaskItem task) async {
     final current = List<TaskItem>.from(tasksNotifier.value);
     final index = current.indexWhere((t) => t.id == task.id);
@@ -280,6 +301,31 @@ class TaskOsRepository extends ChangeNotifier {
     );
     _logSyncOp('task', taskId, 'status_change', current[index].toMap());
 
+    // If it's a recurring habit, record day log and spawn next instance
+    if (task.isHabit) {
+      final dateIso =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      try {
+        TaskDayLogRepository.instance.setLog(TaskDayLog(
+          id: TaskDayLog.generateId(task.id, dateIso),
+          goalId: task.id,
+          dayKey: dateIso,
+          status: !isDone ? 'done' : 'pending',
+          loggedAt: now,
+        ));
+      } catch (_) {}
+
+      if (!isDone) {
+        final nextInstance = RruleRecurrenceEngine.spawnNextRecurringInstance(
+          task: current[index],
+          completedAt: now,
+        );
+        if (nextInstance != null) {
+          current.add(nextInstance);
+        }
+      }
+    }
+
     // XP Award on marking done
     if (!isDone) {
       try {
@@ -347,6 +393,7 @@ class TaskOsRepository extends ChangeNotifier {
 
   List<CourseItem> get activeCourses =>
       coursesNotifier.value.where((c) => c.deletedAt == null).toList();
+  List<CourseItem> get courses => activeCourses;
 
   CourseItem? getCourseById(String courseId) {
     try {
@@ -422,6 +469,8 @@ class TaskOsRepository extends ChangeNotifier {
     await _box?.put('timetable_slots', current.map((s) => s.toMap()).toList());
     _notifyMutation();
   }
+
+  List<ClassSessionLog> get sessionLogs => sessionLogsNotifier.value;
 
   Future<void> logClassSession(ClassSessionLog log) async {
     final current = List<ClassSessionLog>.from(sessionLogsNotifier.value);
@@ -530,6 +579,7 @@ class TaskOsRepository extends ChangeNotifier {
 
   List<ForgivingHabitItem> get activeHabits =>
       habitsNotifier.value.where((h) => h.deletedAt == null).toList();
+  List<ForgivingHabitItem> get habits => activeHabits;
 
   Future<void> saveHabit(ForgivingHabitItem habit) async {
     final current = List<ForgivingHabitItem>.from(habitsNotifier.value);
@@ -582,8 +632,22 @@ class TaskOsRepository extends ChangeNotifier {
       completedDatesIso: completed,
       frozenDatesIso: frozen,
       freezesLeft: freezes,
+      currentStreak: habit.copyWith(completedDatesIso: completed, frozenDatesIso: frozen).computeCurrentStreak(),
+      bestStreak: habit.copyWith(completedDatesIso: completed, frozenDatesIso: frozen).computeBestStreak(),
     );
     current[index] = updated;
+
+    // Log completion in TaskDayLogRepository
+    try {
+      final isDone = completed.contains(dateIso);
+      TaskDayLogRepository.instance.setLog(TaskDayLog(
+        id: TaskDayLog.generateId(habitId, dateIso),
+        goalId: habitId,
+        dayKey: dateIso,
+        status: isFreeze ? 'neutral' : (isDone ? 'done' : 'pending'),
+        loggedAt: DateTime.now(),
+      ));
+    } catch (_) {}
 
     if (awardedXp) {
       try {
@@ -606,6 +670,26 @@ class TaskOsRepository extends ChangeNotifier {
 
   Future<void> useHabitFreeze(String habitId, String dateIso) async {
     await toggleHabitDay(habitId, dateIso, true);
+  }
+
+  Future<void> deleteHabit(String habitId, {bool permanent = false}) async {
+    final current = List<ForgivingHabitItem>.from(habitsNotifier.value);
+    final index = current.indexWhere((h) => h.id == habitId);
+    if (index == -1) return;
+
+    if (permanent) {
+      current.removeAt(index);
+      _logSyncOp('habit', habitId, 'permanent_delete', null);
+    } else {
+      current[index] = current[index].copyWith(
+        deletedAt: DateTime.now(),
+      );
+      _logSyncOp('habit', habitId, 'delete', current[index].toMap());
+    }
+
+    habitsNotifier.value = current;
+    await _box?.put('habits', current.map((h) => h.toMap()).toList());
+    _notifyMutation();
   }
 
   // ================= SCHEDULING RULES & PLANS =================

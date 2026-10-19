@@ -104,10 +104,10 @@ class TactileTokens {
   static const Color textMuted = Color(0xFF71717A);
   static const Color textDisabled = Color(0x40FFFFFF);
 
-  // --- Corner Radii (Standardized to 20.0 per AGENTS.md Task 6) ---
-  static const double radiusButton = 12.0;
-  static const double radiusCard = 20.0;
-  static const double radiusModal = 20.0;
+  // --- Corner Radii (M3 Expressive: 28dp pill button, 24dp card) ---
+  static const double radiusButton = 28.0;
+  static const double radiusCard = 24.0;
+  static const double radiusModal = 24.0;
   static const double radiusPill = 999.0;
   static const double radiusSmall = 8.0;
 

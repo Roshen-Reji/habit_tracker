@@ -110,6 +110,12 @@ class TaskItem {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? deviceId;
+  final bool isHabit; // false for one-time tasks, true for recurring habits
+  final String? recurrenceFrequency; // 'none', 'daily', 'weekly', 'monthly'
+  final List<int> daysOfWeek; // 1 = Monday .. 7 = Sunday
+  final int? dayOfMonth; // 1 .. 31
+  final int currentStreak;
+  final int bestStreak;
 
   const TaskItem({
     required this.id,
@@ -140,11 +146,23 @@ class TaskItem {
     required this.createdAt,
     required this.updatedAt,
     this.deviceId,
+    this.isHabit = false,
+    this.recurrenceFrequency,
+    this.daysOfWeek = const [],
+    this.dayOfMonth,
+    this.currentStreak = 0,
+    this.bestStreak = 0,
   });
 
   bool get isDone => status == TaskStatus.done;
   bool get isDeleted => deletedAt != null;
-  bool get isRecurring => recurrenceRule != null && recurrenceRule!.isNotEmpty;
+  bool get isRecurring =>
+      isHabit || (recurrenceRule != null && recurrenceRule!.isNotEmpty && recurrenceFrequency != 'none');
+
+  String? get scheduledDate {
+    if (dueAt == null) return null;
+    return '${dueAt!.year.toString().padLeft(4, '0')}-${dueAt!.month.toString().padLeft(2, '0')}-${dueAt!.day.toString().padLeft(2, '0')}';
+  }
 
   bool isOverdue(DateTime now) {
     if (dueAt == null || isDone || isDeleted) return false;
@@ -180,6 +198,12 @@ class TaskItem {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
+    bool? isHabit,
+    String? recurrenceFrequency,
+    List<int>? daysOfWeek,
+    int? dayOfMonth,
+    int? currentStreak,
+    int? bestStreak,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -210,6 +234,12 @@ class TaskItem {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
+      isHabit: isHabit ?? this.isHabit,
+      recurrenceFrequency: recurrenceFrequency ?? this.recurrenceFrequency,
+      daysOfWeek: daysOfWeek ?? this.daysOfWeek,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
+      currentStreak: currentStreak ?? this.currentStreak,
+      bestStreak: bestStreak ?? this.bestStreak,
     );
   }
 
@@ -242,6 +272,13 @@ class TaskItem {
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'deviceId': deviceId,
+        'isHabit': isHabit,
+        'scheduledDate': scheduledDate,
+        'recurrenceFrequency': recurrenceFrequency,
+        'daysOfWeek': daysOfWeek,
+        'dayOfMonth': dayOfMonth,
+        'currentStreak': currentStreak,
+        'bestStreak': bestStreak,
       };
 
   factory TaskItem.fromMap(Map map) {
@@ -270,6 +307,13 @@ class TaskItem {
     if (map['blockedByTaskIds'] is List) {
       for (var b in map['blockedByTaskIds']) {
         if (b != null) blockedList.add(b.toString());
+      }
+    }
+
+    final daysList = <int>[];
+    if (map['daysOfWeek'] is List) {
+      for (var d in map['daysOfWeek']) {
+        if (d is num) daysList.add(d.toInt());
       }
     }
 
@@ -314,6 +358,12 @@ class TaskItem {
           ? DateTime.tryParse(map['updatedAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       deviceId: map['deviceId']?.toString(),
+      isHabit: map['isHabit'] == true,
+      recurrenceFrequency: map['recurrenceFrequency']?.toString(),
+      daysOfWeek: daysList,
+      dayOfMonth: (map['dayOfMonth'] as num?)?.toInt(),
+      currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
+      bestStreak: (map['bestStreak'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -806,10 +856,17 @@ class ForgivingHabitItem {
   final String name;
   final int targetPerWeek; // e.g. 5 days a week
   final int freezesLeft; // e.g. 2 freezes available
-  final List<int> restDays; // e.g. [7] for Sunday
+  final List<int> restDays; // e.g. [7] for Sunday (1=Mon..7=Sun)
   final List<String> completedDatesIso; // 'YYYY-MM-DD'
   final List<String> frozenDatesIso; // Dates where streak freeze was used
   final DateTime? deletedAt;
+  final String frequency; // 'daily', 'weekly', 'monthly'
+  final List<int> daysOfWeek; // Active days (1=Mon..7=Sun)
+  final int? dayOfMonth; // 1..31
+  final String? reminderTime; // e.g. "08:00"
+  final String category; // 'productivity', 'health', 'learning', 'fitness', 'hobby'
+  final int currentStreak;
+  final int bestStreak;
 
   const ForgivingHabitItem({
     required this.id,
@@ -820,10 +877,67 @@ class ForgivingHabitItem {
     this.completedDatesIso = const [],
     this.frozenDatesIso = const [],
     this.deletedAt,
+    this.frequency = 'daily',
+    this.daysOfWeek = const [1, 2, 3, 4, 5, 6, 7],
+    this.dayOfMonth,
+    this.reminderTime,
+    this.category = 'productivity',
+    this.currentStreak = 0,
+    this.bestStreak = 0,
   });
 
+  bool get isHabit => true;
+  String get title => name;
+  bool get isCompletedToday =>
+      isCompletedOn(DateTime.now().toIso8601String().substring(0, 10));
   bool isCompletedOn(String dateIso) => completedDatesIso.contains(dateIso);
   bool isFrozenOn(String dateIso) => frozenDatesIso.contains(dateIso);
+
+  /// Computes the active streak counting backwards from today/yesterday,
+  /// honoring rest days and used streak freezes.
+  int computeCurrentStreak([DateTime? relativeTo]) {
+    final now = relativeTo ?? DateTime.now();
+    var checkDate = DateTime(now.year, now.month, now.day);
+    final todayIso = _formatIso(checkDate);
+
+    // If today is completed or frozen, start counting from today.
+    // If not, but yesterday was completed/frozen, start from yesterday.
+    if (!isCompletedOn(todayIso) && !isFrozenOn(todayIso)) {
+      // Check if today is a scheduled rest day
+      final isTodayRest = restDays.contains(checkDate.weekday);
+      if (!isTodayRest) {
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      }
+    }
+
+    int streak = 0;
+    // Walk backwards up to 365 days
+    for (int i = 0; i < 365; i++) {
+      final iso = _formatIso(checkDate);
+      final isRest = restDays.contains(checkDate.weekday);
+
+      if (isCompletedOn(iso)) {
+        streak++;
+      } else if (isFrozenOn(iso)) {
+        streak++; // Freeze protects the streak
+      } else if (isRest) {
+        // Rest day doesn't break streak, but also doesn't inflate count
+      } else {
+        break; // Streak broken
+      }
+
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  int computeBestStreak() {
+    final cur = computeCurrentStreak();
+    return cur > bestStreak ? cur : (bestStreak > completedDatesIso.length ? bestStreak : completedDatesIso.length);
+  }
+
+  static String _formatIso(DateTime dt) =>
+      '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 
   ForgivingHabitItem copyWith({
     String? id,
@@ -834,6 +948,13 @@ class ForgivingHabitItem {
     List<String>? completedDatesIso,
     List<String>? frozenDatesIso,
     DateTime? deletedAt,
+    String? frequency,
+    List<int>? daysOfWeek,
+    int? dayOfMonth,
+    String? reminderTime,
+    String? category,
+    int? currentStreak,
+    int? bestStreak,
   }) {
     return ForgivingHabitItem(
       id: id ?? this.id,
@@ -844,6 +965,13 @@ class ForgivingHabitItem {
       completedDatesIso: completedDatesIso ?? this.completedDatesIso,
       frozenDatesIso: frozenDatesIso ?? this.frozenDatesIso,
       deletedAt: deletedAt ?? this.deletedAt,
+      frequency: frequency ?? this.frequency,
+      daysOfWeek: daysOfWeek ?? this.daysOfWeek,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
+      reminderTime: reminderTime ?? this.reminderTime,
+      category: category ?? this.category,
+      currentStreak: currentStreak ?? this.currentStreak,
+      bestStreak: bestStreak ?? this.bestStreak,
     );
   }
 
@@ -856,6 +984,14 @@ class ForgivingHabitItem {
         'completedDatesIso': completedDatesIso,
         'frozenDatesIso': frozenDatesIso,
         'deletedAt': deletedAt?.toIso8601String(),
+        'frequency': frequency,
+        'daysOfWeek': daysOfWeek,
+        'dayOfMonth': dayOfMonth,
+        'reminderTime': reminderTime,
+        'category': category,
+        'currentStreak': currentStreak,
+        'bestStreak': bestStreak,
+        'isHabit': true,
       };
 
   factory ForgivingHabitItem.fromMap(Map map) {
@@ -880,6 +1016,13 @@ class ForgivingHabitItem {
       }
     }
 
+    final daysList = <int>[];
+    if (map['daysOfWeek'] is List) {
+      for (var d in map['daysOfWeek']) {
+        if (d is num) daysList.add(d.toInt());
+      }
+    }
+
     return ForgivingHabitItem(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
@@ -891,6 +1034,13 @@ class ForgivingHabitItem {
       deletedAt: map['deletedAt'] != null
           ? DateTime.tryParse(map['deletedAt'].toString())
           : null,
+      frequency: map['frequency']?.toString() ?? 'daily',
+      daysOfWeek: daysList.isEmpty ? const [1, 2, 3, 4, 5, 6, 7] : daysList,
+      dayOfMonth: (map['dayOfMonth'] as num?)?.toInt(),
+      reminderTime: map['reminderTime']?.toString(),
+      category: map['category']?.toString() ?? 'productivity',
+      currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
+      bestStreak: (map['bestStreak'] as num?)?.toInt() ?? 0,
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:habit_tracker/features/tasks/engine/native_task_ai_engine.dart';
 import 'package:habit_tracker/features/tasks/widgets/task_action_pill.dart';
 import 'package:habit_tracker/features/tasks/data/task_os_repository.dart';
 import 'package:habit_tracker/features/tasks/engine/task_nl_parser.dart';
+import 'package:habit_tracker/features/tasks/widgets/smart_scanner_sheet.dart';
 
 class QuickAddNlBar extends StatefulWidget {
   final VoidCallback? onTaskAdded;
@@ -112,13 +113,7 @@ class _QuickAddNlBarState extends State<QuickAddNlBar> {
   }
 
   void _openSyllabusImportModal() {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => const _SyllabusImportSheet(),
-    );
+    SmartScannerSheet.show(context);
   }
 
   @override
