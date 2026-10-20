@@ -220,9 +220,9 @@ void main() async {
       debugPrint('PlanRunner warning: $e');
     }
     try {
-      await ReminderScheduler.sync();
+      await ReminderScheduler.rescheduleAllActiveAlarms();
     } catch (e) {
-      debugPrint('ReminderScheduler sync warning: $e');
+      debugPrint('ReminderScheduler reschedule warning: $e');
     }
     try {
       await MedicineService.rescheduleAll();

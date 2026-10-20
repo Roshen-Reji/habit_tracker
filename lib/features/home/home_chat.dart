@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/features/home/widgets/chat_message_bubble.dart';
+import 'package:habit_tracker/features/home/widgets/mood_sticker_avatar.dart';
 import 'package:habit_tracker/features/speech_vault/speech_vault_page.dart';
 import 'package:habit_tracker/models/speech_model.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -71,17 +72,24 @@ class _HomeChatFABState extends State<HomeChatFAB>
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
-              width: 1,
+              width: 1.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          child: Icon(
-            Icons.psychology_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-            size: 26,
+          alignment: Alignment.center,
+          child: const MoodStickerAvatar(
+            size: 42,
+            enableTapCheckin: false,
           ),
         ),
       )
@@ -127,7 +135,12 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 70,
+    );
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -138,7 +151,12 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
 
   Future<void> _takePhoto() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 70,
+    );
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -337,7 +355,7 @@ class _ChatBottomSheetState extends State<_ChatBottomSheet> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Icon(Icons.psychology_rounded, color: accent, size: 20),
+                        MoodStickerAvatar(size: 24, isSpeaking: _isLoading),
                         const SizedBox(width: 8),
                         Text(
                           "AI ASSISTANT",

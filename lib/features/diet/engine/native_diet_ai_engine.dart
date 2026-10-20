@@ -238,6 +238,12 @@ class NativeDietAiEngine {
       carbsPer100g = 5.0;
       fatPer100g = 18.0;
       fibrePer100g = 0.0;
+    } else if (lower.contains('orange juice') || lower.contains('fruit juice') || lower.contains('juice')) {
+      kcalPer100g = 45.0;
+      proteinPer100g = 0.7;
+      carbsPer100g = 10.4;
+      fatPer100g = 0.2;
+      fibrePer100g = 0.2;
     } else if (lower.contains('shake') || lower.contains('smoothie')) {
       kcalPer100g = 90.0;
       proteinPer100g = 6.0;

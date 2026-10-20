@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:habit_tracker/core/navigation/app_nav.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/features/home/widgets/wallet_card_stack.dart';
+import 'package:habit_tracker/features/home/widgets/expandable_cluster_modal.dart';
 
 class DashboardView extends StatefulWidget {
   final ScrollController? scrollController;
@@ -149,6 +150,26 @@ class _DashboardViewState extends State<DashboardView> {
                   },
                 ),
               ),
+
+              // Compact 2-Column Bento Cluster Grid (Resting State)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: SizedBox(
+                  height: 156,
+                  child: Row(
+                    children: const [
+                      Expanded(
+                        child: CompactMetricTile(),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: SmartClusterFolderTile(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Wallet Card Stack fills the rest of the dashboard
               Expanded(
                 child: WalletCardStack(controller: widget.scrollController),

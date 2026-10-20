@@ -2886,6 +2886,13 @@ class AiService {
   Future<AiResponse?> tryHandleOnDevice(String userMessage) async {
     final trimmed = userMessage.trim();
     if (trimmed.isEmpty) return null;
+
+    // 0. Non-Exclusive Parallel Compound Extraction Pipeline (e.g. "orange juice 20rs 200ml")
+    final compound = await _tryHandleCompoundMultiIntent(userMessage);
+    if (compound != null) {
+      return compound;
+    }
+
     final lower = trimmed.toLowerCase();
 
     // 1. Diet Pattern: Hydration (e.g., "drank 500ml water", "drink 250 ml water", "drank 2 glasses of water")
@@ -3187,6 +3194,355 @@ class AiService {
     }
 
     return null;
+  }
+
+  /// Process user input (alias for processMessage per Master Engineering Spec)
+  Future<AiResponse> processUserInput(String text, {Uint8List? imageBytes}) =>
+      processMessage(text, imageBytes: imageBytes);
+
+  bool _isFoodOrBeverage(String text) {
+    final lower = text.toLowerCase();
+    const keywords = [
+      'juice', 'orange juice', 'apple juice', 'fruit juice', 'water', 'tea', 'chai',
+      'coffee', 'milk', 'shake', 'smoothie', 'lassi', 'soda', 'coke', 'pepsi',
+      'shawarma', 'biryani', 'dosa', 'idli', 'roti', 'chapati', 'rice', 'egg', 'eggs',
+      'sandwich', 'burger', 'pizza', 'salad', 'curry', 'paneer', 'chicken', 'oats',
+      'bread', 'apple', 'banana', 'mango', 'snack', 'food', 'meal', 'pasta', 'noodles'
+    ];
+    return keywords.any((k) => lower.contains(k));
+  }
+
+  /// Non-Exclusive Parallel Compound Extraction Pipeline (e.g. "orange juice 20rs 200ml")
+  Future<AiResponse?> _tryHandleCompoundMultiIntent(String userMessage) async {
+    final trimmed = userMessage.trim();
+    if (trimmed.isEmpty) return null;
+    final lower = trimmed.toLowerCase();
+
+    // 1. Detect Financial price/cost pattern: "20rs", "₹20", "rs 20", "20 rs", "paid 20", "spent 20"
+    final priceRegex = RegExp(
+      r'(?:₹|rs\.?)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:₹|rs\.?|\/-)|\b(?:spent|paid|cost|bought)\s+(?:₹|rs\.?)?\s*(\d+(?:\.\d+)?)',
+      caseSensitive: false,
+    );
+    final priceMatch = priceRegex.firstMatch(lower);
+    if (priceMatch == null) return null;
+
+    final amountStr = priceMatch.group(1) ?? priceMatch.group(2) ?? priceMatch.group(3) ?? '0';
+    final amount = double.tryParse(amountStr) ?? 0.0;
+    if (amount <= 0) return null;
+
+    // 2. Strip price token from text to isolate the food / drink / task components
+    final textWithoutPrice = lower
+        .replaceRange(priceMatch.start, priceMatch.end, ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    // 3. Detect volume / quantity & food tokens
+    final qtyUnitRegex = RegExp(
+      r'(\d+(?:\.\d+)?|\d+\/\d+)\s*(ml|liters?|litres?|l|glasses?|glass|cups?|cup|g|grams?|kg|plates?|plate|serving|servings|pcs|pieces?|bottles?|bottle)?\b',
+      caseSensitive: false,
+    );
+    final qtyMatch = qtyUnitRegex.firstMatch(textWithoutPrice);
+
+    double qty = 1.0;
+    String unit = '';
+    String foodCandidate = textWithoutPrice;
+
+    if (qtyMatch != null) {
+      final rawQty = qtyMatch.group(1)!;
+      if (rawQty.contains('/')) {
+        final p = rawQty.split('/');
+        qty = (double.tryParse(p[0]) ?? 1.0) / (double.tryParse(p[1]) ?? 1.0);
+      } else {
+        qty = double.tryParse(rawQty) ?? 1.0;
+      }
+      unit = (qtyMatch.group(2) ?? '').toLowerCase();
+      foodCandidate = textWithoutPrice
+          .replaceRange(qtyMatch.start, qtyMatch.end, ' ')
+          .replaceAll(RegExp(r'\b(for|of|a|an|the|drank|drink|had|ate|eat|log|i|have)\b'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    } else {
+      foodCandidate = textWithoutPrice
+          .replaceAll(RegExp(r'\b(for|of|a|an|the|drank|drink|had|ate|eat|log|i|have)\b'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
+    if (foodCandidate.isEmpty) return null;
+
+    // Is this a recognized food, beverage, or diet volume/weight?
+    final isKnownFoodOrBeverage = _isFoodOrBeverage(foodCandidate) ||
+        unit == 'ml' ||
+        unit == 'l' ||
+        unit == 'litres' ||
+        unit == 'liters' ||
+        unit == 'g' ||
+        unit == 'grams' ||
+        unit == 'kg' ||
+        unit == 'plate' ||
+        unit == 'plates' ||
+        unit == 'glass' ||
+        unit == 'glasses' ||
+        unit == 'cup' ||
+        unit == 'cups';
+
+    if (!isKnownFoodOrBeverage) return null;
+
+    // Detect if liquid / beverage
+    final isLiquid = unit.startsWith('ml') ||
+        unit.startsWith('l') ||
+        unit.startsWith('glass') ||
+        unit.startsWith('cup') ||
+        unit.startsWith('bottle') ||
+        foodCandidate.contains('juice') ||
+        foodCandidate.contains('water') ||
+        foodCandidate.contains('tea') ||
+        foodCandidate.contains('chai') ||
+        foodCandidate.contains('coffee') ||
+        foodCandidate.contains('milk') ||
+        foodCandidate.contains('shake') ||
+        foodCandidate.contains('smoothie') ||
+        foodCandidate.contains('lassi') ||
+        foodCandidate.contains('soda') ||
+        foodCandidate.contains('cola') ||
+        foodCandidate.contains('pepsi') ||
+        foodCandidate.contains('drink');
+
+    double ml = 0.0;
+    if (isLiquid) {
+      if (unit.startsWith('ml')) {
+        ml = qty;
+      } else if (unit.startsWith('l')) {
+        ml = qty * 1000.0;
+      } else if (unit.startsWith('glass') || unit.startsWith('cup')) {
+        ml = qty * 250.0;
+      } else if (unit.startsWith('bottle')) {
+        ml = qty * 500.0;
+      } else {
+        ml = 200.0; // Default serving for beverages like orange juice
+      }
+    }
+
+    double grams = isLiquid ? ml : qty;
+    if (!isLiquid) {
+      if (unit.startsWith('kg')) {
+        grams = qty * 1000.0;
+      } else if (unit.startsWith('plate') || unit.startsWith('serving')) {
+        grams = qty * 250.0;
+      } else if (!unit.startsWith('g')) {
+        grams = 150.0;
+      }
+    }
+
+    // Macro calculation via on-device lookup table
+    double kcal;
+    double protein;
+    double carbs;
+    double fat;
+    final ratio = (isLiquid ? ml : grams) / 100.0;
+
+    if (foodCandidate.contains('orange juice')) {
+      kcal = 45.0 * ratio; // 90 kcal for 200ml
+      protein = 0.7 * ratio; // 1.4g for 200ml
+      carbs = 10.4 * ratio; // 20.8g for 200ml (~21g)
+      fat = 0.2 * ratio; // 0.4g for 200ml
+    } else if (foodCandidate.contains('apple juice') || foodCandidate.contains('fruit juice') || foodCandidate.contains('juice')) {
+      kcal = 46.0 * ratio;
+      protein = 0.5 * ratio;
+      carbs = 11.0 * ratio;
+      fat = 0.1 * ratio;
+    } else if (foodCandidate.contains('coconut water')) {
+      kcal = 19.0 * ratio;
+      protein = 0.7 * ratio;
+      carbs = 3.7 * ratio;
+      fat = 0.2 * ratio;
+    } else if (foodCandidate.contains('milk')) {
+      kcal = 62.0 * ratio;
+      protein = 3.2 * ratio;
+      carbs = 4.8 * ratio;
+      fat = 3.4 * ratio;
+    } else if (foodCandidate.contains('tea') || foodCandidate.contains('chai') || foodCandidate.contains('coffee')) {
+      kcal = 35.0 * ratio;
+      protein = 1.8 * ratio;
+      carbs = 3.5 * ratio;
+      fat = 1.5 * ratio;
+    } else if (foodCandidate.contains('water')) {
+      kcal = 0.0;
+      protein = 0.0;
+      carbs = 0.0;
+      fat = 0.0;
+    } else if (foodCandidate.contains('shawarma')) {
+      kcal = 220.0 * ratio;
+      protein = 14.0 * ratio;
+      carbs = 22.0 * ratio;
+      fat = 9.0 * ratio;
+    } else if (foodCandidate.contains('biryani')) {
+      kcal = 210.0 * ratio;
+      protein = 8.0 * ratio;
+      carbs = 30.0 * ratio;
+      fat = 7.0 * ratio;
+    } else if (foodCandidate.contains('dosa')) {
+      kcal = 168.0 * ratio;
+      protein = 3.9 * ratio;
+      carbs = 29.0 * ratio;
+      fat = 3.7 * ratio;
+    } else if (foodCandidate.contains('idli')) {
+      kcal = 116.0 * ratio;
+      protein = 4.0 * ratio;
+      carbs = 24.0 * ratio;
+      fat = 0.8 * ratio;
+    } else {
+      kcal = (isLiquid ? 45.0 : 180.0) * ratio;
+      protein = (isLiquid ? 0.8 : 5.0) * ratio;
+      carbs = (isLiquid ? 10.0 : 25.0) * ratio;
+      fat = (isLiquid ? 0.2 : 6.0) * ratio;
+    }
+
+    // Capitalize clean food title
+    final title = foodCandidate
+        .split(' ')
+        .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+        .join(' ')
+        .trim();
+
+    // 1. Finance Transaction Action
+    final draft = TxDraft(
+      title: title,
+      amount: -amount,
+      date: DateTime.now(),
+      mode: 'expense',
+      category: 'Food',
+      icon: 'utensils',
+      kind: 'expense',
+    );
+    final tx = await FinanceRepository().addTransaction(draft);
+    final financeAction = AiAction(
+      type: 'finance_transaction',
+      payload: {
+        'tx_id': tx.id,
+        'title': title,
+        'amount': amount,
+        'mode': 'expense',
+        'category': 'Food',
+      },
+      isConfirmed: true,
+      sector: 'finance',
+      op: 'add_tx',
+    );
+
+    // 2. Diet Meal Action
+    MealSlot slot = MealSlot.snack;
+    final hour = DateTime.now().hour;
+    if (hour < 11) slot = MealSlot.breakfast;
+    else if (hour < 16) slot = MealSlot.lunch;
+    else if (hour > 19) slot = MealSlot.dinner;
+
+    final entryId = 'log_${DateTime.now().millisecondsSinceEpoch}';
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final entry = DietLogEntry(
+      id: entryId,
+      dateIso: today,
+      mealSlot: slot,
+      title: title,
+      quantity: qty,
+      gramsTotal: isLiquid ? ml : grams,
+      kcal: kcal,
+      proteinG: protein,
+      carbsG: carbs,
+      fatG: fat,
+    );
+    await DietRepository.instance.logFood(entry);
+
+    final foodAction = AiAction(
+      type: 'food_entry',
+      payload: {
+        'id': entry.id,
+        'log_id': entry.id,
+        'name': entry.title,
+        'calories': entry.kcal,
+        'protein': entry.proteinG,
+        'carbs': entry.carbsG,
+        'fat': entry.fatG,
+        'meal_type': entry.mealSlot.name,
+        'grams': entry.gramsTotal,
+      },
+      isConfirmed: true,
+      sector: 'diet',
+      op: 'log_meal',
+    );
+
+    // 3. Hydration Action (if liquid)
+    AiAction? waterAction;
+    if (isLiquid && ml > 0) {
+      await DietRepository.instance.addWater(ml);
+      waterAction = AiAction(
+        type: 'diet_water',
+        payload: {'ml': ml},
+        isConfirmed: true,
+        sector: 'diet',
+        op: 'log_water',
+      );
+    }
+
+    // 4. Also check for task/reminder in same string (e.g. "and remind me to ...")
+    AiAction? taskAction;
+    if (lower.contains('remind me') || lower.contains('todo') || lower.contains('add task')) {
+      final taskPart = lower
+          .replaceAll(RegExp(r'^.*?\b(?:and\s+)?(?:remind\s+me\s+to|todo|add\s+task)\s+'), '')
+          .trim();
+      if (taskPart.isNotEmpty) {
+        final parsed = parseNaturalLanguageTask(taskPart, DateTime.now());
+        final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
+        final task = TaskItem(
+          id: taskId,
+          title: parsed.cleanTitle.isNotEmpty ? parsed.cleanTitle : taskPart,
+          status: TaskStatus.todo,
+          priority: parsed.priority,
+          dueAt: parsed.dueAt ?? DateTime.now(),
+          hasDueTime: parsed.hasDueTime,
+          isHabit: false,
+          recurrenceFrequency: 'none',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        await TaskOsRepository.instance.saveTask(task);
+        taskAction = AiAction(
+          type: 'task_create',
+          payload: {
+            'id': task.id,
+            'task_id': task.id,
+            'title': task.title,
+            'date': task.scheduledDate,
+            'isHabit': false,
+          },
+          isConfirmed: true,
+          sector: 'tasks',
+          op: 'add_task',
+        );
+      }
+    }
+
+    final actions = [
+      financeAction,
+      foodAction,
+      if (waterAction != null) waterAction,
+      if (taskAction != null) taskAction,
+    ];
+
+    final qtyStr = isLiquid
+        ? '${ml.round()}ml'
+        : (unit.isNotEmpty
+            ? '${qty == qty.roundToDouble() ? qty.round() : qty}$unit'
+            : '${qty == qty.roundToDouble() ? qty.round() : qty} serving');
+
+    final msg =
+        'Recorded ₹${amount.toStringAsFixed(0)} expense for $title and logged $qtyStr $title (${kcal.round()} kcal, ${carbs.round()}g Carbs, ${protein.toStringAsFixed(1)}g Protein${isLiquid ? ', +${ml.round()}ml Water' : ''}) to Diet!';
+
+    return AiResponse(
+      message: msg,
+      intent: 'compound_finance_diet',
+      actions: actions,
+    );
   }
 
   /// Process a user message and return an AI response

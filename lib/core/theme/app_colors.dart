@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_theme.dart';
 
 /// Available color scheme presets for the application.
 enum AppColorSchemePreset {
@@ -127,28 +128,28 @@ class PresetPalette {
       case AppColorSchemePreset.monochrome:
         return const PresetPalette(
           preset: AppColorSchemePreset.monochrome,
-          darkBackground: darkBg,
-          darkSurface: darkSurf,
-          darkSurfaceElevated: darkSurfElevated,
-          darkBorder: darkBrd,
-          darkPrimary: Color(0xFF5CE1E6),
-          darkOnPrimary: Color(0xFF00363A),
-          darkPrimaryContainer: Color(0xFF004F54),
-          darkOnPrimaryContainer: Color(0xFF9DF4F8),
-          darkSecondary: Color(0xFFA2ACB5),
-          darkTextPrimary: darkTxtPrimary,
-          darkTextSecondary: darkTxtSecondary,
-          lightBackground: lightBg,
-          lightSurface: lightSurf,
-          lightSurfaceElevated: lightSurfElevated,
-          lightBorder: lightBrd,
-          lightPrimary: Color(0xFF006874),
+          darkBackground: Color(0xFF0A0A0A),
+          darkSurface: Color(0xFF1C1C1E),
+          darkSurfaceElevated: Color(0xFF2C2C2E),
+          darkBorder: Color(0xFF48484A),
+          darkPrimary: Color(0xFFFFFFFF),
+          darkOnPrimary: Color(0xFF000000),
+          darkPrimaryContainer: Color(0xFF3A3A3C),
+          darkOnPrimaryContainer: Color(0xFFF2F2F7),
+          darkSecondary: Color(0xFFAEAEB2),
+          darkTextPrimary: Color(0xFFF2F2F7),
+          darkTextSecondary: Color(0xFFAEAEB2),
+          lightBackground: Color(0xFFF5F5F7),
+          lightSurface: Color(0xFFEBEBF0),
+          lightSurfaceElevated: Color(0xFFD8D8DC),
+          lightBorder: Color(0xFFC7C7CC),
+          lightPrimary: Color(0xFF111111),
           lightOnPrimary: Color(0xFFFFFFFF),
-          lightPrimaryContainer: Color(0xFF97F0FF),
-          lightOnPrimaryContainer: Color(0xFF001F24),
-          lightSecondary: Color(0xFF444C54),
-          lightTextPrimary: lightTxtPrimary,
-          lightTextSecondary: lightTxtSecondary,
+          lightPrimaryContainer: Color(0xFFE5E5EA),
+          lightOnPrimaryContainer: Color(0xFF1C1C1E),
+          lightSecondary: Color(0xFF636366),
+          lightTextPrimary: Color(0xFF111111),
+          lightTextSecondary: Color(0xFF636366),
         );
 
       case AppColorSchemePreset.obsidianEmerald:
@@ -352,6 +353,10 @@ class AppColors {
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
 
+  // Strict Monochrome Semantic Alert Exceptions
+  static const Color alertError = Color(0xFFFF3B30);
+  static const Color alertWarning = Color(0xFFFF9F0A);
+
   // Category Colors
   static const Color health = Color(0xFFF43F5E);
   static const Color productivity = Color(0xFFFFFFFF);
@@ -362,6 +367,22 @@ class AppColors {
   // Crisp Border
   static const Color glassBorder = darkOutlineVariant;
   static const Color primaryGlow = Color(0x00000000);
+
+  /// Helper to resolve accent colors based on Strict Monochrome Mode.
+  /// If [isAlert] is true, returns semantic alert color.
+  /// If monochrome mode is active, returns the grayscale Theme primary color.
+  /// Otherwise, returns [chromaticColor].
+  static Color resolveAccent(
+    BuildContext context,
+    Color chromaticColor, {
+    bool isAlert = false,
+  }) {
+    if (isAlert) return chromaticColor;
+    if (AppTheme.isMonochromeMode) {
+      return Theme.of(context).colorScheme.primary;
+    }
+    return chromaticColor;
+  }
 }
 
 

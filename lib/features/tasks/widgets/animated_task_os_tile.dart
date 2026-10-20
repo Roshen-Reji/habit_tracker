@@ -6,20 +6,10 @@ import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/motion/animated_strikethrough.dart';
 import 'package:habit_tracker/core/motion/press_scale.dart';
+import 'package:habit_tracker/core/motion/SHealthCelebrationOverlay.dart';
 import 'package:habit_tracker/features/tasks/models/task_os_models.dart';
 
 /// Flagship task card adhering to Apple iOS 18 / ColorOS 15 physics.
-///
-/// Features:
-/// - 60/120fps RepaintBoundary compositing discipline.
-/// - Fluid [PressScale] tactile compression (scaleFactor: 0.965).
-/// - Physics-based [Dismissible] swipe gestures:
-///     * Swipe Right: Complete or Schedule for Today with elastic scale-in check.
-///     * Swipe Left: Archive / Delete with high-contrast trash reveal & Undo action.
-/// - 3-stage completion choreography:
-///     Stage 1 (0–120ms): Medium haptic impact + priority-tinted checkbox bounce (1.0 -> 1.25 -> 1.0).
-///     Stage 2 (80–260ms): [AnimatedStrikethrough] line sweep across title + card dimming.
-///     Stage 3 (260–380ms): [SizeTransition] + [FadeTransition] collapse with [Cubic(0.22, 1.0, 0.36, 1.0)].
 class AnimatedTaskOsTile extends StatefulWidget {
   final TaskItem task;
   final CourseItem? course;
@@ -47,8 +37,9 @@ class AnimatedTaskOsTile extends StatefulWidget {
 }
 
 class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _completionController;
+  late final AnimationController _burstController;
   late final Animation<double> _checkScaleAnimation;
   late final Animation<double> _collapseAnimation;
   late final Animation<double> _fadeAnimation;
@@ -59,23 +50,30 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
     super.initState();
     _completionController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 420),
     );
 
+    _burstController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    // Elastic spring bounce (mass: 0.8, stiffness: 500.0, damping: 18.0)
+    // Underdamped overshooting to 1.18x before settling at 1.0x
     _checkScaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 40,
+        tween: Tween(begin: 1.0, end: 1.18)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 45,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.25, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInCubic)),
-        weight: 60,
+        tween: Tween(begin: 1.18, end: 1.0)
+            .chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 55,
       ),
     ]).animate(CurvedAnimation(
       parent: _completionController,
-      curve: const Interval(0.0, 0.45),
+      curve: const Interval(0.0, 0.50),
     ));
 
     _collapseAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
@@ -96,6 +94,7 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
   @override
   void dispose() {
     _completionController.dispose();
+    _burstController.dispose();
     super.dispose();
   }
 
@@ -110,8 +109,14 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
 
     if (_isCompleting) return;
     setState(() => _isCompleting = true);
-    HapticFeedback.mediumImpact();
 
+    // Phase 4: Double-tap celebratory haptic feedback (medium then light after 80ms)
+    HapticFeedback.mediumImpact();
+    Future.delayed(const Duration(milliseconds: 80), () {
+      HapticFeedback.lightImpact();
+    });
+
+    _burstController.forward(from: 0.0);
     await _completionController.forward();
     if (mounted) {
       widget.onToggleDone();
@@ -199,45 +204,81 @@ class _AnimatedTaskOsTileState extends State<AnimatedTaskOsTile>
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Morphing Interactive Checkbox (28dp circle -> 6dp squircle)
+                  // Morphing Interactive Checkbox (28dp circle -> squircle) with 12-particle burst
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: _handleCheckboxTap,
                     child: Padding(
-                      padding: const EdgeInsets.only(right: 10, top: 2),
-                      child: AnimatedBuilder(
-                        animation: _checkScaleAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isCompleting
-                                ? _checkScaleAnimation.value
-                                : 1.0,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(isDone ? 6 : 11),
-                                color: isDone
-                                    ? colorScheme.primary
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: isDone
-                                      ? colorScheme.primary
-                                      : priorityColor,
-                                  width: 2.0,
+                      padding: const EdgeInsets.only(right: 10, top: 0),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 12-Particle Radial Burst
+                          AnimatedBuilder(
+                            animation: _burstController,
+                            builder: (context, _) {
+                              if (_burstController.value <= 0.01 || _burstController.value >= 1.0) {
+                                return const SizedBox(width: 44, height: 44);
+                              }
+                              return SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: CustomPaint(
+                                  painter: CelebrationBurstPainter(
+                                    progress: _burstController.value,
+                                    burstColor: colorScheme.primary,
+                                  ),
                                 ),
-                              ),
-                              child: isDone
-                                  ? Icon(
-                                      Icons.check,
-                                      size: 14,
-                                      color: colorScheme.onPrimary,
-                                    )
-                                  : null,
-                            ),
-                          );
-                        },
+                              );
+                            },
+                          ),
+
+                          // Morphing Checkbox Container
+                          AnimatedBuilder(
+                            animation: _checkScaleAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _isCompleting
+                                    ? _checkScaleAnimation.value
+                                    : 1.0,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 220),
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(isDone ? 8 : 14),
+                                    color: isDone
+                                        ? colorScheme.primary
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: isDone
+                                          ? colorScheme.primary
+                                          : priorityColor,
+                                      width: 2.0,
+                                    ),
+                                    boxShadow: isDone
+                                        ? [
+                                            BoxShadow(
+                                              color: colorScheme.primary.withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: isDone
+                                      ? Icon(
+                                          Icons.check_rounded,
+                                          size: 16,
+                                          color: colorScheme.onPrimary,
+                                        )
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),

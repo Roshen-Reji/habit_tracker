@@ -81,7 +81,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp>
 
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings')
-          .listenable(keys: ['theme_mode', 'color_scheme_preset']),
+          .listenable(keys: ['theme_mode', 'color_scheme_preset', 'is_monochrome_mode']),
       builder: (context, Box settings, _) {
         final modeStr = settings.get('theme_mode', defaultValue: 'dark');
         final ThemeMode mode;

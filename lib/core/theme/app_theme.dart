@@ -11,6 +11,29 @@ class AppTheme {
 
   static AppColorSchemePreset get currentPreset => presetNotifier.value;
 
+  /// Strict Monochrome Mode Notifier
+  static final ValueNotifier<bool> monochromeNotifier =
+      ValueNotifier<bool>(getSavedMonochromeMode());
+
+  static bool get isMonochromeMode {
+    if (currentPreset == AppColorSchemePreset.monochrome) return true;
+    return monochromeNotifier.value;
+  }
+
+  static bool getSavedMonochromeMode() {
+    if (!Hive.isBoxOpen('settings')) {
+      return false;
+    }
+    return Hive.box('settings').get('is_monochrome_mode', defaultValue: false) == true;
+  }
+
+  static void setMonochromeMode(bool enabled) {
+    monochromeNotifier.value = enabled;
+    if (Hive.isBoxOpen('settings')) {
+      Hive.box('settings').put('is_monochrome_mode', enabled);
+    }
+  }
+
   /// Safely reads the persisted preset from Hive settings box
   static AppColorSchemePreset getSavedPreset() {
     if (!Hive.isBoxOpen('settings')) {
@@ -55,37 +78,68 @@ class AppTheme {
 
   /// Expressive Dark Theme (Material 3 Expressive base)
   static ThemeData buildDarkTheme([AppColorSchemePreset? preset]) {
-    final p = (preset ?? currentPreset).palette;
+    final effectivePreset = isMonochromeMode ? AppColorSchemePreset.monochrome : (preset ?? currentPreset);
+    final p = effectivePreset.palette;
 
-    final colorScheme = ColorScheme(
-      brightness: Brightness.dark,
-      primary: p.darkPrimary,
-      onPrimary: p.darkOnPrimary,
-      primaryContainer: p.darkPrimaryContainer,
-      onPrimaryContainer: p.darkOnPrimaryContainer,
-      secondary: p.darkSecondary,
-      onSecondary: const Color(0xFF1F3244),
-      secondaryContainer: const Color(0xFF324655),
-      onSecondaryContainer: const Color(0xFFCEE5F6),
-      tertiary: const Color(0xFFFFB784),
-      onTertiary: const Color(0xFF4F2500),
-      tertiaryContainer: const Color(0xFF5C3B1E),
-      onTertiaryContainer: const Color(0xFFFFDCC2),
-      error: const Color(0xFFFFB4AB),
-      onError: const Color(0xFF690005),
-      errorContainer: const Color(0xFF93000A),
-      onErrorContainer: const Color(0xFFFFDAD6),
-      surface: p.darkBackground,
-      onSurface: p.darkTextPrimary,
-      onSurfaceVariant: p.darkTextSecondary,
-      outline: const Color(0xFF454E56),
-      outlineVariant: p.darkBorder,
-      surfaceContainerLowest: const Color(0xFF090B0D),
-      surfaceContainerLow: const Color(0xFF15191C),
-      surfaceContainer: p.darkSurface,
-      surfaceContainerHigh: p.darkSurfaceElevated,
-      surfaceContainerHighest: const Color(0xFF2F363C),
-    );
+    final colorScheme = effectivePreset == AppColorSchemePreset.monochrome
+        ? const ColorScheme(
+            brightness: Brightness.dark,
+            primary: Color(0xFFFFFFFF),
+            onPrimary: Color(0xFF000000),
+            primaryContainer: Color(0xFF3A3A3C),
+            onPrimaryContainer: Color(0xFFF2F2F7),
+            secondary: Color(0xFFAEAEB2),
+            onSecondary: Color(0xFF000000),
+            secondaryContainer: Color(0xFF2C2C2E),
+            onSecondaryContainer: Color(0xFFF2F2F7),
+            tertiary: Color(0xFF8E8E93),
+            onTertiary: Color(0xFF000000),
+            tertiaryContainer: Color(0xFF3A3A3C),
+            onTertiaryContainer: Color(0xFFF2F2F7),
+            error: Color(0xFFFF3B30),
+            onError: Color(0xFF000000),
+            errorContainer: Color(0xFF4C0003),
+            onErrorContainer: Color(0xFFFFDAD6),
+            surface: Color(0xFF0A0A0A),
+            onSurface: Color(0xFFF2F2F7),
+            onSurfaceVariant: Color(0xFFAEAEB2),
+            outline: Color(0xFF48484A),
+            outlineVariant: Color(0xFF2C2C2E),
+            surfaceContainerLowest: Color(0xFF050505),
+            surfaceContainerLow: Color(0xFF141414),
+            surfaceContainer: Color(0xFF1C1C1E),
+            surfaceContainerHigh: Color(0xFF2C2C2E),
+            surfaceContainerHighest: Color(0xFF3A3A3C),
+          )
+        : ColorScheme(
+            brightness: Brightness.dark,
+            primary: p.darkPrimary,
+            onPrimary: p.darkOnPrimary,
+            primaryContainer: p.darkPrimaryContainer,
+            onPrimaryContainer: p.darkOnPrimaryContainer,
+            secondary: p.darkSecondary,
+            onSecondary: const Color(0xFF1F3244),
+            secondaryContainer: const Color(0xFF324655),
+            onSecondaryContainer: const Color(0xFFCEE5F6),
+            tertiary: const Color(0xFFFFB784),
+            onTertiary: const Color(0xFF4F2500),
+            tertiaryContainer: const Color(0xFF5C3B1E),
+            onTertiaryContainer: const Color(0xFFFFDCC2),
+            error: const Color(0xFFFFB4AB),
+            onError: const Color(0xFF690005),
+            errorContainer: const Color(0xFF93000A),
+            onErrorContainer: const Color(0xFFFFDAD6),
+            surface: p.darkBackground,
+            onSurface: p.darkTextPrimary,
+            onSurfaceVariant: p.darkTextSecondary,
+            outline: const Color(0xFF454E56),
+            outlineVariant: p.darkBorder,
+            surfaceContainerLowest: const Color(0xFF090B0D),
+            surfaceContainerLow: const Color(0xFF15191C),
+            surfaceContainer: p.darkSurface,
+            surfaceContainerHigh: p.darkSurfaceElevated,
+            surfaceContainerHighest: const Color(0xFF2F363C),
+          );
 
     return ThemeData(
       useMaterial3: true,
@@ -216,37 +270,68 @@ class AppTheme {
 
   /// Expressive Light Theme (Material 3 Expressive base)
   static ThemeData buildLightTheme([AppColorSchemePreset? preset]) {
-    final p = (preset ?? currentPreset).palette;
+    final effectivePreset = isMonochromeMode ? AppColorSchemePreset.monochrome : (preset ?? currentPreset);
+    final p = effectivePreset.palette;
 
-    final colorScheme = ColorScheme(
-      brightness: Brightness.light,
-      primary: p.lightPrimary,
-      onPrimary: p.lightOnPrimary,
-      primaryContainer: p.lightPrimaryContainer,
-      onPrimaryContainer: p.lightOnPrimaryContainer,
-      secondary: p.lightSecondary,
-      onSecondary: const Color(0xFF0D1E2A),
-      secondaryContainer: const Color(0xFFCFE6F7),
-      onSecondaryContainer: const Color(0xFF0D1E2A),
-      tertiary: const Color(0xFF8B5000),
-      onTertiary: const Color(0xFFFFFFFF),
-      tertiaryContainer: const Color(0xFFFFDCC2),
-      onTertiaryContainer: const Color(0xFF2E1500),
-      error: const Color(0xFFBA1A1A),
-      onError: const Color(0xFFFFFFFF),
-      errorContainer: const Color(0xFFFFDAD6),
-      onErrorContainer: const Color(0xFF410002),
-      surface: p.lightBackground,
-      onSurface: p.lightTextPrimary,
-      onSurfaceVariant: p.lightTextSecondary,
-      outline: const Color(0xFF72787E),
-      outlineVariant: p.lightBorder,
-      surfaceContainerLowest: const Color(0xFFFFFFFF),
-      surfaceContainerLow: const Color(0xFFF1F4F8),
-      surfaceContainer: p.lightSurface,
-      surfaceContainerHigh: p.lightSurfaceElevated,
-      surfaceContainerHighest: const Color(0xFFDCE1E8),
-    );
+    final colorScheme = effectivePreset == AppColorSchemePreset.monochrome
+        ? const ColorScheme(
+            brightness: Brightness.light,
+            primary: Color(0xFF111111),
+            onPrimary: Color(0xFFFFFFFF),
+            primaryContainer: Color(0xFFE5E5EA),
+            onPrimaryContainer: Color(0xFF1C1C1E),
+            secondary: Color(0xFF636366),
+            onSecondary: Color(0xFFFFFFFF),
+            secondaryContainer: Color(0xFFE5E5EA),
+            onSecondaryContainer: Color(0xFF1C1C1E),
+            tertiary: Color(0xFF8E8E93),
+            onTertiary: Color(0xFFFFFFFF),
+            tertiaryContainer: Color(0xFFD8D8DC),
+            onTertiaryContainer: Color(0xFF1C1C1E),
+            error: Color(0xFFFF3B30),
+            onError: Color(0xFFFFFFFF),
+            errorContainer: Color(0xFFFFD9DF),
+            onErrorContainer: Color(0xFF3F0010),
+            surface: Color(0xFFF5F5F7),
+            onSurface: Color(0xFF111111),
+            onSurfaceVariant: Color(0xFF636366),
+            outline: Color(0xFFC7C7CC),
+            outlineVariant: Color(0xFFE5E5EA),
+            surfaceContainerLowest: Color(0xFFFFFFFF),
+            surfaceContainerLow: Color(0xFFFFFFFF),
+            surfaceContainer: Color(0xFFEBEBF0),
+            surfaceContainerHigh: Color(0xFFD8D8DC),
+            surfaceContainerHighest: Color(0xFFC7C7CC),
+          )
+        : ColorScheme(
+            brightness: Brightness.light,
+            primary: p.lightPrimary,
+            onPrimary: p.lightOnPrimary,
+            primaryContainer: p.lightPrimaryContainer,
+            onPrimaryContainer: p.lightOnPrimaryContainer,
+            secondary: p.lightSecondary,
+            onSecondary: const Color(0xFF0D1E2A),
+            secondaryContainer: const Color(0xFFCFE6F7),
+            onSecondaryContainer: const Color(0xFF0D1E2A),
+            tertiary: const Color(0xFF8B5000),
+            onTertiary: const Color(0xFFFFFFFF),
+            tertiaryContainer: const Color(0xFFFFDCC2),
+            onTertiaryContainer: const Color(0xFF2E1500),
+            error: const Color(0xFFBA1A1A),
+            onError: const Color(0xFFFFFFFF),
+            errorContainer: const Color(0xFFFFDAD6),
+            onErrorContainer: const Color(0xFF410002),
+            surface: p.lightBackground,
+            onSurface: p.lightTextPrimary,
+            onSurfaceVariant: p.lightTextSecondary,
+            outline: const Color(0xFF72787E),
+            outlineVariant: p.lightBorder,
+            surfaceContainerLowest: const Color(0xFFFFFFFF),
+            surfaceContainerLow: const Color(0xFFF1F4F8),
+            surfaceContainer: p.lightSurface,
+            surfaceContainerHigh: p.lightSurfaceElevated,
+            surfaceContainerHighest: const Color(0xFFDCE1E8),
+          );
 
     return ThemeData(
       useMaterial3: true,

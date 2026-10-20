@@ -234,6 +234,7 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
         }
 
         return Scaffold(
+          extendBody: true,
           backgroundColor: BentoTheme.background,
           body: NotificationListener<ScrollNotification>(
             onNotification: (notification) {

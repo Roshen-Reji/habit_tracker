@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/tactile_tokens.dart';
@@ -65,11 +66,11 @@ class HomeCardFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final domainColor = _resolveDomainColor();
+    final domainColor = AppColors.resolveAccent(context, _resolveDomainColor());
 
     return DepthCard(
       elevation: isFocused ? DepthElevation.e2 : DepthElevation.e1,
-      radius: AppTokens.radiusCard,
+      radius: 28.0,
       padding: EdgeInsets.zero,
       onTap: onTap,
       onLongPress: onLongPress,

@@ -144,11 +144,18 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
-    // Setup notification channels on Android
+    // Setup notification channels on Android and request permissions
     final androidPlugin =
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
+      try {
+        await androidPlugin.requestNotificationsPermission();
+        await androidPlugin.requestExactAlarmsPermission();
+      } catch (e) {
+        debugPrint('Alarm/notification permissions request warning: $e');
+      }
+
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
           'finance_reminders',
@@ -165,6 +172,17 @@ class NotificationService {
           importance: Importance.max,
           audioAttributesUsage: AudioAttributesUsage.alarm,
           enableVibration: true,
+          playSound: true,
+        ),
+      );
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'medicine_channel',
+          'Medicine Reminders',
+          description: 'Notifications for scheduled medicine doses',
+          importance: Importance.max,
+          enableVibration: true,
+          playSound: true,
         ),
       );
     }
@@ -243,11 +261,16 @@ class NotificationService {
         ? AndroidScheduleMode.exactAllowWhileIdle
         : AndroidScheduleMode.inexactAllowWhileIdle;
 
+    DateTime effectiveDate = scheduledDate;
+    if (effectiveDate.isBefore(DateTime.now())) {
+      effectiveDate = effectiveDate.add(const Duration(days: 1));
+    }
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
-      scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
+      scheduledDate: tz.TZDateTime.from(effectiveDate, tz.local),
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'medicine_channel',
@@ -314,12 +337,17 @@ class NotificationService {
     String channelName = 'Finance Reminders',
   }) async {
     if (!_isInitialized) return;
+    DateTime targetWhen = when;
+    if (targetWhen.isBefore(DateTime.now())) {
+      targetWhen = targetWhen.add(const Duration(days: 1));
+    }
+
     try {
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id: id,
         title: title,
         body: body,
-        scheduledDate: tz.TZDateTime.from(when, tz.local),
+        scheduledDate: tz.TZDateTime.from(targetWhen, tz.local),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             channelId,
@@ -331,7 +359,7 @@ class NotificationService {
           iOS: const DarwinNotificationDetails(),
         ),
         payload: payload,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
       debugPrint('Failed to schedule notification: $e');

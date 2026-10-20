@@ -342,6 +342,24 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Divider(color: BentoTheme.divider, height: 1),
 
+          // Strict Monochrome Mode Toggle
+          ValueListenableBuilder<bool>(
+            valueListenable: AppTheme.monochromeNotifier,
+            builder: (context, isMono, _) {
+              return _buildToggleTile(
+                LucideIcons.contrast,
+                "Strict Monochrome Mode",
+                isMono,
+                (v) {
+                  AppTheme.setMonochromeMode(v);
+                  _putSetting('is_monochrome_mode', v);
+                  setState(() {});
+                },
+              );
+            },
+          ),
+          Divider(color: BentoTheme.divider, height: 1),
+
           // Mission Alerts Toggle
           _buildToggleTile(
             LucideIcons.bellRing,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/data/services/ai_service.dart';
 import 'package:habit_tracker/features/diet/widgets/diet_dashboard_widgets.dart';
+import 'package:habit_tracker/features/home/widgets/mood_sticker_avatar.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 /// Represents a single chat message in the home chat
@@ -69,8 +70,8 @@ class ChatMessageBubble extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.psychology_rounded, color: accent, size: 14),
-                        const SizedBox(width: 4),
+                        const MoodStickerAvatar(size: 18),
+                        const SizedBox(width: 6),
                         Text(
                           "AI ASSISTANT",
                           style: TextStyle(

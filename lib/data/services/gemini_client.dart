@@ -29,13 +29,12 @@ class GeminiResult {
 class GeminiClient {
   final http.Client _client;
 
-  /// Default verified flash model fallback list (Oct 2026)
+  /// Verified flash model fallback cascade
   static const List<String> fallbackModels = [
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
     'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-3.8-flash',
   ];
 
   GeminiClient({http.Client? client}) : _client = client ?? http.Client();
@@ -204,17 +203,9 @@ class GeminiClient {
         );
       }
 
-      // 429: Back off once, retry same model, then next model
+      // 429: Back off 1200ms once, retry, then proceed to fallback cascade
       if (response.statusCode == 429) {
-        int backoffSeconds = 1;
-        final retryAfter = response.headers['retry-after'];
-        if (retryAfter != null) {
-          final parsed = int.tryParse(retryAfter);
-          if (parsed != null && parsed > 0) {
-            backoffSeconds = parsed.clamp(1, 3);
-          }
-        }
-        await Future.delayed(Duration(seconds: backoffSeconds));
+        await Future.delayed(const Duration(milliseconds: 1200));
 
         try {
           final retryRes =
@@ -238,11 +229,11 @@ class GeminiClient {
             }
           }
         } catch (e) {
-          debugPrint('GeminiClient 429 body parse error: $e');
+          debugPrint('GeminiClient 429 retry error: $e');
         }
 
         firstNon404Error ??= GeminiResult.failure(
-          errorMessage: 'Gemini Rate Limited (429, model $model): $truncated',
+          errorMessage: 'Service is temporarily busy. Seamlessly falling back to local estimation.',
           statusCode: 429,
           modelUsed: model,
         );

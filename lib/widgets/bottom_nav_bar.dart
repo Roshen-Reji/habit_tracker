@@ -1,7 +1,7 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
-import 'package:habit_tracker/core/motion/motion_tokens.dart';
 import 'package:habit_tracker/core/widgets/glass_tab_bar.dart' show GlassTabItem;
 import 'package:habit_tracker/widgets/mini_player_bar.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -94,7 +94,7 @@ class _BottomNavBarState extends State<BottomNavBar>
     if ((clampedTarget - _positionController.value).abs() < 0.001) return;
 
     final simulation = SpringSimulation(
-      MotionTokens.fluidSpatial,
+      const SpringDescription(mass: 1.0, stiffness: 340.0, damping: 26.0),
       _positionController.value,
       clampedTarget,
       _positionController.velocity,
@@ -135,105 +135,156 @@ class _BottomNavBarState extends State<BottomNavBar>
         opacity: widget.isVisible ? 1.0 : 0.0,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 16.0,
-            right: 16.0,
-            bottom: 12.0 + bottomInset,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(16, 0, 16, 20 + bottomInset),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(36.0),
+            boxShadow: [
+              // Layer 1 (Ambient 3D Elevation Shadow)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.38),
+                blurRadius: 28,
+                spreadRadius: 2,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.22),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: RepaintBoundary(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(26.0),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: 1.0,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x66000000),
-                    blurRadius: 24,
-                    offset: Offset(0, 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(36.0),
+              // Layer 2 (Frosted Blur)
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24.0, sigmaY: 24.0),
+                // Layer 3 (3D Specular Rim & Surface Tint)
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(36.0),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Theme.of(context).colorScheme.surface.withOpacity(0.72),
+                        Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.85),
+                      ],
+                    ),
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.white.withOpacity(0.28),
+                        width: 1.5,
+                      ),
+                      bottom: BorderSide(
+                        color: Colors.black.withOpacity(0.4),
+                        width: 1.0,
+                      ),
+                      left: BorderSide(
+                        color: Colors.white.withOpacity(0.12),
+                        width: 0.5,
+                      ),
+                      right: BorderSide(
+                        color: Colors.white.withOpacity(0.12),
+                        width: 0.5,
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Integrated Top-Lip Mini-Player Dock
-                    if (widget.showMiniPlayer)
-                      const MiniPlayerDockLip(),
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Integrated Top-Lip Mini-Player Dock
+                        if (widget.showMiniPlayer)
+                          const MiniPlayerDockLip(),
 
-                    // Tab Navigation Row with Spring Indicator & Choreography
-                    Container(
-                      height: widget.height - 2.0,
-                      padding: const EdgeInsets.all(6.0),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final totalWidth = constraints.maxWidth;
-                          final itemCount = _resolvedItems.length;
-                          if (itemCount == 0) return const SizedBox.shrink();
+                        // Tab Navigation Row with Spring Indicator & Choreography
+                        Container(
+                          height: widget.height - 2.0,
+                          padding: const EdgeInsets.all(6.0),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final totalWidth = constraints.maxWidth;
+                              final itemCount = _resolvedItems.length;
+                              if (itemCount == 0) return const SizedBox.shrink();
 
-                          final itemWidth = totalWidth / itemCount;
+                              final itemWidth = totalWidth / itemCount;
 
-                          return AnimatedBuilder(
-                            animation: _positionController,
-                            builder: (context, _) {
-                              final pos = _positionController.value;
-                              final velocity = _positionController.velocity;
-                              final stretchFactor = (velocity.abs() * 0.05).clamp(0.0, 0.40);
-                              final indicatorWidth = itemWidth * (1.0 + stretchFactor);
-                              final center = (pos * itemWidth) + (itemWidth / 2);
-                              final indicatorLeft = (center - (indicatorWidth / 2)).clamp(
-                                0.0,
-                                (totalWidth - indicatorWidth).clamp(0.0, totalWidth),
-                              );
+                              return AnimatedBuilder(
+                                animation: _positionController,
+                                builder: (context, _) {
+                                  final pos = _positionController.value;
+                                  final velocity = _positionController.velocity;
+                                  final stretchFactor = (velocity.abs() * 0.05).clamp(0.0, 0.40);
+                                  final indicatorWidth = itemWidth * (1.0 + stretchFactor);
+                                  final center = (pos * itemWidth) + (itemWidth / 2);
+                                  final indicatorLeft = (center - (indicatorWidth / 2)).clamp(
+                                    0.0,
+                                    (totalWidth - indicatorWidth).clamp(0.0, totalWidth),
+                                  );
 
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onHorizontalDragStart: (details) {
-                                  _handleDrag(details.localPosition, totalWidth);
-                                },
-                                onHorizontalDragUpdate: (details) {
-                                  _handleDrag(details.localPosition, totalWidth);
-                                },
-                                onHorizontalDragEnd: (_) {
-                                  if (_scrubIndex != null) {
-                                    widget.onItemTapped(_scrubIndex!);
-                                    _scrubIndex = null;
-                                  }
-                                },
-                                onHorizontalDragCancel: () {
-                                  _scrubIndex = null;
-                                },
-                                child: Stack(
-                                  children: [
-                                    // Spring-Driven Elastic Morphing Sliding Indicator
-                                    Positioned(
-                                      left: indicatorLeft,
-                                      top: 0,
-                                      bottom: 0,
-                                      width: indicatorWidth,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primaryContainer,
-                                          borderRadius:
-                                              BorderRadius.circular(20.0),
-                                          border: Border.all(
-                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-                                            width: 1.0,
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color(0x30000000),
-                                              blurRadius: 6,
-                                              offset: Offset(0, 2),
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onHorizontalDragStart: (details) {
+                                      _handleDrag(details.localPosition, totalWidth);
+                                    },
+                                    onHorizontalDragUpdate: (details) {
+                                      _handleDrag(details.localPosition, totalWidth);
+                                    },
+                                    onHorizontalDragEnd: (_) {
+                                      if (_scrubIndex != null) {
+                                        widget.onItemTapped(_scrubIndex!);
+                                        _scrubIndex = null;
+                                      }
+                                    },
+                                    onHorizontalDragCancel: () {
+                                      _scrubIndex = null;
+                                    },
+                                    child: Stack(
+                                      children: [
+                                        // Layer 4 (Active Tab 3D Pill): Raised 3D pill (BoxShadow + convex top highlight)
+                                        Positioned(
+                                          left: indicatorLeft,
+                                          top: 0,
+                                          bottom: 0,
+                                          width: indicatorWidth,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(28.0),
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Theme.of(context).colorScheme.primaryContainer.withOpacity(0.95),
+                                                  Theme.of(context).colorScheme.primaryContainer,
+                                                ],
+                                              ),
+                                              border: Border(
+                                                top: BorderSide(
+                                                  color: Colors.white.withOpacity(0.35),
+                                                  width: 1.2,
+                                                ),
+                                                bottom: BorderSide(
+                                                  color: Colors.black.withOpacity(0.25),
+                                                  width: 0.8,
+                                                ),
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.28),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                                BoxShadow(
+                                                  color: Colors.white.withOpacity(0.12),
+                                                  blurRadius: 2,
+                                                  offset: const Offset(0, -1),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                    ),
 
                                     // Tab Items Row with Icon & Label Choreography
                                     Row(
@@ -372,11 +423,13 @@ class _BottomNavBarState extends State<BottomNavBar>
                           ),
                         ),
                       ],
-                    ),
                   ),
                 ),
               ),
             ),
-          );
+          ),
+        ),
+      ),
+    );
   }
 }

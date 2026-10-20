@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/motion/press_scale.dart';
+import 'package:habit_tracker/core/motion/SHealthCelebrationOverlay.dart';
 import 'package:habit_tracker/features/diet/models/diet_planner_models.dart';
 import 'package:habit_tracker/features/diet/data/diet_repository.dart';
 import 'package:habit_tracker/features/diet/widgets/manual_food_input.dart';
@@ -162,10 +163,14 @@ class _AdaptiveSummaryHeroCardState extends State<AdaptiveSummaryHeroCard> {
                         ],
                       ),
                     ),
-                    _miniProgressRing(
-                      progress: targetKcal > 0 ? (consumedKcal / targetKcal).clamp(0.0, 1.5) : 0.0,
-                      color: remainingKcal >= 0 ? accent : AppColors.warning,
-                      label: '${((consumedKcal / (targetKcal > 0 ? targetKcal : 1)) * 100).round()}%',
+                    GoalRingPulse(
+                      trigger: targetKcal > 0 && consumedKcal >= targetKcal,
+                      pulseColor: accent,
+                      child: _miniProgressRing(
+                        progress: targetKcal > 0 ? (consumedKcal / targetKcal).clamp(0.0, 1.5) : 0.0,
+                        color: remainingKcal >= 0 ? accent : AppColors.warning,
+                        label: '${((consumedKcal / (targetKcal > 0 ? targetKcal : 1)) * 100).round()}%',
+                      ),
                     ),
                   ],
                 ),

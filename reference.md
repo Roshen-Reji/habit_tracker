@@ -1,30 +1,29 @@
-1. Codebase Audit: What Is Currently Broken or DisconnectedAn inspection of lib/features/tasks/ and lib/core/motion/ in your repository reveals why the current Tasks page feels like a static prototype rather than a flagship OS experience:   Disconnected Motion Primitives: Your codebase already contains purpose-built motion widgets—PressScale (lib/core/motion/press_scale.dart), AnimatedStrikethrough (lib/core/motion/animated_strikethrough.dart), SpringSheet (lib/core/motion/spring_sheet.dart), AnimatedMetricTicker (lib/core/motion/animated_metric_ticker.dart), and ProgressBarX (lib/core/widgets/progress_bar_x.dart)—but tasks_page.dart and its sub-widgets bypass them in favor of raw Material Card, Checkbox, ChoiceChip, and showModalBottomSheet calls.   Orphaned Feature Screens & XP Wiring: TaskAnalyticsPage (lib/features/tasks/task_analytics_page.dart), WakeupDetailSheet (lib/features/tasks/widgets/wakeup_detail_sheet.dart), and GlobalXpService (lib/data/services/global_xp_service.dart) exist in the project but are detached from TasksPage and TaskOsRepository. Completing a task, habit, or focus session in TasksPage currently fails to trigger XP ledger awards or surface analytics/wake-up logs.   Non-Reactive Repository State: TaskOsRepository (lib/features/tasks/data/task_os_repository.dart) does not extend ChangeNotifier or expose a ValueListenable, forcing manual setState callbacks that miss cross-sheet updates.   Bottom Dock & Keyboard Collision: QuickAddNlBar (lib/features/tasks/widgets/quick_add_nl_bar.dart) is placed at the bottom of the TasksPage column without accounting for the floating BottomNavBar (lib/widgets/bottom_nav_bar.dart) or MiniPlayerBar (lib/widgets/mini_player_bar.dart) height, causing overlap at rest and abrupt jumps when the software keyboard opens.   Cramped Header & Double Chip Rows: Stacking a crowded IconButton utility bar on top of a ChoiceChip workspace row and a FilterChip row consumes nearly 30% of vertical screen real estate before a single task is visible.   2. The "Apple iOS × OPPO ColorOS" Motion & Physics SystemTo achieve the effortless, high-refresh-rate fluidity of Apple iOS and OPPO ColorOS (Aquamorphic / Luminous Rendering Engine), every interaction on the Tasks page must obey four physics rules:Interruptible Spring Curves Everywhere:Spatial & Layout Transitions: const Cubic(0.22, 1.0, 0.36, 1.0) (320ms) for tab sliding, card expansion, and timeline morphing.Sheet & Modal Presentation: Route all task sheets (TaskDetailSheet, FocusTimerSheet, WeeklyReviewShutdownSheet, WakeupDetailSheet) through SpringSheet (lib/core/motion/spring_sheet.dart) with critically damped spring parameters (mass: 1.0, stiffness: 380, damping: 30).   Tactile Touch Compression: Wrap every task card, habit pill, course card, and action button in PressScale (scale: 0.965, 110ms press, spring release) paired with HapticFeedback.selectionClick().   Sliding Pill Workspace Switcher:Replace the stock ChoiceChip row with a unified, glass/monochrome Sliding Segmented Control (Today · Upcoming · Inbox · Academic · Board).Use LayoutBuilder + AnimatedAlign (Cubic(0.22, 1.0, 0.36, 1.0), 260ms) so the active pill glides across tabs while the body below transitions via a synchronized PageView / AnimatedSwitcher (fade + 0.03 horizontal slide).3-Stage Task Completion Choreography:Stage 1 (0–120ms): Tapping the custom circular checkbox triggers HapticFeedback.mediumImpact(), scales the check ring (1.0 $\rightarrow$ 1.2 $\rightarrow$ 1.0), and fills it with the active theme accent.Stage 2 (80–280ms): AnimatedStrikethrough (lib/core/motion/animated_strikethrough.dart) sweeps across the task title while card opacity smoothly dims to 0.5.   Stage 3 (280–500ms): After a brief visual hold so the user registers the win, the card collapses its vertical height via SizeTransition + FadeTransition (Curves.easeInOutCubic), awards XP via GlobalXpService, and spawns a floating glass Undo toast.   Staggered Cascade Entry (Mount-Once):When switching workspaces or opening TasksPage, cards cascade in using a subtle vertical offset (12px $\rightarrow$ 0px) + fade (itemIndex * 25ms, capped at 200ms), isolated inside RepaintBoundary widgets so scrolling stays locked at 120fps.3. Spatial UI Blueprint (TasksPage Layout)+-----------------------------------------------------------------------+
-|  TASKS                                  [🌅 Wake] [📊 Stats] [🔍] [⚡] |
-|  ┌─────────────────────────────────────────────────────────────────┐  |
-|  │ (● Today )   Upcoming    Inbox (3)    Academic    Board         │  |
-|  └─────────────────────────────────────────────────────────────────┘  |
-+-----------------------------------------------------------------------+
-|  🔥 NEXT UP · URGENCY 94                           [⏱ Focus] [▶ 5m]  |
-|  ┌─────────────────────────────────────────────────────────────────┐  |
-|  │  ○  Complete B+ Tree Indexing Lab Record                        │  |
-|  │     #DBMS  •  Due 17:00  •  ~45m  •  ❗P1                        │  |
-|  │     💡 Fits your 14:00–14:45 free window after Operating Systems│  |
-|  └─────────────────────────────────────────────────────────────────┘  |
-|                                                                       |
-|  🧠 AI DAY PLAN (2 Proposed)               [Rebalance] [Approve All]  |
-|  ▾ Smoothly expandable Bento card with 1-tap block confirmation       |
-|                                                                       |
-|  🔥 HABIT STREAKS (Horizontal Snap Strip)                             |
-|  [ ✓ LeetCode 🔥14d ❄️2 ]  [ ○ System Design 🔥6d ]  [ + Habit ]      |
-|                                                                       |
-|  AGENDA                        [ ☰ List ] [ 🕒 Timeline ] [ ⚙ Filter ]|
-|  ───────────────────────────────────────────────────────────────────  |
-|  • 09:00  🎓 CS301 Operating Systems (C-204) · 82% (Miss 3)   [ ✓ ]   |
-|  • 17:00  ○  Push IEEE Webmaster PR · #IEEE · !High · ~1h     [ ⏱ ]   |
-+-----------------------------------------------------------------------+
-|  ┌─────────────────────────────────────────────────────────────────┐  |
-|  │ ⚡ Quick add... "DBMS fri 5pm #DBMS !high ~2h"      [🎤] [📷] [↑]│  |
-|  │    [📅 Fri 17:00 ×]  [🎓 #DBMS ×]  [❗ P2 ×]  [⏱ 120m ×]        │  |
-|  └─────────────────────────────────────────────────────────────────┘  |
-|  (Dynamic bottom clearance for floating BottomNavBar & Keyboard)      |
-+-----------------------------------------------------------------------+
+### Architectural & Visual Overhaul Summary
+
+1. **Home Screen Expandable Widget Cluster (Video Reference):** Your home screen cards in `lib/screens/dashboard_view.dart` and `lib/features/home/cards/` will adopt the OxygenOS/ColorOS smart-folder expansion mechanics shown in the video. Compact 2x2 summary tiles on the home grid (like the circular progress step counter `993 / 702 m` and grouped quick-tiles) will use an interruptible spring container-transform to expand into a floating frosted-backdrop modal. Inside the expanded view, cards follow the exact 3-tier bento hierarchy: a dark navy `AI Daily` insight header card, a high-contrast light `Steps / Progress` wide card with a linear goal bar, and two bottom 1x1 square action cards with pill buttons and concentric ripple rings.
+
+
+2. **Strict Monochrome Mode (Zero Chromatic Bleed Except Alerts):** In `lib/core/theme/app_colors.dart` and `lib/core/theme/app_theme.dart`, enabling Monochrome Mode will override all sector accent colors, chart gradients, and progress bars into pure grayscale (`#000000`, `#121212`, `#1E1E1E`, `#8E8E93`, `#FFFFFF`), reserving color exclusively for semantic `error` (`#FF3B30`) and `warning` (`#FF9F0A`) alerts.
+
+
+3. **Samsung Health Goal & Task Completion Animations:** Completing a task, habit, or daily calorie/step target will trigger a multi-stage physics celebration: elastic ring overshoot, radial particle burst, morphing checkmark squircle, and tiered haptic feedback.
+4. **Alarm & Reminder System Fix:** The silent/failing alarms in `lib/data/services/notification_service.dart`, `lib/data/services/reminder_scheduler.dart`, and `android/app/src/main/AndroidManifest.xml` will be fixed by registering exact alarm permissions (`SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`), initializing local timezones properly, switching to `AndroidScheduleMode.exactAllowWhileIdle`, and re-registering pending alarms on app boot.
+
+
+5. **AI Vision Rate-Limit Fix & Multi-Intent Compound Parser (`"orange juice 20rs 200ml"`):**
+* **"Omni Rate Exceeded" Fix:** `lib/data/services/gemini_client.dart` will compress and resize images on-device (`maxWidth: 512`, `quality: 70`) before base64 encoding, implement automatic model fallback (`gemini-2.5-flash` $\rightarrow$ `gemini-2.0-flash` $\rightarrow$ `gemini-1.5-flash`) with exponential backoff on HTTP 429, and fall back to an on-device nutrition estimator if offline or rate-limited.
+
+
+* **Compound Input Fix:** `lib/data/services/ai_service.dart` will stop treating Finance and Diet intents as mutually exclusive. Sending `"orange juice 20rs 200ml"` will run parallel domain extractors—logging **₹20** to Finance (`FinanceRepository`) **AND** **200ml Orange Juice (~90 kcal, 21g carbs, +200ml water)** to Diet (`DietRepository`) simultaneously.
+
+
+
+
+6. **3D Frosted Floating Navigation Bar:** `lib/widgets/bottom_nav_bar.dart` and `lib/core/widgets/glass_tab_bar.dart` will be rebuilt as a persistent floating 3D frosted pill (`BackdropFilter` blur + top specular 3D rim bevel + deep ambient elevation shadow) pinned via `Scaffold(extendBody: true)` so it stays visible over scrolling content across every tab.
+
+
+7. **Health Tab Redesign (Light & Dark Mode):** `lib/features/health/health_page.dart` and `lib/features/wearables/ui/fitness_tab.dart` will replicate the **Personal Health** and **Walking Steps** Dribbble UI—including the green circular step counter with the horizontal day-tick ruler (`Sat Sun Mon Tue Wed`), the 2x2 bento grid (`Cardiac Rhythm` ECG wave, `Acid/Hydration` dot matrix, `Brain/Sleep Activity` area wave, and circular `Exercise` button), the `Activity` bar chart, and the `Walking steps` spline chart detail screen in both Light and Dark modes.
+
+
+8. **Mood-Driven Animated Sticker AI Avatar:** `lib/features/home/home_chat.dart` and `lib/features/home/widgets/chat_message_bubble.dart` will replace the static AI chat bubble with a live 60fps `CustomPainter` widget rendering the 12 geometric mood stickers (`Excited`, `Joyful`, `Grateful`, `Energized`, `Sensitive`, `Confused`, `Bored`, `Stressed`, `Angry`, `Insecure`, `Hurt`, `Guilty`). The active character is dynamically selected from your real-time Health, Money, Diet, and Task metrics, with animated blinking eyes, glancing pupils, smiling mouths, and breathing physics.
+

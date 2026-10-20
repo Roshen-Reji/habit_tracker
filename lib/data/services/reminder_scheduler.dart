@@ -115,11 +115,19 @@ class ReminderScheduler {
     }
   }
 
+  static Future<void> rescheduleAllActiveAlarms() async {
+    await sync(force: true);
+  }
+
   static Future<void> _scheduleSingle(
     FlutterLocalNotificationsPlugin plugin,
     PlannedReminder item,
   ) async {
-    final tzDate = tz.TZDateTime.from(item.when, tz.local);
+    var effectiveWhen = item.when;
+    if (effectiveWhen.isBefore(DateTime.now())) {
+      effectiveWhen = effectiveWhen.add(const Duration(days: 1));
+    }
+    final tzDate = tz.TZDateTime.from(effectiveWhen, tz.local);
 
     if (item.style == ReminderStyle.notification) {
       AndroidScheduleMode mode = AndroidScheduleMode.exactAllowWhileIdle;
