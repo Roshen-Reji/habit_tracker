@@ -34,40 +34,87 @@ class HealthSummaryCard extends StatelessWidget {
         }
 
         return HomeCardFrame(
-                              domain: HomeCardDomain.biometrics,
-                              icon: LucideIcons.heartPulse,
-                              title: 'Health Summary',
-                              accentColor: accent,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  PageTransitions.containerTransform(
-                                    const HealthPage(),
-                                  ),
-                                );
-                              },
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: scoreColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: AnimatedMetricTicker(
-                                  value: score,
-                                  suffix: ' / 100',
-                                  style: TextStyle(
-                                    color: scoreColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              child: size == HomeCardSize.hero
-                                  ? Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
+          domain: HomeCardDomain.biometrics,
+          icon: LucideIcons.heartPulse,
+          title: 'Health Summary',
+          accentColor: accent,
+          onTap: () {
+            Navigator.push(
+              context,
+              PageTransitions.containerTransform(
+                const HealthPage(),
+              ),
+            );
+          },
+          trailing: size == HomeCardSize.compact
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scoreColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: AnimatedMetricTicker(
+                    value: score,
+                    suffix: ' / 100',
+                    style: TextStyle(
+                      color: scoreColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+          child: size == HomeCardSize.compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Element 2: Hero Number
+                    Row(
+                      children: [
+                        Text(
+                          '$score',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1.0,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: BentoTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '/ 100',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: scoreColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    // Element 3: Muted Subtitle
+                    Text(
+                      score >= 80
+                          ? 'Optimal Performance · All habits on track'
+                          : (score >= 50
+                              ? 'Steady Progress · Keep going'
+                              : 'Needs Attention · Log today\'s habits'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: BentoTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                )
+              : size == HomeCardSize.hero
+                  ? Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
                                         Row(
                                           children: [
                                             SizedBox(

@@ -47,28 +47,31 @@ class CaloriesCard extends StatelessWidget {
         return HomeCardFrame(
           domain: HomeCardDomain.biometrics,
           icon: LucideIcons.utensils,
-          title: 'Diet & Calorie Burn',
+          title: 'Diet & Calories',
           onTap: () {
             AppNav.goTo(AppTab.diet);
           },
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: (isOver ? BentoTheme.negative : BentoTheme.positive)
-                  .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              badgeText,
-              style: TextStyle(
-                color: isOver ? BentoTheme.negative : BentoTheme.positive,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
+          trailing: size == HomeCardSize.compact
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isOver ? BentoTheme.negative : BentoTheme.positive)
+                        .withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: TextStyle(
+                      color: isOver ? BentoTheme.negative : BentoTheme.positive,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
           child: _buildBody(
+            context: context,
             intake: intake,
             burned: burned,
             net: net,
@@ -86,6 +89,7 @@ class CaloriesCard extends StatelessWidget {
   }
 
   Widget _buildBody({
+    required BuildContext context,
     required double intake,
     required double burned,
     required double net,
@@ -99,13 +103,47 @@ class CaloriesCard extends StatelessWidget {
   }) {
     switch (size) {
       case HomeCardSize.compact:
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CalorieDualMeter(
-              intakeKcal: intake,
-              burnKcal: burned,
-              targetKcal: target,
+            // Element 2: Hero Number
+            Text(
+              '${net.toInt()} kcal',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.8,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: BentoTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            // Element 3: Muted Subtitle
+            Text(
+              isOver
+                  ? '+${(net - target).toInt()} kcal over target'
+                  : '${(target - net).toInt()} kcal left · Target ${target.toInt()} kcal',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: BentoTheme.textMuted,
+              ),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 4,
+                backgroundColor: isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation(
+                  isOver ? BentoTheme.negative : BentoTheme.positive,
+                ),
+              ),
             ),
           ],
         );

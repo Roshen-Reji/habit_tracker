@@ -94,24 +94,26 @@ class FinanceCard extends StatelessWidget {
           onTap: () {
             AppNav.openMoney(context, deepLink: 'today');
           },
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: (isPositiveNet ? BentoTheme.positive : BentoTheme.negative)
-                  .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              netFormatted,
-              style: TextStyle(
-                color:
-                    isPositiveNet ? BentoTheme.positive : BentoTheme.negative,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
+          trailing: size == HomeCardSize.compact
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isPositiveNet ? BentoTheme.positive : BentoTheme.negative)
+                        .withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    netFormatted,
+                    style: TextStyle(
+                      color:
+                          isPositiveNet ? BentoTheme.positive : BentoTheme.negative,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
           child: _buildContent(
             context: context,
             snapshot: snapshot,
@@ -179,70 +181,32 @@ class FinanceCard extends StatelessWidget {
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MONEY LEFT',
-                  style: TextStyle(
-                    color: BentoTheme.textSecondary,
-                    fontSize: 10,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AnimatedMetricTicker.rupees(
-                  value: moneyLeft,
-                  style: TextStyle(
-                    color: moneyLeft < 0
-                        ? const Color(0xFFE07A7A)
-                        : BentoTheme.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            InkWell(
-              onTap: () {
-                AppNav.openMoney(context, deepLink: 'today');
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'SAFE TO SPEND',
-                    style: TextStyle(
-                      color: BentoTheme.textSecondary,
-                      fontSize: 10,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isShortfall
-                        ? safeToSpendDisplay
-                        : '${FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0)}/day',
-                    style: TextStyle(
-                      color: isShortfall
-                          ? BentoTheme.negative
-                          : BentoTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        // Element 2: Hero Number
+        AnimatedMetricTicker.rupees(
+          value: moneyLeft,
+          style: TextStyle(
+            color: moneyLeft < 0
+                ? const Color(0xFFE07A7A)
+                : BentoTheme.textPrimary,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(height: 3),
+        // Element 3: Muted Subtitle
+        Text(
+          isShortfall
+              ? 'Short by ${FormatUtils.formatMoney(safeToSpend.shortfall, decimals: 0)}'
+              : 'Safe: ${FormatUtils.formatMoney(safeToSpend.perDay, decimals: 0)}/day · $safeToSpendDisplay total',
+          style: TextStyle(
+            color: BentoTheme.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

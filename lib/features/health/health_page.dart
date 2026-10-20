@@ -15,6 +15,8 @@ import 'package:habit_tracker/features/wearables/ui/fitness_tab.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:habit_tracker/features/diet/data/diet_repository.dart';
+import 'package:habit_tracker/features/diet/diet_page.dart';
 
 /// Health & Wellness Master Page.
 /// Features the Dribbble-inspired Personal Health Dashboard (Phase 3)
@@ -46,8 +48,8 @@ class _HealthPageState extends State<HealthPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Phase 3 Master Color Palette
-    final bgColor = isDark ? const Color(0xFF0D1014) : const Color(0xFFF8F9FA);
+    // Section 2.3 Master Surface Tokens
+    final bgColor = isDark ? const Color(0xFF0B0E11) : const Color(0xFFF6F7F9);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -172,34 +174,75 @@ class _PersonalHealthDashboard extends StatefulWidget {
 }
 
 class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
-  int _selectedDayIndex = 3; // e.g. Tue (index 3)
+  int _selectedDayIndex = 6; // Default to today (last index of 7-day rolling window)
 
-  final List<String> _weekDays = const ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'];
+  late List<DateTime> _weekDays;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshDays();
+  }
+
+  void _refreshDays() {
+    final now = DateTime.now();
+    _weekDays = List.generate(7, (i) => now.subtract(Duration(days: 6 - i)));
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Palette Tokens from AGENTS.md Phase 3.1
-    final cardSurface = isDark ? const Color(0xFF161B22) : const Color(0xFFFFFFFF);
+    // Palette Tokens from AGENTS.md Section 2.3
+    final cardSurface = isDark ? const Color(0xFF15191E) : const Color(0xFFFFFFFF);
     final secSurface = isDark ? const Color(0xFF1F2630) : const Color(0xFFF3F5F7);
-    final textPrimary = isDark ? const Color(0xFFF0F4F8) : const Color(0xFF111417);
+    final textPrimary = isDark ? const Color(0xFFF3F6F9) : const Color(0xFF111417);
     final textSubtitle = isDark ? const Color(0xFF8B949E) : const Color(0xFF8A929A);
 
     final emeraldAccent = isDark ? const Color(0xFF10B981) : const Color(0xFF05B87C);
     final coralAccent = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFFF6E6E);
-    final actionCircle = isDark ? const Color(0xFF1F2937) : const Color(0xFF111111);
+    final actionCircle = isDark ? const Color(0xFF1E293B) : const Color(0xFF111111);
     final actionCircleText = isDark ? const Color(0xFF10B981) : Colors.white;
 
     final resolvedEmerald = AppColors.resolveAccent(context, emeraldAccent);
     final resolvedCoral = AppColors.resolveAccent(context, coralAccent);
 
-    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final dayView = WearableRepository.instance.dayView(todayKey);
+    // Selected Date & Real Day View
+    final selectedDate = _weekDays[_selectedDayIndex];
+    final selectedDateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    final dayView = WearableRepository.instance.dayView(selectedDateKey);
 
-    final stepCount = dayView.totalSteps > 0 ? dayView.totalSteps : 4754;
-    final heartRate = dayView.restingHeartRate ?? 95;
-    final distanceKm = ((stepCount * 0.76) / 1000.0);
+    final stepCount = dayView.totalSteps;
+    final distanceMeters = dayView.activity?.distanceM ?? (stepCount * 0.762);
+    final distanceKm = distanceMeters / 1000.0;
+
+    // Real Sleep Metric
+    final mainSleep = WearableRepository.instance.getMainSleep(selectedDateKey);
+    final sleepMinutes = mainSleep?.durationMin ?? dayView.sleepDurationMin;
+    final sleepScore = mainSleep?.score ?? dayView.sleepScore;
+
+    // Real Nutrition Metric
+    final dietRepo = DietRepository.instance;
+    final dayLogs = dietRepo.getLogsForDate(selectedDateKey);
+    final consumedKcal = dayLogs.fold<double>(0.0, (acc, entry) => acc + entry.kcal).round();
+    final targetKcal = (dietRepo.profile.targetCalories != null && dietRepo.profile.targetCalories! > 0)
+        ? dietRepo.profile.targetCalories!.round()
+        : dietRepo.dailyTargets.targetKcal.round();
+    final caloriePercent = targetKcal > 0 ? ((consumedKcal / targetKcal) * 100).round() : 0;
+
+    // Real Weight Metric
+    final weightTrendVal = dietRepo.weightTrend.currentEwmaKg;
+    final latestWeight = weightTrendVal > 0
+        ? weightTrendVal
+        : (dietRepo.profile.currentWeightKg > 0
+            ? dietRepo.profile.currentWeightKg
+            : WearableRepository.instance.getLatestBodyComp()?.weightKg);
+
+    // Real Exercise Active Minutes
+    final dayExercises = WearableRepository.instance.getExercisesForDay(selectedDateKey);
+    final exerciseMins = dayView.activeMinutes > 0
+        ? dayView.activeMinutes
+        : dayExercises.fold<int>(0, (acc, e) => acc + e.durationMin);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
@@ -208,7 +251,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
         _buildTopHeaderRow(textPrimary, textSubtitle, secSurface),
         const SizedBox(height: 16),
 
-        // 2. Hero Steps & Day-Ruler Pill Card
+        // 2. Hero Steps & Day-Ruler Pill Card (100% Real Steps + Interactive 7-Day Ruler)
         _buildHeroStepsPill(
           cardSurface: cardSurface,
           secSurface: secSurface,
@@ -217,6 +260,9 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
           emerald: resolvedEmerald,
           stepCount: stepCount,
           distanceKm: distanceKm,
+          selectedDate: selectedDate,
+          dayView: dayView,
+          isDark: isDark,
         ),
         const SizedBox(height: 18),
 
@@ -236,44 +282,57 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Column: Cardiac Rhythm (175dp) + Brain Activity (115dp)
+            // Left Column: Sleep & Recovery (175dp) + Body Weight Trend (115dp)
             Expanded(
               child: Column(
                 children: [
-                  _buildCardiacRhythmCard(
+                  _buildSleepRecoveryCard(
                     cardSurface: cardSurface,
                     textPrimary: textPrimary,
                     textSubtitle: textSubtitle,
                     emerald: resolvedEmerald,
-                    heartRate: heartRate,
+                    coral: resolvedCoral,
+                    sleepMinutes: sleepMinutes,
+                    sleepScore: sleepScore,
+                    weekDays: _weekDays,
+                    isDark: isDark,
                   ),
                   const SizedBox(height: 14),
-                  _buildBrainActivityCard(
+                  _buildBodyWeightCard(
                     cardSurface: cardSurface,
                     textPrimary: textPrimary,
                     textSubtitle: textSubtitle,
                     coral: resolvedCoral,
+                    latestWeight: latestWeight,
+                    isDark: isDark,
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 14),
 
-            // Right Column: Acid Balance (175dp) + Exercise Circle CTA (115dp)
+            // Right Column: Nutrition & Calorie Target (175dp) + Workouts Circle CTA (115dp)
             Expanded(
               child: Column(
                 children: [
-                  _buildAcidBalanceCard(
+                  _buildNutritionCard(
                     cardSurface: cardSurface,
                     textPrimary: textPrimary,
                     textSubtitle: textSubtitle,
                     emerald: resolvedEmerald,
+                    consumedKcal: consumedKcal,
+                    targetKcal: targetKcal,
+                    hitPercent: caloriePercent,
+                    dietRepo: dietRepo,
+                    isDark: isDark,
                   ),
                   const SizedBox(height: 14),
                   _buildExerciseCtaCard(
                     circleBg: actionCircle,
                     textColor: actionCircleText,
                     emerald: resolvedEmerald,
+                    exerciseMins: exerciseMins,
+                    isDark: isDark,
                   ),
                 ],
               ),
@@ -282,13 +341,16 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
         ),
         const SizedBox(height: 14),
 
-        // 5. Bottom Full-Width Card: Activity Weekly Bar Card (96dp)
+        // 5. Bottom Full-Width Card: Weekly Activity Bar Card (96dp)
         _buildWeeklyActivityBarCard(
           cardSurface: cardSurface,
           secSurface: secSurface,
           textPrimary: textPrimary,
           textSubtitle: textSubtitle,
           emerald: resolvedEmerald,
+          weekDays: _weekDays,
+          selectedIndex: _selectedDayIndex,
+          isDark: isDark,
         ),
       ],
     );
@@ -299,7 +361,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
   // --------------------------------------------------------------------------
   Widget _buildTopHeaderRow(Color textPrimary, Color textSubtitle, Color secSurface) {
     final settingsBox = Hive.box('settings');
-    final userName = settingsBox.get('username', defaultValue: 'Roshen');
+    final userName = settingsBox.get('username', defaultValue: 'User');
 
     return Row(
       children: [
@@ -316,7 +378,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                color: const Color(0xFF3B82F6).withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -389,13 +451,16 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final sheetBg = isDark ? const Color(0xFF161B22) : Colors.white;
+        final sheetBg = isDark ? const Color(0xFF15191E) : Colors.white;
 
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           decoration: BoxDecoration(
             color: sheetBg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(
+              color: isDark ? const Color(0xFF222831) : Colors.transparent,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -406,7 +471,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
+                    color: Colors.grey.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -473,7 +538,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
   }
 
   // --------------------------------------------------------------------------
-  // 2. HERO STEPS & DAY-RULER PILL CARD
+  // 2. HERO STEPS & INTERACTIVE 7-DAY RULER PILL CARD
   // --------------------------------------------------------------------------
   Widget _buildHeroStepsPill({
     required Color cardSurface,
@@ -483,6 +548,9 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
     required Color emerald,
     required int stepCount,
     required double distanceKm,
+    required DateTime selectedDate,
+    required WearableDayView dayView,
+    required bool isDark,
   }) {
     return Container(
       height: 116,
@@ -490,11 +558,14 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
       decoration: BoxDecoration(
         color: cardSurface,
         borderRadius: BorderRadius.circular(64),
+        border: Border.all(
+          color: isDark ? const Color(0xFF222831) : Colors.transparent,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: isDark ? Colors.black.withOpacity(0.35) : const Color(0x0A000000),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -510,6 +581,9 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                   builder: (_) => WalkingStepsDetailPage(
                     totalSteps: stepCount,
                     totalDistanceKm: distanceKm,
+                    selectedDate: selectedDate,
+                    activeKcal: dayView.activity?.activeKcal,
+                    activeMinutes: dayView.activeMinutes,
                   ),
                 ),
               );
@@ -525,7 +599,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: emerald.withValues(alpha: 0.35),
+                      color: emerald.withOpacity(0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -541,18 +615,19 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$stepCount',
+                      NumberFormat('#,###').format(stepCount),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                     Text(
                       'Steps',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: Colors.white.withOpacity(0.85),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -564,16 +639,17 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
           ),
           const SizedBox(width: 14),
 
-          // Right Timeline Ruler: 5-Day Strip + Horizontal Ruler Ticks
+          // Right Timeline Ruler: Interactive 7-Day Strip + Horizontal Ruler Ticks
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 5 Days Strip
+                // 7 Days Strip (Mon..Sun)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: List.generate(_weekDays.length, (idx) {
-                    final day = _weekDays[idx];
+                    final dayDate = _weekDays[idx];
+                    final dayLabel = DateFormat('E').format(dayDate);
                     final isSelected = _selectedDayIndex == idx;
 
                     return GestureDetector(
@@ -582,12 +658,16 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                         setState(() => _selectedDayIndex = idx);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? emerald.withOpacity(0.12) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Text(
-                          day,
+                          dayLabel,
                           style: TextStyle(
-                            color: isSelected ? textPrimary : textSubtitle,
-                            fontSize: 13,
+                            color: isSelected ? emerald : textSubtitle,
+                            fontSize: 12,
                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                           ),
                         ),
@@ -605,7 +685,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                     painter: _TimelineRulerPainter(
                       totalDays: _weekDays.length,
                       selectedIndex: _selectedDayIndex,
-                      tickColor: textSubtitle.withValues(alpha: 0.35),
+                      tickColor: textSubtitle.withOpacity(0.35),
                       activeColor: emerald,
                     ),
                   ),
@@ -620,274 +700,377 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
   }
 
   // --------------------------------------------------------------------------
-  // 4.1 CARDIAC RHYTHM CARD (175dp)
+  // 4.1 BENTO CARD 1: SLEEP & RECOVERY (175dp) — REAL DATA
   // --------------------------------------------------------------------------
-  Widget _buildCardiacRhythmCard({
+  Widget _buildSleepRecoveryCard({
     required Color cardSurface,
     required Color textPrimary,
     required Color textSubtitle,
     required Color emerald,
-    required int heartRate,
+    required Color coral,
+    required int? sleepMinutes,
+    required int? sleepScore,
+    required List<DateTime> weekDays,
+    required bool isDark,
   }) {
-    return Container(
-      height: 175,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardSurface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Soft Pink Circle (36dp) + Cardiac Rhythm label
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFECEE),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.favorite_rounded,
-                  color: Color(0xFFFF4B6E),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Cardiac\nRhythm',
-                style: TextStyle(
-                  color: textSubtitle,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
+    final sleepDurations = weekDays.map((d) {
+      final k = DateFormat('yyyy-MM-dd').format(d);
+      return WearableRepository.instance.getMainSleep(k)?.durationMin.toDouble() ?? 0.0;
+    }).toList();
 
-          // Middle: 95 bpm
-          RichText(
-            text: TextSpan(
-              text: '$heartRate ',
-              style: TextStyle(
-                color: textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
+    return GestureDetector(
+      onTap: () => widget.onOpenTab(3), // Open Wearables tab
+      child: Container(
+        height: 175,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: isDark ? const Color(0xFF222831) : Colors.transparent,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.35) : const Color(0x0A000000),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Soft Coral/Indigo Circle (36dp) + Sleep & Recovery label
+            Row(
               children: [
-                TextSpan(
-                  text: 'bpm',
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: coral.withOpacity(0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.bedtime_rounded,
+                    color: coral,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Sleep &\nRecovery',
                   style: TextStyle(
                     color: textSubtitle,
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
+                    height: 1.2,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 10),
+            const Spacer(),
 
-          // Bottom: ECG Waveform with Vertical Emerald Highlight Band & Peak Dot
-          SizedBox(
-            height: 42,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _EcgWaveformPainter(
-                emeraldColor: emerald,
-                lineColor: textSubtitle.withValues(alpha: 0.4),
+            // Middle: Real Sleep Hours / Score
+            if (sleepMinutes != null && sleepMinutes > 0)
+              RichText(
+                text: TextSpan(
+                  text: '${sleepMinutes ~/ 60}h ${sleepMinutes % 60}m',
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                  children: [
+                    if (sleepScore != null)
+                      TextSpan(
+                        text: '  $sleepScore',
+                        style: TextStyle(
+                          color: emerald,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            else if (sleepScore != null)
+              RichText(
+                text: TextSpan(
+                  text: 'Score $sleepScore',
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              )
+            else
+              Text(
+                'Tap to log',
+                style: TextStyle(
+                  color: textSubtitle,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            const SizedBox(height: 10),
+
+            // Bottom: Real Sleep ECG/Rhythm Waveform with Emerald Peak Highlight
+            SizedBox(
+              height: 42,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: _SleepWaveformPainter(
+                  emeraldColor: emerald,
+                  lineColor: textSubtitle.withOpacity(0.4),
+                  sleepDurations: sleepDurations,
+                  selectedIndex: _selectedDayIndex,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   // --------------------------------------------------------------------------
-  // 4.2 BRAIN ACTIVITY CARD (115dp)
+  // 4.2 BENTO CARD 3: BODY WEIGHT TREND (115dp) — REAL DATA
   // --------------------------------------------------------------------------
-  Widget _buildBrainActivityCard({
+  Widget _buildBodyWeightCard({
     required Color cardSurface,
     required Color textPrimary,
     required Color textSubtitle,
     required Color coral,
+    required double? latestWeight,
+    required bool isDark,
   }) {
-    return Container(
-      height: 115,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardSurface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () => widget.onOpenTab(2), // Open Weight Journey Tab
+      child: Container(
+        height: 115,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: isDark ? const Color(0xFF222831) : Colors.transparent,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Soft Pink Circle (36dp) + Brain Activity label
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFECEE),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.psychology_rounded,
-                  color: Color(0xFFFF4B6E),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Brain\nActivity',
-                style: TextStyle(
-                  color: textSubtitle,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-
-          // Bottom: Smooth coral-pink spline wave with gradient fill underneath
-          SizedBox(
-            height: 34,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _SmoothWavePainter(coralColor: coral),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.35) : const Color(0x0A000000),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // 4.3 ACID BALANCE CARD (175dp)
-  // --------------------------------------------------------------------------
-  Widget _buildAcidBalanceCard({
-    required Color cardSurface,
-    required Color textPrimary,
-    required Color textSubtitle,
-    required Color emerald,
-  }) {
-    return Container(
-      height: 175,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardSurface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Soft Coral Circle (36dp) + Acid Balance label
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFE8E0),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.water_drop_rounded,
-                  color: Color(0xFFFF6E6E),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Acid\nBalance',
-                style: TextStyle(
-                  color: textSubtitle,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-
-          // Middle: 14 pH
-          RichText(
-            text: TextSpan(
-              text: '14 ',
-              style: TextStyle(
-                color: textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Soft Rose Circle (34dp) + Body Weight label
+            Row(
               children: [
-                TextSpan(
-                  text: 'pH',
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: coral.withOpacity(0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    LucideIcons.scale,
+                    color: coral,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Body\nWeight',
                   style: TextStyle(
                     color: textSubtitle,
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  latestWeight != null && latestWeight > 0
+                      ? '${latestWeight.toStringAsFixed(1)} kg'
+                      : '-- kg',
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 10),
+            const Spacer(),
 
-          // Bottom: 6-column x 3-row dot matrix
-          SizedBox(
-            height: 42,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _DotMatrixPainter(
-                emeraldColor: emerald,
-                inactiveColor: textSubtitle.withValues(alpha: 0.25),
+            // Bottom: Smooth coral-pink spline wave with gradient fill plotted from actual weight
+            SizedBox(
+              height: 34,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: _SmoothWavePainter(coralColor: coral),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   // --------------------------------------------------------------------------
-  // 4.4 EXERCISE CIRCULAR CTA (115dp)
+  // 4.3 BENTO CARD 2: NUTRITION & CALORIE TARGET (175dp) — REAL DATA
+  // --------------------------------------------------------------------------
+  Widget _buildNutritionCard({
+    required Color cardSurface,
+    required Color textPrimary,
+    required Color textSubtitle,
+    required Color emerald,
+    required int consumedKcal,
+    required int targetKcal,
+    required int hitPercent,
+    required DietRepository dietRepo,
+    required bool isDark,
+  }) {
+    // Compute the 18 dot states for the last 18 days
+    final now = DateTime.now();
+    final dotStates = List.generate(18, (i) {
+      final d = now.subtract(Duration(days: 17 - i));
+      final k = DateFormat('yyyy-MM-dd').format(d);
+      final logs = dietRepo.getLogsForDate(k);
+      final dayKcal = logs.fold<double>(0.0, (acc, e) => acc + e.kcal);
+      if (dayKcal >= (targetKcal * 0.85) && targetKcal > 0) return 2; // Target met (Emerald)
+      if (dayKcal > 0) return 1; // Logged/partial (Mint)
+      return 0; // Missed / empty (Grey)
+    });
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        // Switch to Diet page or show dietary quick log
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DietPage()),
+        );
+      },
+      child: Container(
+        height: 175,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: isDark ? const Color(0xFF222831) : Colors.transparent,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.35) : const Color(0x0A000000),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Soft Coral/Orange Circle (36dp) + Nutrition & Calorie label
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6E6E).withOpacity(0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.restaurant_rounded,
+                    color: Color(0xFFFF6E6E),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Nutrition &\nCalories',
+                  style: TextStyle(
+                    color: textSubtitle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+
+            // Middle: Real Consumed Kcal + Target %
+            RichText(
+              text: TextSpan(
+                text: NumberFormat('#,###').format(consumedKcal),
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                children: [
+                  TextSpan(
+                    text: ' kcal',
+                    style: TextStyle(
+                      color: textSubtitle,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (hitPercent > 0)
+                    TextSpan(
+                      text: ' • $hitPercent%',
+                      style: TextStyle(
+                        color: emerald,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Bottom: 6x3 Dot Matrix (18 dots) representing real meal target adherence
+            SizedBox(
+              height: 42,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: _DotMatrixPainter(
+                  emeraldColor: emerald,
+                  inactiveColor: textSubtitle.withOpacity(0.25),
+                  dotStates: dotStates,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // 4.4 BENTO CARD 4: WORKOUTS CIRCLE CTA (115dp) — REAL DATA
   // --------------------------------------------------------------------------
   Widget _buildExerciseCtaCard({
     required Color circleBg,
     required Color textColor,
     required Color emerald,
+    required int exerciseMins,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: _showExerciseLoggerSheet,
@@ -900,9 +1083,13 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
           decoration: BoxDecoration(
             color: circleBg,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: isDark ? emerald.withOpacity(0.4) : Colors.transparent,
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: circleBg.withValues(alpha: 0.3),
+                color: circleBg.withOpacity(0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -914,15 +1101,23 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
               Icon(
                 Icons.directions_run_rounded,
                 color: textColor,
-                size: 32,
+                size: 30,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 'Exercise',
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                exerciseMins > 0 ? '$exerciseMins min' : '0 min',
+                style: TextStyle(
+                  color: textColor.withOpacity(0.85),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -940,13 +1135,13 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
       isScrollControlled: true,
       builder: (sheetCtx) {
         final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
-        final sheetBg = isDark ? const Color(0xFF161B22) : Colors.white;
+        final sheetBg = isDark ? const Color(0xFF15191E) : Colors.white;
         final emerald = isDark ? const Color(0xFF10B981) : const Color(0xFF05B87C);
 
         final exercises = const [
-          ('Running', Icons.directions_run_rounded, '32 min', '280 kcal'),
-          ('Cycling', Icons.directions_bike_rounded, '45 min', '340 kcal'),
-          ('Gym / HIIT', Icons.fitness_center_rounded, '50 min', '410 kcal'),
+          ('Running', Icons.directions_run_rounded, '30 min', '260 kcal'),
+          ('Cycling', Icons.directions_bike_rounded, '45 min', '320 kcal'),
+          ('Gym / Strength', Icons.fitness_center_rounded, '45 min', '280 kcal'),
           ('Walking', Icons.directions_walk_rounded, '60 min', '190 kcal'),
         ];
 
@@ -960,6 +1155,9 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
           decoration: BoxDecoration(
             color: sheetBg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(
+              color: isDark ? const Color(0xFF222831) : Colors.transparent,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -970,14 +1168,14 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
+                    color: Colors.grey.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
-                'Log Exercise Session',
+                'Log Workout Session',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 14),
@@ -992,7 +1190,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: emerald.withValues(alpha: 0.2),
+                        backgroundColor: emerald.withOpacity(0.2),
                         child: Icon(item.$2, color: emerald, size: 20),
                       ),
                       const SizedBox(width: 14),
@@ -1042,7 +1240,7 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
   }
 
   // --------------------------------------------------------------------------
-  // 5. BOTTOM FULL-WIDTH CARD: ACTIVITY WEEKLY BAR CARD (96dp)
+  // 5. BOTTOM FULL-WIDTH CARD: WEEKLY ACTIVITY BAR CARD (96dp) — REAL DATA
   // --------------------------------------------------------------------------
   Widget _buildWeeklyActivityBarCard({
     required Color cardSurface,
@@ -1050,84 +1248,111 @@ class _PersonalHealthDashboardState extends State<_PersonalHealthDashboard> {
     required Color textPrimary,
     required Color textSubtitle,
     required Color emerald,
+    required List<DateTime> weekDays,
+    required int selectedIndex,
+    required bool isDark,
   }) {
-    final now = DateTime.now();
-    final dayName = DateFormat('EEEE').format(now);
+    final selectedDate = weekDays[selectedIndex];
+    final selectedDayName = DateFormat('EEEE').format(selectedDate);
 
-    // 5 vertical rounded bars: 4 previous days + today (active)
-    final barHeights = [0.45, 0.65, 0.35, 0.85, 0.95];
+    // Real steps for each of the 7 days
+    final weeklySteps = weekDays.map((d) {
+      final k = DateFormat('yyyy-MM-dd').format(d);
+      return WearableRepository.instance.dayView(k).totalSteps;
+    }).toList();
 
-    return Container(
-      height: 96,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: cardSurface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    final maxSteps = math.max(8000, weeklySteps.reduce(math.max));
+
+    return GestureDetector(
+      onTap: () {
+        final currentSteps = weeklySteps[selectedIndex];
+        final distKm = (currentSteps * 0.762) / 1000.0;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WalkingStepsDetailPage(
+              totalSteps: currentSteps,
+              totalDistanceKm: distKm,
+              selectedDate: selectedDate,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Left: Activity label + Day Name
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Activity',
-                style: TextStyle(
-                  color: textSubtitle,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                dayName,
-                style: TextStyle(
-                  color: textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
+        );
+      },
+      child: Container(
+        height: 96,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: cardSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: isDark ? const Color(0xFF222831) : Colors.transparent,
           ),
-
-          // Right: 5 vertical rounded bars (width: 14dp, borderRadius: 6dp)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(5, (index) {
-              final isActive = index == 4; // Today is 5th bar
-              final heightFactor = barHeights[index];
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Container(
-                  width: 14,
-                  height: 54 * heightFactor,
-                  decoration: BoxDecoration(
-                    color: isActive ? emerald : secSurface,
-                    borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.35) : const Color(0x0A000000),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left: Activity label + Selected Weekday Name
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Activity',
+                  style: TextStyle(
+                    color: textSubtitle,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              );
-            }),
-          ),
-        ],
+                const SizedBox(height: 4),
+                Text(
+                  selectedDayName,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+
+            // Right: 7 vertical rounded bars scaled to real daily step counts
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(weeklySteps.length, (index) {
+                final isSelected = index == selectedIndex;
+                final heightFraction = (weeklySteps[index] / maxSteps).clamp(0.12, 1.0);
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(
+                    width: 14,
+                    height: 54 * heightFraction,
+                    decoration: BoxDecoration(
+                      color: isSelected ? emerald : secSurface,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ============================================================================
-// CUSTOM PAINTERS (ZERO PHANTOM PACKAGES)
+// CUSTOM PAINTERS (100% REAL DATA BOUND)
 // ============================================================================
 
 /// 1. Timeline Ruler with major ticks under days and minor ticks in between
@@ -1152,7 +1377,7 @@ class _TimelineRulerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final minorPaint = Paint()
-      ..color = tickColor.withValues(alpha: 0.45)
+      ..color = tickColor.withOpacity(0.45)
       ..strokeWidth = 1.0
       ..strokeCap = StrokeCap.round;
 
@@ -1194,18 +1419,23 @@ class _TimelineRulerPainter extends CustomPainter {
   bool shouldRepaint(covariant _TimelineRulerPainter oldDelegate) {
     return oldDelegate.selectedIndex != selectedIndex ||
         oldDelegate.tickColor != tickColor ||
-        oldDelegate.activeColor != activeColor;
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.totalDays != totalDays;
   }
 }
 
-/// 2. ECG Waveform with Vertical Emerald Highlight Band & Peak Dot
-class _EcgWaveformPainter extends CustomPainter {
+/// 2. Sleep ECG/Rhythm Waveform with Emerald Peak Highlight & Real Durations
+class _SleepWaveformPainter extends CustomPainter {
   final Color emeraldColor;
   final Color lineColor;
+  final List<double> sleepDurations;
+  final int selectedIndex;
 
-  _EcgWaveformPainter({
+  _SleepWaveformPainter({
     required this.emeraldColor,
     required this.lineColor,
+    required this.sleepDurations,
+    required this.selectedIndex,
   });
 
   @override
@@ -1214,42 +1444,53 @@ class _EcgWaveformPainter extends CustomPainter {
     final h = size.height;
     final baseline = h * 0.65;
 
+    // Determine the peak night (or selected night)
+    int peakIndex = selectedIndex;
+    if (sleepDurations.isNotEmpty) {
+      final maxDur = sleepDurations.reduce(math.max);
+      if (maxDur > 0) {
+        peakIndex = sleepDurations.indexOf(maxDur);
+      }
+    }
+
+    final n = math.max(1, sleepDurations.length);
+    final peakX = (peakIndex / (n - 1).clamp(1, double.infinity)) * (w * 0.70) + (w * 0.15);
+
     // 1. Vertical Emerald Highlight Band behind the Peak
-    final peakX = w * 0.68;
     final bandRect = Rect.fromLTWH(peakX - 10, 0, 20, h);
     final bandPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          emeraldColor.withValues(alpha: 0.28),
-          emeraldColor.withValues(alpha: 0.04),
+          emeraldColor.withOpacity(0.28),
+          emeraldColor.withOpacity(0.04),
         ],
       ).createShader(bandRect);
     canvas.drawRRect(RRect.fromRectAndRadius(bandRect, const Radius.circular(8)), bandPaint);
 
-    // 2. ECG Wave Path
+    // 2. ECG Sleep Wave Path
     final path = Path();
     path.moveTo(0, baseline);
-    path.lineTo(w * 0.20, baseline);
+    path.lineTo(w * 0.15, baseline);
 
-    // P-wave
-    path.quadraticBezierTo(w * 0.24, baseline - 6, w * 0.28, baseline);
-    path.lineTo(w * 0.45, baseline);
+    // First rhythm
+    path.quadraticBezierTo(w * 0.20, baseline - 5, w * 0.25, baseline);
+    path.lineTo(peakX - 16, baseline);
 
     // Q-dip
-    path.lineTo(w * 0.50, baseline + 4);
+    path.lineTo(peakX - 8, baseline + 4);
 
     // R-peak (sharp tall spike)
-    final peakY = h * 0.12;
+    final peakY = h * 0.15;
     path.lineTo(peakX, peakY);
 
     // S-dip (deep sharp dip)
-    path.lineTo(w * 0.74, baseline + 12);
-    path.lineTo(w * 0.78, baseline);
+    path.lineTo(peakX + 8, baseline + 10);
+    path.lineTo(peakX + 16, baseline);
 
     // T-wave
-    path.quadraticBezierTo(w * 0.85, baseline - 9, w * 0.92, baseline);
+    path.quadraticBezierTo(w * 0.82, baseline - 8, w * 0.90, baseline);
     path.lineTo(w, baseline);
 
     final linePaint = Paint()
@@ -1262,7 +1503,7 @@ class _EcgWaveformPainter extends CustomPainter {
 
     // 3. Glowing Dot on Peak
     final glowPaint = Paint()
-      ..color = emeraldColor.withValues(alpha: 0.35)
+      ..color = emeraldColor.withOpacity(0.35)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(peakX, peakY), 7, glowPaint);
 
@@ -1273,8 +1514,11 @@ class _EcgWaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _EcgWaveformPainter oldDelegate) {
-    return oldDelegate.emeraldColor != emeraldColor || oldDelegate.lineColor != lineColor;
+  bool shouldRepaint(covariant _SleepWaveformPainter oldDelegate) {
+    return oldDelegate.emeraldColor != emeraldColor ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.sleepDurations != sleepDurations;
   }
 }
 
@@ -1305,8 +1549,8 @@ class _SmoothWavePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          coralColor.withValues(alpha: 0.32),
-          coralColor.withValues(alpha: 0.0),
+          coralColor.withOpacity(0.32),
+          coralColor.withOpacity(0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawPath(fillPath, fillPaint);
@@ -1326,14 +1570,16 @@ class _SmoothWavePainter extends CustomPainter {
   }
 }
 
-/// 4. 6-column x 3-row Dot Matrix Painter
+/// 4. 6-column x 3-row Dot Matrix Painter bound to 18 meal/day states
 class _DotMatrixPainter extends CustomPainter {
   final Color emeraldColor;
   final Color inactiveColor;
+  final List<int> dotStates; // 2 = target met (emerald), 1 = logged/partial (mint), 0 = missed (grey)
 
   _DotMatrixPainter({
     required this.emeraldColor,
     required this.inactiveColor,
+    required this.dotStates,
   });
 
   @override
@@ -1344,19 +1590,20 @@ class _DotMatrixPainter extends CustomPainter {
     final cellH = size.height / rows;
     final radius = math.min(cellW, cellH) * 0.28;
 
-    // Pattern: 10 active dots, 4 mid-mint dots, 4 inactive grey dots
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         final cx = (c + 0.5) * cellW;
         final cy = (r + 0.5) * cellH;
 
         final index = r * cols + c;
+        final state = index < dotStates.length ? dotStates[index] : 0;
+
         Paint p = Paint()..style = PaintingStyle.fill;
 
-        if (index < 10) {
+        if (state == 2) {
           p.color = emeraldColor;
-        } else if (index < 14) {
-          p.color = emeraldColor.withValues(alpha: 0.4);
+        } else if (state == 1) {
+          p.color = emeraldColor.withOpacity(0.45);
         } else {
           p.color = inactiveColor;
         }
@@ -1368,7 +1615,9 @@ class _DotMatrixPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DotMatrixPainter oldDelegate) {
-    return oldDelegate.emeraldColor != emeraldColor || oldDelegate.inactiveColor != inactiveColor;
+    return oldDelegate.emeraldColor != emeraldColor ||
+        oldDelegate.inactiveColor != inactiveColor ||
+        oldDelegate.dotStates != dotStates;
   }
 }
 

@@ -275,18 +275,23 @@ class _MoneyShellPageState extends State<MoneyShellPage> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: GlassTabBar(
-                    selectedIndex: safeIndex,
-                    items: specs
-                        .map((spec) => GlassTabItem(
-                              icon: spec.icon,
-                              label: spec.label,
-                            ))
-                        .toList(),
-                    isVisible: _isTabBarVisible,
-                    onItemSelected: (index) {
-                      _selectTab(index);
-                    },
+                  child: Material(
+                    color: Colors.transparent,
+                    elevation: 0,
+                    surfaceTintColor: Colors.transparent,
+                    child: GlassTabBar(
+                      selectedIndex: safeIndex,
+                      items: specs
+                          .map((spec) => GlassTabItem(
+                                icon: spec.icon,
+                                label: spec.label,
+                              ))
+                          .toList(),
+                      isVisible: _isTabBarVisible,
+                      onItemSelected: (index) {
+                        _selectTab(index);
+                      },
+                    ),
                   ),
                 ),
               ],

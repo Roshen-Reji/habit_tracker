@@ -138,6 +138,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       extendBody: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      bottomNavigationBar: Material(
+        color: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        child: BottomNavBar(
+          selectedIndex: clampedIndex,
+          onItemTapped: _onItemTapped,
+        ),
+      ),
       body: Stack(
         children: [
           AnimatedSwitcher(
@@ -154,13 +163,6 @@ class _HomePageState extends State<HomePage> {
             child: KeyedSubtree(
               key: ValueKey(clampedIndex),
               child: pages[clampedIndex],
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavBar(
-              selectedIndex: clampedIndex,
-              onItemTapped: _onItemTapped,
             ),
           ),
           if (clampedIndex != 3) const HomeChatFAB(),

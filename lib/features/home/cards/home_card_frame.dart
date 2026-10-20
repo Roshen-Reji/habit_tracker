@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:habit_tracker/core/motion/press_scale.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
-import 'package:habit_tracker/core/theme/app_tokens.dart';
 import 'package:habit_tracker/core/theme/bento_theme.dart';
 import 'package:habit_tracker/core/theme/tactile_tokens.dart';
-import 'package:habit_tracker/core/widgets/depth_card.dart';
 
 /// The 6 domain visual personalities defined in AGENTS.md Phase 3.
 enum HomeCardDomain {
@@ -29,6 +28,7 @@ class HomeCardFrame extends StatelessWidget {
   final HomeCardDomain domain;
   final String? subtitle;
   final Widget? statusBadge;
+  final bool isAlabaster;
 
   const HomeCardFrame({
     super.key,
@@ -39,11 +39,12 @@ class HomeCardFrame extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.accentColor,
-    this.contentPadding = const EdgeInsets.all(16.0),
+    this.contentPadding = const EdgeInsets.all(18.0),
     this.isFocused = true,
     this.domain = HomeCardDomain.telemetry,
     this.subtitle,
     this.statusBadge,
+    this.isAlabaster = false,
   });
 
   Color _resolveDomainColor() {
@@ -67,68 +68,130 @@ class HomeCardFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final domainColor = AppColors.resolveAccent(context, _resolveDomainColor());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderRadius = BorderRadius.circular(28.0);
 
-    return DepthCard(
-      elevation: isFocused ? DepthElevation.e2 : DepthElevation.e1,
-      radius: 28.0,
-      padding: EdgeInsets.zero,
-      onTap: onTap,
-      onLongPress: onLongPress,
+    final BoxDecoration decoration;
+    final Color textPrimary;
+    final Color textMuted;
+
+    if (isAlabaster) {
+      decoration = BoxDecoration(
+        color: const Color(0xFFF4F6F9),
+        borderRadius: borderRadius,
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      );
+      textPrimary = const Color(0xFF111417);
+      textMuted = const Color(0xFF64748B);
+    } else if (isDark) {
+      decoration = BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF262A30), Color(0xFF1C1F24)],
+        ),
+        borderRadius: borderRadius,
+        border: Border.all(
+          color: Colors.white.withOpacity(0.09),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.30),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      );
+      textPrimary = const Color(0xFFF3F6F9);
+      textMuted = const Color(0xFF8B949E);
+    } else {
+      decoration = BoxDecoration(
+        color: Colors.white,
+        borderRadius: borderRadius,
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
+      textPrimary = const Color(0xFF111417);
+      textMuted = const Color(0xFF64748B);
+    }
+
+    Widget content = Container(
+      decoration: decoration,
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Domain Background Motif (e.g. Banknote ledger micro-grid or subtle gradient)
-          if (domain == HomeCardDomain.ledger)
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _LedgerGridPainter(
-                      gridColor: domainColor.withValues(alpha: 0.04),
+          // Domain Background Motif
+          if (!isAlabaster) ...[
+            if (domain == HomeCardDomain.ledger)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _LedgerGridPainter(
+                        gridColor: domainColor.withValues(alpha: 0.04),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else if (domain == HomeCardDomain.biometrics)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _BiometricPulsePainter(
+                        accentColor: domainColor.withValues(alpha: 0.03),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else if (domain == HomeCardDomain.tactical)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _TacticalGridPainter(
+                        accentColor: domainColor.withValues(alpha: 0.03),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else if (domain == HomeCardDomain.editorial)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _EditorialPaperPainter(
+                        lineColor: domainColor.withValues(alpha: 0.025),
+                      ),
                     ),
                   ),
                 ),
               ),
-            )
-          else if (domain == HomeCardDomain.biometrics)
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _BiometricPulsePainter(
-                      accentColor: domainColor.withValues(alpha: 0.03),
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else if (domain == HomeCardDomain.tactical)
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _TacticalGridPainter(
-                      accentColor: domainColor.withValues(alpha: 0.03),
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else if (domain == HomeCardDomain.editorial)
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _EditorialPaperPainter(
-                      lineColor: domainColor.withValues(alpha: 0.025),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          ],
 
           // Main Card Content
           Padding(
@@ -172,7 +235,7 @@ class HomeCardFrame extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
-                              color: BentoTheme.textPrimary,
+                              color: textPrimary,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -184,7 +247,7 @@ class HomeCardFrame extends StatelessWidget {
                                 fontFamily: 'Roboto',
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
-                                color: BentoTheme.textMuted,
+                                color: textMuted,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -209,6 +272,17 @@ class HomeCardFrame extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null || onLongPress != null) {
+      content = PressScale.card(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: borderRadius,
+        child: content,
+      );
+    }
+
+    return RepaintBoundary(child: content);
   }
 }
 

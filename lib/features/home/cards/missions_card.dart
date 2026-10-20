@@ -34,71 +34,130 @@ class MissionsCard extends StatelessWidget {
         return HomeCardFrame(
           domain: HomeCardDomain.tactical,
           icon: LucideIcons.checkSquare,
-          title: 'DAILY MISSIONS',
+          title: 'Daily Missions',
           onTap: () {
             AppNav.goTo(
               AppTab.tasks,
               sub: TasksSubview.missions,
             );
           },
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: TactileTokens.accentLime.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: TactileTokens.accentLime.withValues(alpha: 0.25),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$completedCount/${dailyGoals.length}',
-                  style: TextStyle(
-                    color: TactileTokens.accentLime,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  LucideIcons.arrowRight,
-                  size: 13,
-                  color: TactileTokens.accentLime,
-                ),
-              ],
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const XpProgressBar(height: 5),
-              const SizedBox(height: 12),
-              if (dailyGoals.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  child: Center(
-                    child: Text(
-                      'NO ACTIVE MISSIONS',
-                      style: TextStyle(
-                        color: BentoTheme.textSecondary,
-                        fontSize: 12,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w600,
-                      ),
+          trailing: size == HomeCardSize.compact
+              ? null
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: TactileTokens.accentLime.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: TactileTokens.accentLime.withValues(alpha: 0.25),
+                      width: 0.8,
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$completedCount/${dailyGoals.length}',
+                        style: TextStyle(
+                          color: TactileTokens.accentLime,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        LucideIcons.arrowRight,
+                        size: 13,
+                        color: TactileTokens.accentLime,
+                      ),
+                    ],
+                  ),
+                ),
+          child: size == HomeCardSize.compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Element 2: Hero Number
+                    Row(
+                      children: [
+                        Text(
+                          '$completedCount',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: BentoTheme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          ' / ${dailyGoals.length} Done',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: BentoTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    // Element 3: Muted Subtitle
+                    Text(
+                      dailyGoals.isEmpty
+                          ? 'No active missions'
+                          : (completedCount == dailyGoals.length
+                              ? 'All daily missions completed!'
+                              : 'Next: ${dailyGoals.firstWhere((g) => !g.isCompleted, orElse: () => dailyGoals.first).title}'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: BentoTheme.textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: dailyGoals.isEmpty ? 0 : completedCount / dailyGoals.length,
+                        minHeight: 4,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withOpacity(0.08)
+                            : const Color(0xFFE2E8F0),
+                        valueColor: AlwaysStoppedAnimation(TactileTokens.accentLime),
+                      ),
+                    ),
+                  ],
                 )
-              else
-                ...displayGoals.map((goal) => TacticalMissionItem(
-                      key: ValueKey(goal.id),
-                      goal: goal,
-                    )),
-            ],
-          ),
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const XpProgressBar(height: 5),
+                    const SizedBox(height: 12),
+                    if (dailyGoals.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Center(
+                          child: Text(
+                            'NO ACTIVE MISSIONS',
+                            style: TextStyle(
+                              color: BentoTheme.textSecondary,
+                              fontSize: 12,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ...displayGoals.map((goal) => TacticalMissionItem(
+                            key: ValueKey(goal.id),
+                            goal: goal,
+                          )),
+                  ],
+                ),
         );
       },
     );
